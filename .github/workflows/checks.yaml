@@ -1,0 +1,94 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+      - development
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    if: ${{ github.event.pull_request.head.ref != 'main' && github.event.pull_request.head.ref != 'development' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Load node modules cache
+        id: modules-cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-modules-
+      - name: install modules
+        run: npm install --no-audit --force --loglevel=error --no-update-notifier
+
+  linting:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Load node modules cache
+        id: modules-cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: false
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: linting
+        run: |
+          npm run lint
+
+  typecheck:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Load node modules cache
+        id: modules-cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: false
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: typecheck
+        run: |
+          npm run type-check
+
+  unit-tests:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Load node modules cache
+        id: modules-cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: false
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: unit testing
+        run: |
+          npm test -- --reporters=default --reporters=jest-github-actions-reporter

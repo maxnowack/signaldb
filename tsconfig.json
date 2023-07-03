@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "declaration": true,
+    "rootDirs": ["./src"],
+    "outDir": "./dist",
+    "strict": true,
+    "downlevelIteration": true,
+    "lib": ["es2017", "dom"],
+    "typeRoots": [
+      "node_modules/@types",
+      ".typings"
+    ],
+    "baseUrl": ".",
+    "noErrorTruncation": true,
+  },
+  "exclude": [],
+  "include": [
+    "src/**/*.ts"
+  ]
+}
