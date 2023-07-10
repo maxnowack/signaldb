@@ -13,6 +13,7 @@ module.exports = {
   plugins: [
     'prefer-object-spread',
     '@typescript-eslint',
+    'jest',
   ],
   settings: {
     'import/resolver': {
@@ -27,17 +28,30 @@ module.exports = {
       '.ts',
     ],
   },
+  env: {
+    commonjs: true,
+    node: true,
+    'jest/globals': true,
+  },
   rules: {
     /*
      * Typescript
      */
-    'no-void': ['error', { allowAsStatement: true }],
+    '@typescript-eslint/no-non-null-assertion': 'error',
+    '@typescript-eslint/consistent-type-imports': ['error', {
+      prefer: 'type-imports',
+    }],
+    'no-void': ['error', {
+      allowAsStatement: true,
+    }],
     indent: 'off',
     '@typescript-eslint/indent': ['error', 2],
     'no-shadow': 'off',
     '@typescript-eslint/no-shadow': ['error'],
     'import/extensions': 'off',
-    'import/no-cycle': ['error', { maxDepth: 1 }],
+    'import/no-cycle': ['error', {
+      maxDepth: 1,
+    }],
     '@typescript-eslint/restrict-template-expressions': ['error', {
       allowNullish: true,
     }],
@@ -47,7 +61,9 @@ module.exports = {
     '@typescript-eslint/no-unsafe-call': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/unbound-method': 'off',
-    '@typescript-eslint/no-use-before-define': ['error', { functions: false }],
+    '@typescript-eslint/no-use-before-define': ['error', {
+      functions: false,
+    }],
     '@typescript-eslint/member-delimiter-style': ['error', {
       multiline: {
         delimiter: 'comma',
@@ -69,49 +85,52 @@ module.exports = {
      * Airbnb
      */
     // Overrides
-    'arrow-parens': ['error', 'as-needed', { requireForBlockBody: true }],
-    'func-names': 'error', // Changed from 'warn' to 'error'.
-    'import/no-absolute-path': 'off', // Turned off because we use absolute paths instead of '../'.
-    'implicit-arrow-linebreak': 'off', // Turned of because of bullshit
-    'no-alert': 'error', // Changed from 'warn' to 'error'.
-    'no-console': 'off', // Changed from 'warn' to 'error'.
-    'no-constant-condition': 'error', // Changed from 'warn' to 'error'.
-    'no-underscore-dangle': ['error', { // Make some exceptions for often used fields
-      allow: [
-        '_id',
-        '_aggregated',
-        '_details',
-      ],
+    'lines-between-class-members': ['error', 'always', {
+      exceptAfterSingleLine: true,
     }],
-    semi: ['error', 'never'], // Changed from 'always' to 'never', because we never use semicolons.
+    'import/no-extraneous-dependencies': ['error', {
+      devDependencies: ['**/*.test.ts', '**/*.spec.ts', '__tests__/**/*.ts'],
+    }],
+    'arrow-parens': ['error', 'as-needed', {
+      requireForBlockBody: true,
+    }],
+    'func-names': 'error',
+    // Changed from 'warn' to 'error'.
+    'import/no-absolute-path': 'off',
+    // Turned off because we use absolute paths instead of '../'.
+    'implicit-arrow-linebreak': 'off',
+    // Turned of because of bullshit
+    'no-alert': 'error',
+    // Changed from 'warn' to 'error'.
+    'no-console': 'error',
+    // Changed from 'warn' to 'error'.
+    'no-constant-condition': 'error',
+    // Changed from 'warn' to 'error'.
+    'no-underscore-dangle': ['error', {
+      // Make some exceptions for often used fields
+      allow: ['_id', '_aggregated', '_details'],
+    }],
+    semi: ['error', 'never'],
+    // Changed from 'always' to 'never', because we never use semicolons.
     // Additions
     'no-warning-comments': 'warn',
     'import/order': ['error', {
-      groups: [
-        'internal',
-        'builtin',
-        'external',
-        'parent',
-        'sibling',
-        'index',
-      ],
+      groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
       'newlines-between': 'never',
     }],
     /*
      * Extentions
      */
-    'no-use-before-define': ['error', { functions: false }],
+    'no-use-before-define': ['off'],
     'object-curly-newline': 'off',
-    'max-len': [
-      2,
-      {
-        code: 100,
-        ignoreComments: true,
-        ignoreUrls: true,
-        ignoreTemplateLiterals: true,
-        ignorePattern: "mf\\s*\\(\\s*(['\"])(.*?)\\1\\s*,\\s*.*?\\s*,?\\s*(['\"])(.*?)\\3,?.*?\\)",
-      },
-    ],
+    'max-len': [2, {
+      code: 100,
+      ignoreComments: true,
+      ignoreUrls: true,
+      ignoreTemplateLiterals: true,
+      ignoreStrings: true,
+      ignorePattern: "u\\s*\\(\\s*(['\"])(.*?)\\1\\s*,\\s*.*?\\s*,?\\s*(['\"])(.*?)\\3,?.*?\\)",
+    }],
     'prefer-object-spread/prefer-object-spread': 'error',
     'object-shorthand': ['error', 'always'],
   },
