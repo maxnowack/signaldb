@@ -60,7 +60,7 @@ export default class Cursor<T extends BaseItem, U = T> {
       .filter(([, value]) => value)
       .map(([key]) => key)
       .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
-    const stop = this.observeChanges(enabledEvents)
+    const stop = this.observeChanges(enabledEvents, true)
     this.options.reactive.onDispose(stop)
   }
 

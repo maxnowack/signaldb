@@ -6,7 +6,10 @@ export default function trackerReactivity(): ReactivityInterface {
     create: () => {
       const dep = new Tracker.Dependency()
       return {
-        depend: () => dep.depend(),
+        depend: () => {
+          if (!Tracker.active) return
+          dep.depend()
+        },
         notify: () => dep.changed(),
       }
     },
