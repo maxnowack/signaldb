@@ -55,13 +55,6 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
     })
   }
 
-  public getItem(selector: Selector<T>) {
-    return this.memory().find((item) => {
-      const matches = match(item, selector)
-      return matches
-    })
-  }
-
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
     const cursorOptions = {
       reactive: this.options.reactivity,
