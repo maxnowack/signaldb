@@ -4,7 +4,7 @@ describe('Collection', () => {
   let collection: Collection
 
   beforeEach(() => {
-    collection = new Collection<{ id: string, name: string }>('testCollection', {
+    collection = new Collection<{ id: string, name: string }>({
       memory: [],
     })
   })

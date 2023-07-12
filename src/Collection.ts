@@ -18,15 +18,12 @@ interface CollectionEvents<T> {
 
 export default class Collection<T extends Record<string, any> = Record<string, any>>
   extends EventEmitter<CollectionEvents<T>> {
-  private name: string
-
   private memory: MemoryInterface<T>
 
-  constructor(name: string, options: Options = {
+  constructor(options: Options = {
     memory: [],
   }) {
     super()
-    this.name = name
     this.memory = options.memory as MemoryInterface<T> || []
   }
 
