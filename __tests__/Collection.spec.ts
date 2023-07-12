@@ -90,12 +90,12 @@ describe('Collection', () => {
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' })
     })
 
-    it('should throw an error if no item matches the selector', () => {
-      expect(() => collection.updateOne({
+    it('should not throw an error if no item matches the selector', () => {
+      expect(collection.updateOne({
         id: '1',
       }, {
         $set: { name: 'Jane' },
-      })).toThrowError('Cannot resolve item for selector')
+      })).toBe(0)
     })
   })
 

@@ -33,7 +33,7 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
   private getItemAndIndex(selector: Selector<T>) {
     const item = this.memory().find(doc => match(doc, selector))
     const index = this.memory().findIndex(doc => doc === item)
-    if (item == null) throw new Error('Cannot resolve item for selector')
+    if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
     return { item, index }
   }
@@ -95,13 +95,16 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
     const newItem = { id: randomId(), ...item } as T
     this.memory().push(newItem)
     this.emit('added', newItem)
+    return newItem.id
   }
 
   public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
     const { item, index } = this.getItemAndIndex(selector)
+    if (item == null) return 0
     const modifiedItem = modify(item, modifier)
     this.memory().splice(index, 1, modifiedItem)
     this.emit('changed', modifiedItem)
+    return 1
   }
 
   public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
@@ -117,15 +120,20 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem)
     })
+    return modifiedItems.length
   }
 
   public removeOne(selector: Selector<T>) {
+    if (!selector) return 0
     const { item, index } = this.getItemAndIndex(selector)
+    if (item == null) return 0
     this.memory().splice(index, 1)
     this.emit('removed', item)
+    return 1
   }
 
   public removeMany(selector: Selector<T>) {
+    if (!selector) return 0
     const items = this.getItems(selector)
 
     items.forEach((item) => {
@@ -137,5 +145,6 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
     items.forEach((item) => {
       this.emit('removed', item)
     })
+    return items.length
   }
 }
