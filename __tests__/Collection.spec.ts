@@ -1,7 +1,7 @@
-import Collection from './Collection'
+import Collection from 'Collection'
 
 describe('Collection', () => {
-  let collection: Collection
+  let collection: Collection<{ id: string, name: string }>
 
   beforeEach(() => {
     collection = new Collection<{ id: string, name: string }>({
@@ -34,7 +34,7 @@ describe('Collection', () => {
       collection.insert({ id: '2', name: 'Jane' })
       collection.insert({ id: '3', name: 'John' })
 
-      const items = collection.find({ name: 'John' })
+      const items = collection.find({ name: 'John' }).fetch()
 
       expect(items).toEqual([
         { id: '1', name: 'John' },
@@ -45,7 +45,7 @@ describe('Collection', () => {
     it('should return an empty array if no items match the selector', () => {
       collection.insert({ id: '1', name: 'John' })
 
-      const items = collection.find({ name: 'Jane' })
+      const items = collection.find({ name: 'Jane' }).fetch()
 
       expect(items).toEqual([])
     })
@@ -63,7 +63,7 @@ describe('Collection', () => {
     it('should emit "inserted" event when an item is inserted', () => {
       const item = { id: '1', name: 'John' }
       const eventHandler = jest.fn()
-      collection.on('inserted', eventHandler)
+      collection.on('added', eventHandler)
 
       collection.insert(item)
 
@@ -107,7 +107,7 @@ describe('Collection', () => {
 
       collection.updateMany({ name: 'John' }, { $set: { name: 'Jay' } })
 
-      expect(collection.find({ name: 'Jay' })).toEqual([
+      expect(collection.find({ name: 'Jay' }).fetch()).toEqual([
         { id: '1', name: 'Jay' },
         { id: '3', name: 'Jay' },
       ])
@@ -136,7 +136,7 @@ describe('Collection', () => {
 
       collection.removeOne({ name: 'John' })
 
-      expect(collection.find({ name: 'John' })).toEqual([{ id: '3', name: 'John' }])
+      expect(collection.find({ name: 'John' }).fetch()).toEqual([{ id: '3', name: 'John' }])
     })
 
     it('should emit "removed" event for the removed item', () => {
@@ -161,7 +161,7 @@ describe('Collection', () => {
 
       collection.removeMany({ name: 'John' })
 
-      expect(collection.find({ name: 'John' })).toEqual([])
+      expect(collection.find({ name: 'John' }).fetch()).toEqual([])
     })
 
     it('should emit "removed" event for each removed item', () => {

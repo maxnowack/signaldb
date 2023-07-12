@@ -50,6 +50,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "fast-sort": "^3.4.0",
     "meteor-ts-tracker": "^2.0.1",
     "mingo": "^6.4.3"
   }
