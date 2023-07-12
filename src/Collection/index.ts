@@ -1,4 +1,5 @@
 import type MemoryInterface from 'types/MemoryInterface'
+import type ReactivityInterface from 'types/ReactivityInterface'
 import EventEmitter from 'types/EventEmitter'
 import type Selector from 'types/Selector'
 import type Modifier from 'types/Modifier'
@@ -10,6 +11,7 @@ import type { BaseItem, FindOptions, Transform } from './types'
 
 interface Options<T extends BaseItem, U = T> {
   memory?: MemoryInterface,
+  reactivity?: ReactivityInterface,
   transform?: Transform<T, U>,
 }
 
@@ -61,10 +63,24 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
   }
 
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
-    return new Cursor<T, U>(() => this.getItems(), selector || {}, {
+    const cursorOptions = {
+      reactive: this.options.reactivity,
       ...options,
       transform: this.transform.bind(this),
-    })
+    }
+    const cursor = new Cursor<T, U>(() => this.getItems(), selector || {}, cursorOptions)
+    if (this.options.reactivity && cursorOptions.reactive) {
+      const requery = () => cursor.requery()
+      this.on('added', requery)
+      this.on('changed', requery)
+      this.on('removed', requery)
+      this.options.reactivity.onDispose(() => {
+        this.off('added', requery)
+        this.off('changed', requery)
+        this.off('removed', requery)
+      })
+    }
+    return cursor
   }
 
   public findOne<O extends Omit<FindOptions<T>, 'limit'>>(selector: Selector<T>, options?: O) {
@@ -75,8 +91,8 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
     return cursor.fetch()[0]
   }
 
-  public insert(item: T) {
-    const newItem = { id: randomId(), ...item }
+  public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
+    const newItem = { id: randomId(), ...item } as T
     this.memory().push(newItem)
     this.emit('added', newItem)
   }

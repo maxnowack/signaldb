@@ -1,4 +1,6 @@
-export type BaseItem = Record<string, any>
+import type ReactivityInterface from 'types/ReactivityInterface'
+
+export type BaseItem = { id: any } & Record<string, any>
 
 export type Transform<T, U = T> = ((doc: T) => U) | null | undefined;
 
@@ -15,4 +17,6 @@ export interface FindOptions<T extends BaseItem> {
   limit?: number | undefined,
   /** Dictionary of fields to return or exclude. */
   fields?: FieldSpecifier<T> | undefined,
+  /** pass `false` to disable reactivity */
+  reactive?: ReactivityInterface | false,
 }

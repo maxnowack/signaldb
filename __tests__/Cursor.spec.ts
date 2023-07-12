@@ -1,10 +1,15 @@
 import Collection from 'Collection'
+import type { ObserveCallbacks } from 'Collection/Observer'
 import type { Transform } from 'Collection/types'
+
+// Helper function to wait for async operations
+const wait = () => new Promise((resolve) => { setImmediate(resolve) })
 
 describe('Cursor', () => {
   interface TestItem {
     id: number,
     name: string,
+    test?: boolean,
   }
 
   const items: TestItem[] = [
@@ -101,6 +106,227 @@ describe('Cursor', () => {
       const cursor = collection.find({ id: { $gt: 1 } }, { sort: { id: 1 }, limit: 1, skip: 1 })
       const result = cursor.count()
       expect(result).toEqual(1)
+    })
+  })
+
+  describe('observeChanges', () => {
+    it('should call the added callback when items are added', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find()
+      cursor.observeChanges(callbacks, true)
+      col.insert({ id: 4, name: 'item4' }) // Add new item
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }))
+      expect(callbacks.addedBefore).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }), null)
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+
+    it('should call the changed callback when items are changed', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find()
+      cursor.observeChanges(callbacks, true)
+      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).not.toHaveBeenCalled()
+      expect(callbacks.addedBefore).not.toHaveBeenCalled()
+      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+
+    it('should call the removed callback when items are removed', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find()
+      cursor.observeChanges(callbacks, true)
+      col.removeOne({ id: 2 }) // Remove item
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).not.toHaveBeenCalled()
+      expect(callbacks.addedBefore).not.toHaveBeenCalled()
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
+    })
+
+    it('should call the removed callback when items are removed from query', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find({ test: { $ne: true } })
+      cursor.observeChanges(callbacks, true)
+      col.updateOne({ id: 2 }, { $set: { test: true } })
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).not.toHaveBeenCalled()
+      expect(callbacks.addedBefore).not.toHaveBeenCalled()
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
+    })
+
+    it('should call the addedBefore callback when items are added', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find({}, {
+        sort: { id: -1 },
+      })
+      cursor.observeChanges(callbacks, true)
+      col.insert({ id: 4, name: 'item4' }) // Add new item
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }))
+      expect(callbacks.addedBefore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 4, name: 'item4' }),
+        expect.objectContaining({ id: 3, name: 'Item 3' }),
+      )
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+
+    it('should call the movedBefore callback when items are moved', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find({}, {
+        sort: { name: 1 },
+      })
+      cursor.observeChanges(callbacks, true)
+      col.updateOne({ id: 2 }, { $set: { name: 'Item 30' } })
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).not.toHaveBeenCalled()
+      expect(callbacks.addedBefore).not.toHaveBeenCalled()
+      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 30' }))
+      expect(callbacks.movedBefore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 2, name: 'Item 30' }),
+        null,
+      )
+      expect(callbacks.movedBefore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 3, name: 'Item 3' }),
+        expect.objectContaining({ id: 2, name: 'Item 30' }),
+      )
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+
+    it('should not call the changed callback when hidden fields are changed', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+      const cursor = col.find({}, { fields: { id: 1 } })
+      cursor.observeChanges(callbacks, true)
+      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).not.toHaveBeenCalled()
+      expect(callbacks.addedBefore).not.toHaveBeenCalled()
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+
+    it('should call the appropriate callbacks when items are added, moved, changed, or removed', async () => {
+      const col = new Collection<TestItem>()
+      items.forEach(item => col.insert(item))
+
+      const callbacks: ObserveCallbacks<TestItem> = {
+        added: jest.fn(),
+        addedBefore: jest.fn(),
+        changed: jest.fn(),
+        movedBefore: jest.fn(),
+        removed: jest.fn(),
+      }
+
+      const cursor = col.find()
+      cursor.observeChanges(callbacks, true)
+
+      // Change data
+      col.insert({ id: 4, name: 'item4' }) // Add new item
+      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
+      col.removeOne({ id: 2 }) // Remove item
+
+      cursor.requery()
+
+      await wait() // Wait for all async operations to finish
+
+      expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }))
+      expect(callbacks.addedBefore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 4, name: 'item4' }),
+        null,
+      )
+      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
+      expect(callbacks.movedBefore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 3, name: 'Item 3' }),
+        expect.objectContaining({ id: 4, name: 'item4' }),
+      )
+      expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
     })
   })
 })

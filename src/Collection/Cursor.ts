@@ -1,23 +1,17 @@
-import EventEmitter from 'types/EventEmitter'
 import type Selector from 'types/Selector'
 import sortItems from 'utils/sortItems'
 import project from 'utils/project'
 import match from 'utils/match'
 import type { BaseItem, FindOptions, Transform } from './types'
+import type { ObserveCallbacks } from './Observer'
+import Observer from './Observer'
 
 interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
   transform?: Transform<T, U>,
 }
 
-interface CursorEvents<T> {
-  added: (item: T) => void,
-  addedBefore: (item: T, before: T) => void,
-  changed: (item: T) => void,
-  movedBefore: (item: T, before: T) => void,
-  removed: (item: T) => void,
-}
-
-export default class Cursor<T extends BaseItem, U = T> extends EventEmitter<CursorEvents<T>> {
+export default class Cursor<T extends BaseItem, U = T> {
+  private observers: Observer<T>[] = []
   private getAllItems: () => T[]
   private selector: Selector<T>
   private options: CursorOptions<T, U>
@@ -27,7 +21,6 @@ export default class Cursor<T extends BaseItem, U = T> extends EventEmitter<Curs
     selector: Selector<T>,
     options?: CursorOptions<T, U>,
   ) {
-    super()
     this.getAllItems = getAllItems
     this.selector = selector
     this.options = options || {}
@@ -43,9 +36,8 @@ export default class Cursor<T extends BaseItem, U = T> extends EventEmitter<Curs
   }
 
   private transform(item: T): U {
-    const projected = !this.options.fields ? item : project(item, this.options.fields)
-    if (!this.options.transform) return projected as unknown as U
-    return this.options.transform(projected)
+    if (!this.options.transform) return item as unknown as U
+    return this.options.transform(item)
   }
 
   private getItems() {
@@ -55,16 +47,78 @@ export default class Cursor<T extends BaseItem, U = T> extends EventEmitter<Curs
     const sorted = sort ? sortItems(filtered, sort) : filtered
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
-    return limited
+    return limited.map(item => (this.options.fields ? project(item, this.options.fields) : item))
+  }
+
+  private depend(changeEvents: { [P in keyof ObserveCallbacks<U>]?: true }) {
+    if (!this.options.reactive) return
+    const signal = this.options.reactive.create()
+    signal.depend()
+    const notify = () => signal.notify()
+
+    const enabledEvents = Object.entries(changeEvents)
+      .filter(([, value]) => value)
+      .map(([key]) => key)
+      .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
+    const stop = this.observeChanges(enabledEvents)
+    this.options.reactive.onDispose(stop)
+  }
+
+  public forEach(callback: (item: U) => void) {
+    const items = this.getItems()
+    this.depend({
+      addedBefore: true,
+      removed: true,
+      changed: true,
+      movedBefore: true,
+    })
+    items.forEach((item) => {
+      callback(this.transform(item))
+    })
+  }
+
+  public map<V>(callback: (item: U) => V) {
+    const results: V[] = []
+    this.forEach((item) => {
+      results.push(callback(item))
+    })
+    return results
   }
 
   public fetch(): U[] {
-    const items = this.getItems()
-    return items.map(item => this.transform(item))
+    return this.map(item => item)
   }
 
   public count() {
     const items = this.getItems()
+    this.depend({
+      added: true,
+      removed: true,
+    })
     return items.length
+  }
+
+  public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false) {
+    const transformedCallbacks = Object
+      .entries(callbacks)
+      .reduce((memo, [key, value]) => (!value ? memo : {
+        ...memo,
+        [key]: (item: T, before: T | undefined) => value(...[
+          this.transform(item),
+          ...before === undefined ? [] : [this.transform(before)],
+        ]),
+      }), {}) as ObserveCallbacks<T>
+    const observer = new Observer(transformedCallbacks, skipInitial)
+    this.observers.push(observer)
+    observer.check(this.getItems())
+
+    return () => {
+      this.observers = this.observers.filter(o => o !== observer)
+    }
+  }
+
+  public requery() {
+    const items = this.getItems()
+    this.observers.forEach(observer => observer.check(items))
   }
 }
