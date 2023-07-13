@@ -6,7 +6,7 @@ import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
-interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
+export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
   transform?: Transform<T, U>,
 }
 

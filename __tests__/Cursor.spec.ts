@@ -1,6 +1,5 @@
-import Collection from 'Collection'
-import type { ObserveCallbacks } from 'Collection/Observer'
-import type { Transform } from 'Collection/types'
+import type { ObserveCallbacks, Transform } from 'index'
+import { Collection } from 'index'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => { setImmediate(resolve) })

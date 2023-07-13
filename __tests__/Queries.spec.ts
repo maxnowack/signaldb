@@ -1,4 +1,4 @@
-import Collection from 'Collection'
+import { Collection } from 'index'
 
 describe('Queries', () => {
   // thanks to https://github.com/meteor/meteor/blob/devel/packages/minimongo/minimongo_tests_client.js

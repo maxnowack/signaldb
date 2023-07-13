@@ -1,4 +1,4 @@
-import Collection from 'Collection'
+import { Collection } from 'index'
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>

@@ -1,6 +1,6 @@
 import { Tracker } from 'meteor-ts-tracker'
-import Collection from 'Collection'
-import type ReactivityInterface from 'types/ReactivityInterface'
+import type { ReactivityInterface } from 'index'
+import { Collection } from 'index'
 
 const trackerReactivity: ReactivityInterface = {
   create: () => {

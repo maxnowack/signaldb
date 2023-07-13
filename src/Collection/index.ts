@@ -9,7 +9,11 @@ import randomId from 'utils/randomId'
 import Cursor from './Cursor'
 import type { BaseItem, FindOptions, Transform } from './types'
 
-interface Options<T extends BaseItem, U = T> {
+export type { Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
+export type { CursorOptions } from './Cursor'
+export type { ObserveCallbacks } from './Observer'
+
+export interface CollectionOptions<T extends BaseItem, U = T> {
   memory?: MemoryInterface,
   reactivity?: ReactivityInterface,
   transform?: Transform<T, U>,
@@ -23,9 +27,9 @@ interface CollectionEvents<T> {
 
 // eslint-disable-next-line max-len
 export default class Collection<T extends BaseItem = BaseItem, U = T> extends EventEmitter<CollectionEvents<T>> {
-  private options: Options<T, U>
+  private options: CollectionOptions<T, U>
 
-  constructor(options?: Options<T, U>) {
+  constructor(options?: CollectionOptions<T, U>) {
     super()
     this.options = { memory: [], ...options }
   }
