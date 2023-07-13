@@ -62,12 +62,12 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
       transform: this.transform.bind(this),
     }
     const cursor = new Cursor<T, U>(() => this.getItems(), selector || {}, cursorOptions)
-    if (this.options.reactivity && cursorOptions.reactive) {
+    if (cursorOptions.reactive) {
       const requery = () => cursor.requery()
       this.on('added', requery)
       this.on('changed', requery)
       this.on('removed', requery)
-      this.options.reactivity.onDispose(() => {
+      cursorOptions.reactive.onDispose(() => {
         this.off('added', requery)
         this.off('changed', requery)
         this.off('removed', requery)
