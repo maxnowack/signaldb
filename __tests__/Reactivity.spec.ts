@@ -1,3 +1,4 @@
+import { jest, describe, it, expect } from '@jest/globals'
 import { Tracker } from 'meteor-ts-tracker'
 import type { ReactivityInterface } from 'index'
 import { Collection } from 'index'

@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 module.exports = {
-  preset: 'ts-jest',
+  extensionsToTreatAsEsm: ['.ts'],
   testEnvironment: 'node',
+  preset: 'ts-jest/presets/default-esm',
   moduleDirectories: ['node_modules', 'src'],
+  testPathIgnorePatterns: ['./dist'],
+  verbose: true,
   collectCoverageFrom: [
     'src/**/*.{js,ts}',
     '!<rootDir>/node_modules/',
@@ -14,6 +17,8 @@ module.exports = {
     },
   },
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: true,
+    }],
   },
 }

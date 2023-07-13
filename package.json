@@ -6,7 +6,8 @@
   "scripts": {
     "prepare": "npm run build",
     "lint": "eslint src/**.ts --max-warnings=0",
-    "test": "jest --runInBand",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "build": "rimraf ./dist && tsc",
     "type-check": "tsc --noEmit"
   },
@@ -33,6 +34,7 @@
   "author": "Max Nowack <max.nowack@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@jest/globals": "^29.6.1",
     "@types/jest": "^29.5.2",
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",

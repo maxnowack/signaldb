@@ -31,7 +31,6 @@ module.exports = {
   env: {
     commonjs: true,
     node: true,
-    'jest/globals': true,
   },
   rules: {
     /*

@@ -1,3 +1,4 @@
+import { jest, describe, it, expect } from '@jest/globals'
 import type { ObserveCallbacks, Transform } from 'index'
 import { Collection } from 'index'
 
