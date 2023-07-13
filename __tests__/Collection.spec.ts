@@ -27,6 +27,15 @@ describe('Collection', () => {
 
       expect(item).toBeUndefined()
     })
+
+    it('should return the first matching item if multiple items match the selector', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'John' })
+
+      const item = collection.findOne({ name: 'John' })
+
+      expect(item).toEqual({ id: '1', name: 'John' })
+    })
   })
 
   describe('find', () => {
@@ -70,6 +79,14 @@ describe('Collection', () => {
 
       expect(eventHandler).toHaveBeenCalledWith(item)
     })
+
+    it('should throw an error if trying to insert an item with the same id', () => {
+      const item = { id: '1', name: 'John' }
+
+      collection.insert(item)
+
+      expect(() => collection.insert(item)).toThrow()
+    })
   })
 
   describe('updateOne', () => {
@@ -97,6 +114,13 @@ describe('Collection', () => {
       }, {
         $set: { name: 'Jane' },
       })).toBe(0)
+    })
+
+    it('should throw an error if trying to update the item id to a value that already exists', () => {
+      collection.insert({ id: '1', name: 'John' })
+
+      expect(() => collection.updateOne({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
+      expect(() => collection.updateOne({ id: '1' }, { $set: { id: '2' } })).toThrow()
     })
   })
 

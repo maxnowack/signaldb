@@ -48,6 +48,7 @@ describe('Reactivity', () => {
         }
       },
       onDispose: (callback) => {
+        if (!Tracker.active) return
         Tracker.onInvalidate(callback)
       },
     }

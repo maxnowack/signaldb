@@ -6,6 +6,7 @@ import type Selector from 'types/Selector'
 import type Modifier from 'types/Modifier'
 import match from 'utils/match'
 import modify from 'utils/modify'
+import isEqual from 'utils/isEqual'
 import randomId from 'utils/randomId'
 import Cursor from './Cursor'
 import type { BaseItem, FindOptions, Transform } from './types'
@@ -127,6 +128,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
+    if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
     const cursorOptions = {
       reactive: this.options.reactivity,
       ...options,
@@ -159,22 +161,34 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
+    if (!item) throw new Error('Invalid item')
     const newItem = { id: randomId(), ...item } as T
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    if (this.findOne({ id: newItem.id } as any)) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
     this.emit('added', newItem)
     return newItem.id
   }
 
   public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
+    if (!selector) throw new Error('Invalid selector')
+    if (!modifier) throw new Error('Invalid modifier')
+
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
     const modifiedItem = modify(item, modifier)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const existingItem = this.findOne({ id: modifiedItem.id } as any)
+    if (!isEqual(existingItem, { ...item, id: modifiedItem.id })) throw new Error('Item with same id already exists')
     this.memory().splice(index, 1, modifiedItem)
     this.emit('changed', modifiedItem)
     return 1
   }
 
   public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
+    if (!selector) throw new Error('Invalid selector')
+    if (!modifier) throw new Error('Invalid modifier')
+
     const items = this.getItems(selector)
     const modifiedItems: T[] = []
     items.forEach((item) => {
@@ -191,7 +205,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public removeOne(selector: Selector<T>) {
-    if (!selector) return 0
+    if (!selector) throw new Error('Invalid selector')
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
     this.memory().splice(index, 1)
@@ -200,7 +214,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public removeMany(selector: Selector<T>) {
-    if (!selector) return 0
+    if (!selector) throw new Error('Invalid selector')
     const items = this.getItems(selector)
 
     items.forEach((item) => {

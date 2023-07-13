@@ -36,11 +36,11 @@ describe('Queries', () => {
 
     /* eslint-disable @typescript-eslint/ban-ts-comment */
     // @ts-ignore
-    c.removeMany(null)
+    expect(() => c.removeMany(null)).toThrow()
     // @ts-ignore
-    c.removeMany(false)
+    expect(() => c.removeMany(false)).toThrow()
     // @ts-ignore
-    c.removeMany(undefined)
+    expect(() => c.removeMany(undefined)).toThrow()
     /* eslint-enable @typescript-eslint/ban-ts-comment */
     expect(c.find().count()).toBe(4)
 
@@ -49,8 +49,7 @@ describe('Queries', () => {
     c.removeOne({ id: undefined })
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    count = c.removeMany()
-    expect(count).toBe(0)
+    expect(() => c.removeMany()).toThrow()
     expect(c.find().count()).toBe(4)
 
     count = c.removeMany({})
@@ -108,5 +107,58 @@ describe('Queries', () => {
     c.insert({ foo: { bar: 'baz' } })
     expect(c.find({ foo: { bam: 'baz' } }).count()).toBe(0)
     expect(c.find({ foo: { bar: 'baz' } }).count()).toBe(1)
+  })
+
+  it('should handle errors', () => {
+    const c = new Collection()
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(() => c.insert(null)).toThrow()
+
+    // Test find with invalid query
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(() => c.find(null)).toThrow()
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(() => c.find(123)).toThrow()
+
+    // Test updateMany with invalid data
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(() => c.updateMany({ id: 1 }, null)).toThrow()
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(() => c.updateMany(null, { $set: { name: 'new name' } })).toThrow()
+
+    // Test removeOne with invalid data
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(() => c.removeOne(null)).toThrow()
+  })
+
+  it('should handle edge cases', () => {
+    const c = new Collection()
+
+    // Test insert, find, updateMany, removeMany, removeOne with empty data
+    expect(c.insert({})).toBeDefined()
+    expect(c.find({}).count()).toBe(1)
+    expect(c.updateMany({}, { $set: { name: 'empty' } })).toBe(1)
+    expect(c.removeMany({})).toBe(1)
+    expect(c.removeOne({})).toBe(0)
+
+    // Test insert with same id
+    c.insert({ id: 1, name: 'strawberry' })
+    expect(() => c.insert({ id: 1, name: 'apple' })).toThrow()
+
+    // Test updateMany with no match
+    expect(c.updateMany({ id: 100 }, { $set: { name: 'new name' } })).toBe(0)
+
+    // Test removeMany with no match
+    expect(c.removeMany({ id: 100 })).toBe(0)
+
+    // Test removeOne with no match
+    expect(c.removeOne({ id: 100 })).toBe(0)
   })
 })
