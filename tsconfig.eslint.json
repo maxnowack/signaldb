@@ -3,7 +3,7 @@
   "include": [
     "__tests__/**/*.ts",
     "src/**/*.ts",
-    "jest.config.js",
+    "vite.config.ts",
     ".eslintrc.js"
   ]
 }

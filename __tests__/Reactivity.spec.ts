@@ -1,4 +1,4 @@
-import { jest, describe, it, expect } from '@jest/globals'
+import { vi, describe, it, expect } from 'vitest'
 import { Tracker } from 'meteor-ts-tracker'
 import {
   signal as maverickSignal,
@@ -54,7 +54,7 @@ describe('Reactivity', () => {
 
     it('should be reactive with Tracker', () => {
       const collection = new Collection({ reactivity })
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       Tracker.autorun(() => {
         callback(collection.find({ name: 'John' }).count())
@@ -68,7 +68,7 @@ describe('Reactivity', () => {
 
     it('should allow overriding reactivity primitives for query', () => {
       const collection = new Collection()
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       Tracker.autorun(() => {
         callback(collection.find({ name: 'John' }, {
@@ -103,7 +103,7 @@ describe('Reactivity', () => {
 
     it('should be reactive with @maverick-js/signals', () => {
       const collection = new Collection({ reactivity })
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       maverickEffect(() => {
         callback(collection.find({ name: 'John' }).count())
@@ -136,7 +136,7 @@ describe('Reactivity', () => {
 
     it('should be reactive with oby', () => {
       const collection = new Collection({ reactivity })
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       obyEffect(() => {
         callback(collection.find({ name: 'John' }).count())
@@ -167,7 +167,7 @@ describe('Reactivity', () => {
 
     it('should be reactive with usignal', () => {
       const collection = new Collection({ reactivity })
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       uEffect(() => {
         callback(collection.find({ name: 'John' }).count())
@@ -198,39 +198,7 @@ describe('Reactivity', () => {
 
     it('should be reactive with sinuous', () => {
       const collection = new Collection({ reactivity })
-      const callback = jest.fn()
-
-      sinuousApi.subscribe(() => {
-        const cursor = collection.find({ name: 'John' })
-        callback(cursor.count())
-      })
-      collection.insert({ id: '1', name: 'John' })
-      expect(callback).toHaveBeenCalledTimes(2)
-      expect(callback).toHaveBeenLastCalledWith(1)
-    })
-  })
-
-  describe('sinuous', () => {
-    const reactivity: ReactivityInterface = {
-      create: () => {
-        const dep = sinuousObservable(0)
-        return {
-          depend: () => {
-            dep()
-          },
-          notify: () => {
-            dep(sinuousApi.sample(() => dep()) + 1)
-          },
-        }
-      },
-      onDispose: (callback) => {
-        sinuousApi.cleanup(callback)
-      },
-    }
-
-    it('should be reactive with sinuous', () => {
-      const collection = new Collection({ reactivity })
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       sinuousApi.subscribe(() => {
         const cursor = collection.find({ name: 'John' })
@@ -260,7 +228,7 @@ describe('Reactivity', () => {
 
     it('should be reactive with preact', () => {
       const collection = new Collection({ reactivity })
-      const callback = jest.fn()
+      const callback = vi.fn()
 
       preactEffect(() => {
         const cursor = collection.find({ name: 'John' })
@@ -295,7 +263,7 @@ describe('Reactivity', () => {
   //   }
 
   //   it('should be reactive with solid', () => {
-  //     const callback = jest.fn()
+  //     const callback = vi.fn()
   //     solidCreateRoot(() => {
   //       const collection = new Collection({ reactivity })
 

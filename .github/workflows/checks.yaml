@@ -91,4 +91,4 @@ jobs:
           key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
         run: |
-          npm test -- --reporters=default --reporters=jest-github-actions-reporter
+          npm test -- run

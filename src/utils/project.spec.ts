@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import project from 'utils/project'
 
 describe('project', () => {
@@ -11,7 +12,7 @@ describe('project', () => {
     hobbies: ['reading', 'gaming'],
   }
 
-  test('should limit fields of the object', () => {
+  it('should limit fields of the object', () => {
     const result = project(obj, {
       name: 1,
       age: 0,
@@ -29,7 +30,7 @@ describe('project', () => {
     })
   })
 
-  test('should handle nested fields that do not exist in the object', () => {
+  it('should handle nested fields that do not exist in the object', () => {
     const result = project(obj, {
       'address.zipCode': 1,
     })
@@ -37,7 +38,7 @@ describe('project', () => {
     expect(result).toEqual({})
   })
 
-  test('should handle an empty object', () => {
+  it('should handle an empty object', () => {
     const result = project({}, {
       name: 1,
     })

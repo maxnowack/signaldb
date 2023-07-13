@@ -1,4 +1,4 @@
-import { jest, describe, it, expect } from '@jest/globals'
+import { vi, describe, it, expect } from 'vitest'
 import type { ObserveCallbacks, Transform } from 'index'
 import { Collection } from 'index'
 
@@ -91,7 +91,7 @@ describe('Cursor', () => {
     it('should return the count of filtered items when selector is provided', () => {
       const cursor = collection.find({ id: 2 })
       const result = cursor.count()
-      expect(result).toEqual(1)
+      expect(result).toBe(1)
     })
 
     it('should return the count of transformed items when transform function is provided', () => {
@@ -99,13 +99,13 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
       const cursor = col.find({ id: 2 })
       const result = cursor.count()
-      expect(result).toEqual(1)
+      expect(result).toBe(1)
     })
 
     it('should return the count of sorted, limited, and skipped items when options are provided', () => {
       const cursor = collection.find({ id: { $gt: 1 } }, { sort: { id: 1 }, limit: 1, skip: 1 })
       const result = cursor.count()
-      expect(result).toEqual(1)
+      expect(result).toBe(1)
     })
   })
 
@@ -115,11 +115,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
@@ -139,11 +139,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
@@ -163,11 +163,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
@@ -187,11 +187,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find({ test: { $ne: true } })
       cursor.observeChanges(callbacks, true)
@@ -211,11 +211,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find({}, {
         sort: { id: -1 },
@@ -240,11 +240,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find({}, {
         sort: { name: 1 },
@@ -273,11 +273,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
       const cursor = col.find({}, { fields: { id: 1 } })
       cursor.observeChanges(callbacks, true)
@@ -297,11 +297,11 @@ describe('Cursor', () => {
       items.forEach(item => col.insert(item))
 
       const callbacks: ObserveCallbacks<TestItem> = {
-        added: jest.fn(),
-        addedBefore: jest.fn(),
-        changed: jest.fn(),
-        movedBefore: jest.fn(),
-        removed: jest.fn(),
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
       }
 
       const cursor = col.find()

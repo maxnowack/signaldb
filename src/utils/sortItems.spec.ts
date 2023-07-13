@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import sortItems from 'utils/sortItems'
 
 describe('sortItems', () => {

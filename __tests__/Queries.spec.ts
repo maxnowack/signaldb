@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import { Collection } from 'index'
 
 describe('Queries', () => {
@@ -71,9 +71,9 @@ describe('Queries', () => {
     expect(c.findOne({ id: 1 }).name).toBe('strawberry')
     expect(c.findOne({ id: 2 }).name).toBe('apple')
     expect(c.findOne({ id: 3 }).name).toBe('rose')
-    expect(c.findOne({ id: 4 })).toBe(undefined)
-    expect(c.findOne({ id: 'abc' })).toBe(undefined)
-    expect(c.findOne({ id: undefined })).toBe(undefined)
+    expect(c.findOne({ id: 4 })).toBeUndefined()
+    expect(c.findOne({ id: 'abc' })).toBeUndefined()
+    expect(c.findOne({ id: undefined })).toBeUndefined()
 
     expect(c.find({ id: 1 }).count()).toBe(1)
     expect(c.find({ id: 4 }).count()).toBe(0)

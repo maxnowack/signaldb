@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import get from './get'
 
 describe('get', () => {
@@ -12,42 +13,42 @@ describe('get', () => {
     },
   }
 
-  test('retrieves deeply nested value', () => {
+  it('retrieves deeply nested value', () => {
     const value = get(testObj, 'a.b.c')
-    expect(value).toEqual('inner value')
+    expect(value).toBe('inner value')
   })
 
-  test('retrieves value from array', () => {
+  it('retrieves value from array', () => {
     const value = get(testObj, 'a.d[1]')
-    expect(value).toEqual(2)
+    expect(value).toBe(2)
   })
 
-  test('retrieves null value', () => {
+  it('retrieves null value', () => {
     const value = get(testObj, 'a.e')
     expect(value).toBeNull()
   })
 
-  test('retrieves undefined value', () => {
+  it('retrieves undefined value', () => {
     const value = get(testObj, 'a.f')
     expect(value).toBeUndefined()
   })
 
-  test('returns undefined for non-existing path', () => {
+  it('returns undefined for non-existing path', () => {
     const value = get(testObj, 'a.b.nonExisting')
     expect(value).toBeUndefined()
   })
 
-  test('returns undefined for incorrect path format', () => {
+  it('returns undefined for incorrect path format', () => {
     const value = get(testObj, 'a..b')
     expect(value).toBeUndefined()
   })
 
-  test('returns undefined for incorrect path format with array', () => {
+  it('returns undefined for incorrect path format with array', () => {
     const value = get(testObj, 'a.d.[1]')
     expect(value).toBeUndefined()
   })
 
-  test('returns undefined for path longer than object depth', () => {
+  it('returns undefined for path longer than object depth', () => {
     const value = get(testObj, 'a.b.c.d')
     expect(value).toBeUndefined()
   })

@@ -4,6 +4,7 @@ module.exports = {
     'plugin:@typescript-eslint/eslint-recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:vitest/recommended',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -13,7 +14,7 @@ module.exports = {
   plugins: [
     'prefer-object-spread',
     '@typescript-eslint',
-    'jest',
+    'vitest',
   ],
   settings: {
     'import/resolver': {
@@ -88,7 +89,7 @@ module.exports = {
       exceptAfterSingleLine: true,
     }],
     'import/no-extraneous-dependencies': ['error', {
-      devDependencies: ['**/*.test.ts', '**/*.spec.ts', '__tests__/**/*.ts'],
+      devDependencies: ['**/*.test.ts', '**/*.spec.ts', '__tests__/**/*.ts', 'vite.config.ts'],
     }],
     'arrow-parens': ['error', 'as-needed', {
       requireForBlockBody: true,

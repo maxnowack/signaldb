@@ -1,4 +1,4 @@
-import { jest, describe, it, expect } from '@jest/globals'
+import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { Collection } from 'index'
 
 describe('Collection', () => {
@@ -63,7 +63,7 @@ describe('Collection', () => {
 
     it('should emit "inserted" event when an item is inserted', () => {
       const item = { id: '1', name: 'John' }
-      const eventHandler = jest.fn()
+      const eventHandler = vi.fn()
       collection.on('added', eventHandler)
 
       collection.insert(item)
@@ -83,7 +83,7 @@ describe('Collection', () => {
 
     it('should emit "changed" event when an item is updated', () => {
       collection.insert({ id: '1', name: 'John' })
-      const eventHandler = jest.fn()
+      const eventHandler = vi.fn()
       collection.on('changed', eventHandler)
 
       collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
@@ -118,7 +118,7 @@ describe('Collection', () => {
       collection.insert({ id: '1', name: 'John' })
       collection.insert({ id: '2', name: 'Jane' })
       collection.insert({ id: '3', name: 'John' })
-      const eventHandler = jest.fn()
+      const eventHandler = vi.fn()
       collection.on('changed', eventHandler)
 
       collection.updateMany({ name: 'John' }, { $set: { name: 'Jane' } })
@@ -144,7 +144,7 @@ describe('Collection', () => {
       collection.insert({ id: '1', name: 'John' })
       collection.insert({ id: '2', name: 'Jane' })
       collection.insert({ id: '3', name: 'John' })
-      const eventHandler = jest.fn()
+      const eventHandler = vi.fn()
       collection.on('removed', eventHandler)
 
       collection.removeOne({ name: 'John' })
@@ -169,7 +169,7 @@ describe('Collection', () => {
       collection.insert({ id: '1', name: 'John' })
       collection.insert({ id: '2', name: 'Jane' })
       collection.insert({ id: '3', name: 'John' })
-      const eventHandler = jest.fn()
+      const eventHandler = vi.fn()
       collection.on('removed', eventHandler)
 
       collection.removeMany({ name: 'John' })
