@@ -5,5 +5,5 @@ interface Signal {
 
 export default interface ReactivityInterface {
   create(): Signal,
-  onDispose(callback: () => void): void,
+  onDispose?(callback: () => void): void,
 }

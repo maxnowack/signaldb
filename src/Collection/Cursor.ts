@@ -15,6 +15,7 @@ export default class Cursor<T extends BaseItem, U = T> {
   private getAllItems: () => T[]
   private selector: Selector<T>
   private options: CursorOptions<T, U>
+  private onCleanupCallbacks: (() => void)[] = []
 
   constructor(
     getAllItems: () => T[],
@@ -24,6 +25,10 @@ export default class Cursor<T extends BaseItem, U = T> {
     this.getAllItems = getAllItems
     this.selector = selector
     this.options = options || {}
+
+    if (this.options.reactive && this.options.reactive.onDispose) {
+      this.options.reactive.onDispose(this.cleanup.bind(this))
+    }
   }
 
   private filterItems(items: T[]) {
@@ -61,7 +66,18 @@ export default class Cursor<T extends BaseItem, U = T> {
       .map(([key]) => key)
       .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
     const stop = this.observeChanges(enabledEvents, true)
-    this.options.reactive.onDispose(stop)
+    this.onCleanup(stop)
+  }
+
+  public cleanup() {
+    this.onCleanupCallbacks.forEach((callback) => {
+      callback()
+    })
+    this.onCleanupCallbacks = []
+  }
+
+  public onCleanup(callback: () => void) {
+    this.onCleanupCallbacks.push(callback)
   }
 
   public forEach(callback: (item: U) => void) {

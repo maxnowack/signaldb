@@ -71,11 +71,12 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
       this.on('added', requery)
       this.on('changed', requery)
       this.on('removed', requery)
-      cursorOptions.reactive.onDispose(() => {
+      const cleanup = () => {
         this.off('added', requery)
         this.off('changed', requery)
         this.off('removed', requery)
-      })
+      }
+      cursor.onCleanup(cleanup)
     }
     return cursor
   }
