@@ -1,6 +1,6 @@
 export { default as Collection } from 'Collection'
-export type { default as ReactivityInterface } from 'types/ReactivityInterface'
-export type { default as MemoryInterface } from 'types/MemoryInterface'
+export type { default as ReactivityAdapter } from 'types/ReactivityAdapter'
+export type { default as MemoryAdapter } from 'types/MemoryAdapter'
 export type {
   ObserveCallbacks,
   CursorOptions,

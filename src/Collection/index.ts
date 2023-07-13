@@ -1,6 +1,6 @@
-import type MemoryInterface from 'types/MemoryInterface'
-import type ReactivityInterface from 'types/ReactivityInterface'
-import type PersistenceInterface from 'types/PersistenceInterface'
+import type MemoryAdapter from 'types/MemoryAdapter'
+import type ReactivityAdapter from 'types/ReactivityAdapter'
+import type PersistenceAdapter from 'types/PersistenceAdapter'
 import EventEmitter from 'types/EventEmitter'
 import type Selector from 'types/Selector'
 import type Modifier from 'types/Modifier'
@@ -15,10 +15,10 @@ export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 
 export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
-  memory?: MemoryInterface,
-  reactivity?: ReactivityInterface,
+  memory?: MemoryAdapter,
+  reactivity?: ReactivityAdapter,
   transform?: Transform<T, U>,
-  persistence?: PersistenceInterface<T, I>,
+  persistence?: PersistenceAdapter<T, I>,
 }
 
 interface CollectionEvents<T> {
@@ -35,7 +35,7 @@ interface CollectionEvents<T> {
 // eslint-disable-next-line max-len
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
-  private persistenceAdapter: PersistenceInterface<T, I> | null = null
+  private persistenceAdapter: PersistenceAdapter<T, I> | null = null
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
@@ -106,7 +106,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private memory() {
-    return this.options.memory as NonNullable<MemoryInterface<T>>
+    return this.options.memory as NonNullable<MemoryAdapter<T>>
   }
 
   private memoryArray() {

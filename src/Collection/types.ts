@@ -1,4 +1,4 @@
-import type ReactivityInterface from 'types/ReactivityInterface'
+import type ReactivityAdapter from 'types/ReactivityAdapter'
 
 export type BaseItem<I = any> = { id: I } & Record<string, any>
 
@@ -18,5 +18,5 @@ export interface FindOptions<T extends BaseItem> {
   /** Dictionary of fields to return or exclude. */
   fields?: FieldSpecifier<T> | undefined,
   /** pass `false` to disable reactivity */
-  reactive?: ReactivityInterface | false,
+  reactive?: ReactivityAdapter | false,
 }

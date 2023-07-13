@@ -31,12 +31,12 @@ import {
 //   onCleanup as solidCleanup,
 //   createRoot as solidCreateRoot,
 // } from 'solid-js'
-import type { ReactivityInterface } from 'index'
+import type { ReactivityAdapter } from 'index'
 import { Collection } from 'index'
 
 describe('Reactivity', () => {
   describe('Tracker', () => {
-    const reactivity: ReactivityInterface = {
+    const reactivity: ReactivityAdapter = {
       create: () => {
         const dep = new Tracker.Dependency()
         return {
@@ -84,7 +84,7 @@ describe('Reactivity', () => {
   })
 
   describe('@maverick-js/signals', () => {
-    const reactivity: ReactivityInterface = {
+    const reactivity: ReactivityAdapter = {
       create: () => {
         const dep = maverickSignal(0)
         return {
@@ -117,7 +117,7 @@ describe('Reactivity', () => {
   })
 
   describe('oby', () => {
-    const reactivity: ReactivityInterface = {
+    const reactivity: ReactivityAdapter = {
       create: () => {
         const dep = $oby(0)
         return {
@@ -150,7 +150,7 @@ describe('Reactivity', () => {
   })
 
   describe('usignal', () => {
-    const reactivity: ReactivityInterface = {
+    const reactivity: ReactivityAdapter = {
       create: () => {
         const dep = uSignal(0)
         return {
@@ -179,7 +179,7 @@ describe('Reactivity', () => {
   })
 
   describe('sinuous', () => {
-    const reactivity: ReactivityInterface = {
+    const reactivity: ReactivityAdapter = {
       create: () => {
         const dep = sinuousObservable(0)
         return {
@@ -211,7 +211,7 @@ describe('Reactivity', () => {
   })
 
   describe('preact', () => {
-    const reactivity: ReactivityInterface = {
+    const reactivity: ReactivityAdapter = {
       create: () => {
         const dep = preactSignal(0)
         return {
@@ -245,7 +245,7 @@ describe('Reactivity', () => {
 
   // solid doenst work in a node environment since createEffect won't run
   // describe('solid', () => {
-  //   const reactivity: ReactivityInterface = {
+  //   const reactivity: ReactivityAdapter = {
   //     create: () => {
   //       const [depend, rerun] = solidSignal(undefined, { equals: false })
   //       return {

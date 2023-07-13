@@ -1,7 +1,7 @@
 /* eslint-disable lines-between-class-members */
 
 // implements methods from the array class used for data manipulation
-export default abstract class MemoryInterface<T = Record<string, any>> {
+export default abstract class MemoryAdapter<T = Record<string, any>> {
   abstract push(item: T): void
   abstract pop(): T | undefined
   abstract splice(start: number, deleteCount?: number, ...items: T[]): T[]

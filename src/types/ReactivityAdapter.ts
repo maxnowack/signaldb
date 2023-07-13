@@ -3,7 +3,7 @@ interface Signal {
   notify(): void,
 }
 
-export default interface ReactivityInterface {
+export default interface ReactivityAdapter {
   create(): Signal,
   onDispose?(callback: () => void): void,
 }
