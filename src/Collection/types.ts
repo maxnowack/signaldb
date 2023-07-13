@@ -1,6 +1,6 @@
 import type ReactivityInterface from 'types/ReactivityInterface'
 
-export type BaseItem = { id: any } & Record<string, any>
+export type BaseItem<I = any> = { id: I } & Record<string, any>
 
 export type Transform<T, U = T> = ((doc: T) => U) | null | undefined;
 

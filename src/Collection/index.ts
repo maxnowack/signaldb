@@ -1,5 +1,6 @@
 import type MemoryInterface from 'types/MemoryInterface'
 import type ReactivityInterface from 'types/ReactivityInterface'
+import type PersistenceInterface from 'types/PersistenceInterface'
 import EventEmitter from 'types/EventEmitter'
 import type Selector from 'types/Selector'
 import type Modifier from 'types/Modifier'
@@ -13,25 +14,87 @@ export type { Transform, SortSpecifier, FieldSpecifier, FindOptions } from './ty
 export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 
-export interface CollectionOptions<T extends BaseItem, U = T> {
+export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   memory?: MemoryInterface,
   reactivity?: ReactivityInterface,
   transform?: Transform<T, U>,
+  persistence?: PersistenceInterface<T, I>,
 }
 
 interface CollectionEvents<T> {
   added: (item: T) => void,
   changed: (item: T) => void,
   removed: (item: T) => void,
+
+  'persistence.init': () => void,
+  'persistence.error': (error: Error) => void,
+  'persistence.transmitted': () => void,
+  'persistence.received': () => void,
 }
 
 // eslint-disable-next-line max-len
-export default class Collection<T extends BaseItem = BaseItem, U = T> extends EventEmitter<CollectionEvents<T>> {
-  private options: CollectionOptions<T, U>
+export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
+  private options: CollectionOptions<T, I, U>
+  private persistenceAdapter: PersistenceInterface<T, I> | null = null
 
-  constructor(options?: CollectionOptions<T, U>) {
+  constructor(options?: CollectionOptions<T, I, U>) {
     super()
     this.options = { memory: [], ...options }
+    if (this.options.persistence) {
+      const persistenceAdapter = this.options.persistence
+      this.persistenceAdapter = persistenceAdapter
+      const loadPersistentData = async () => {
+        // load items from persistence adapter and push them into memory
+        const { items } = await persistenceAdapter.load()
+        // push new items to this.memory() and delete old ones
+        this.memory().splice(0, this.memoryArray().length, ...items)
+
+        this.emit('persistence.received')
+      }
+
+      persistenceAdapter.register(() => loadPersistentData())
+        .then(async () => {
+          await loadPersistentData()
+          this.on('added', (item) => {
+            persistenceAdapter.save(this.memory().map(i => i), {
+              added: [item],
+              modified: [],
+              removed: [],
+            }).then(() => {
+              this.emit('persistence.transmitted')
+            }).catch((error) => {
+              this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+            })
+          })
+          this.on('changed', (item) => {
+            persistenceAdapter.save(this.memory().map(i => i), {
+              added: [],
+              modified: [item],
+              removed: [],
+            }).then(() => {
+              this.emit('persistence.transmitted')
+            }).catch((error) => {
+              this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+            })
+          })
+          this.on('removed', (item) => {
+            persistenceAdapter.save(this.memory().map(i => i), {
+              added: [],
+              modified: [],
+              removed: [item],
+            }).then(() => {
+              this.emit('persistence.transmitted')
+            }).catch((error) => {
+              this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+            })
+          })
+
+          this.emit('persistence.init')
+        })
+        .catch((error) => {
+          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+        })
+    }
   }
 
   private getItemAndIndex(selector: Selector<T>) {
@@ -44,6 +107,10 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
 
   private memory() {
     return this.options.memory as NonNullable<MemoryInterface<T>>
+  }
+
+  private memoryArray() {
+    return this.memory().map(item => item)
   }
 
   private transform(item: T): U {
@@ -68,10 +135,12 @@ export default class Collection<T extends BaseItem = BaseItem, U = T> extends Ev
     const cursor = new Cursor<T, U>(() => this.getItems(), selector || {}, cursorOptions)
     if (cursorOptions.reactive) {
       const requery = () => cursor.requery()
+      this.on('persistence.received', requery)
       this.on('added', requery)
       this.on('changed', requery)
       this.on('removed', requery)
       const cleanup = () => {
+        this.off('persistence.received', requery)
         this.off('added', requery)
         this.off('changed', requery)
         this.off('removed', requery)
