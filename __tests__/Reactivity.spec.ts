@@ -1,11 +1,27 @@
 import { Tracker } from 'meteor-ts-tracker'
 import Collection from 'Collection'
-import trackerReactivity from 'trackerReactivity'
+import type ReactivityInterface from 'types/ReactivityInterface'
+
+const trackerReactivity: ReactivityInterface = {
+  create: () => {
+    const dep = new Tracker.Dependency()
+    return {
+      depend: () => {
+        if (!Tracker.active) return
+        dep.depend()
+      },
+      notify: () => dep.changed(),
+    }
+  },
+  onDispose: (callback) => {
+    Tracker.onInvalidate(callback)
+  },
+}
 
 describe('Reactivity', () => {
   it('should be reactive', () => {
     const collection = new Collection({
-      reactivity: trackerReactivity(),
+      reactivity: trackerReactivity,
     })
     const callback = jest.fn()
 
@@ -25,7 +41,7 @@ describe('Reactivity', () => {
 
     Tracker.autorun(() => {
       callback(collection.find({ name: 'John' }, {
-        reactive: trackerReactivity(),
+        reactive: trackerReactivity,
       }).count())
     })
     Tracker.flush()
