@@ -1,4 +1,4 @@
-import isEqual from 'utils/isEqual'
+import isEqual from '../utils/isEqual'
 
 export interface ObserveCallbacks<T> {
   added?: (item: T) => void,

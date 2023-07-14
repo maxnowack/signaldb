@@ -1,5 +1,5 @@
 import { Query } from 'mingo'
-import type Selector from 'types/Selector'
+import type Selector from '../types/Selector'
 
 type BaseItem = Record<string, any>
 

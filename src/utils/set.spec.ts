@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import set from 'utils/set'
+import set from './set'
 
 describe('set', () => {
   it('should set the value at the specified path in the object', () => {

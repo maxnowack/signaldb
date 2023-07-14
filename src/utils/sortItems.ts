@@ -1,5 +1,5 @@
 import { sort } from 'fast-sort'
-import get from 'utils/get'
+import get from './get'
 
 export default function sortItems<T extends Record<string, any>>(
   items: T[],

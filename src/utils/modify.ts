@@ -1,5 +1,5 @@
 import { updateObject } from 'mingo/updater'
-import type Modifier from 'types/Modifier'
+import type Modifier from '../types/Modifier'
 
 export default function modify<T extends Record<string, any>>(
   item: T,

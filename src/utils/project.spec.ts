@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import project from 'utils/project'
+import project from './project'
 
 describe('project', () => {
   const obj = {

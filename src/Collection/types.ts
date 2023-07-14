@@ -1,4 +1,4 @@
-import type ReactivityAdapter from 'types/ReactivityAdapter'
+import type ReactivityAdapter from '../types/ReactivityAdapter'
 
 export type BaseItem<I = any> = { id: I } & Record<string, any>
 

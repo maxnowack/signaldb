@@ -17,9 +17,10 @@
     "baseUrl": "src",
     "noErrorTruncation": true,
   },
-  "exclude": [],
+  "exclude": [
+    "**/*.spec.ts",
+  ],
   "include": [
-    "__tests__/**/*.ts",
     "src/**/*.ts"
   ]
 }

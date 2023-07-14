@@ -1,5 +1,5 @@
-import get from 'utils/get'
-import set from 'utils/set'
+import get from './get'
+import set from './set'
 
 export default function project<T extends Record<string, any>>(
   item: T,

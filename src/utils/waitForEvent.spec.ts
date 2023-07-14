@@ -1,6 +1,6 @@
 import EventEmitter from 'events'
 import { it, expect, describe } from 'vitest'
-import waitForEvent from 'utils/waitForEvent'
+import waitForEvent from './waitForEvent'
 
 describe('waitForEvent', () => {
   it('should resolve when event is emitted', async () => {
