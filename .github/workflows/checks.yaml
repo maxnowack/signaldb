@@ -92,3 +92,23 @@ jobs:
       - name: unit testing
         run: |
           npm test -- run
+
+  build:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Load node modules cache
+        id: modules-cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: false
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: build package
+        run: |
+          npm run build
