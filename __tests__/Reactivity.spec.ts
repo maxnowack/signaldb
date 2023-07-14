@@ -31,8 +31,8 @@ import {
 //   onCleanup as solidCleanup,
 //   createRoot as solidCreateRoot,
 // } from 'solid-js'
-import type { ReactivityAdapter } from 'index'
-import { Collection } from 'index'
+import type { ReactivityAdapter } from '../src/index'
+import { Collection } from '../src/index'
 
 describe('Reactivity', () => {
   describe('Tracker', () => {

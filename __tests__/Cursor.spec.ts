@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest'
-import type { ObserveCallbacks, Transform } from 'index'
-import { Collection } from 'index'
+import type { ObserveCallbacks, Transform } from '../src/index'
+import { Collection } from '../src/index'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => { setImmediate(resolve) })

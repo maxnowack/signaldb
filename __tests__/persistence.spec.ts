@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { Collection } from 'index'
-import waitForEvent from 'utils/waitForEvent'
+import { Collection } from '../src/index'
+import waitForEvent from '../src/utils/waitForEvent'
 
 // eslint-disable-next-line max-len
 function memoryPersistenceAdapter<T extends { id: I } & Record<string, any>, I = any>(initialData: T[] = []) {

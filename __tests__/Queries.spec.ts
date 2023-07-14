@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Collection } from 'index'
+import { Collection } from '../src/index'
 
 describe('Queries', () => {
   // thanks to https://github.com/meteor/meteor/blob/devel/packages/minimongo/minimongo_tests_client.js

@@ -1,5 +1,5 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
-import { Collection } from 'index'
+import { Collection } from '../src/index'
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
