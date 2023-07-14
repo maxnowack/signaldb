@@ -2,12 +2,21 @@
   "name": "signaldb",
   "version": "0.1.2",
   "description": "SignalDB is a client side database that provides an easy mongob-like interface to the data with first class typescript support. Data persistance can be archieved by using storage providers which save the data through a JSON interface to placed such as localStorage.",
-  "main": "dist/index.js",
+  "main": "dist/signaldb.umd.js",
+  "module": "dist/signaldb.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/signaldb.es.js",
+      "require": "./dist/signaldb.umd.js",
+      "default": "./dist/signaldb.umd.js"
+    }
+  },
   "scripts": {
     "prepare": "npm run build",
     "lint": "eslint src/**.ts --max-warnings=0",
     "test": "vitest",
-    "build": "rimraf ./dist && tsc",
+    "build": "tsc && vite build",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -42,6 +51,7 @@
   "devDependencies": {
     "@maverick-js/signals": "^5.11.2",
     "@preact/signals-core": "^1.3.1",
+    "@rollup/plugin-typescript": "^11.1.2",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.44.0",
@@ -54,11 +64,16 @@
     "meteor-ts-tracker": "^2.0.1",
     "oby": "^14.3.0",
     "rimraf": "^5.0.1",
+    "rollup-plugin-node-polyfills": "^0.2.1",
+    "rollup-plugin-typescript-paths": "^1.4.0",
     "sinuous": "^0.32.1",
     "solid-js": "^1.7.8",
     "ts-node": "^10.9.1",
+    "tslib": "^2.6.0",
     "typescript": "^5.1.6",
     "usignal": "^0.9.0",
+    "vite": "^4.4.3",
+    "vite-plugin-dts": "^3.3.0",
     "vite-tsconfig-paths": "^4.2.0",
     "vitepress": "^1.0.0-beta.5",
     "vitest": "^0.33.0",

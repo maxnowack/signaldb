@@ -137,15 +137,15 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const cursor = new Cursor<T, U>(() => this.getItems(), selector || {}, cursorOptions)
     if (cursorOptions.reactive) {
       const requery = () => cursor.requery()
-      this.on('persistence.received', requery)
-      this.on('added', requery)
-      this.on('changed', requery)
-      this.on('removed', requery)
+      this.addListener('persistence.received', requery)
+      this.addListener('added', requery)
+      this.addListener('changed', requery)
+      this.addListener('removed', requery)
       const cleanup = () => {
-        this.off('persistence.received', requery)
-        this.off('added', requery)
-        this.off('changed', requery)
-        this.off('removed', requery)
+        this.removeListener('persistence.received', requery)
+        this.removeListener('added', requery)
+        this.removeListener('changed', requery)
+        this.removeListener('removed', requery)
       }
       cursor.onCleanup(cleanup)
     }
