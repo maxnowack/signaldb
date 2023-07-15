@@ -1,5 +1,5 @@
 import { signal, peek, onDispose } from '@maverick-js/signals'
-import type { ReactivityAdapter } from '@exodb/core'
+import type { ReactivityAdapter } from 'signaldb'
 
 const reactivity: ReactivityAdapter = {
   create: () => {

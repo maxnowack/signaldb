@@ -8,7 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@exodb/core": "0.0.0",
+    "signaldb": "0.0.0",
     "@maverick-js/signals": "^5.11.2",
     "@types/node": "20.4.2",
     "@types/react": "18.2.15",

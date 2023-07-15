@@ -5,7 +5,7 @@ import {
 import {
   getRxStorageDexie,
 } from 'rxdb/plugins/storage-dexie'
-import type { PersistenceAdapter } from '@exodb/core'
+import type { PersistenceAdapter } from 'signaldb'
 import { RxDBLeaderElectionPlugin } from 'rxdb/plugins/leader-election'
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update'
 

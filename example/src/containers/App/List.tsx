@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { effect } from '@maverick-js/signals'
-import type { Collection } from '@exodb/core'
+import type { Collection } from 'signaldb'
 import style from './style.module.scss'
 
 interface Props {

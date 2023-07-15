@@ -1,4 +1,4 @@
-import { Collection } from '@exodb/core'
+import { Collection } from 'signaldb'
 import reactivity from './reactivity'
 import persistence from './persistence'
 

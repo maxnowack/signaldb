@@ -1,7 +1,7 @@
 {
-  "name": "@exodb/core",
+  "name": "signaldb",
   "version": "0.0.0",
-  "description": "ExoDB is a client side database that provides an easy mongob-like interface to the data with first class typescript support. Data persistance can be archieved by using storage providers which save the data through a JSON interface to placed such as localStorage.",
+  "description": "SignalDB is a client side database that provides an easy mongob-like interface to the data with first class typescript support. Data persistance can be archieved by using storage providers which save the data through a JSON interface to placed such as localStorage.",
   "main": "dist/index.js",
   "scripts": {
     "prepare": "npm run build",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maxnowack/exodb.git"
+    "url": "git+https://github.com/maxnowack/signaldb.git"
   },
   "keywords": [
     "database",

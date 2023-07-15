@@ -2,8 +2,9 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "exodb",
+  title: "SignalDB",
   description: "Documentation",
+
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -66,13 +67,13 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Troubleshooting', link: '/troubleshooting' },
-          { text: 'Github Issues', link: 'https://github.com/maxnowack/exodb/issues' },
+          { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
         ],
       }
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/maxnowack/exodb' }
+      { icon: 'github', link: 'https://github.com/maxnowack/signaldb' }
     ]
   }
 })
