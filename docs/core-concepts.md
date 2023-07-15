@@ -36,4 +36,4 @@ A Persistence Adapter provides the necessary code to interact with a specific st
 
 The key benefit of using Persistence Adapters is flexibility. As they provide an abstraction layer over the storage system, you can switch between different storage systems with minimal impact on the rest of your code.
 
-Check out the documentation page for [persistence adapters](/data-persistence)
+Check out the documentation page for [persistence adapters](/data-persistence/)

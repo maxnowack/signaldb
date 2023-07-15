@@ -36,6 +36,7 @@ export default defineConfig({
         text: 'Reactivity',
         collapsed: false,
         items: [
+          { text: 'Overview', link: '/reactivity/' },
           { text: '@preact/signals-core', link: '/reactivity/preact-signals' },
           { text: 'Solid Signals', link: '/reactivity/solidjs' },
           { text: 'Maverick-js Signals', link: '/reactivity/maverickjs' },
