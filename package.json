@@ -8,7 +8,10 @@
     "lint": "eslint src/**.ts --max-warnings=0",
     "test": "vitest",
     "build": "rimraf ./dist && tsc",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "repository": {
     "type": "git",
@@ -52,6 +55,7 @@
     "typescript": "^5.1.6",
     "usignal": "^0.9.0",
     "vite-tsconfig-paths": "^4.2.0",
+    "vitepress": "^1.0.0-beta.5",
     "vitest": "^0.33.0",
     "vitest-github-actions-reporter": "^0.10.0"
   },
