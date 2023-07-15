@@ -22,6 +22,7 @@ export default defineConfig({
           { text: 'Installation', link: '/installation' },
         ]
       },
+      { text: 'Example', link: 'https://github.com/maxnowack/signaldb/tree/main/example' },
       {
         text: 'Documentation',
         collapsed: false,
@@ -59,7 +60,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Overview', link: '/replication/' },
-          { text: 'RxDB Persistence Interface', link: '/replication/rxdb' },
+          { text: 'RxDB Persistence adapter', link: '/replication/rxdb' },
         ],
       },
       {
@@ -68,6 +69,7 @@ export default defineConfig({
         items: [
           { text: 'Troubleshooting', link: '/troubleshooting' },
           { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
+          { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
         ],
       }
     ],

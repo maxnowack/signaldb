@@ -1,0 +1,3 @@
+# localStorage Adapter
+
+*coming soon*

@@ -119,7 +119,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return this.options.transform(item)
   }
 
-  public getItems(selector?: Selector<T>) {
+  private getItems(selector?: Selector<T>) {
     return this.memory().filter((item) => {
       if (!selector) return true
       const matches = match(item, selector)

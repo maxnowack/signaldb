@@ -1,0 +1,43 @@
+# Reactivity adapter for `usignal`
+
+## Adapter
+
+```js
+import { signal } from 'usignal'
+import type { ReactivityAdapter } from 'signaldb'
+
+const reactivityAdapter: ReactivityAdapter = {
+  create: () => {
+    const dep = preactSignal(0)
+    return {
+      depend: () => {
+        // eslint-disable-next-line no-unused-expressions
+        dep.value
+      },
+      notify: () => {
+        dep.value = dep.peek() + 1
+      },
+    }
+  },
+}
+```
+
+## Usage
+
+```js
+import { Collection } from 'signaldb'
+import { effect } from 'usignal'
+
+const posts = new Collection({
+  reactivity: reactivityAdapter,
+})
+
+effect(() => {
+  const cursor = posts.find({ author: 'John' })
+  console.log(cursor.count())
+  return () => {
+    // usignal doesn't allow to do automatic cleanup, so we have to do it ourself
+    cursor.cleanup()
+  }
+})
+```
