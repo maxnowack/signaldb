@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="#">
+    <img src="./docs/logo.svg" width="150px" alt="JavaScript Database" />
+  </a>
+</p>
+
 # SignalDB
 
 SignalDB is a client side database that provides an easy mongob-like interface to the data with first class typescript support.
