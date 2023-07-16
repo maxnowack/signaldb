@@ -6,6 +6,10 @@ The following are some key concepts that are important to understanding how to u
 
 In SignalDB, all data is held in memory, which makes query performance exceptionally fast. Users can create collections of documents, where each document is a record in the database. Queries can be performed on these collections to fetch data according to certain criteria.
 
+### Schemaless
+
+SignalDB is schemaless, meaning that you don't have to define a schema for your data before you start using it. This allows you to store any data you want, without having to worry about defining a schema first.
+
 More information on how to define collections and perform queries will be found in the dedicated sections:
 * [Collections](/collections)
 * [Queries](/queries)
