@@ -203,4 +203,52 @@ describe('Collection', () => {
       expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'John' })
     })
   })
+
+  describe('events', () => {
+    it('shouldn\'t register any event listeners without reactivity', () => {
+      const col = new Collection<{ id: string, name: string }>({
+        reactivity: {
+          create: () => ({
+            depend: () => {
+              // do nothing
+            },
+            notify: () => {
+              // do nothing
+            },
+          }),
+          onDispose: () => {
+            // do nothing
+          },
+        },
+      })
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      col.insert({ id: '1', name: 'John' })
+      col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      col.removeOne({ id: '1' })
+
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      const cursor = col.find()
+      expect(col.listenerCount('added')).toBe(1)
+      expect(col.listenerCount('changed')).toBe(1)
+      expect(col.listenerCount('removed')).toBe(1)
+
+      cursor.fetch()
+      cursor.cleanup()
+
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      col.find({}, { reactive: false })
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+    })
+  })
 })
