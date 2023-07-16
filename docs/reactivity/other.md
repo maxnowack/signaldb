@@ -45,7 +45,7 @@ Here's a complete example of a reactivity adapter:
 
 ```js
 import { signal, peek, onDispose } from '@maverick-js/signals'
-import type { ReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from 'signaldb'
 
 const reactivity: ReactivityAdapter = {
   create: () => {

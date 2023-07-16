@@ -9,9 +9,9 @@ import { Tracker } from 'meteor-ts-tracker'
 // import in project with meteor
 import { Tracker } from 'meteor/tracker'
 
-import type { ReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from 'signaldb'
 
-const reactivityAdapter: ReactivityAdapter = {
+const reactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = new Tracker.Dependency()
     return {
@@ -26,7 +26,7 @@ const reactivityAdapter: ReactivityAdapter = {
     if (!Tracker.active) return
     Tracker.onInvalidate(callback)
   },
-}
+})
 ```
 
 ## Usage

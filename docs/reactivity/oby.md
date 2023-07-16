@@ -4,9 +4,9 @@
 
 ```js
 import $oby, { untrack, cleanup } from 'oby'
-import type { ReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from 'signaldb'
 
-const reactivityAdapter: ReactivityAdapter = {
+const reactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = $oby(0)
     return {
@@ -21,7 +21,7 @@ const reactivityAdapter: ReactivityAdapter = {
   onDispose: (callback) => {
     cleanup(callback)
   },
-}
+})
 ```
 
 ## Usage

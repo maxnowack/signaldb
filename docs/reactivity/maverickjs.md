@@ -4,9 +4,9 @@
 
 ```js
 import { signal, peek, onDispose } from '@maverick-js/signals'
-import type { ReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from 'signaldb'
 
-const reactivityAdapter: ReactivityAdapter = {
+const reactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {
@@ -21,7 +21,7 @@ const reactivityAdapter: ReactivityAdapter = {
   onDispose: (callback) => {
     onDispose(callback)
   },
-}
+})
 ```
 
 ## Usage

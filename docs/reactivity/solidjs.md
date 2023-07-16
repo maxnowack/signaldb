@@ -4,9 +4,9 @@
 
 ```js
 import { createSignal, onCleanup } from 'solid-js'
-import type { ReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from 'signaldb'
 
-const reactivityAdapter: ReactivityAdapter = {
+const reactivityAdapter = createReactivityAdapter({
   create: () => {
     const [depend, rerun] = createSignal(undefined, { equals: false })
     return {
@@ -21,7 +21,7 @@ const reactivityAdapter: ReactivityAdapter = {
   onDispose: (callback) => {
     onCleanup(callback)
   },
-}
+})
 ```
 
 ## Usage

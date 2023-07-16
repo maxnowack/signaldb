@@ -4,9 +4,9 @@
 
 ```js
 import { observable, api } from 'sinuous'
-import type { ReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from 'signaldb'
 
-const reactivityAdapter: ReactivityAdapter = {
+const reactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = observable(0)
     return {
@@ -21,7 +21,7 @@ const reactivityAdapter: ReactivityAdapter = {
   onDispose: (callback) => {
     api.cleanup(callback)
   },
-}
+})
 ```
 
 ## Usage

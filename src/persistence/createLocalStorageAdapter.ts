@@ -1,11 +1,11 @@
-import type PersistenceAdapter from '../types/PersistenceAdapter'
+import createPersistenceAdapter from 'persistence/createPersistenceAdapter'
 
 export default function createLocalStorageAdapter<
   T extends { id: I } & Record<string, any>,
   I,
->(name: string): PersistenceAdapter<T, I> {
+>(name: string) {
   const id = `signaldb-collection-${name}`
-  return {
+  return createPersistenceAdapter<T, I>({
     async load() {
       const items = JSON.parse(localStorage.getItem(id) || '[]')
       return Promise.resolve({ items })
@@ -17,5 +17,5 @@ export default function createLocalStorageAdapter<
     async register() {
       return Promise.resolve()
     },
-  }
+  })
 }
