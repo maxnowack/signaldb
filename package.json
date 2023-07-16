@@ -17,6 +17,7 @@
     "type": "git",
     "url": "git+https://github.com/maxnowack/signaldb.git"
   },
+  "homepage": "https://signaldb.js.org",
   "keywords": [
     "database",
     "local-database",
