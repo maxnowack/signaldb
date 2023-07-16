@@ -1,6 +1,6 @@
 <p align="center">
   <a href="#">
-    <img src="./docs/logo.svg" width="150px" alt="JavaScript Database" />
+    <img src="./docs/public/logo.svg" width="150px" alt="JavaScript Database" />
   </a>
 </p>
 
