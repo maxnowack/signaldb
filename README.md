@@ -20,7 +20,16 @@ However, there will be a storage provider for RxDB that will take over the repli
 
 ## Usage
 
-*SignalDB is beeing developed right now is still very far from being fully implemented. Once there is a first version to test, you'll find the documentation here.*
+```js
+import { Collection } from 'signaldb'
+
+const posts = new Collection()
+const postId = posts.insert({ title: 'Foo', text: 'Lorem ipsum …' })
+const cursor = collection.find({})
+console.log(cursor.fetch()) // returns an array with all documents in the collection
+```
+
+Please also take a look at the [documentation](https://maxnowack.github.io/signaldb)
 
 ## Architecture
 
