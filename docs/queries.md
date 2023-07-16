@@ -40,3 +40,7 @@ collection.find({}, {
   limit: 10,
 })
 ```
+
+## Cursors
+
+*coming soon*
