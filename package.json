@@ -46,6 +46,7 @@
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prefer-object-spread": "^1.2.1",
     "eslint-plugin-vitest": "^0.2.6",
+    "happy-dom": "^10.3.2",
     "meteor-ts-tracker": "^2.0.1",
     "oby": "^14.3.0",
     "rimraf": "^5.0.1",

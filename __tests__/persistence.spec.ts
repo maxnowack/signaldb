@@ -1,5 +1,6 @@
+import fs from 'fs/promises'
 import { describe, it, expect } from 'vitest'
-import { Collection } from '../src/index'
+import { Collection, createFilesystemAdapter } from '../src/index'
 import waitForEvent from '../src/utils/waitForEvent'
 
 // eslint-disable-next-line max-len
@@ -114,5 +115,21 @@ describe('Persistence', () => {
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
     expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+  })
+
+  it('should persist changes to filesystem', async () => {
+    const persistence = createFilesystemAdapter('/tmp/data.json')
+    const collection = new Collection({ persistence })
+    collection.on('persistence.error', (error) => {
+      expect(error).toBeUndefined()
+    })
+    await waitForEvent(collection, 'persistence.init')
+
+    collection.insert({ id: '1', name: 'John' })
+    await waitForEvent(collection, 'persistence.transmitted')
+
+    const contents = await fs.readFile('/tmp/data.json', 'utf-8')
+    expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
+    await fs.unlink('/tmp/data.json').catch(() => { /* do nothing */ })
   })
 })

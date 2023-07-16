@@ -10,3 +10,5 @@ export type {
   FieldSpecifier,
   FindOptions,
 } from './Collection'
+export { default as createLocalStorageAdapter } from './persistence/createLocalStorageAdapter'
+export { default as createFilesystemAdapter } from './persistence/createFilesystemAdapter'

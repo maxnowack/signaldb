@@ -54,6 +54,7 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/data-persistence/' },
           { text: 'localStorage', link: '/data-persistence/local-storage' },
+          { text: 'Filesystem', link: '/data-persistence/file-system' },
           { text: 'Other Persistence Options', link: '/data-persistence/other' },
         ],
       },
