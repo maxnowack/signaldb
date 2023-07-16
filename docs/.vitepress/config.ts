@@ -4,6 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "SignalDB",
   description: "Documentation",
+  base: '/signaldb/',
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
@@ -77,6 +78,10 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/maxnowack/signaldb' }
-    ]
+    ],
+
+    search: {
+      provider: 'local',
+    },
   }
 })
