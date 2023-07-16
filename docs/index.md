@@ -10,7 +10,7 @@ hero:
   tagline: MongoDB-like interface, first-class typescript support and signal based reactivity, with your favorite library.
   image:
     src: /logo.svg
-    alt: VitePress
+    alt: SignalDB Logo
   actions:
     - theme: brand
       text: Get Started
