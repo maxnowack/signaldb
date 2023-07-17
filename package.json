@@ -6,7 +6,7 @@
     "prepare": "npm run build",
     "lint": "eslint src/**.ts --max-warnings=0",
     "test": "vitest",
-    "build": "rimraf dist && unbuild",
+    "build": "rimraf dist && vite build",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "(cd example && npm run build) && cp -R example/out docs/public/todo-example && vitepress build docs",
@@ -39,12 +39,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js",
+      "default": "./dist/index.umd.js"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
@@ -61,6 +62,7 @@
     "@maverick-js/signals": "^5.11.2",
     "@preact/signals-core": "^1.3.1",
     "@reactively/core": "^0.0.8",
+    "@rollup/plugin-typescript": "^11.1.2",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.44.0",
@@ -73,14 +75,18 @@
     "meteor-ts-tracker": "^2.0.1",
     "oby": "^14.3.0",
     "rimraf": "^5.0.1",
+    "rollup-plugin-typescript-paths": "^1.4.0",
     "s-js": "^0.4.9",
     "sinuous": "^0.32.1",
     "sitemap-ts": "^1.4.0",
     "solid-js": "^1.7.8",
     "ts-node": "^10.9.1",
+    "tslib": "^2.6.0",
     "typescript": "^5.1.6",
-    "unbuild": "^1.2.1",
     "usignal": "^0.9.0",
+    "vite": "^4.4.4",
+    "vite-plugin-dts": "^3.3.1",
+    "vite-plugin-node-polyfills": "^0.9.0",
     "vite-tsconfig-paths": "^4.2.0",
     "vitepress": "^1.0.0-beta.5",
     "vitest": "^0.33.0",
