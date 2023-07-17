@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { generateSitemap as sitemap } from 'sitemap-ts'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -94,4 +95,12 @@ export default defineConfig({
     ['meta', { name: 'msapplication-TileColor', content: '#0367e9' }],
     ['meta', { name: 'theme-color', content: '#ffffff' }],
   ],
+
+  buildEnd: () => {
+    sitemap({
+      hostname: 'https://signaldb.js.org',
+      outDir: './docs/.vitepress/dist',
+      exclude: ['/googlef8c159020eb311c9.html'],
+    })
+  },
 })
