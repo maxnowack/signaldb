@@ -10,7 +10,7 @@ declare interface EventEmitter<T extends Record<string | symbol, any>> {
   ): boolean,
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-declaration-merging
 class EventEmitter<T> extends BaseEventEmitter {}
 
 export default EventEmitter
