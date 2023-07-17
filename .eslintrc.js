@@ -16,6 +16,7 @@ module.exports = {
     '@typescript-eslint',
     'vitest',
   ],
+  ignorePatterns: ['!.*', 'dist', 'node_modules'],
   settings: {
     'import/resolver': {
       typescript: {
@@ -89,7 +90,13 @@ module.exports = {
       exceptAfterSingleLine: true,
     }],
     'import/no-extraneous-dependencies': ['error', {
-      devDependencies: ['**/*.test.ts', '**/*.spec.ts', '__tests__/**/*.ts', 'vite.config.ts'],
+      devDependencies: [
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        '__tests__/**/*.ts',
+        '*.config.ts',
+        'docs/.vitepress/config.ts',
+      ],
     }],
     'arrow-parens': ['error', 'as-needed', {
       requireForBlockBody: true,

@@ -3,14 +3,14 @@ import { generateSitemap as sitemap } from 'sitemap-ts'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "SignalDB",
-  description: "Documentation",
+  title: 'SignalDB',
+  description: 'Documentation',
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Get Started', link: '/getting-started' }
+      { text: 'Get Started', link: '/getting-started' },
     ],
 
     sidebar: [
@@ -21,7 +21,7 @@ export default defineConfig({
           { text: 'Core Concepts', link: '/core-concepts' },
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Installation', link: '/installation' },
-        ]
+        ],
       },
       { text: 'Example', link: 'https://github.com/maxnowack/signaldb/tree/main/example' },
       {
@@ -74,11 +74,11 @@ export default defineConfig({
           { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
           { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
         ],
-      }
+      },
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/maxnowack/signaldb' }
+      { icon: 'github', link: 'https://github.com/maxnowack/signaldb' },
     ],
 
     search: {
@@ -87,19 +87,19 @@ export default defineConfig({
 
     editLink: {
       pattern: 'https://github.com/maxnowack/signaldb/edit/main/docs/:path',
-      text: 'Edit this page on GitHub'
+      text: 'Edit this page on GitHub',
     },
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2023-present <a href="https://nowack.dev" target="_blank" rel="noopener">Max Nowack</a>'
+      copyright: 'Copyright © 2023-present <a href="https://nowack.dev" target="_blank" rel="noopener">Max Nowack</a>',
     },
   },
 
   head: [
     ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: "32x32", href: '/favicon-32x32.png' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: "16x16", href: '/favicon-16x16.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' }],
     ['link', { rel: 'manifest', href: '/site.webmanifest' }],
     ['link', { rel: 'mask-icon', href: '/safari-pinned-tab.svg', color: '#0367e9' }],
     ['meta', { name: 'msapplication-TileColor', content: '#0367e9' }],
