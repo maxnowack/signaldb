@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npx --no-install commitlint --edit $1 &
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$branch" = "main" ]; then
+  npm run lint &
+  npm run type-check &
+  npm run test -- run &
+fi
+
+FAIL=0
+for job in `jobs -p`
+do
+  wait $job || let "FAIL+=1"
+done
+
+if [ "$FAIL" == "0" ];
+then
+  exit 0
+else
+  exit 1
+fi
