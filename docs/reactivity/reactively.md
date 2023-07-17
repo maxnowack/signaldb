@@ -8,19 +8,19 @@ import { createReactivityAdapter } from 'signaldb'
 
 const reactivityAdapter = createReactivityAdapter({
   create: () => {
-        const dep = reactive(0)
-        return {
-          depend: () => {
-            dep.get()
-          },
-          notify: () => {
-            dep.set(dep.value + 1)
-          },
-        }
+    const dep = reactive(0)
+    return {
+      depend: () => {
+        dep.get()
       },
-      onDispose: (callback) => {
-        nCleanup(callback)
+      notify: () => {
+        dep.set(dep.value + 1)
       },
+    }
+  },
+  onDispose: (callback) => {
+    nCleanup(callback)
+  },
 })
 ```
 
