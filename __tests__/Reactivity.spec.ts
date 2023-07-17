@@ -26,6 +26,7 @@ import {
   effect as preactEffect,
 } from '@preact/signals-core'
 import { reactive as reactively, onCleanup as reactivelyOnCleanup } from '@reactively/core'
+import S from 's-js'
 // import {
 //   createSignal as solidSignal,
 //   createEffect as solidEffect,
@@ -275,6 +276,38 @@ describe('Reactivity', () => {
       collection.insert({ id: '1', name: 'John' })
       exec.get()
 
+      expect(callback).toHaveBeenCalledTimes(2)
+      expect(callback).toHaveBeenLastCalledWith(1)
+    })
+  })
+
+  describe('S.js', () => {
+    const reactivity: ReactivityAdapter = {
+      create: () => {
+        const dep = S.data(true)
+        return {
+          depend: () => {
+            dep()
+          },
+          notify: () => {
+            dep(true)
+          },
+        }
+      },
+      onDispose: (callback) => {
+        S.cleanup(callback)
+      },
+    }
+
+    it('should be reactive with S.js', () => {
+      const collection = new Collection({ reactivity })
+      const callback = vi.fn()
+
+      S(() => {
+        const cursor = collection.find({ name: 'John' })
+        callback(cursor.count())
+      })
+      collection.insert({ id: '1', name: 'John' })
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })

@@ -47,6 +47,7 @@ export default defineConfig({
           { text: 'usignal', link: '/reactivity/usignal' },
           { text: 'sinuous', link: '/reactivity/sinuous' },
           { text: '@reactively/core', link: '/reactivity/reactively' },
+          { text: 'S.js', link: '/reactivity/S' },
           { text: 'Other libraries', link: '/reactivity/other' },
         ],
       },
