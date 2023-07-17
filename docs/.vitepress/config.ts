@@ -5,6 +5,7 @@ import { generateSitemap as sitemap } from 'sitemap-ts'
 export default defineConfig({
   title: 'SignalDB',
   description: 'Documentation',
+  lastUpdated: true,
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
