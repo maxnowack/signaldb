@@ -1,4 +1,4 @@
-# Reactivity adapter for `@maverick-js/signals`
+# Reactivity adapter for [`@maverick-js/signals`](https://github.com/maverick-js/signals)
 
 ## Adapter
 

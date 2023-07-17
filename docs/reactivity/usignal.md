@@ -1,4 +1,4 @@
-# Reactivity adapter for `usignal`
+# Reactivity adapter for [`usignal`](https://github.com/WebReflection/usignal)
 
 ## Adapter
 

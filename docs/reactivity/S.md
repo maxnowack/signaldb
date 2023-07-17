@@ -1,4 +1,4 @@
-# Reactivity adapter for `S.js`
+# Reactivity adapter for [`S.js`](https://github.com/adamhaile/S)
 
 ## Adapter
 

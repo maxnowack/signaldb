@@ -1,4 +1,4 @@
-# Reactivity adapter for Meteor Tracker
+# Reactivity adapter for [Meteor Tracker](https://docs.meteor.com/api/tracker.html)
 
 ## Adapter
 

@@ -1,4 +1,4 @@
-# Reactivity adapter for `sinuous`
+# Reactivity adapter for [`sinuous`](https://sinuous.netlify.app/)
 
 ## Adapter
 

@@ -1,4 +1,4 @@
-# Reactivity adapter for `@reactively/core`
+# Reactivity adapter for [`@reactively/core`](https://github.com/modderme123/reactively)
 
 ## Adapter
 

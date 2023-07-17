@@ -1,4 +1,4 @@
-# Reactivity adapter for `@preact/signals`
+# Reactivity adapter for [`@preact/signals`](https://preactjs.com/blog/introducing-signals/)
 
 ## Adapter
 

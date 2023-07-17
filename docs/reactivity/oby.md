@@ -1,4 +1,4 @@
-# Reactivity adapter for `oby`
+# Reactivity adapter for [`oby`](https://github.com/vobyjs/oby)
 
 ## Adapter
 

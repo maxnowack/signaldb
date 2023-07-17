@@ -1,4 +1,4 @@
-# Reactivity adapter for `solid-js`
+# Reactivity adapter for [`solid-js`](https://www.solidjs.com/docs/latest)
 
 ## Adapter
 
