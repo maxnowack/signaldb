@@ -2,4 +2,5 @@ dist
 node_modules
 docs/.vitepress/dist
 docs/.vitepress/cache
+docs/public/todo-example
 .DS_Store
