@@ -24,7 +24,7 @@ export default defineConfig({
           { text: 'Installation', link: '/installation' },
         ],
       },
-      { text: 'Example', link: 'https://github.com/maxnowack/signaldb/tree/main/example' },
+      { text: 'Example', link: 'https://signaldb.js.org/todo-example/' },
       {
         text: 'Documentation',
         collapsed: false,
