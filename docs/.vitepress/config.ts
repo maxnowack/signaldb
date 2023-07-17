@@ -84,6 +84,16 @@ export default defineConfig({
     search: {
       provider: 'local',
     },
+
+    editLink: {
+      pattern: 'https://github.com/maxnowack/signaldb/edit/main/docs/:path',
+      text: 'Edit this page on GitHub'
+    },
+
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2023-present <a href="https://nowack.dev" target="_blank" rel="noopener">Max Nowack</a>'
+    },
   },
 
   head: [
