@@ -1,21 +1,15 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es2017",
+    "module": "esnext",
+    "lib": ["esnext", "dom"],
     "moduleResolution": "node",
-    "module": "commonjs",
     "esModuleInterop": true,
-    "declaration": true,
-    "rootDirs": ["./src"],
-    "outDir": "./dist",
     "strict": true,
-    "downlevelIteration": true,
-    "lib": ["es2017", "dom"],
-    "typeRoots": [
-      "node_modules/@types",
-      ".typings"
-    ],
-    "baseUrl": "src",
-    "noErrorTruncation": true,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true
   },
   "exclude": [
     "**/*.spec.ts",

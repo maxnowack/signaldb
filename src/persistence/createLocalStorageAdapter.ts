@@ -1,4 +1,4 @@
-import createPersistenceAdapter from 'persistence/createPersistenceAdapter'
+import createPersistenceAdapter from './createPersistenceAdapter'
 
 export default function createLocalStorageAdapter<
   T extends { id: I } & Record<string, any>,
