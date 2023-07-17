@@ -46,6 +46,7 @@ export default defineConfig({
           { text: 'oby', link: '/reactivity/oby' },
           { text: 'usignal', link: '/reactivity/usignal' },
           { text: 'sinuous', link: '/reactivity/sinuous' },
+          { text: '@reactively/core', link: '/reactivity/reactively' },
           { text: 'Other libraries', link: '/reactivity/other' },
         ],
       },
