@@ -14,6 +14,14 @@ More information on how to define collections and perform queries will be found 
 * [Collections](/collections)
 * [Queries](/queries)
 
+## Signals and Reactivity
+
+As the name suggests, SignalDB's reactivity is based on signals, a concept from functional reactive programming. The concept is quite old, but is becoming popular again since the hype around solidjs in early 2023. Since many signal libraries are currently popping up, SignalDB is designed to be library agnostic. Reactivity Adapters in SignalDB enable reactive querying of the documents inside a collection. They provide a simple interface that allows you to incorporate a signal library. By using reactivity adapters, you can ensure that whenever the data in your collections changes, any reactive queries tied to that data will automatically update, keeping your application's state consistent with your data.
+
+To learn more about signals, check out [The Evolution of Signals in JavaScript](https://dev.to/this-is-learning/the-evolution-of-signals-in-javascript-8ob) by Ryan Carniato (Author of SolidJS).
+
+Normally you'll simply use a pre-defined reactivity adapter for the signal library you're using. Check out the available adapters in the [Reactivity section](/reactivity/) of the documentation.
+
 ## Memory Adapters
 
 Memory Adapters in SignalDB play a crucial role in controlling how and where data is saved in memory. These adapters provide an abstraction over the underlying memory storage mechanism and give users the flexibility to define custom methods for handling data storage operations.
@@ -22,15 +30,7 @@ In the simplest terms, a memory adapter is a piece of code that dictates how you
 
 Normally you don't have to care about memory adapters as SignalDB comes with a default one. Since a memory adapter is a subset of the `Array` class, the most basic memory adapter is an emtpty array (`[]`).
 
-## Signals and Reactivity Adapters
-
-As the name suggests, SignalDB's reactivity is based on signals, a concept from functional reactive programming. The concept is quite old, but is becoming popular again since the hype around solidjs in early 2023. Since many signal libraries are currently popping up, SignalDB is designed to be library agnostic. Reactivity Adapters in SignalDB enable reactive querying of the documents inside a collection. They provide a simple interface that allows you to incorporate a signal library. By using reactivity adapters, you can ensure that whenever the data in your collections changes, any reactive queries tied to that data will automatically update, keeping your application's state consistent with your data.
-
-To learn more about signals, check out [The Evolution of Signals in JavaScript](https://dev.to/this-is-learning/the-evolution-of-signals-in-javascript-8ob) by Ryan Carniato (Author of SolidJS).
-
-Normally you'll simply use a pre-defined reactivity adapter for the signal library you're using. Check out the available adapters in the [Reactivity section](/reactivity/) of the documentation.
-
-## Persistence Adapters
+## Data Persistence
 
 SignalDB only saves the data in the memory and it will be lost after the memory was cleared (e.g. page reload). Normally, data shouldn't be lost and you want to persist it. This is where persistence adapters are kicking in.
 
