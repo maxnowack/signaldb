@@ -31,7 +31,7 @@ const List: React.FC<Props> = ({ collection }) => {
           <button onClick={() => collection.removeOne({ id: item.id })}>x</button>
         </li>
       ))}
-      {items.length === 0 && <li style={{ justifyContent: 'center', fontStyle: 'italic' }}>Empty</li>}
+      {items.length === 0 && <li className={style.empty}>Empty</li>}
     </ul>
   )
 }

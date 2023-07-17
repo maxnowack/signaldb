@@ -9,7 +9,10 @@ const App: React.FC = () => {
   return (
     <main>
       <div className={style.container}>
-        <h1>Todo App</h1>
+        <h1>SignalDB Example - Todo App</h1>
+        <p className={style.subline}>
+          <a href="https://github.com/maxnowack/signaldb/tree/main/example/src/containers/App/index.tsx" target="_blank" rel="noopener">Take a look a the code</a>
+        </p>
         <input
           type="text"
           value={text}
