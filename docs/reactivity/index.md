@@ -11,4 +11,6 @@ Check out the [core concepts about reactivity](/core-concepts#signals-and-reacti
 * [`oby`](/reactivity/oby)
 * [`usignal`](/reactivity/usignal)
 * [`sinuous`](/reactivity/sinuous)
+* [`@reactively/core`](/reactivity/reactively)
+* [`S.js`](reactivity/S)
 * [`Other libraries`](/reactivity/other)
