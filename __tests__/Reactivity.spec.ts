@@ -49,10 +49,10 @@ describe('Reactivity', () => {
           notify: () => dep.changed(),
         }
       },
-      onDispose: (callback) => {
+      onDispose: vi.fn((callback) => {
         if (!Tracker.active) return
         Tracker.onInvalidate(callback)
-      },
+      }),
     }
 
     it('should be reactive with Tracker', () => {
@@ -65,6 +65,7 @@ describe('Reactivity', () => {
       Tracker.flush()
       collection.insert({ id: '1', name: 'John' })
       Tracker.flush()
+      expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -99,9 +100,9 @@ describe('Reactivity', () => {
           },
         }
       },
-      onDispose: (callback) => {
+      onDispose: vi.fn((callback) => {
         maverickOnDispose(callback)
-      },
+      }),
     }
 
     it('should be reactive with @maverick-js/signals', () => {
@@ -114,6 +115,7 @@ describe('Reactivity', () => {
       maverickTick()
       collection.insert({ id: '1', name: 'John' })
       maverickTick()
+      expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -132,9 +134,9 @@ describe('Reactivity', () => {
           },
         }
       },
-      onDispose: (callback) => {
+      onDispose: vi.fn((callback) => {
         obyCleanup(callback)
-      },
+      }),
     }
 
     it('should be reactive with oby', () => {
@@ -147,6 +149,7 @@ describe('Reactivity', () => {
       obyTick()
       collection.insert({ id: '1', name: 'John' })
       obyTick()
+      expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -171,11 +174,18 @@ describe('Reactivity', () => {
     it('should be reactive with usignal', () => {
       const collection = new Collection({ reactivity })
       const callback = vi.fn()
+      const cleanup = vi.fn()
 
       uEffect(() => {
-        callback(collection.find({ name: 'John' }).count())
+        const cursor = collection.find({ name: 'John' })
+        callback(cursor.count())
+        return () => {
+          cleanup()
+          cursor.cleanup()
+        }
       })
       collection.insert({ id: '1', name: 'John' })
+      expect(cleanup).toHaveBeenCalledTimes(1)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -194,9 +204,9 @@ describe('Reactivity', () => {
           },
         }
       },
-      onDispose: (callback) => {
+      onDispose: vi.fn((callback) => {
         sinuousApi.cleanup(callback)
-      },
+      }),
     }
 
     it('should be reactive with sinuous', () => {
@@ -208,6 +218,7 @@ describe('Reactivity', () => {
         callback(cursor.count())
       })
       collection.insert({ id: '1', name: 'John' })
+      expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -232,15 +243,18 @@ describe('Reactivity', () => {
     it('should be reactive with preact', () => {
       const collection = new Collection({ reactivity })
       const callback = vi.fn()
+      const cleanup = vi.fn()
 
       preactEffect(() => {
         const cursor = collection.find({ name: 'John' })
         callback(cursor.count())
         return () => {
+          cleanup()
           cursor.cleanup()
         }
       })
       collection.insert({ id: '1', name: 'John' })
+      expect(cleanup).toHaveBeenCalledTimes(1)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -259,9 +273,9 @@ describe('Reactivity', () => {
           },
         }
       },
-      onDispose: (callback) => {
+      onDispose: vi.fn((callback) => {
         reactivelyOnCleanup(callback)
-      },
+      }),
     }
 
     it('should be reactive with reactively', () => {
@@ -276,6 +290,7 @@ describe('Reactivity', () => {
       collection.insert({ id: '1', name: 'John' })
       exec.get()
 
+      expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
@@ -294,9 +309,9 @@ describe('Reactivity', () => {
           },
         }
       },
-      onDispose: (callback) => {
+      onDispose: vi.fn((callback) => {
         S.cleanup(callback)
-      },
+      }),
     }
 
     it('should be reactive with S.js', () => {
@@ -308,6 +323,7 @@ describe('Reactivity', () => {
         callback(cursor.count())
       })
       collection.insert({ id: '1', name: 'John' })
+      expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
     })
