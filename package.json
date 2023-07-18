@@ -1,6 +1,6 @@
 {
   "name": "signaldb",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "SignalDB is a client side database that provides an easy mongob-like interface to the data with first class typescript support. Data persistance can be archieved by using storage providers which save the data through a JSON interface to placed such as localStorage.",
   "scripts": {
     "preversion": "npm run lint && npm run test -- run && npm run build",
