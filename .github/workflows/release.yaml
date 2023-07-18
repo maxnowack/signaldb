@@ -18,3 +18,4 @@ jobs:
           token: "${{ secrets.GITHUB_TOKEN }}"
           useNameFromRef: 'true'
           ref: "${{ github.ref }}"
+          badwords: 'ci:,docs:'
