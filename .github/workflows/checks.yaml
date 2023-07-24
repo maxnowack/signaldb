@@ -15,11 +15,14 @@ jobs:
   preflight:
     if: ${{ github.event.pull_request.head.ref != 'main' && github.event.pull_request.head.ref != 'development' }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: latest
+          node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache@v3
@@ -27,9 +30,9 @@ jobs:
         continue-on-error: true
         with:
           path: node_modules
-          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.OS }}-modules-
+            ${{ runner.OS }}-modules-${{ matrix.node-version }}-
       - name: install modules
         run: npm install --no-audit --force --loglevel=error --no-update-notifier
 
@@ -48,7 +51,7 @@ jobs:
         continue-on-error: false
         with:
           path: node_modules
-          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
         run: |
           npm run lint
@@ -68,7 +71,7 @@ jobs:
         continue-on-error: false
         with:
           path: node_modules
-          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
         run: |
           npm run type-check
@@ -76,11 +79,14 @@ jobs:
   unit-tests:
     needs: preflight
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: latest
+          node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache@v3
@@ -88,7 +94,7 @@ jobs:
         continue-on-error: false
         with:
           path: node_modules
-          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
         run: |
           npm test -- --coverage run
@@ -100,11 +106,14 @@ jobs:
   build:
     needs: preflight
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: latest
+          node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache@v3
@@ -112,7 +121,7 @@ jobs:
         continue-on-error: false
         with:
           path: node_modules
-          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: build package
         run: |
           npm run build
