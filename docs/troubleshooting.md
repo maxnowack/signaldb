@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/troubleshooting
+---
 # Troubleshooting
 
 ::: warning

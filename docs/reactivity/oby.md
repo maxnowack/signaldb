@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/oby.html
+---
 # Reactivity adapter for [`oby`](https://github.com/vobyjs/oby)
 
 ## Adapter

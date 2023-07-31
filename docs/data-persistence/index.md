@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/data-persistence/
+---
 # Data Persistence Adapters
 
 Persistence Adapters in SignalDB provide the mechanism for storing and retrieving data, ensuring that your data is kept safe across sessions and reloads of your application. These adapters interact with the underlying storage medium, such as localStorage, IndexedDB, or even a remote server, handling the specifics of these storage systems while providing a uniform interface for data operations in your application.

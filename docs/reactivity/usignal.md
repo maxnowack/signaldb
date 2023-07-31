@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/usignal.html
+---
 # Reactivity adapter for [`usignal`](https://github.com/WebReflection/usignal)
 
 ## Adapter

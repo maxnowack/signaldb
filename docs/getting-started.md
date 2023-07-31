@@ -1,4 +1,9 @@
-
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/getting-started.html
+---
 # Getting Started
 
 ::: warning

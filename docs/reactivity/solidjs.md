@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/solidjs.html
+---
 # Reactivity adapter for [`solid-js`](https://www.solidjs.com/docs/latest)
 
 ## Adapter

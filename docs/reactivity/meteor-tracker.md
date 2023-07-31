@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/meteor-tracker.html
+---
 # Reactivity adapter for [Meteor Tracker](https://docs.meteor.com/api/tracker.html)
 
 ## Adapter

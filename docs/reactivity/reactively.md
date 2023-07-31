@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/reactively.html
+---
 # Reactivity adapter for [`@reactively/core`](https://github.com/modderme123/reactively)
 
 ## Adapter

@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/core-concepts.html
+---
 # Core Concepts
 
 The following are some key concepts that are important to understanding how to use SignalDB effectively.

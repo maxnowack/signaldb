@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/preact-signals.html
+---
 # Reactivity adapter for [`@preact/signals`](https://preactjs.com/blog/introducing-signals/)
 
 ## Adapter

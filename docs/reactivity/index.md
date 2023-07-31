@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/
+---
 # Reactivity
 
 Check out the [core concepts about reactivity](/core-concepts#signals-and-reactivity-adapters).

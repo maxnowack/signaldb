@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/other.html
+---
 # Custom Reactivity Adapters
 
 If there isn't a reactivity adapter for your framework yet, you can request one by [filing an issue](https://github.com/maxnowack/signaldb/issues/new) or writing one at your own.

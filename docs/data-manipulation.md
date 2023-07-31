@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/data-manipulation.html
+---
 # Data manipulation
 
 ## Inserting data

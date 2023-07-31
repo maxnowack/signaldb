@@ -1,3 +1,9 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reactivity/S.html
+---
 # Reactivity adapter for [`S.js`](https://github.com/adamhaile/S)
 
 ## Adapter
