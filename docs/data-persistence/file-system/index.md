@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/data-persistence/file-system.html
+    href: https://signaldb.js.org/data-persistence/file-system/
 ---
 # Filesystem Adapter
 

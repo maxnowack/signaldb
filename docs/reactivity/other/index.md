@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/other.html
+    href: https://signaldb.js.org/reactivity/other/
 ---
 # Custom Reactivity Adapters
 

@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/oby.html
+    href: https://signaldb.js.org/reactivity/oby/
 ---
 # Reactivity adapter for [`oby`](https://github.com/vobyjs/oby)
 

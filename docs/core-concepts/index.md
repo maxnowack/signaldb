@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/core-concepts.html
+    href: https://signaldb.js.org/core-concepts/
 ---
 # Core Concepts
 
@@ -17,8 +17,8 @@ In SignalDB, all data is held in memory, which makes query performance exception
 SignalDB is schemaless, meaning that you don't have to define a schema for your data before you start using it. This allows you to store any data you want, without having to worry about defining a schema first.
 
 More information on how to define collections and perform queries will be found in the dedicated sections:
-* [Collections](/collections)
-* [Queries](/queries)
+* [Collections](/collections/)
+* [Queries](/queries/)
 
 ## Signals and Reactivity
 

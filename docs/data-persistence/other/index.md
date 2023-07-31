@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/data-persistence/other.html
+    href: https://signaldb.js.org/data-persistence/other/
 ---
 # Creating Custom Persistence Adapters
 

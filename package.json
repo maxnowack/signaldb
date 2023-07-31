@@ -11,7 +11,7 @@
     "build": "rimraf dist && vite build",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "(cd example && npm run build) && cp -R example/out docs/public/todo-example && vitepress build docs",
+    "docs:build": "rimraf docs/public/todo-example && (cd example && npm run build) && cp -R example/out docs/public/todo-example && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "repository": {

@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/sinuous.html
+    href: https://signaldb.js.org/reactivity/sinuous/
 ---
 # Reactivity adapter for [`sinuous`](https://sinuous.netlify.app/)
 

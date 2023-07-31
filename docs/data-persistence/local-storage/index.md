@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/data-persistence/local-storage.html
+    href: https://signaldb.js.org/data-persistence/local-storage/
 ---
 # localStorage Adapter
 

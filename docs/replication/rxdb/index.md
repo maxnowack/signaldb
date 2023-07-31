@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/replication/rxdb.html
+    href: https://signaldb.js.org/replication/rxdb/
 ---
 # RxDB Persistence Adapter
 

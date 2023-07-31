@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/collections.html
+    href: https://signaldb.js.org/collections/
 ---
 # Collections
 
@@ -34,7 +34,7 @@ Parameters
 ### `find(selector?: Selector<T>, options?: Options)`
 
 Returns a new cursor object for the items in the collection that match a given selector and options.
-Also check out the [queries section](/queries).
+Also check out the [queries section](/queries/).
 
 Parameters
 * `selector` (Optional): A function to filter items in the collection.
@@ -45,7 +45,7 @@ Behaves the same like `.find()` but doesn't return a cursor. Instead it will dir
 
 ### `insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>)`
 Inserts an item into the collection and returns the ID of the newly inserted item.
-Also check out the [data manipulation section](/data-manipulation).
+Also check out the [data manipulation section](/data-manipulation/).
 
 Parameters
 * `item`: The item to be inserted into the collection.
@@ -53,7 +53,7 @@ Parameters
 ### `updateMany(selector: Selector<T>, modifier: Modifier<T>)`
 
 Updates multiple items in the collection that match a given selector with the specified modifier.
-Also check out the [data manipulation section](/data-manipulation).
+Also check out the [data manipulation section](/data-manipulation/).
 
 Parameters
 * `selector`: A function to filter items in the collection.

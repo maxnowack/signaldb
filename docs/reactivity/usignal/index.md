@@ -2,14 +2,14 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/preact-signals.html
+    href: https://signaldb.js.org/reactivity/usignal/
 ---
-# Reactivity adapter for [`@preact/signals`](https://preactjs.com/blog/introducing-signals/)
+# Reactivity adapter for [`usignal`](https://github.com/WebReflection/usignal)
 
 ## Adapter
 
 ```js
-import { signal } from '@preact/signals-core'
+import { signal } from 'usignal'
 import { createReactivityAdapter } from 'signaldb'
 
 const reactivityAdapter = createReactivityAdapter({
@@ -32,7 +32,7 @@ const reactivityAdapter = createReactivityAdapter({
 
 ```js
 import { Collection } from 'signaldb'
-import { effect } from '@preact/signals-core'
+import { effect } from 'usignal'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,
@@ -42,7 +42,7 @@ effect(() => {
   const cursor = posts.find({ author: 'John' })
   console.log(cursor.count())
   return () => {
-    // @preact/signals doesn't allow to do automatic cleanup, so we have to do it ourself
+    // usignal doesn't allow to do automatic cleanup, so we have to do it ourself
     cursor.cleanup()
   }
 })

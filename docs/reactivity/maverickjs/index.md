@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/maverickjs.html
+    href: https://signaldb.js.org/reactivity/maverickjs/
 ---
 # Reactivity adapter for [`@maverick-js/signals`](https://github.com/maverick-js/signals)
 

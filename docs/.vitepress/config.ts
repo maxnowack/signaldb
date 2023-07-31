@@ -1,17 +1,18 @@
+import fs from 'fs/promises'
 import { defineConfig } from 'vitepress'
 import { generateSitemap as sitemap } from 'sitemap-ts'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'SignalDB',
-  description: 'Documentation',
+  description: 'A reactive local JavaScript database with a MongoDB-like interface, first-class TypeScript support and signal-based reactivity.',
   lastUpdated: true,
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Get Started', link: '/getting-started' },
+      { text: 'Get Started', link: '/getting-started/' },
     ],
 
     sidebar: [
@@ -19,9 +20,9 @@ export default defineConfig({
         text: 'Quickstart',
         collapsed: false,
         items: [
-          { text: 'Core Concepts', link: '/core-concepts' },
-          { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Installation', link: '/installation' },
+          { text: 'Core Concepts', link: '/core-concepts/' },
+          { text: 'Getting Started', link: '/getting-started/' },
+          { text: 'Installation', link: '/installation/' },
         ],
       },
       { text: 'Example', link: 'https://signaldb.js.org/todo-example/' },
@@ -29,9 +30,9 @@ export default defineConfig({
         text: 'Documentation',
         collapsed: false,
         items: [
-          { text: 'Collections', link: '/collections' },
-          { text: 'Queries', link: '/queries' },
-          { text: 'Data manipulation', link: '/data-manipulation' },
+          { text: 'Collections', link: '/collections/' },
+          { text: 'Queries', link: '/queries/' },
+          { text: 'Data manipulation', link: '/data-manipulation/' },
         ],
       },
       {
@@ -39,16 +40,16 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Overview', link: '/reactivity/' },
-          { text: '@preact/signals-core', link: '/reactivity/preact-signals' },
-          { text: 'Solid Signals', link: '/reactivity/solidjs' },
-          { text: 'Maverick-js Signals', link: '/reactivity/maverickjs' },
-          { text: 'Meteor Tracker', link: '/reactivity/meteor-tracker' },
-          { text: 'oby', link: '/reactivity/oby' },
-          { text: 'usignal', link: '/reactivity/usignal' },
-          { text: 'sinuous', link: '/reactivity/sinuous' },
-          { text: '@reactively/core', link: '/reactivity/reactively' },
-          { text: 'S.js', link: '/reactivity/S' },
-          { text: 'Other libraries', link: '/reactivity/other' },
+          { text: '@preact/signals-core', link: '/reactivity/preact-signals/' },
+          { text: 'Solid Signals', link: '/reactivity/solidjs/' },
+          { text: 'Maverick-js Signals', link: '/reactivity/maverickjs/' },
+          { text: 'Meteor Tracker', link: '/reactivity/meteor-tracker/' },
+          { text: 'oby', link: '/reactivity/oby/' },
+          { text: 'usignal', link: '/reactivity/usignal/' },
+          { text: 'sinuous', link: '/reactivity/sinuous/' },
+          { text: '@reactively/core', link: '/reactivity/reactively/' },
+          { text: 'S.js', link: '/reactivity/S/' },
+          { text: 'Other libraries', link: '/reactivity/other/' },
         ],
       },
       {
@@ -56,9 +57,9 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Overview', link: '/data-persistence/' },
-          { text: 'localStorage', link: '/data-persistence/local-storage' },
-          { text: 'Filesystem', link: '/data-persistence/file-system' },
-          { text: 'Other Persistence Options', link: '/data-persistence/other' },
+          { text: 'localStorage', link: '/data-persistence/local-storage/' },
+          { text: 'Filesystem', link: '/data-persistence/file-system/' },
+          { text: 'Other Persistence Options', link: '/data-persistence/other/' },
         ],
       },
       {
@@ -66,14 +67,14 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Overview', link: '/replication/' },
-          { text: 'RxDB Persistence adapter', link: '/replication/rxdb' },
+          { text: 'RxDB Persistence adapter', link: '/replication/rxdb/' },
         ],
       },
       {
         text: 'Help',
         collapsed: false,
         items: [
-          { text: 'Troubleshooting', link: '/troubleshooting' },
+          { text: 'Troubleshooting', link: '/troubleshooting/' },
           { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
           { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
         ],
@@ -109,11 +110,15 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#ffffff' }],
   ],
 
-  buildEnd: () => {
+  buildEnd: async () => {
     sitemap({
       hostname: 'https://signaldb.js.org',
       outDir: './docs/.vitepress/dist',
-      exclude: ['/googlef8c159020eb311c9.html'],
+      exclude: ['/googlef8c159020eb311c9', '/404', '/todo-example', '/todo-example/404'],
     })
+
+    await new Promise((resolve) => { setTimeout(resolve, 1000) }) // wait a second for the sitemap to be generated
+    await fs.writeFile('./docs/.vitepress/dist/sitemap.xml', (await fs.readFile('./docs/.vitepress/dist/sitemap.xml', 'utf-8'))
+      .replace(/<loc>([a-z0-9:/.-]+?\w)<\/loc>/g, '<loc>$1/</loc>')) // add trailing slash to all urls
   },
 })

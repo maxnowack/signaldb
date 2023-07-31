@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/meteor-tracker.html
+    href: https://signaldb.js.org/reactivity/meteor-tracker/
 ---
 # Reactivity adapter for [Meteor Tracker](https://docs.meteor.com/api/tracker.html)
 

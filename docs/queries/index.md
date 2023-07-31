@@ -2,11 +2,11 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/queries.html
+    href: https://signaldb.js.org/queries/
 ---
 # Queries
 
-You can query you data by calling the [`.find()`](/collections#find-selector-selector-t-options-options) method of your collection.
+You can query you data by calling the [`.find()`](/collections/#find-selector-selector-t-options-options) method of your collection.
 
 ## Selectors
 
