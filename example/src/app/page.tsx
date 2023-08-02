@@ -1,8 +1,6 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-
-const App = dynamic(() => import('../containers/App'), { ssr: false })
+import App from '../containers/App'
 
 export default function Home() {
   return <App />

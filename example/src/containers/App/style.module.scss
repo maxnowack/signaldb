@@ -5,6 +5,7 @@
     font-size: 24px;
     text-align: center;
     margin: 20px 0;
+    color: #0367e9;
   }
   > input {
     display: block;
@@ -47,7 +48,8 @@
   }
 }
 .subline {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
   a {
     opacity: 0.7;
     &:hover {
