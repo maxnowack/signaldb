@@ -46,10 +46,11 @@ jobs:
           node-version: latest
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         timeout-minutes: 5
         continue-on-error: false
         with:
+          fail-on-cache-miss: true
           path: node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
@@ -66,10 +67,11 @@ jobs:
           node-version: latest
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         timeout-minutes: 5
         continue-on-error: false
         with:
+          fail-on-cache-miss: true
           path: node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
@@ -89,10 +91,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         timeout-minutes: 5
         continue-on-error: false
         with:
+          fail-on-cache-miss: true
           path: node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
@@ -116,10 +119,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         timeout-minutes: 5
         continue-on-error: false
         with:
+          fail-on-cache-miss: true
           path: node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: build package
