@@ -29,12 +29,16 @@ jobs:
         timeout-minutes: 5
         continue-on-error: true
         with:
-          path: node_modules
+          path: |
+            node_modules
+            example/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.OS }}-modules-${{ matrix.node-version }}-
       - name: install modules
-        run: npm install --no-audit --force --loglevel=error --no-update-notifier
+        run: |
+          npm install --no-audit --force --loglevel=error --no-update-notifier
+          cd example && npm install --no-audit --force --loglevel=error --no-update-notifier
 
   linting:
     needs: preflight
@@ -51,7 +55,9 @@ jobs:
         continue-on-error: false
         with:
           fail-on-cache-miss: true
-          path: node_modules
+          path: |
+            node_modules
+            example/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
         run: |
@@ -72,7 +78,9 @@ jobs:
         continue-on-error: false
         with:
           fail-on-cache-miss: true
-          path: node_modules
+          path: |
+            node_modules
+            example/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
         run: |
@@ -96,7 +104,9 @@ jobs:
         continue-on-error: false
         with:
           fail-on-cache-miss: true
-          path: node_modules
+          path: |
+            node_modules
+            example/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
         run: |
@@ -124,8 +134,33 @@ jobs:
         continue-on-error: false
         with:
           fail-on-cache-miss: true
-          path: node_modules
+          path: |
+            node_modules
+            example/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: build package
         run: |
           npm run build
+
+  build-docs:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Load node modules cache
+        id: modules-cache
+        uses: actions/cache/restore@v3
+        timeout-minutes: 5
+        continue-on-error: false
+        with:
+          fail-on-cache-miss: true
+          path: |
+            node_modules
+            example/node_modules
+          key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
+      - name: build docs
+        run: |
+          npm run docs:build
