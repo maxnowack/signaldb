@@ -3,7 +3,7 @@
   "exclude": [],
   "include": [
     ".eslintrc.js",
-    "docs/.vitepress/config.ts",
+    "docs/.vitepress/config.mts",
     "**/*.spec.ts",
     "**/*.ts",
     "**/*.tsx",
