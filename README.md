@@ -6,11 +6,8 @@
 
 # SignalDB
 
-SignalDB is a client side database that provides an easy mongob-like interface to the data with first class typescript support.
-Data persistance can be archieved by using storage providers which save the data through a JSON interface to placed such as localStorage.
-
-Support for replicating data with remote storages is planned, but not yet implemented.
-However, there will be a storage provider for RxDB that will take over the replication.
+SignalDB is a client-side database that provides a simple MongoDB-like interface to the data with first-class typescript support to achieve an optimistic UI.
+Data persistence can be achieved by using storage providers that store the data through a JSON interface to places such as localStorage.
 
 ## Installation
 

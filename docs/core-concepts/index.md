@@ -10,7 +10,7 @@ The following are some key concepts that are important to understanding how to u
 
 ## Collections
 
-In SignalDB, all data is held in memory, which makes query performance exceptionally fast. Users can create collections of documents, where each document is a record in the database. Queries can be performed on these collections to fetch data according to certain criteria.
+In SignalDB, all data is held in memory, which makes query performance exceptionally fast. Users can create collections of documents, where each document is a record in the database. Queries can be performed on these collections to fetch data according to certain criteria. This architecture also plays a significant role in achieving optimistic UI strategies.
 
 ### Schemaless
 
@@ -19,6 +19,12 @@ SignalDB is schemaless, meaning that you don't have to define a schema for your 
 More information on how to define collections and perform queries will be found in the dedicated sections:
 * [Collections](/collections/)
 * [Queries](/queries/)
+
+### Optimistic UI
+
+Optimistic UI is an approach where user interfaces are updated optimistically in response to user actions before the actual server response is received. This approach provides a smoother and more responsive user experience, as the interface doesn't have to wait for the server to confirm the action's success.
+
+SignalDB's schemaless nature and reactive querying through reactivity adapters enable the creation of robust optimistic UI implementations. When a user triggers an action that modifies the data, such as submitting a form, SignalDB's reactivity system can immediately update the UI to reflect the intended changes. This is possible because the reactivity adapters automatically propagate changes to the UI components that rely on the affected data.
 
 ## Signals and Reactivity
 
