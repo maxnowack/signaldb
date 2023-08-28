@@ -10,7 +10,9 @@ head:
 Keep in mind, that SignalDB is in a very early stage and not yet production ready.
 :::
 
-Welcome to the Getting Started guide for SignalDB, a client-side database providing a seamless MongoDB-like interface with first-class TypeScript support. SignalDB is designed for blazing fast query performance and data persistence, while remaining framework-agnostic.
+Welcome to the Getting Started Guide for SignalDB, a client-side database with a seamless MongoDB-like interface and top-notch TypeScript support.
+
+SignalDB is designed for blazing fast query performance and data persistence, while remaining framework-agnostic.
 
 ## Installation
 

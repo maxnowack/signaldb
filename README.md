@@ -32,21 +32,21 @@ Please also take a look at the [documentation](https://maxnowack.github.io/signa
 
 ### Reactivity
 
-SignalDB uses the primitives of signals to provide reactivity. We want to keep dependencies small and don't lock-in to a specific framework. SignalDB works with the signal library of your choice. We've written adapters for all popular ones. If you thinnk there is a adapter missing, you can file an issue or provide a Pull Request and add it by yourself.
+SignalDB uses the primitives of signals to provide reactivity. We want to keep dependencies small and don't lock into a specific framework. SignalDB works with the signal library of your choice. We've written adapters for all the popular ones. If you think an adapter is missing, you can file an issue or submit a pull request and add it yourself.
 
 ### Collections & Queries
 
-SignalDB holds all data in memory to provide blazing fast query performance. This also allows it to have a synchronous api. Thanks to that, you don't have to care about asynchronous operations while working with your data.
+SignalDB keeps all data in memory to provide blazing fast query performance. This also allows it to have a synchronous api. This means you don't have to worry about asynchronous operations when working with your data.
 
 ### Data Persistance
 
-SignalDB provides an interface were data can be persisted. It works by loading and saving the documents inside to an external system. Reads and writes are triggered by events from both directions.
-The most simple and default persistance interface is `localStorage`, were data will be loaded and saved from `window.localStorage`. However, since all data lays in memory, data persistance is totally optional and only needed if you want to keep your data across page loads.
+SignalDB provides an interface where data can be persisted. It works by loading and saving the documents inside to an external system. Reads and writes are triggered by events in both directions.
+The simplest and default persistence interface is `localStorage`, where data is loaded and saved from `window.localStorage`. However, since all data is in memory, data persistence is completely optional and is only needed if you want to keep your data across page loads.
 
 ### Replication
 
 It's planned to implement a data replication engine based on the paradigms used by then [replication protocol of RxDB](https://rxdb.info/replication.html) ([more info](https://github.com/pubkey/rxdb/issues/3883)).
-In the first version we offer data replication by just implementing a persistance interface for RxDB and the replication will be handled inside RxDB.
+In the first version, we provide data replication by implementing only a persistence interface for RxDB, and the replication is handled inside RxDB.
 
 ## License
 Licensed under MIT license. Copyright (c) 2023 Max Nowack
