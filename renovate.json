@@ -6,24 +6,13 @@
   "branchNameStrict": true,
   "labels": ["dependencies"],
   "rebaseWhen": "conflicted",
-  "stabilityDays": 7,
+  "automerge": true,
+  "platformAutomerge": true,
+  "automergeType": "pr",
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "automerge": true,
-      "platformAutomerge": true,
-      "automergeType": "pr"
-    },
-    {
-      "matchDatasources": ["npm"],
-      "stabilityDays": 3
-    },
-    {
       "matchDepTypes": ["devDependencies"],
-      "addLabels": ["tooling"],
-      "automerge": true,
-      "platformAutomerge": true,
-      "automergeType": "pr"
+      "addLabels": ["tooling"]
     }
   ]
 }
