@@ -4,6 +4,16 @@
   </a>
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/maxnowack/signaldb?include_prereleases&label=version&sort=semver">
+  <img src="https://img.shields.io/github/checks-status/maxnowack/signaldb/main" />
+  <img src="https://img.shields.io/npm/types/signaldb" />
+  <img src="https://img.shields.io/codecov/c/github/maxnowack/signaldb" />
+  <img src="https://img.shields.io/github/license/maxnowack/signaldb" />
+  <img src="https://img.shields.io/github/stars/maxnowack/signaldb" />
+  <img src="https://img.shields.io/npm/dm/signaldb" />
+</p>
+
 # SignalDB
 
 SignalDB is a client-side database that provides a simple MongoDB-like interface to the data with first-class typescript support to achieve an optimistic UI.
