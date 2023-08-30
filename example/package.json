@@ -8,7 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "signaldb": "0.1.6",
+    "signaldb": "0.1.7",
     "@maverick-js/signals": "^5.11.2",
     "@types/node": "20.5.7",
     "@types/react": "18.2.21",
