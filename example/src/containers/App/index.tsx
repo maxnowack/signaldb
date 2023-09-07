@@ -17,6 +17,7 @@ const App: React.FC = () => {
         <input
           type="text"
           value={text}
+          placeholder="Type and press Enter to add a new item …"
           onChange={e => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
