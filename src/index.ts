@@ -11,6 +11,7 @@ export type {
 } from './Collection'
 
 export { default as Collection } from './Collection'
+export { default as PersistentCollection } from './PersistentCollection'
 export { default as createLocalStorageAdapter } from './persistence/createLocalStorageAdapter'
 export { default as createFilesystemAdapter } from './persistence/createFilesystemAdapter'
 export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
