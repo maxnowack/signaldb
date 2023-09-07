@@ -7,7 +7,7 @@ titleTemplate: reactive local javascript database
 hero:
   name: SignalDB
   text: reactive local javascript database
-  tagline: MongoDB-like interface, first-class typescript support and signal based reactivity, with your favorite library.
+  tagline: MongoDB-like interface, first-class typescript support, optimistic UI and signal based reactivity, with your favorite library.
   image:
     src: /logo.svg
     alt: SignalDB Logo
