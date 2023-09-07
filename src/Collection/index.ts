@@ -11,7 +11,7 @@ import randomId from '../utils/randomId'
 import Cursor from './Cursor'
 import type { BaseItem, FindOptions, Transform } from './types'
 
-export type { Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
+export type { BaseItem, Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 
