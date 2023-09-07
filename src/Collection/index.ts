@@ -176,10 +176,10 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
-    const modifiedItem = modify(item, modifier)
+    const modifiedItem = modify({ ...item }, modifier)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const existingItem = this.findOne({ id: modifiedItem.id } as any, { reactive: false })
-    if (!isEqual(existingItem, { ...item, id: modifiedItem.id })) throw new Error('Item with same id already exists')
+    if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) throw new Error('Item with same id already exists')
     this.memory().splice(index, 1, modifiedItem)
     this.emit('changed', modifiedItem)
     return 1
