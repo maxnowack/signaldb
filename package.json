@@ -95,7 +95,7 @@
     "vite-plugin-dts": "3.5.3",
     "vite-plugin-node-polyfills": "0.12.0",
     "vite-tsconfig-paths": "4.2.1",
-    "vitepress": "1.0.0-rc.10",
+    "vitepress": "1.0.0-rc.11",
     "vitest": "0.34.4",
     "vitest-github-actions-reporter": "0.10.0"
   },
