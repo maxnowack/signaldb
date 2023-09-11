@@ -328,5 +328,31 @@ describe('Cursor', () => {
       )
       expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
     })
+
+    it('should call the callbacks and work properly with transformations', async () => {
+      const col = new Collection<TestItem>({
+        transform: item => ({ ...item, id: item.id, test: true }),
+      })
+      items.forEach(item => col.insert(item))
+
+      const callbacks = {
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
+      }
+      const cursor = col.find()
+      cursor.observeChanges(callbacks, true)
+      col.insert({ id: 4, name: 'item4' }) // Add new item
+      cursor.requery()
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4', test: true }))
+      expect(callbacks.addedBefore).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4', test: true }), null)
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.movedBefore).not.toHaveBeenCalled()
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
   })
 })

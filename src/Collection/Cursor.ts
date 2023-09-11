@@ -117,13 +117,23 @@ export default class Cursor<T extends BaseItem, U = T> {
   public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false) {
     const transformedCallbacks = Object
       .entries(callbacks)
-      .reduce((memo, [key, value]) => (!value ? memo : {
-        ...memo,
-        [key]: (item: T, before: T | undefined) => value(...[
-          this.transform(item),
-          ...before === undefined ? [] : [this.transform(before)],
-        ]),
-      }), {}) as ObserveCallbacks<T>
+      .reduce((memo, [callbackName, callback]) => {
+        if (!callback) return memo
+        return {
+          ...memo,
+          [callbackName]: (item: T, before: T | undefined) => {
+            const transformedValue = this.transform(item)
+            const hasBeforeParam = before !== undefined
+            const transformedBeforeValue = hasBeforeParam && before
+              ? this.transform(before)
+              : null
+            return callback(
+              transformedValue,
+              ...hasBeforeParam ? [transformedBeforeValue] : [],
+            )
+          },
+        }
+      }, {}) as ObserveCallbacks<T>
     const observer = new Observer(transformedCallbacks, skipInitial)
     this.observers.push(observer)
     observer.check(this.getItems())
