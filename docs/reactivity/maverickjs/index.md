@@ -9,7 +9,7 @@ head:
 ## Adapter
 
 ```js
-import { signal, peek, onDispose } from '@maverick-js/signals'
+import { signal, peek, onDispose, getScope } from '@maverick-js/signals'
 import { createReactivityAdapter } from 'signaldb'
 
 const reactivityAdapter = createReactivityAdapter({
@@ -24,6 +24,7 @@ const reactivityAdapter = createReactivityAdapter({
       },
     }
   },
+  isInScope: () => !!getScope(),
   onDispose: (callback) => {
     onDispose(callback)
   },

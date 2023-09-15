@@ -28,6 +28,7 @@ const reactivityAdapter = createReactivityAdapter({
       notify: () => dep.changed(),
     }
   },
+  isInScope: () => Tracker.active,
   onDispose: (callback) => {
     if (!Tracker.active) return
     Tracker.onInvalidate(callback)

@@ -5,12 +5,14 @@ import {
   tick as maverickTick,
   peek as maverickPeek,
   effect as maverickEffect,
+  getScope as maverickGetScope,
   onDispose as maverickOnDispose,
 } from '@maverick-js/signals'
 import $oby, {
   effect as obyEffect,
   untrack as obyUntrack,
   cleanup as obyCleanup,
+  owner as obyOwner,
   tick as obyTick,
 } from 'oby'
 import {
@@ -49,6 +51,7 @@ describe('Reactivity', () => {
           notify: () => dep.changed(),
         }
       },
+      isInScope: () => Tracker.active,
       onDispose: vi.fn((callback) => {
         if (!Tracker.active) return
         Tracker.onInvalidate(callback)
@@ -100,6 +103,7 @@ describe('Reactivity', () => {
           },
         }
       },
+      isInScope: () => !!maverickGetScope(),
       onDispose: vi.fn((callback) => {
         maverickOnDispose(callback)
       }),
@@ -134,6 +138,7 @@ describe('Reactivity', () => {
           },
         }
       },
+      isInScope: () => !!obyOwner(),
       onDispose: vi.fn((callback) => {
         obyCleanup(callback)
       }),
