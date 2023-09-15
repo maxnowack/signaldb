@@ -163,7 +163,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       limit: 1,
       ...options,
     })
-    return cursor.fetch()[0]
+    return cursor.fetch()[0] || undefined
   }
 
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
