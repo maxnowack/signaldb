@@ -330,6 +330,7 @@ describe('Reactivity', () => {
   })
 
   // solid doenst work in a node environment since createEffect won't run
+  // eslint-disable-next-line vitest/no-commented-out-tests
   // describe('solid', () => {
   //   const reactivity: ReactivityAdapter = {
   //     create: () => {
@@ -348,6 +349,7 @@ describe('Reactivity', () => {
   //     },
   //   }
 
+  // eslint-disable-next-line vitest/no-commented-out-tests
   //   it('should be reactive with solid', () => {
   //     const callback = vi.fn()
   //     solidCreateRoot(() => {
