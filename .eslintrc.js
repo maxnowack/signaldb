@@ -16,7 +16,16 @@ module.exports = {
     '@typescript-eslint',
     'vitest',
   ],
-  ignorePatterns: ['!.*', 'dist', 'node_modules'],
+  ignorePatterns: [
+    'dist',
+    'node_modules',
+    'coverage',
+    'docs/.vitepress/dist',
+    'docs/public/todo-example',
+    'example/.next',
+    'example/out',
+    'example/node_modules',
+  ],
   settings: {
     'import/resolver': {
       typescript: {

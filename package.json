@@ -5,7 +5,7 @@
   "scripts": {
     "preversion": "npm run lint && npm run test -- run && npm run build",
     "prepare": "npm run build && husky install",
-    "lint": "eslint src/**.ts --max-warnings=0",
+    "lint": "eslint . --max-warnings=0",
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "build": "rimraf dist && vite build",
