@@ -33,6 +33,12 @@ interface CollectionEvents<T> {
   'persistence.received': () => void,
 }
 
+function isInReactiveScope(reactivity: ReactivityAdapter | undefined | false) {
+  if (!reactivity) return false // if reactivity is disabled we don't need to check
+  if (!reactivity.isInScope) return true // if reactivity is enabled and no isInScope method is provided we assume it is in scope
+  return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
+}
+
 // eslint-disable-next-line max-len
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
@@ -135,7 +141,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       transform: this.transform.bind(this),
     }
     const cursor = new Cursor<T, U>(() => this.getItems(), selector || {}, cursorOptions)
-    if (cursorOptions.reactive) {
+    if (isInReactiveScope(cursorOptions.reactive)) {
       const requery = () => cursor.requery()
       this.addListener('persistence.received', requery)
       this.addListener('added', requery)

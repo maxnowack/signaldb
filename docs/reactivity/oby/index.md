@@ -9,7 +9,7 @@ head:
 ## Adapter
 
 ```js
-import $oby, { untrack, cleanup } from 'oby'
+import $oby, { untrack, cleanup, owner } from 'oby'
 import { createReactivityAdapter } from 'signaldb'
 
 const reactivityAdapter = createReactivityAdapter({
@@ -24,6 +24,7 @@ const reactivityAdapter = createReactivityAdapter({
       },
     }
   },
+  isInScope: () => !!owner(),
   onDispose: (callback) => {
     cleanup(callback)
   },

@@ -6,4 +6,5 @@ interface Signal {
 export default interface ReactivityAdapter {
   create(): Signal,
   onDispose?(callback: () => void): void,
+  isInScope?(): boolean,
 }
