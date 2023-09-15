@@ -36,7 +36,7 @@ const cursor = collection.find({})
 console.log(cursor.fetch()) // returns an array with all documents in the collection
 ```
 
-Please also take a look at the [documentation](https://maxnowack.github.io/signaldb)
+Please also take a look at the [documentation](https://signaldb.js.org)
 
 ## Architecture
 
