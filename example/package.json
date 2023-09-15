@@ -10,7 +10,7 @@
   "dependencies": {
     "signaldb": "0.2.2",
     "@maverick-js/signals": "^5.11.2",
-    "@types/node": "20.6.0",
+    "@types/node": "20.6.1",
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
     "next": "13.4.19",
