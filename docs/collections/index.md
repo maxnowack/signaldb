@@ -17,17 +17,17 @@ import { Collection } from 'signaldb'
 ## Constructor
 
 ```js
-new Collection<T, I, U>(options?: CollectionOptions<T, I, U>)
+const collection = new Collection<T, I, U>(options?: CollectionOptions<T, I, U>)
 ```
 
 Constructs a new Collection object.
 
 Parameters
 * options (Optional): An object specifying various options for the collection. Options include:
-  * memory: A MemoryAdapter for storing items in memory.
-  * reactivity: A ReactivityAdapter for enabling reactivity.
-  * transform: A transformation function to be applied to items.
-  * persistence: A PersistenceAdapter for enabling persistent storage.
+  * memory: A [MemoryAdapter](/core-concepts/#memory-adapters) for storing items in memory.
+  * reactivity: A [ReactivityAdapter](/reactivity/other/#custom-reactivity-adapters) for enabling reactivity.
+  * persistence: A [PersistenceAdapter](/data-persistence/other/#creating-custom-persistence-adapters) for enabling persistent storage.
+  * transform: A transformation function to be applied to items. The document that should be transformed is passed as the only parameter. The function should return the transformed document (e.g. `(doc: T) => U`)
 
 ## Methods
 
