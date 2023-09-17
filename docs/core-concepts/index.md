@@ -44,7 +44,22 @@ These adapters provide an abstraction over the underlying memory storage mechani
 
 Simply put, a memory adapter is a piece of code that dictates how your data is stored in memory. When you perform a write or read operation, the adapter is responsible for translating those high-level operations into low-level memory operations.
 
-Normally, you don't need to worry about memory adapters because SignalDB comes with a default one. Since a memory adapter is a subset of the `Array' class, the most basic memory adapter is an emtpty array (`[]`).
+Normally, you don't need to worry about memory adapters because SignalDB comes with a default one. Since a memory adapter is a subset of the `Array` class, the most basic memory adapter is an emtpty array (`[]`).
+
+You can also create a MemoryAdapter on your own. Simply use the `createMemoryAdapter` helper function to do that. You have to the following methods from with the same signature as in the `Array` class:
+* `push(item: T): void`
+* `pop(): T | undefined`
+* `splice(start: number, deleteCount?: number, ...items: T[]): T[]`
+* `map<U>(callbackfn: (value: T, index: number, array: T[]) => U): U[]`
+* `find(predicate: (value: T, index: number, obj: T[]) => boolean): T | undefined`
+* `filter(predicate: (value: T, index: number, array: T[]) => unknown): T[]`
+* `findIndex(predicate: (value: T, index: number, obj: T[]) => boolean): number`
+
+```js
+import { createMemoryAdapter } from 'signaldb'
+
+const memoryAdapter = createMemoryAdapter(/* ... */)
+```
 
 ## Data Persistence
 

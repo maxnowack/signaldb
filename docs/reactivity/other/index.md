@@ -53,7 +53,7 @@ Here's a complete example of a reactivity adapter:
 import { signal, peek, onDispose } from '@maverick-js/signals'
 import { createReactivityAdapter } from 'signaldb'
 
-const reactivity: ReactivityAdapter = {
+const reactivity = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {
@@ -68,7 +68,7 @@ const reactivity: ReactivityAdapter = {
   onDispose: (callback) => {
     onDispose(callback)
   },
-}
+})
 
 export default reactivity
 ```
