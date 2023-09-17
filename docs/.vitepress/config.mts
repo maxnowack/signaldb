@@ -32,6 +32,7 @@ export default defineConfig({
         items: [
           { text: 'Collections', link: '/collections/' },
           { text: 'Queries', link: '/queries/' },
+          { text: 'Cursors', link: '/cursors/' },
           { text: 'Data manipulation', link: '/data-manipulation/' },
         ],
       },
