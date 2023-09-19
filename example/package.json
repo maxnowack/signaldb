@@ -11,7 +11,7 @@
     "signaldb": "0.3.0",
     "@maverick-js/signals": "^5.11.2",
     "@types/node": "20.6.2",
-    "@types/react": "18.2.21",
+    "@types/react": "18.2.22",
     "@types/react-dom": "18.2.7",
     "next": "13.4.19",
     "react": "18.2.0",
