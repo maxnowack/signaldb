@@ -1,5 +1,5 @@
 import fs from 'fs/promises'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { Collection, createFilesystemAdapter } from '../src/index'
 import waitForEvent from '../src/utils/waitForEvent'
 
@@ -131,5 +131,108 @@ describe('Persistence', () => {
     const contents = await fs.readFile('/tmp/data.json', 'utf-8')
     expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
     await fs.unlink('/tmp/data.json').catch(() => { /* do nothing */ })
+  })
+
+  it('should emit persistence.error if the adapter throws an error on registering', async () => {
+    const collection = new Collection({
+      persistence: {
+        register: () => new Promise((_resolve, reject) => {
+          setTimeout(() => reject(new Error('test')), 100)
+        }),
+        load: () => Promise.resolve({ items: [] }),
+        save: () => Promise.resolve(),
+      },
+    })
+    const fn = vi.fn()
+    collection.on('persistence.error', fn)
+    await waitForEvent(collection, 'persistence.error')
+    expect(fn).toHaveBeenCalledWith(new Error('test'))
+  })
+
+  it('should emit persistence.error if the adapter throws an error on load', async () => {
+    const collection = new Collection({
+      persistence: {
+        register: () => Promise.resolve(),
+        load: () => new Promise((_resolve, reject) => {
+          setTimeout(() => reject(new Error('test')), 100)
+        }),
+        save: () => Promise.resolve(),
+      },
+    })
+    const fn = vi.fn()
+    collection.on('persistence.error', fn)
+    await waitForEvent(collection, 'persistence.error')
+    expect(fn).toHaveBeenCalledWith(new Error('test'))
+  })
+
+  it('should emit persistence.error if the adapter throws an error on save', async () => {
+    const collection = new Collection<{ id: string }>({
+      persistence: {
+        register: () => Promise.resolve(),
+        load: () => Promise.resolve({ items: [] }),
+        save: () => new Promise((_resolve, reject) => {
+          setTimeout(() => reject(new Error('test')), 100)
+        }),
+      },
+    })
+    const fn = vi.fn()
+    collection.on('persistence.error', fn)
+    await waitForEvent(collection, 'persistence.init')
+    collection.insert({ id: '1' })
+    await waitForEvent(collection, 'persistence.error')
+    expect(fn).toHaveBeenCalledWith(new Error('test'))
+  })
+
+  it('should emit persistence.error if the adapter rejects on registering', async () => {
+    const collection = new Collection({
+      persistence: {
+        register: () => new Promise((_resolve, reject) => {
+          // eslint-disable-next-line prefer-promise-reject-errors
+          setTimeout(() => reject('test'), 100)
+        }),
+        load: () => Promise.resolve({ items: [] }),
+        save: () => Promise.resolve(),
+      },
+    })
+    const fn = vi.fn()
+    collection.on('persistence.error', fn)
+    await waitForEvent(collection, 'persistence.error')
+    expect(fn).toHaveBeenCalledWith(new Error('test'))
+  })
+
+  it('should emit persistence.error if the adapter rejects on load', async () => {
+    const collection = new Collection({
+      persistence: {
+        register: () => Promise.resolve(),
+        load: () => new Promise((_resolve, reject) => {
+          // eslint-disable-next-line prefer-promise-reject-errors
+          setTimeout(() => reject('test'), 100)
+        }),
+        save: () => Promise.resolve(),
+      },
+    })
+    const fn = vi.fn()
+    collection.on('persistence.error', fn)
+    await waitForEvent(collection, 'persistence.error')
+    expect(fn).toHaveBeenCalledWith(new Error('test'))
+  })
+
+  it('should emit persistence.error if the adapter rejects on save', async () => {
+    const collection = new Collection<{ id: string }>({
+      persistence: {
+        register: () => Promise.resolve(),
+        load: () => Promise.resolve({ items: [] }),
+        save: () => new Promise((_resolve, reject) => {
+          // eslint-disable-next-line prefer-promise-reject-errors
+          setTimeout(() => reject('test'), 100)
+        }),
+      },
+    })
+    const fn = vi.fn()
+    collection.on('persistence.error', fn)
+    await waitForEvent(collection, 'persistence.init')
+    collection.insert({ id: '1' })
+    await waitForEvent(collection, 'persistence.error')
+    expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 })
