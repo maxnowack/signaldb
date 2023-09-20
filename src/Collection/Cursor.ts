@@ -2,12 +2,20 @@ import type Selector from '../types/Selector'
 import sortItems from '../utils/sortItems'
 import project from '../utils/project'
 import match from '../utils/match'
+import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
+function isInReactiveScope(reactivity: ReactivityAdapter | undefined | false) {
+  if (!reactivity) return false // if reactivity is disabled we don't need to check
+  if (!reactivity.isInScope) return true // if reactivity is enabled and no isInScope method is provided we assume it is in scope
+  return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
+}
+
 export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
   transform?: Transform<T, U>,
+  bindEvents?: (requery: () => void) => () => void,
 }
 
 export default class Cursor<T extends BaseItem, U = T> {
@@ -57,6 +65,7 @@ export default class Cursor<T extends BaseItem, U = T> {
 
   private depend(changeEvents: { [P in keyof ObserveCallbacks<U>]?: true }) {
     if (!this.options.reactive) return
+    if (!isInReactiveScope(this.options.reactive)) return
     const signal = this.options.reactive.create()
     signal.depend()
     const notify = () => signal.notify()
@@ -134,11 +143,23 @@ export default class Cursor<T extends BaseItem, U = T> {
           },
         }
       }, {}) as ObserveCallbacks<T>
-    const observer = new Observer(transformedCallbacks, skipInitial)
+    const observer = new Observer(
+      transformedCallbacks,
+      () => {
+        const cleanup = this.options.bindEvents
+          && this.options.bindEvents(() => observer.check(this.getItems()))
+        return () => {
+          if (cleanup) cleanup()
+        }
+      },
+      skipInitial,
+    )
     this.observers.push(observer)
     observer.check(this.getItems())
+    this.onCleanup(() => observer.stop())
 
     return () => {
+      observer.stop()
       this.observers = this.observers.filter(o => o !== observer)
     }
   }

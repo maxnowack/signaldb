@@ -33,12 +33,6 @@ interface CollectionEvents<T> {
   'persistence.received': () => void,
 }
 
-function isInReactiveScope(reactivity: ReactivityAdapter | undefined | false) {
-  if (!reactivity) return false // if reactivity is disabled we don't need to check
-  if (!reactivity.isInScope) return true // if reactivity is enabled and no isInScope method is provided we assume it is in scope
-  return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
-}
-
 // eslint-disable-next-line max-len
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
@@ -135,27 +129,23 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
-    const cursorOptions = {
+    return new Cursor<T, U>(() => this.getItems(), selector || {}, {
       reactive: this.options.reactivity,
       ...options,
       transform: this.transform.bind(this),
-    }
-    const cursor = new Cursor<T, U>(() => this.getItems(), selector || {}, cursorOptions)
-    if (isInReactiveScope(cursorOptions.reactive)) {
-      const requery = () => cursor.requery()
-      this.addListener('persistence.received', requery)
-      this.addListener('added', requery)
-      this.addListener('changed', requery)
-      this.addListener('removed', requery)
-      const cleanup = () => {
-        this.removeListener('persistence.received', requery)
-        this.removeListener('added', requery)
-        this.removeListener('changed', requery)
-        this.removeListener('removed', requery)
-      }
-      cursor.onCleanup(cleanup)
-    }
-    return cursor
+      bindEvents: (requery) => {
+        this.addListener('persistence.received', requery)
+        this.addListener('added', requery)
+        this.addListener('changed', requery)
+        this.addListener('removed', requery)
+        return () => {
+          this.removeListener('persistence.received', requery)
+          this.removeListener('added', requery)
+          this.removeListener('changed', requery)
+          this.removeListener('removed', requery)
+        }
+      },
+    })
   }
 
   public findOne<O extends Omit<FindOptions<T>, 'limit'>>(selector: Selector<T>, options?: O) {
