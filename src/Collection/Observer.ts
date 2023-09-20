@@ -13,10 +13,16 @@ export default class Observer<T extends { id: any }> {
   private callbacks: ObserveCallbacks<T>
   private skipInitial = false
   private isIinitial = true
+  private unbindEvents: () => void
 
-  constructor(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+  constructor(
+    callbacks: ObserveCallbacks<T>,
+    bindEvents: () => () => void,
+    skipInitial = false,
+  ) {
     this.callbacks = callbacks
     this.skipInitial = skipInitial
+    this.unbindEvents = bindEvents()
   }
 
   // eslint-disable-next-line max-len
@@ -76,5 +82,9 @@ export default class Observer<T extends { id: any }> {
     // Store new items as previous items for next check
     this.previousItems = newItems
     this.isIinitial = false
+  }
+
+  public stop() {
+    this.unbindEvents()
   }
 }

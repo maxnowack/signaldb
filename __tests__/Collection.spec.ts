@@ -206,6 +206,46 @@ describe('Collection', () => {
 
   describe('events', () => {
     it('shouldn\'t register any event listeners without reactivity', () => {
+      const col = new Collection<{ id: string, name: string }>()
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      col.insert({ id: '1', name: 'John' })
+      col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      col.removeOne({ id: '1' })
+
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      const cursor = col.find()
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      cursor.fetch()
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      cursor.observeChanges({})
+      expect(col.listenerCount('added')).toBe(1)
+      expect(col.listenerCount('changed')).toBe(1)
+      expect(col.listenerCount('removed')).toBe(1)
+
+      cursor.cleanup()
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      col.find({}, { reactive: false })
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+    })
+
+    it('should register event listeners in reactive scope', () => {
       const col = new Collection<{ id: string, name: string }>({
         reactivity: {
           create: () => ({
@@ -234,13 +274,36 @@ describe('Collection', () => {
       expect(col.listenerCount('removed')).toBe(0)
 
       const cursor = col.find()
+      expect(col.listenerCount('added')).toBe(0)
+      expect(col.listenerCount('changed')).toBe(0)
+      expect(col.listenerCount('removed')).toBe(0)
+
+      cursor.fetch()
       expect(col.listenerCount('added')).toBe(1)
       expect(col.listenerCount('changed')).toBe(1)
       expect(col.listenerCount('removed')).toBe(1)
 
-      cursor.fetch()
-      cursor.cleanup()
+      cursor.map(item => item)
+      expect(col.listenerCount('added')).toBe(2)
+      expect(col.listenerCount('changed')).toBe(2)
+      expect(col.listenerCount('removed')).toBe(2)
 
+      cursor.forEach(item => item)
+      expect(col.listenerCount('added')).toBe(3)
+      expect(col.listenerCount('changed')).toBe(3)
+      expect(col.listenerCount('removed')).toBe(3)
+
+      cursor.count()
+      expect(col.listenerCount('added')).toBe(4)
+      expect(col.listenerCount('changed')).toBe(4)
+      expect(col.listenerCount('removed')).toBe(4)
+
+      cursor.observeChanges({})
+      expect(col.listenerCount('added')).toBe(5)
+      expect(col.listenerCount('changed')).toBe(5)
+      expect(col.listenerCount('removed')).toBe(5)
+
+      cursor.cleanup()
       expect(col.listenerCount('added')).toBe(0)
       expect(col.listenerCount('changed')).toBe(0)
       expect(col.listenerCount('removed')).toBe(0)

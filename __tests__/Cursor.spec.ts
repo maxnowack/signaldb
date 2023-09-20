@@ -292,9 +292,9 @@ describe('Cursor', () => {
       expect(callbacks.removed).not.toHaveBeenCalled()
     })
 
-    it('should call the appropriate callbacks when items are added, moved, changed, or removed', async () => {
-      const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+    it('should call the appropriate callbacks when items are added, moved, changed, or removed', () => {
+      const col = new Collection<TestItem & { count: number }>()
+      items.forEach((item, index) => col.insert({ ...item, count: index }))
 
       const callbacks: ObserveCallbacks<TestItem> = {
         added: vi.fn(),
@@ -304,28 +304,35 @@ describe('Cursor', () => {
         removed: vi.fn(),
       }
 
-      const cursor = col.find()
+      const cursor = col.find({}, {
+        sort: { count: 1 },
+      })
       cursor.observeChanges(callbacks, true)
 
       // Change data
-      col.insert({ id: 4, name: 'item4' }) // Add new item
-      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
-      col.removeOne({ id: 2 }) // Remove item
-
-      cursor.requery()
-
-      await wait() // Wait for all async operations to finish
-
+      col.insert({ id: 4, name: 'item4', count: 99 }) // Add new item
       expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }))
       expect(callbacks.addedBefore).toHaveBeenCalledWith(
         expect.objectContaining({ id: 4, name: 'item4' }),
         null,
       )
+
+      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
       expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
+
+      col.updateOne({ id: 1 }, { $set: { count: 42 } }) // Move existing item
       expect(callbacks.movedBefore).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 3, name: 'Item 3' }),
-        expect.objectContaining({ id: 4, name: 'item4' }),
+        expect.objectContaining({ id: 1 }),
+        expect.objectContaining({ id: 4 }),
       )
+
+      col.updateOne({ id: 2 }, { $set: { count: 999 } }) // Move existing item
+      expect(callbacks.movedBefore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 2 }),
+        null,
+      )
+
+      col.removeOne({ id: 2 }) // Remove item
       expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
     })
 
