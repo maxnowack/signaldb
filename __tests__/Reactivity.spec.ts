@@ -35,12 +35,11 @@ import S from 's-js'
 //   onCleanup as solidCleanup,
 //   createRoot as solidCreateRoot,
 // } from 'solid-js'
-import type { ReactivityAdapter } from '../src/index'
-import { Collection } from '../src/index'
+import { Collection, createReactivityAdapter } from '../src/index'
 
 describe('Reactivity', () => {
   describe('Tracker', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = new Tracker.Dependency()
         return {
@@ -56,7 +55,7 @@ describe('Reactivity', () => {
         if (!Tracker.active) return
         Tracker.onInvalidate(callback)
       }),
-    }
+    })
 
     it('should be reactive with Tracker', () => {
       const collection = new Collection({ reactivity })
@@ -91,7 +90,7 @@ describe('Reactivity', () => {
   })
 
   describe('@maverick-js/signals', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = maverickSignal(0)
         return {
@@ -107,7 +106,7 @@ describe('Reactivity', () => {
       onDispose: vi.fn((callback) => {
         maverickOnDispose(callback)
       }),
-    }
+    })
 
     it('should be reactive with @maverick-js/signals', () => {
       const collection = new Collection({ reactivity })
@@ -126,7 +125,7 @@ describe('Reactivity', () => {
   })
 
   describe('oby', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = $oby(0)
         return {
@@ -142,7 +141,7 @@ describe('Reactivity', () => {
       onDispose: vi.fn((callback) => {
         obyCleanup(callback)
       }),
-    }
+    })
 
     it('should be reactive with oby', () => {
       const collection = new Collection({ reactivity })
@@ -161,7 +160,7 @@ describe('Reactivity', () => {
   })
 
   describe('usignal', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = uSignal(0)
         return {
@@ -174,7 +173,7 @@ describe('Reactivity', () => {
           },
         }
       },
-    }
+    })
 
     it('should be reactive with usignal', () => {
       const collection = new Collection({ reactivity })
@@ -197,7 +196,7 @@ describe('Reactivity', () => {
   })
 
   describe('sinuous', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = sinuousObservable(0)
         return {
@@ -212,7 +211,7 @@ describe('Reactivity', () => {
       onDispose: vi.fn((callback) => {
         sinuousApi.cleanup(callback)
       }),
-    }
+    })
 
     it('should be reactive with sinuous', () => {
       const collection = new Collection({ reactivity })
@@ -230,7 +229,7 @@ describe('Reactivity', () => {
   })
 
   describe('preact', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = preactSignal(0)
         return {
@@ -243,7 +242,7 @@ describe('Reactivity', () => {
           },
         }
       },
-    }
+    })
 
     it('should be reactive with preact', () => {
       const collection = new Collection({ reactivity })
@@ -266,7 +265,7 @@ describe('Reactivity', () => {
   })
 
   describe('@reactively/core', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = reactively(0)
         return {
@@ -281,7 +280,7 @@ describe('Reactivity', () => {
       onDispose: vi.fn((callback) => {
         reactivelyOnCleanup(callback)
       }),
-    }
+    })
 
     it('should be reactive with reactively', () => {
       const collection = new Collection({ reactivity })
@@ -302,7 +301,7 @@ describe('Reactivity', () => {
   })
 
   describe('S.js', () => {
-    const reactivity: ReactivityAdapter = {
+    const reactivity = createReactivityAdapter({
       create: () => {
         const dep = S.data(true)
         return {
@@ -317,7 +316,7 @@ describe('Reactivity', () => {
       onDispose: vi.fn((callback) => {
         S.cleanup(callback)
       }),
-    }
+    })
 
     it('should be reactive with S.js', () => {
       const collection = new Collection({ reactivity })
@@ -337,7 +336,7 @@ describe('Reactivity', () => {
   // solid doenst work in a node environment since createEffect won't run
   // eslint-disable-next-line vitest/no-commented-out-tests
   // describe('solid', () => {
-  //   const reactivity: ReactivityAdapter = {
+  //   const reactivity = createReactivityAdapter({
   //     create: () => {
   //       const [depend, rerun] = solidSignal(undefined, { equals: false })
   //       return {
@@ -352,7 +351,7 @@ describe('Reactivity', () => {
   //     onDispose: (callback) => {
   //       solidCleanup(callback)
   //     },
-  //   }
+  //   })
 
   // eslint-disable-next-line vitest/no-commented-out-tests
   //   it('should be reactive with solid', () => {

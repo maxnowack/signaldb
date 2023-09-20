@@ -18,7 +18,7 @@ export default class Observer<T extends { id: any }> {
   constructor(
     callbacks: ObserveCallbacks<T>,
     bindEvents: () => () => void,
-    skipInitial = false,
+    skipInitial: boolean,
   ) {
     this.callbacks = callbacks
     this.skipInitial = skipInitial

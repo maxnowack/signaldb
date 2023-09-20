@@ -1,12 +1,12 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
-import { Collection } from '../src/index'
+import { Collection, createMemoryAdapter } from '../src/index'
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
 
   beforeEach(() => {
     collection = new Collection<{ id: string, name: string }>({
-      memory: [],
+      memory: createMemoryAdapter([]),
     })
   })
 
