@@ -16,6 +16,9 @@ export default defineConfig({
     nodePolyfills(),
   ],
   test: {
+    coverage: {
+      provider: 'istanbul',
+    },
     reporters: process.env.GITHUB_ACTIONS
       ? ['default', new GithubActionsReporter()]
       : 'default',
