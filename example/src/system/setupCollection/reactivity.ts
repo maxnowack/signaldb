@@ -1,7 +1,7 @@
-import { signal, peek, onDispose } from '@maverick-js/signals'
-import type { ReactivityAdapter } from 'signaldb'
+import { signal, peek, onDispose, getScope } from '@maverick-js/signals'
+import { createReactivityAdapter } from 'signaldb'
 
-const reactivity: ReactivityAdapter = {
+const reactivity = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {
@@ -13,9 +13,10 @@ const reactivity: ReactivityAdapter = {
       },
     }
   },
+  isInScope: () => !!getScope(),
   onDispose: (callback) => {
     onDispose(callback)
   },
-}
+})
 
 export default reactivity
