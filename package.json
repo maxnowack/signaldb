@@ -96,7 +96,7 @@
     "vite-plugin-node-polyfills": "0.14.1",
     "vite-tsconfig-paths": "4.2.1",
     "vitepress": "1.0.0-rc.15",
-    "vitest": "0.34.4",
+    "vitest": "0.34.5",
     "vitest-github-actions-reporter": "0.10.0"
   },
   "dependencies": {
