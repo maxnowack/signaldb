@@ -5,9 +5,9 @@ import {
 import {
   getRxStorageDexie,
 } from 'rxdb/plugins/storage-dexie'
-import type { PersistenceAdapter } from 'signaldb'
 import { RxDBLeaderElectionPlugin } from 'rxdb/plugins/leader-election'
 import { RxDBUpdatePlugin } from 'rxdb/plugins/update'
+import createRxPersistenceAdapter from '../../utils/createRxPersistenceAdapter'
 
 addRxPlugin(RxDBLeaderElectionPlugin)
 addRxPlugin(RxDBUpdatePlugin)
@@ -50,32 +50,10 @@ const collectionPromise = dbPromise.then(async (db) => {
   return db.collections.todos
 })
 
-const persistence: PersistenceAdapter<{ id: string, text: string, completed: boolean }, string> = {
-  register: async (onChange) => {
-    const collection = await collectionPromise
-    collection.postInsert(() => onChange(), false)
-    collection.postRemove(() => onChange(), false)
-    collection.postSave(() => onChange(), false)
-  },
-  save: async (_items, changes) => {
-    const collection = await collectionPromise
-    await Promise.all([
-      ...changes.added.map(item => collection.insert(item)),
-      ...changes.modified.map(async (item) => {
-        const doc = await collection.findOne({ selector: { id: item.id } }).exec()
-        if (doc) await doc.update({ $set: item })
-      }),
-      ...changes.removed.map(async (item) => {
-        const doc = await collection.findOne({ selector: { id: item.id } }).exec()
-        if (doc) await doc.remove()
-      }),
-    ])
-  },
-  load: async () => {
-    const collection = await collectionPromise
-    const items = await collection.find().exec()
-    return { items: items.map(item => item.toMutableJSON()) }
-  },
-}
+const persistence = createRxPersistenceAdapter<{
+  id: string,
+  text: string,
+  completed: boolean,
+}, string>(() => collectionPromise)
 
 export default persistence
