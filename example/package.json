@@ -8,7 +8,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "signaldb": "0.3.1",
     "@maverick-js/signals": "^5.11.2",
     "@types/node": "20.6.3",
     "@types/react": "18.2.22",
@@ -18,6 +17,7 @@
     "react-dom": "18.2.0",
     "rxdb": "^14.14.2",
     "rxjs": "^7.8.1",
+    "signaldb": "0.3.1",
     "typescript": "5.2.2"
   },
   "devDependencies": {
