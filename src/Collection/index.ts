@@ -44,9 +44,14 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     if (this.options.persistence) {
       const persistenceAdapter = this.options.persistence
       this.persistenceAdapter = persistenceAdapter
+      let ongoingSaves = 0
       const loadPersistentData = async () => {
         // load items from persistence adapter and push them into memory
         const { items } = await persistenceAdapter.load()
+
+        // as we overwrite all items, we need to discard if there are ongoing saves
+        if (ongoingSaves > 0) return
+
         // push new items to this.memory() and delete old ones
         this.memory().splice(0, this.memoryArray().length, ...items)
 
@@ -57,6 +62,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         .then(async () => {
           await loadPersistentData()
           this.on('added', (item) => {
+            ongoingSaves += 1
             persistenceAdapter.save(this.memory().map(i => i), {
               added: [item],
               modified: [],
@@ -65,9 +71,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
               this.emit('persistence.transmitted')
             }).catch((error) => {
               this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+            }).finally(() => {
+              ongoingSaves -= 1
             })
           })
           this.on('changed', (item) => {
+            ongoingSaves += 1
             persistenceAdapter.save(this.memory().map(i => i), {
               added: [],
               modified: [item],
@@ -76,9 +85,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
               this.emit('persistence.transmitted')
             }).catch((error) => {
               this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+            }).finally(() => {
+              ongoingSaves -= 1
             })
           })
           this.on('removed', (item) => {
+            ongoingSaves += 1
             persistenceAdapter.save(this.memory().map(i => i), {
               added: [],
               modified: [],
@@ -87,6 +99,8 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
               this.emit('persistence.transmitted')
             }).catch((error) => {
               this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+            }).finally(() => {
+              ongoingSaves -= 1
             })
           })
 
