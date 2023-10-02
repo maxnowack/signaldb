@@ -54,5 +54,5 @@ Scope checking is also only supported by a few libraries. This means, that Signa
 | [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
 | [`@reactively/core`](/reactivity/reactively/) | ✅ | ✅ | ❌ |
 | [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
-| [`RxJS`](https://github.com/maxnowack/signaldb/issues/15) | ❌ | ❌ | ❌ | ❌ |
+| [`Angular Signals`](/reactivity/angular/) | ✅ | ❌ | ❌ |
 | [`MobX`](https://github.com/maxnowack/signaldb/issues/14) | ❌ | ❌ | ❌ | ❌ |
