@@ -14,7 +14,7 @@ import { createReactivityAdapter } from 'signaldb'
 
 const reactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = preactSignal(0)
+    const dep = signal(0)
     return {
       depend: () => {
         // eslint-disable-next-line no-unused-expressions
