@@ -4,11 +4,6 @@ import { createPersistenceAdapter } from 'signaldb'
 export default function createRxPersistenceAdapter<T extends { id: U }, U>(
   getCollection: () => Promise<RxCollection<T>>,
 ) {
-  let currentSavePromise: Promise<void> | null = null
-  const waitUntilSaveFinished = async () => {
-    if (!currentSavePromise) return
-    await currentSavePromise
-  }
   return createPersistenceAdapter<T, U>({
     register: async (onChange) => {
       const handleChange = () => {
@@ -21,8 +16,7 @@ export default function createRxPersistenceAdapter<T extends { id: U }, U>(
     },
     save: async (_items, changes) => {
       const collection = await getCollection()
-      await waitUntilSaveFinished()
-      currentSavePromise = Promise.all([
+      await Promise.all([
         ...changes.added.map(item => collection.insert(item)),
         ...changes.modified.map(async (item) => {
           const doc = await collection.findOne({ selector: { id: item.id } as any }).exec()
@@ -33,11 +27,8 @@ export default function createRxPersistenceAdapter<T extends { id: U }, U>(
           if (doc) await doc.remove()
         }),
       ]).then(() => undefined)
-      await currentSavePromise
-      currentSavePromise = null
     },
     load: async () => {
-      await waitUntilSaveFinished()
       const collection = await getCollection()
       const items = await collection.find().exec()
         .then(docs => docs.map(item => item.toMutableJSON()))
