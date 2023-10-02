@@ -35,6 +35,11 @@ import S from 's-js'
 //   onCleanup as solidCleanup,
 //   createRoot as solidCreateRoot,
 // } from 'solid-js'
+// import {
+//   signal as angularSignal,
+//   effect as angularEffect,
+//   untracked as angularUntracked,
+// } from '@angular/core'
 import { Collection, createReactivityAdapter } from '../src/index'
 
 describe('Reactivity', () => {
@@ -332,6 +337,44 @@ describe('Reactivity', () => {
       expect(callback).toHaveBeenLastCalledWith(1)
     })
   })
+
+  // Testing angular is a bit tricky and I haven't figured out how to do it yet. Feel free to open a PR
+  // eslint-disable-next-line vitest/no-commented-out-tests
+  // describe('angular', () => {
+  //   const reactivity = createReactivityAdapter({
+  //     create: () => {
+  //       const dep = angularSignal(0)
+  //       return {
+  //         depend: () => {
+  //           dep()
+  //         },
+  //         notify: () => {
+  //           dep.set(angularUntracked(() => dep() + 1))
+  //         },
+  //       }
+  //     },
+  //   })
+
+  // eslint-disable-next-line vitest/no-commented-out-tests
+  //   it('should be reactive with angular signals', () => {
+  //     const collection = new Collection({ reactivity })
+  //     const callback = vi.fn()
+  //     const cleanup = vi.fn()
+
+  //     angularEffect((onCleanup) => {
+  //       const cursor = collection.find({ name: 'John' })
+  //       callback(cursor.count())
+  //       onCleanup(() => {
+  //         cleanup()
+  //         cursor.cleanup()
+  //       })
+  //     })
+  //     collection.insert({ id: '1', name: 'John' })
+  //     expect(cleanup).toHaveBeenCalledTimes(1)
+  //     expect(callback).toHaveBeenCalledTimes(2)
+  //     expect(callback).toHaveBeenLastCalledWith(1)
+  //   })
+  // })
 
   // solid doenst work in a node environment since createEffect won't run
   // eslint-disable-next-line vitest/no-commented-out-tests
