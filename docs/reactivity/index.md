@@ -33,7 +33,7 @@ While SignalDB stores data in memory, ensuring the persistence of this data acro
 
 
 
-Also check out the [core concepts about reactivity](/core-concepts/#signals-and-reactivity-adapters).
+Also check out the [core concepts about reactivity](/core-concepts/#signals-and-reactivity).
 
 ## Reactivity Libraries
 
