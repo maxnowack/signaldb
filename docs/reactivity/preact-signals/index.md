@@ -6,6 +6,8 @@ head:
 ---
 # Reactivity adapter for [`@preact/signals`](https://preactjs.com/blog/introducing-signals/)
 
+Signals in Preact are designed to provide an efficient way of expressing and managing state, ensuring that applications remain performant irrespective of their complexity. When integrated with SignalDB, these signals can be used to seamlessly synchronize and react to changes in the database. This means that when a signal's value changes in the Preact component, it can automatically reflect the changes in the SignalDB database, and vice versa. This integration provides developers with a streamlined approach to building dynamic, data-driven applications. By combining the reactive principles of Preact signals with the robust capabilities of SignalDB, developers can achieve real-time data updates, ensuring that the user interface is always in sync with the underlying database. This seamless integration not only simplifies state management but also enhances the overall user experience by providing instant feedback and reducing the need for manual data refreshes.
+
 ## Adapter
 
 ```js
