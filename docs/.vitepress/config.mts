@@ -43,6 +43,7 @@ export default defineConfig({
           { text: 'Overview', link: '/reactivity/' },
           { text: '@preact/signals-core', link: '/reactivity/preact-signals/' },
           { text: 'Solid Signals', link: '/reactivity/solidjs/' },
+          { text: 'Angular', link: '/reactivity/angular/' },
           { text: 'Maverick-js Signals', link: '/reactivity/maverickjs/' },
           { text: 'Meteor Tracker', link: '/reactivity/meteor-tracker/' },
           { text: 'oby', link: '/reactivity/oby/' },
