@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { effect } from '@maverick-js/signals'
 import type { Collection } from 'signaldb'
-import style from './style.module.scss'
 
 interface Props {
   collection: Collection<{ id: string, text: string, completed: boolean }>,
@@ -19,7 +18,7 @@ const List: React.FC<Props> = ({ collection }) => {
   return (
     <ul>
       {items.map(item => (
-        <li key={item.id} className={item.completed ? style.completed : ''}>
+        <li key={item.id} className={item.completed ? 'completed' : ''}>
           <input
             type="checkbox"
             checked={item.completed}
@@ -31,7 +30,7 @@ const List: React.FC<Props> = ({ collection }) => {
           <button onClick={() => collection.removeOne({ id: item.id })}>x</button>
         </li>
       ))}
-      {items.length === 0 && <li className={style.empty}>Empty</li>}
+      {items.length === 0 && <li className="empty">Empty</li>}
     </ul>
   )
 }

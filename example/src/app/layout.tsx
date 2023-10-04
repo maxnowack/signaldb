@@ -1,4 +1,4 @@
-import './globals.css'
+import './globals.scss'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 
@@ -16,7 +16,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <main>
+          <h1>SignalDB Example - Todo App</h1>
+          <p className="subline">
+            <a href="https://github.com/maxnowack/signaldb/tree/main/example/src/containers/App/index.tsx" target="_blank" rel="noopener">Take a look a the code</a>
+            <a href="/">Back to documentation</a>
+          </p>
+          {children}
+        </main>
+      </body>
     </html>
   )
 }
