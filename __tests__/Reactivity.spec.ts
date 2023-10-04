@@ -29,6 +29,12 @@ import {
 } from '@preact/signals-core'
 import { reactive as reactively, onCleanup as reactivelyOnCleanup } from '@reactively/core'
 import S from 's-js'
+import {
+  observable as mobxObservable,
+  autorun as mobxAutorun,
+  runInAction as mobxRunInAction,
+  onBecomeUnobserved as mobxOnBecomeUnobserved,
+} from 'mobx'
 // import {
 //   createSignal as solidSignal,
 //   createEffect as solidEffect,
@@ -335,6 +341,43 @@ describe('Reactivity', () => {
       expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenCalledTimes(2)
       expect(callback).toHaveBeenLastCalledWith(1)
+    })
+  })
+
+  describe('MobX', () => {
+    const reactivity = createReactivityAdapter({
+      create: () => {
+        const dep = mobxObservable({ count: 0 })
+        return {
+          depend: () => {
+            // eslint-disable-next-line no-unused-expressions
+            dep.count
+          },
+          notify: () => {
+            mobxRunInAction(() => {
+              dep.count += 1
+            })
+          },
+          raw: dep,
+        }
+      },
+      onDispose(callback, { raw: dep }) {
+        mobxOnBecomeUnobserved(dep, 'count', callback)
+      },
+    })
+
+    it('should be reactive with MobX', () => {
+      const collection = new Collection({ reactivity })
+      const callback = vi.fn()
+
+      const stop = mobxAutorun(() => {
+        const cursor = collection.find({ name: 'John' })
+        callback(cursor.count())
+      })
+      collection.insert({ id: '1', name: 'John' })
+      expect(callback).toHaveBeenCalledTimes(2)
+      expect(callback).toHaveBeenLastCalledWith(1)
+      stop()
     })
   })
 
