@@ -36,13 +36,23 @@ create: () => {
 }
 ```
 
+### `isInScope(dependency: Dependency): boolean`
+
+The `isInScope` function is used for checking wether a SignalDB is in a reactive context. If SignalDB is not in a reactive context, reactivity will be automatically disabled to avoid memory leaks.
+
+```js
+isInScope() {
+  return !!getScope()
+}
+```
+
 
 ### `onDispose(callback: () -> void, dependency: Dependency)`
 
 This method is used to register a callback to be executed when the reactive computation is disposed. The dependency created in the [`create`](/reactivity/other/#create-dependency) method, will be passed as the second parameter. This can be useful if a framework requires data from the creation on disposal.
 
 ```js
-onDispose: (callback, dependency: Dependency) => {
+onDispose: (callback, dependency) => {
   onDispose(callback)
 }
 ```
