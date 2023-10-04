@@ -39,7 +39,7 @@ const posts = new Collection({
   reactivity: reactivityAdapter,
 })
 
-effect(onCleanup() => {
+effect((onCleanup) => {
   const cursor = posts.find({ author: 'John' })
   console.log(cursor.count())
   onCleanup(() => {
