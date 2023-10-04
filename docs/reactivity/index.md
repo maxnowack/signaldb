@@ -46,13 +46,13 @@ Scope checking is also only supported by a few libraries. This means, that Signa
 | Library | Reactivity adapter | Automatic Cleanup | Scope check |
 |---|---|---|---|
 | [`@preact/signals-core`](/reactivity/preact-signals/) | ✅ | ❌ | ❌ |
-| [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
+| [`@reactively/core`](/reactivity/reactively/) | ✅ | ✅ | ❌ |
+| [`Angular Signals`](/reactivity/angular/) | ✅ | ❌ | ❌ |
 | [`Maverick-js Signals`](/reactivity/maverickjs/) | ✅ | ✅ | ✅ |
 | [`Meteor Tracker`](/reactivity/meteor-tracker/) | ✅ | ✅ | ✅ |
-| [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
-| [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
-| [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
-| [`@reactively/core`](/reactivity/reactively/) | ✅ | ✅ | ❌ |
-| [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
-| [`Angular Signals`](/reactivity/angular/) | ✅ | ❌ | ❌ |
 | [`MobX`](/reactivity/mobx/) | ✅ | ✅ | ❌ |
+| [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
+| [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
+| [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
+| [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
+| [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
