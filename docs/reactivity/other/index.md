@@ -15,10 +15,12 @@ The ReactivityAdapter object has two methods:
 
 ### `create() -> Dependency`
 
-The `create` function creates a new reactive dependency. A `Dependency` object has two methods:
+The `create` function creates a new reactive dependency. A `Dependency` object must have at least these two methods:
 
 * `depend()`: This method is called when the collection data is read, marking the place in the code as dependent on the collection data. Subsequent changes to the collection data will cause this place to be re-evaluated.
 * `notify()`: This method is called when the collection data changes, notifying all dependent parts of the code that they need to re-evaluate.
+
+You can also include more methods or other data in the dependency which you can access from the [`onDispose`](/reactivity/other/#ondispose-callback-void-dependency-dependency) method.
 
 ```js
 create: () => {
@@ -35,12 +37,12 @@ create: () => {
 ```
 
 
-### `onDispose(callback: () -> void)`
+### `onDispose(callback: () -> void, dependency: Dependency)`
 
-This method is used to register a callback to be executed when the reactive computation is disposed.
+This method is used to register a callback to be executed when the reactive computation is disposed. The dependency created in the [`create`](/reactivity/other/#create-dependency) method, will be passed as the second parameter. This can be useful if a framework requires data from the creation on disposal.
 
 ```js
-onDispose: (callback) => {
+onDispose: (callback, dependency: Dependency) => {
   onDispose(callback)
 }
 ```

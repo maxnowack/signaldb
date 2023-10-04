@@ -33,10 +33,6 @@ export default class Cursor<T extends BaseItem, U = T> {
     this.getAllItems = getAllItems
     this.selector = selector
     this.options = options || {}
-
-    if (this.options.reactive && this.options.reactive.onDispose) {
-      this.options.reactive.onDispose(this.cleanup.bind(this))
-    }
   }
 
   private filterItems(items: T[]) {
@@ -75,6 +71,9 @@ export default class Cursor<T extends BaseItem, U = T> {
       .map(([key]) => key)
       .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
     const stop = this.observeChanges(enabledEvents, true)
+    if (this.options.reactive.onDispose) {
+      this.options.reactive.onDispose(() => stop(), signal)
+    }
     this.onCleanup(stop)
   }
 
