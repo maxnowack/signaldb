@@ -25,7 +25,7 @@ const reactivityAdapter = createReactivityAdapter({
     }
   },
   onDispose: (callback) => {
-    nCleanup(callback)
+    onCleanup(callback)
   },
 })
 ```
