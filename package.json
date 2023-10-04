@@ -80,7 +80,7 @@
     "happy-dom": "12.8.0",
     "husky": "8.0.3",
     "meteor-ts-tracker": "2.0.2",
-    "oby": "14.3.3",
+    "oby": "14.3.4",
     "rimraf": "5.0.5",
     "rollup-plugin-typescript-paths": "1.4.0",
     "s-js": "0.4.9",
