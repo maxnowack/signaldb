@@ -97,7 +97,8 @@
     "vite-tsconfig-paths": "4.2.1",
     "vitepress": "1.0.0-rc.20",
     "vitest": "0.34.6",
-    "vitest-github-actions-reporter": "0.10.0"
+    "vitest-github-actions-reporter": "0.10.0",
+    "vue": "^3.3.4"
   },
   "dependencies": {
     "fast-sort": "^3.4.0",

@@ -56,4 +56,4 @@ Scope checking is also only supported by a few libraries. This means, that Signa
 | [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
 | [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
 | [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
-| [`Vue.js refs`](https://github.com/maxnowack/signaldb/issues/244) | ❌ | ❌ | ❌ |
+| [`Vue.js refs`](/reactivity/vue/) | ✅ | ✅ | ❌ |
