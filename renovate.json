@@ -9,6 +9,7 @@
   "automerge": true,
   "platformAutomerge": true,
   "automergeType": "pr",
+  "dependencyDashboard": false,
   "packageRules": [
     {
       "matchDepTypes": ["devDependencies"],
