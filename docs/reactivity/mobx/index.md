@@ -10,6 +10,12 @@ Integrating signals (or observables) in MobX with signaldb has revolutionized th
 
 ## Adapter
 
+* ✅ Automatic Cleanup 
+* ❌ Scope check
+
+The API of MobX doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
+You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
+
 ```js
 import { observable, runInAction, onBecomeUnobserved } from 'mobx'
 import { createReactivityAdapter } from 'signaldb'

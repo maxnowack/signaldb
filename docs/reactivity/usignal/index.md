@@ -8,6 +8,12 @@ head:
 
 ## Adapter
 
+* 🚧 Experimental
+* ❌ Automatic Cleanup 
+* ❌ Scope check
+
+The API of usignal doesn't allow [automatic cleanup nor reactive scope checking](/reactivity/#reactivity-libraries). Adapters without automatic cleanup are considered as **experimental**, as a manual cleanup isn't really convenient and a not properly cleanup can lead to memory leaks.
+
 ```js
 import { signal } from 'usignal'
 import { createReactivityAdapter } from 'signaldb'

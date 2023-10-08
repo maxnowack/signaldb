@@ -10,6 +10,9 @@ Maverick.js's signals provide a powerful foundation for reactive programming, an
 
 ## Adapter
 
+* ✅ Automatic Cleanup 
+* ✅ Scope check
+
 ```js
 import { signal, peek, onDispose, getScope } from '@maverick-js/signals'
 import { createReactivityAdapter } from 'signaldb'

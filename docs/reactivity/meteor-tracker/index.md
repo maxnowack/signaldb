@@ -10,6 +10,9 @@ Meteor Tracker is an integral component of the Meteor framework, offering a seam
 
 ## Adapter
 
+* ✅ Automatic Cleanup 
+* ✅ Scope check
+
 ```js
 // import in project without meteor
 import { Tracker } from 'meteor-ts-tracker'

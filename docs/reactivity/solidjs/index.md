@@ -10,6 +10,12 @@ Solid-js's integration with SignalDB leverages the power of Solid's reactive pri
 
 ## Adapter
 
+* ✅ Automatic Cleanup 
+* ❌ Scope check
+
+The API of solid-js doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
+You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
+
 ```js
 import { createSignal, onCleanup } from 'solid-js'
 import { createReactivityAdapter } from 'signaldb'

@@ -8,6 +8,9 @@ head:
 
 ## Adapter
 
+* ✅ Automatic Cleanup 
+* ✅ Scope check
+
 ```js
 import $oby, { untrack, cleanup, owner } from 'oby'
 import { createReactivityAdapter } from 'signaldb'
