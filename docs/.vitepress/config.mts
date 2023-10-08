@@ -1,4 +1,5 @@
 import fs from 'fs/promises'
+import path from 'path'
 import { defineConfig } from 'vitepress'
 import { generateSitemap as sitemap } from 'sitemap-ts'
 
@@ -125,5 +126,47 @@ export default defineConfig({
     await new Promise((resolve) => { setTimeout(resolve, 1000) }) // wait a second for the sitemap to be generated
     await fs.writeFile('./docs/.vitepress/dist/sitemap.xml', (await fs.readFile('./docs/.vitepress/dist/sitemap.xml', 'utf-8'))
       .replace(/<loc>([a-z0-9:/.-]+?\w)<\/loc>/g, '<loc>$1/</loc>')) // add trailing slash to all urls
+
+    function buildRedirectHtml(to: string) {
+      return `<!DOCTYPE html><html><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><body><a href="${to}">Redirecting...</a></body></html>`
+    }
+
+    const redirects = {
+      '/collections.html': '/collections/',
+      '/core-concepts.html': '/core-concepts/',
+      '/cursors.html': '/cursors/',
+      '/data-manipulation.html': '/data-manipulation/',
+      '/data-persistence.html': '/data-persistence/',
+      '/getting-started.html': '/getting-started/',
+      '/installation.html': '/installation/',
+      '/queries.html': '/queries/',
+      '/reactivity.html': '/reactivity/',
+      '/replication.html': '/replication/',
+      '/troubleshooting.html': '/troubleshooting/',
+      '/data-persistence/file-system.html': '/data-persistence/file-system/',
+      '/data-persistence/local-storage.html': '/data-persistence/local-storage/',
+      '/data-persistence/other.html': '/data-persistence/other/',
+      '/reactivity/S.html': '/reactivity/S/',
+      '/reactivity/angular.html': '/reactivity/angular/',
+      '/reactivity/maverickjs.html': '/reactivity/maverickjs/',
+      '/reactivity/meteor-tracker.html': '/reactivity/meteor-tracker/',
+      '/reactivity/mobx.html': '/reactivity/mobx/',
+      '/reactivity/oby.html': '/reactivity/oby/',
+      '/reactivity/other.html': '/reactivity/other/',
+      '/reactivity/preact-signals.html': '/reactivity/preact-signals/',
+      '/reactivity/reactively.html': '/reactivity/reactively/',
+      '/reactivity/sinuous.html': '/reactivity/sinuous/',
+      '/reactivity/solidjs.html': '/reactivity/solidjs/',
+      '/reactivity/usignal.html': '/reactivity/usignal/',
+      '/reactivity/vue.html': '/reactivity/vue/',
+      '/replication/rxdb.html': '/replication/rxdb/',
+    }
+
+    Object.entries(redirects).reduce(async (promise, [from, to]) => {
+      await promise
+      const dir = path.dirname(`./docs/.vitepress/dist${from}`)
+      await fs.mkdir(dir, { recursive: true })
+      await fs.writeFile(`./docs/.vitepress/dist${from}`, buildRedirectHtml(to))
+    }, Promise.resolve())
   },
 })
