@@ -52,6 +52,7 @@ export default defineConfig({
           { text: 'sinuous', link: '/reactivity/sinuous/' },
           { text: 'Solid Signals', link: '/reactivity/solidjs/' },
           { text: 'usignal', link: '/reactivity/usignal/' },
+          { text: 'Vue.js', link: '/reactivity/vue/' },
           { text: 'Other libraries', link: '/reactivity/other/' },
         ],
       },
