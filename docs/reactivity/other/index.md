@@ -62,7 +62,7 @@ The above methods are what you need to implement to provide a basic reactivity s
 Here's a complete example of a reactivity adapter:
 
 ```js
-import { signal, peek, onDispose } from '@maverick-js/signals'
+import { signal, peek, getScope, onDispose } from '@maverick-js/signals'
 import { createReactivityAdapter } from 'signaldb'
 
 const reactivity = createReactivityAdapter({
@@ -77,6 +77,7 @@ const reactivity = createReactivityAdapter({
       },
     }
   },
+  isInScope: () => !!getScope(),
   onDispose: (callback) => {
     onDispose(callback)
   },
