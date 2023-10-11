@@ -3,6 +3,7 @@ export default function set<T extends object, K>(
   obj: T,
   path: string,
   value: K,
+  deleteIfUndefined = false,
 ): T {
   if (obj == null) return obj
   const segments = path.split(/[.[\]]/g)
@@ -18,6 +19,10 @@ export default function set<T extends object, K>(
       }
       apply(node[key])
     } else {
+      if (deleteIfUndefined && value === undefined) {
+        delete node[segments[0]]
+        return
+      }
       node[segments[0]] = value
     }
   }

@@ -30,6 +30,23 @@ describe('project', () => {
     })
   })
 
+  it('should limit fields by disabling fields', () => {
+    const result = project(obj, {
+      age: 0,
+      address: 0,
+    })
+
+    expect(result).toEqual({
+      name: 'John Doe',
+      hobbies: ['reading', 'gaming'],
+    })
+  })
+
+  it('should remove nulls if deactivated', () => {
+    const result = project({ foo: null }, { foo: 0 })
+    expect(result).toEqual({})
+  })
+
   it('should handle nested fields that do not exist in the object', () => {
     const result = project(obj, {
       'address.zipCode': 1,
