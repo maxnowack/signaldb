@@ -103,6 +103,6 @@
   },
   "dependencies": {
     "fast-sort": "^3.4.0",
-    "mingo": "6.4.6"
+    "mingo": "6.4.7"
   }
 }
