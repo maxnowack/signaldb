@@ -13,9 +13,9 @@ describe('Cursor', () => {
   }
 
   const items: TestItem[] = [
-    { id: 1, name: 'Item 1' },
-    { id: 2, name: 'Item 2' },
-    { id: 3, name: 'Item 3' },
+    { id: 1, name: 'Item 1', test: true },
+    { id: 2, name: 'Item 2', test: false },
+    { id: 3, name: 'Item 3', test: true },
   ]
 
   const collection = new Collection<TestItem>()
@@ -64,6 +64,37 @@ describe('Cursor', () => {
       const result = cursor.fetch()
       const expected = items.slice(1)
       expect(result).toEqual(expected)
+    })
+
+    it('should return projected items when fields option is provided', () => {
+      expect(collection.find({}, { fields: { id: 1 } }).fetch()).toEqual([
+        { id: 1 },
+        { id: 2 },
+        { id: 3 },
+      ])
+      expect(collection.find({}, { fields: { name: 1 } }).fetch()).toEqual([
+        { id: 1, name: 'Item 1' },
+        { id: 2, name: 'Item 2' },
+        { id: 3, name: 'Item 3' },
+      ])
+      expect(collection.find({}, { fields: { name: 0 } }).fetch()).toEqual([
+        { id: 1, test: true },
+        { id: 2, test: false },
+        { id: 3, test: true },
+      ])
+    })
+
+    it('should include the id when when fields option is provided', () => {
+      expect(collection.find({}, { fields: { name: 1 } }).fetch()).toEqual([
+        { id: 1, name: 'Item 1' },
+        { id: 2, name: 'Item 2' },
+        { id: 3, name: 'Item 3' },
+      ])
+      expect(collection.find({}, { fields: { id: 0 } }).fetch()).toEqual([
+        { name: 'Item 1', test: true },
+        { name: 'Item 2', test: false },
+        { name: 'Item 3', test: true },
+      ])
     })
 
     it('should return projected, sorted, limited, and skipped items when options are provided', () => {

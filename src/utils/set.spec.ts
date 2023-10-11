@@ -31,4 +31,10 @@ describe('set', () => {
     const result = set(obj, 'foo', 'baz')
     expect(result).toBe(obj)
   })
+
+  it('should delete the property if the value is undefined', () => {
+    const obj = { foo: 'bar', bar: 'baz' }
+    const result = set(obj, 'foo', undefined, true)
+    expect(result).toEqual({ bar: 'baz' })
+  })
 })

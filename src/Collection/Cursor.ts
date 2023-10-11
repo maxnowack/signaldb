@@ -56,7 +56,14 @@ export default class Cursor<T extends BaseItem, U = T> {
     const sorted = sort ? sortItems(filtered, sort) : filtered
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
-    return limited.map(item => (this.options.fields ? project(item, this.options.fields) : item))
+    const idExcluded = this.options.fields && this.options.fields.id === 0
+    return limited.map((item) => {
+      if (!this.options.fields) return item
+      return {
+        ...idExcluded ? {} : { id: item.id },
+        ...project(item, this.options.fields),
+      }
+    })
   }
 
   private depend(changeEvents: { [P in keyof ObserveCallbacks<U>]?: true }) {
