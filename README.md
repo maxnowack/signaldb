@@ -52,6 +52,8 @@ In theory, every signal library is supported. SignalDB currently have pre-build 
 * **Vue.js**
 * *and more to come!*
 
+More information in the [reactivity section](https://signaldb.js.org/reactivity/) of the documentation.
+
 ```js
 import { effect } from '@preact/signals-core'
 // OR
