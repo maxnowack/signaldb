@@ -51,7 +51,7 @@ export default defineConfig({
           { text: 'oby', link: '/reactivity/oby/' },
           { text: 'S.js', link: '/reactivity/S/' },
           { text: 'sinuous', link: '/reactivity/sinuous/' },
-          { text: 'Solid Signals', link: '/reactivity/solidjs/' },
+          { text: 'Solid.js', link: '/reactivity/solidjs/' },
           { text: 'usignal', link: '/reactivity/usignal/' },
           { text: 'Vue.js', link: '/reactivity/vue/' },
           { text: 'Other libraries', link: '/reactivity/other/' },
