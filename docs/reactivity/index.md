@@ -53,6 +53,7 @@ Scope checking is also only supported by a few libraries. This means, that Signa
 | [`MobX`](/reactivity/mobx/) | ✅ | ✅ | ❌ |
 | [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
 | [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
+| [`signia`](https://signia.tldraw.dev/) | ❌ | - | - | 
 | [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
 | [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
 | [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
