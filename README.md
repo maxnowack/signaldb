@@ -36,6 +36,45 @@ const cursor = collection.find({})
 console.log(cursor.fetch()) // returns an array with all documents in the collection
 ```
 
+### Reactivity
+In theory, every signal library is supported. SignalDB currently have pre-build reactivity adapters for these libraries:
+* **@preact/signals-core**
+* **@reactively/core**
+* **Angular**
+* **Maverick-js Signals**
+* **Meteor Tracker**
+* **MobX**
+* **oby**
+* **S.js**
+* **sinuous**
+* **Solid.js**
+* **usignal**
+* **Vue.js**
+* *and more to come!*
+
+```js
+import { effect } from '@preact/signals-core'
+// OR
+import { effect } from '@angular/core'
+// OR
+import { autorun as effect } from 'mobx'
+// OR
+import { createEffect as effect } from 'solid-js'
+// OR
+import { watchEffect as effect } from 'vue'
+// ...
+
+const posts = new Collection({
+  reactivity: /* ... */ // see https://signaldb.js.org/reactivity/ for reactivity adapters for your favorite library,
+})
+
+effect(() => { // will be executed everytime the query result changes
+  const cursor = posts.find({ author: 'John' })
+  console.log(cursor.count())
+})
+
+```
+
 Please also take a look at the [documentation](https://signaldb.js.org)
 
 ## Architecture
