@@ -16,11 +16,8 @@ hero:
       text: Get Started
       link: /getting-started/
     - theme: alt
-      text: Installation
-      link: /installation/
-    - theme: alt
-      text: Core Concepts
-      link: /core-concepts/
+      text: View on GitHub
+      link: https://github.com/maxnowack/signaldb
 
 features:
   - icon: ⚡️
