@@ -3,6 +3,9 @@
   "extends": [
     "config:base"
   ],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "branchNameStrict": true,
   "labels": ["dependencies"],
   "rebaseWhen": "conflicted",
