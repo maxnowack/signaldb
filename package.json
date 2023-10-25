@@ -62,8 +62,8 @@
     "dist"
   ],
   "devDependencies": {
-    "@commitlint/cli": "18.0.0",
-    "@commitlint/config-conventional": "18.0.0",
+    "@commitlint/cli": "18.1.0",
+    "@commitlint/config-conventional": "18.1.0",
     "@maverick-js/signals": "5.11.4",
     "@preact/signals-core": "1.5.0",
     "@reactively/core": "0.0.8",
