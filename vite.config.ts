@@ -12,7 +12,6 @@ export default defineConfig({
         'commitlint.config.js',
         '**/examples/**',
         '**/docs/**',
-        'packages/plugin-angular/src/index.ts', // disabled as it is currently not possible to test angular (see #306)
       ],
     },
     reporters: process.env.GITHUB_ACTIONS
