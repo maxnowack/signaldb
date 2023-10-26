@@ -1,7 +1,5 @@
-import type Selector from '../types/Selector'
 import sortItems from '../utils/sortItems'
 import project from '../utils/project'
-import match from '../utils/match'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
@@ -20,28 +18,16 @@ export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T>
 
 export default class Cursor<T extends BaseItem, U = T> {
   private observers: Observer<T>[] = []
-  private getAllItems: () => T[]
-  private selector: Selector<T>
+  private getFilteredItems: () => T[]
   private options: CursorOptions<T, U>
   private onCleanupCallbacks: (() => void)[] = []
 
   constructor(
-    getAllItems: () => T[],
-    selector: Selector<T>,
+    getItems: () => T[],
     options?: CursorOptions<T, U>,
   ) {
-    this.getAllItems = getAllItems
-    this.selector = selector
+    this.getFilteredItems = getItems
     this.options = options || {}
-  }
-
-  private filterItems(items: T[]) {
-    const { selector } = this
-    return items.filter((item) => {
-      if (!selector) return true
-      const matches = match(item, selector)
-      return matches
-    })
   }
 
   private transform(item: T): U {
@@ -50,10 +36,9 @@ export default class Cursor<T extends BaseItem, U = T> {
   }
 
   private getItems() {
-    const allItems = this.getAllItems()
-    const filtered = this.filterItems(allItems)
+    const items = this.getFilteredItems()
     const { sort, skip, limit } = this.options
-    const sorted = sort ? sortItems(filtered, sort) : filtered
+    const sorted = sort ? sortItems(items, sort) : items
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0

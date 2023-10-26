@@ -143,7 +143,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
-    return new Cursor<T, U>(() => this.getItems(), selector || {}, {
+    return new Cursor<T, U>(() => this.getItems(selector), {
       reactive: this.options.reactivity,
       ...options,
       transform: this.transform.bind(this),
