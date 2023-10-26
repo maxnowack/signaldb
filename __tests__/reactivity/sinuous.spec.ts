@@ -1,0 +1,39 @@
+import { vi, describe, it, expect } from 'vitest'
+import {
+  observable,
+  api,
+} from 'sinuous'
+import { Collection, createReactivityAdapter } from '../../src/index'
+
+describe('sinuous', () => {
+  const reactivity = createReactivityAdapter({
+    create: () => {
+      const dep = observable(0)
+      return {
+        depend: () => {
+          dep()
+        },
+        notify: () => {
+          dep(api.sample(() => dep()) + 1)
+        },
+      }
+    },
+    onDispose: vi.fn((callback) => {
+      api.cleanup(callback)
+    }),
+  })
+
+  it('should be reactive with sinuous', () => {
+    const collection = new Collection({ reactivity })
+    const callback = vi.fn()
+
+    api.subscribe(() => {
+      const cursor = collection.find({ name: 'John' })
+      callback(cursor.count())
+    })
+    collection.insert({ id: '1', name: 'John' })
+    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenLastCalledWith(1)
+  })
+})
