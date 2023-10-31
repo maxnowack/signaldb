@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@maverick-js/signals": "^5.11.2",
-    "@types/node": "20.8.9",
+    "@types/node": "20.8.10",
     "@types/react": "18.2.33",
     "@types/react-dom": "18.2.14",
     "next": "14.0.1",
