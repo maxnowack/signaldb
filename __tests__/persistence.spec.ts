@@ -1,28 +1,68 @@
 import fs from 'fs/promises'
 import { describe, it, expect, vi } from 'vitest'
+import type { PersistenceAdapter } from '../src/index'
 import { Collection, createFilesystemAdapter } from '../src/index'
 import waitForEvent from '../src/utils/waitForEvent'
 
 // eslint-disable-next-line max-len
-function memoryPersistenceAdapter<T extends { id: I } & Record<string, any>, I = any>(initialData: T[] = []) {
+function memoryPersistenceAdapter<T extends { id: I } & Record<string, any>, I = any>(
+  initialData: T[] = [],
+  transmitChanges = false,
+) {
   // not really a "persistence adapter", but it works for testing
   let items = [...initialData]
+  const changes: {
+    added: T[],
+    modified: T[],
+    removed: T[],
+  } = {
+    added: [],
+    modified: [],
+    removed: [],
+  }
   let onChange: () => void | Promise<void> = () => { /* do nothing */ }
   return {
     register: (changeCallback: () => void | Promise<void>) => {
       onChange = changeCallback
       return Promise.resolve()
     },
-    load: () => Promise.resolve({ items }),
+    load: () => {
+      const currentChanges = { ...changes }
+      changes.added = []
+      changes.modified = []
+      changes.removed = []
+      const hasChanges = currentChanges.added.length > 0
+        || currentChanges.modified.length > 0
+        || currentChanges.removed.length > 0
+      if (transmitChanges && hasChanges) {
+        return Promise.resolve({ changes: currentChanges })
+      }
+      return Promise.resolve({ items })
+    },
     save: (newSnapshot: T[]) => {
       items = [...newSnapshot]
       return Promise.resolve()
     },
     addNewItem: (item: T) => {
       items.push(item)
+      changes.added.push(item)
       void onChange()
     },
-  }
+    changeItem: (item: T) => {
+      items = items.map(i => (i.id === item.id ? item : i))
+      changes.modified.push(item)
+      void onChange()
+    },
+    removeItem: (item: T) => {
+      items = items.filter(i => i.id !== item.id)
+      changes.removed.push(item)
+      void onChange()
+    },
+  } as (PersistenceAdapter<T, I> & {
+    addNewItem: (item: T) => void,
+    changeItem: (item: T) => void,
+    removeItem: (item: T) => void,
+  })
 }
 
 describe('Persistence', () => {
@@ -45,7 +85,7 @@ describe('Persistence', () => {
     expect((await persistence.load()).items).toEqual([{ id: '1', name: 'John' }])
   })
 
-  it('should get changes from persistence adapter', async () => {
+  it('should get items from persistence adapter', async () => {
     const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
@@ -60,6 +100,32 @@ describe('Persistence', () => {
       { id: '1', name: 'John' },
       { id: '2', name: 'Jane' },
     ])
+  })
+
+  it('should get changes from persistence adapter', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }], true)
+    const collection = new Collection({ persistence })
+    await waitForEvent(collection, 'persistence.init')
+    const items = collection.find().fetch()
+    expect(items).toEqual([{ id: '1', name: 'John' }])
+
+    persistence.addNewItem({ id: '2', name: 'Jane' })
+    await waitForEvent(collection, 'persistence.received')
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'John' },
+      { id: '2', name: 'Jane' },
+    ])
+
+    persistence.changeItem({ id: '1', name: 'Johnny' })
+    await waitForEvent(collection, 'persistence.received')
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'Johnny' },
+      { id: '2', name: 'Jane' },
+    ])
+
+    persistence.removeItem({ id: '2', name: 'Jane' })
+    await waitForEvent(collection, 'persistence.received')
+    expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Johnny' }])
   })
 
   it('should remove item from persistence adapter', async () => {
