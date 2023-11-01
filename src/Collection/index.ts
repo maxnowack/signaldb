@@ -52,13 +52,29 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       let ongoingSaves = 0
       const loadPersistentData = async () => {
         // load items from persistence adapter and push them into memory
-        const { items } = await persistenceAdapter.load()
+        const { items, changes } = await persistenceAdapter.load()
 
-        // as we overwrite all items, we need to discard if there are ongoing saves
-        if (ongoingSaves > 0) return
+        if (items) {
+          // as we overwrite all items, we need to discard if there are ongoing saves
+          if (ongoingSaves > 0) return
 
-        // push new items to this.memory() and delete old ones
-        this.memory().splice(0, this.memoryArray().length, ...items)
+          // push new items to this.memory() and delete old ones
+          this.memory().splice(0, this.memoryArray().length, ...items)
+        } else if (changes) {
+          changes.added.forEach((item) => {
+            this.memory().push(item)
+          })
+          changes.modified.forEach((item) => {
+            const index = this.memory().findIndex(doc => doc.id === item.id)
+            if (index === -1) throw new Error('Cannot resolve index for item')
+            this.memory().splice(index, 1, item)
+          })
+          changes.removed.forEach((item) => {
+            const index = this.memory().findIndex(doc => doc.id === item.id)
+            if (index === -1) throw new Error('Cannot resolve index for item')
+            this.memory().splice(index, 1)
+          })
+        }
         this.rebuildIndexes()
 
         this.emit('persistence.received')
