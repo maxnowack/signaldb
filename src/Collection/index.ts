@@ -4,11 +4,15 @@ import type PersistenceAdapter from '../types/PersistenceAdapter'
 import EventEmitter from '../types/EventEmitter'
 import type Selector from '../types/Selector'
 import type Modifier from '../types/Modifier'
+import type IndexProvider from '../types/IndexProvider'
 import match from '../utils/match'
 import modify from '../utils/modify'
+import compact from '../utils/compact'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
+import intersection from '../utils/intersection'
 import Cursor from './Cursor'
+import createIdIndex from './createIdIndex'
 import type { BaseItem, FindOptions, Transform } from './types'
 
 export type { BaseItem, Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
@@ -37,6 +41,7 @@ interface CollectionEvents<T> {
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
+  private indexProviders: IndexProvider<T, I>[] = [createIdIndex()]
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
@@ -54,6 +59,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
         // push new items to this.memory() and delete old ones
         this.memory().splice(0, this.memoryArray().length, ...items)
+        this.rebuildIndexes()
 
         this.emit('persistence.received')
       }
@@ -112,9 +118,27 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     }
   }
 
+  private rebuildIndexes() {
+    this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
+  }
+
+  private getItemPositions(selector: Selector<T>) {
+    const positionsByIndex = compact(this.indexProviders.map(index =>
+      index.getItemPositions(selector)))
+    if (positionsByIndex.length === 0) return null
+    const positions = intersection(...positionsByIndex)
+    return positions
+  }
+
   private getItemAndIndex(selector: Selector<T>) {
-    const item = this.memory().find(doc => match(doc, selector))
-    const index = this.memory().findIndex(doc => doc === item)
+    const positions = this.getItemPositions(selector)
+    const items = positions == null
+      ? this.memory()
+      : positions.map(index => this.memoryArray()[index])
+    const item = items.find(doc => match(doc, selector))
+    const index = (positions != null
+      && positions.find(itemIndex => this.memoryArray()[itemIndex] === item))
+        || this.memory().findIndex(doc => doc === item)
     if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
     return { item, index }
@@ -134,7 +158,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private getItems(selector?: Selector<T>) {
-    return this.memory().filter((item) => {
+    const positions = selector == null ? null : this.getItemPositions(selector)
+    const items = positions == null
+      ? this.memory()
+      : positions.map(index => this.memoryArray()[index])
+
+    return items.filter((item) => {
       if (!selector) return true
       const matches = match(item, selector)
       return matches
@@ -176,6 +205,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     if (this.findOne({ id: newItem.id } as any, { reactive: false })) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
+    this.rebuildIndexes()
     this.emit('added', newItem)
     return newItem.id
   }
@@ -191,6 +221,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const existingItem = this.findOne({ id: modifiedItem.id } as any, { reactive: false })
     if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) throw new Error('Item with same id already exists')
     this.memory().splice(index, 1, modifiedItem)
+    this.rebuildIndexes()
     this.emit('changed', modifiedItem)
     return 1
   }
@@ -206,6 +237,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       if (index === -1) throw new Error('Cannot resolve index for item')
       const modifiedItem = modify(item, modifier)
       this.memory().splice(index, 1, modifiedItem)
+      this.rebuildIndexes()
       modifiedItems.push(modifiedItem)
     })
     modifiedItems.forEach((modifiedItem) => {
@@ -219,6 +251,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
     this.memory().splice(index, 1)
+    this.rebuildIndexes()
     this.emit('removed', item)
     return 1
   }
@@ -231,6 +264,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       const index = this.memory().findIndex(doc => doc === item)
       if (index === -1) throw new Error('Cannot resolve index for item')
       this.memory().splice(index, 1)
+      this.rebuildIndexes()
     })
 
     items.forEach((item) => {
