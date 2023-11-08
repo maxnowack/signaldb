@@ -137,8 +137,8 @@ export default class Cursor<T extends BaseItem, U = T> {
     const observer = new Observer(
       transformedCallbacks,
       () => {
-        const cleanup = this.options.bindEvents
-          && this.options.bindEvents(() => observer.check(this.getItems()))
+        const cleanup = this.options.bindEvents && this.options.bindEvents(() =>
+          setTimeout(() => observer.check(this.getItems()), 0))
         return () => {
           if (cleanup) cleanup()
         }

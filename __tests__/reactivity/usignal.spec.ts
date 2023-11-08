@@ -21,7 +21,7 @@ describe('usignal', () => {
     },
   })
 
-  it('should be reactive with usignal', () => {
+  it('should be reactive with usignal', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
     const cleanup = vi.fn()
@@ -35,6 +35,7 @@ describe('usignal', () => {
       }
     })
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(cleanup).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

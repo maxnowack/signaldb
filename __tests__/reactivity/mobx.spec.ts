@@ -29,7 +29,7 @@ describe('MobX', () => {
     },
   })
 
-  it('should be reactive with MobX', () => {
+  it('should be reactive with MobX', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
@@ -38,6 +38,7 @@ describe('MobX', () => {
       callback(cursor.count())
     })
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
     stop()

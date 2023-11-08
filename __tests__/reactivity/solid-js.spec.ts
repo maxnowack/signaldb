@@ -26,22 +26,21 @@ describe('solid', () => {
     },
   })
 
-  it('should be reactive with solid', () => {
+  it('should be reactive with solid', async () => {
     const callback = vi.fn()
+    const collection = new Collection({ reactivity })
     createRoot(() => {
-      const collection = new Collection({ reactivity })
-
       const cursor = collection.find({ name: 'John' })
       createEffect(() => {
         const c = cursor.count()
         callback(c)
       })
-      setTimeout(() => {
-        collection.insert({ id: '1', name: 'John' })
-
-        expect(callback).toHaveBeenCalledTimes(2)
-        expect(callback).toHaveBeenLastCalledWith(1)
-      })
     })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    collection.insert({ id: '1', name: 'John' })
+
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenLastCalledWith(1)
   })
 })
