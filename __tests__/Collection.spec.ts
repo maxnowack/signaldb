@@ -314,4 +314,36 @@ describe('Collection', () => {
       expect(col.listenerCount('removed')).toBe(0)
     })
   })
+
+  describe('performance', () => {
+    it('should be faster with id only queries', () => {
+      const col = new Collection<{ id: string, name: string, num: number }>()
+
+      // create items
+      for (let i = 0; i < 1000; i += 1) {
+        col.insert({ id: i.toString(), name: 'John', num: i })
+      }
+
+      const measureTime = (fn: () => void) => {
+        const start = performance.now()
+        fn()
+        return performance.now() - start
+      }
+
+      const idQueryTime = measureTime(() => {
+        const item = col.findOne({ id: '999' })
+        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+      })
+
+      const nonIdQueryTime = measureTime(() => {
+        const item = col.findOne({ num: 999 })
+        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+      })
+
+      expect(idQueryTime).toBeLessThan(nonIdQueryTime)
+
+      // id query should use less than 10% of the time of a non-id query
+      expect((100 / nonIdQueryTime) * idQueryTime).toBeLessThan(10)
+    })
+  })
 })
