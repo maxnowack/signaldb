@@ -18,7 +18,7 @@ describe('preact', () => {
     },
   })
 
-  it('should be reactive with preact', () => {
+  it('should be reactive with preact', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
     const cleanup = vi.fn()
@@ -32,6 +32,7 @@ describe('preact', () => {
       }
     })
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(cleanup).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

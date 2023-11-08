@@ -27,7 +27,7 @@ describe('oby', () => {
     }),
   })
 
-  it('should be reactive with oby', () => {
+  it('should be reactive with oby', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
@@ -37,6 +37,7 @@ describe('oby', () => {
     tick()
     collection.insert({ id: '1', name: 'John' })
     tick()
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

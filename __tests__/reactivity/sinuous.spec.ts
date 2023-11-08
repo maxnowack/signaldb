@@ -23,7 +23,7 @@ describe('sinuous', () => {
     }),
   })
 
-  it('should be reactive with sinuous', () => {
+  it('should be reactive with sinuous', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
@@ -32,6 +32,7 @@ describe('sinuous', () => {
       callback(cursor.count())
     })
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

@@ -28,7 +28,7 @@ describe('@maverick-js/signals', () => {
     }),
   })
 
-  it('should be reactive with @maverick-js/signals', () => {
+  it('should be reactive with @maverick-js/signals', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
@@ -38,6 +38,7 @@ describe('@maverick-js/signals', () => {
     tick()
     collection.insert({ id: '1', name: 'John' })
     tick()
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

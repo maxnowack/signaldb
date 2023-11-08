@@ -20,7 +20,7 @@ describe('S.js', () => {
     }),
   })
 
-  it('should be reactive with S.js', () => {
+  it('should be reactive with S.js', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
@@ -29,6 +29,7 @@ describe('S.js', () => {
       callback(cursor.count())
     })
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

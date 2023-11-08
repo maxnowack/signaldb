@@ -21,7 +21,7 @@ describe('Tracker', () => {
     }),
   })
 
-  it('should be reactive with Tracker', () => {
+  it('should be reactive with Tracker', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
@@ -30,13 +30,15 @@ describe('Tracker', () => {
     })
     Tracker.flush()
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     Tracker.flush()
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })
 
-  it('should allow overriding reactivity primitives for query', () => {
+  it('should allow overriding reactivity primitives for query', async () => {
     const collection = new Collection()
     const callback = vi.fn()
 
@@ -47,7 +49,9 @@ describe('Tracker', () => {
     })
     Tracker.flush()
     collection.insert({ id: '1', name: 'John' })
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     Tracker.flush()
+    await new Promise((resolve) => { setTimeout(resolve, 0) })
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })
