@@ -118,6 +118,7 @@ describe('Persistence', () => {
   })
 
   it('should persist changes to filesystem', async () => {
+    await fs.unlink('/tmp/data.json').catch(() => { /* do nothing */ })
     const persistence = createFilesystemAdapter('/tmp/data.json')
     const collection = new Collection({ persistence })
     collection.on('persistence.error', (error) => {
@@ -130,7 +131,6 @@ describe('Persistence', () => {
 
     const contents = await fs.readFile('/tmp/data.json', 'utf-8')
     expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
-    await fs.unlink('/tmp/data.json').catch(() => { /* do nothing */ })
   })
 
   it('should emit persistence.error if the adapter throws an error on registering', async () => {
