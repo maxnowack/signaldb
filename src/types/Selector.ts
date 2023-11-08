@@ -1,6 +1,6 @@
 // borrowed from https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/meteor/mongo.d.ts
 
-interface FieldExpression<T> {
+export interface FieldExpression<T> {
   $eq?: T | undefined,
   $gt?: T | undefined,
   $gte?: T | undefined,
