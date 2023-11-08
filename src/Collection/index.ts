@@ -233,13 +233,13 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const items = this.getItems(selector)
     const modifiedItems: T[] = []
     items.forEach((item) => {
-      const index = this.memory().findIndex(doc => doc === item)
+      const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
       if (index === -1) throw new Error('Cannot resolve index for item')
       const modifiedItem = modify(item, modifier)
       this.memory().splice(index, 1, modifiedItem)
-      this.rebuildIndexes()
       modifiedItems.push(modifiedItem)
     })
+    this.rebuildIndexes()
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem)
     })
