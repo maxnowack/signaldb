@@ -11,7 +11,7 @@ While SignalDB comes with a few built-in Persistence Adapters, there may be scen
 You can create a custom persistene adapter by calling the `createPersistenceAdapter` function. The function takes the adapter definition as the only argument. The definition is an object with the following keys:
 
 * `register` (`required`, `(onChange: () => void) => Promise<void>`): This function should register the adapter. It will be called when initializing the collection and gets an `onChange` callback as the first parameter. This callback should be called, when the data in the adapter was updated externally, so that the collection could update it's internal memory.
-* `load` (`required`, `() => Promise<{ items: T[], changes?: Changeset<T> }>`): This function loads the data from the adapter and should return all it's items and also a changeset, for optimizing performance.
+* `load` (`required`, `() => Promise<{ items: T[] } | { changes: { added: T[], modified: T[], removed: T[] } }>`): This function loads the data from the adapter and should return all it's items or a changeset, for optimizing performance. If the load function returns an object with an `items` property, the collection will do a full load and replace all it's items with the ones from the adapter. If the `items` property is omitted in the return value of the load function, the collection will do a partial load and apply the `changes` to it's internal memory.
 * `save` (`required`, `(items: T[], changes: Changeset<T>) => Promise<void>`): This function will be called from the collection, when data was updated. This function should save this data to the adapter.
 
 To make things more clear, here is a short example how the File system persistence adapter is implemented.
