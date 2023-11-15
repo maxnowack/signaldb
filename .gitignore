@@ -5,3 +5,4 @@ docs/.vitepress/cache
 docs/public/todo-example
 .DS_Store
 coverage
+persistent-collection-test.json
