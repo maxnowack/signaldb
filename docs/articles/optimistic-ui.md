@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/articles/optimistic-ui/
+    href: https://signaldb.js.org/optimistic-ui/
 ---
 # Optimistic UI: How Local Databases Transform User Experience
 
