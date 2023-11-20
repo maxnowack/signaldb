@@ -84,6 +84,13 @@ export default defineConfig({
           { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
         ],
       },
+      {
+        text: 'Articles',
+        collapsed: false,
+        items: [
+          { text: 'Optimistic UI', link: '/optimistic-ui/' },
+        ],
+      },
     ],
 
     socialLinks: [
@@ -103,6 +110,10 @@ export default defineConfig({
       message: 'Released under the MIT License.',
       copyright: 'Copyright © 2023-present <a href="https://nowack.dev" target="_blank" rel="noopener">Max Nowack</a>',
     },
+  },
+
+  rewrites: {
+    'articles/:article.md': ':article/index.md',
   },
 
   head: [
