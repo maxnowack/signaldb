@@ -89,6 +89,11 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Optimistic UI', link: '/optimistic-ui/' },
+          { text: 'Offline-First', link: '/offline-first/' },
+          { text: 'Reactive Databases', link: '/reactive-databases/' },
+          { text: 'AWS Amplify', link: '/aws-amplify/' },
+          { text: 'Firebase', link: '/firebase/' },
+          { text: 'Supabase', link: '/supabase/' },
         ],
       },
     ],
