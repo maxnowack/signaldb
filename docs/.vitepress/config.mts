@@ -86,7 +86,7 @@ export default defineConfig({
       },
       {
         text: 'Articles',
-        collapsed: false,
+        collapsed: true,
         items: [
           { text: 'Optimistic UI', link: '/optimistic-ui/' },
           { text: 'Offline-First', link: '/offline-first/' },
