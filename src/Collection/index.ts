@@ -178,15 +178,18 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
   private getItems(selector?: Selector<T>) {
     const positions = selector == null ? null : this.getItemPositions(selector)
-    const items = positions == null
-      ? this.memory()
-      : positions.map(index => this.memoryArray()[index])
-
-    return items.filter((item) => {
+    const matchItems = (item: T) => {
       if (!selector) return true
       const matches = match(item, selector)
       return matches
-    })
+    }
+
+    // no index available, use complete memory
+    if (positions == null) return this.memory().filter(matchItems)
+
+    const memory = this.memoryArray()
+    const items = positions.map(index => memory[index])
+    return items.filter(matchItems)
   }
 
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
