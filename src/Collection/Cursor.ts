@@ -51,7 +51,7 @@ export default class Cursor<T extends BaseItem, U = T> {
     })
   }
 
-  private depend(changeEvents: { [P in keyof ObserveCallbacks<U>]?: true }) {
+  private depend(changeEvents: { [P in keyof ObserveCallbacks<U>]?: true }, initialItems?: T[]) {
     if (!this.options.reactive) return
     if (!isInReactiveScope(this.options.reactive)) return
     const signal = this.options.reactive.create()
@@ -62,7 +62,7 @@ export default class Cursor<T extends BaseItem, U = T> {
       .filter(([, value]) => value)
       .map(([key]) => key)
       .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
-    const stop = this.observeChanges(enabledEvents, true)
+    const stop = this.observeChanges(enabledEvents, true, initialItems)
     if (this.options.reactive.onDispose) {
       this.options.reactive.onDispose(() => stop(), signal)
     }
@@ -87,7 +87,7 @@ export default class Cursor<T extends BaseItem, U = T> {
       removed: true,
       changed: true,
       movedBefore: true,
-    })
+    }, items)
     items.forEach((item) => {
       callback(this.transform(item))
     })
@@ -114,7 +114,8 @@ export default class Cursor<T extends BaseItem, U = T> {
     return items.length
   }
 
-  public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false) {
+  // eslint-disable-next-line default-param-last
+  public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false, initialItems?: T[]) {
     const transformedCallbacks = Object
       .entries(callbacks)
       .reduce((memo, [callbackName, callback]) => {
@@ -146,7 +147,7 @@ export default class Cursor<T extends BaseItem, U = T> {
       skipInitial,
     )
     this.observers.push(observer)
-    observer.check(this.getItems())
+    observer.check(initialItems || this.getItems())
     this.onCleanup(() => observer.stop())
 
     return () => {
