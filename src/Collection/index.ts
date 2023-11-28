@@ -24,6 +24,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   reactivity?: ReactivityAdapter,
   transform?: Transform<T, U>,
   persistence?: PersistenceAdapter<T, I>,
+  indices?: IndexProvider<T, I>[],
 }
 
 interface CollectionEvents<T> {
@@ -41,11 +42,12 @@ interface CollectionEvents<T> {
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
-  private indexProviders: IndexProvider<T, I>[] = [createIdIndex()]
+  private indexProviders: IndexProvider<T, I>[] = []
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
     this.options = { memory: [], ...options }
+    this.indexProviders = [createIdIndex(), ...(this.options.indices || [])]
     if (this.options.persistence) {
       const persistenceAdapter = this.options.persistence
       this.persistenceAdapter = persistenceAdapter
@@ -75,7 +77,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
             this.memory().splice(index, 1)
           })
         }
-        this.rebuildIndexes()
+        this.rebuildIndices()
 
         this.emit('persistence.received')
       }
@@ -134,7 +136,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     }
   }
 
-  private rebuildIndexes() {
+  private rebuildIndices() {
     this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
   }
 
@@ -221,7 +223,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     if (this.findOne({ id: newItem.id } as any, { reactive: false })) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
-    this.rebuildIndexes()
+    this.rebuildIndices()
     this.emit('added', newItem)
     return newItem.id
   }
@@ -237,7 +239,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const existingItem = this.findOne({ id: modifiedItem.id } as any, { reactive: false })
     if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) throw new Error('Item with same id already exists')
     this.memory().splice(index, 1, modifiedItem)
-    this.rebuildIndexes()
+    this.rebuildIndices()
     this.emit('changed', modifiedItem)
     return 1
   }
@@ -255,7 +257,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       this.memory().splice(index, 1, modifiedItem)
       modifiedItems.push(modifiedItem)
     })
-    this.rebuildIndexes()
+    this.rebuildIndices()
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem)
     })
@@ -267,7 +269,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
     this.memory().splice(index, 1)
-    this.rebuildIndexes()
+    this.rebuildIndices()
     this.emit('removed', item)
     return 1
   }
@@ -280,7 +282,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       const index = this.memory().findIndex(doc => doc === item)
       if (index === -1) throw new Error('Cannot resolve index for item')
       this.memory().splice(index, 1)
-      this.rebuildIndexes()
+      this.rebuildIndices()
     })
 
     items.forEach((item) => {

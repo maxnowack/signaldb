@@ -17,3 +17,4 @@ export { default as createFilesystemAdapter } from './persistence/createFilesyst
 export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
 export { default as createMemoryAdapter } from './createMemoryAdapter'
 export { default as createReactivityAdapter } from './createReactivityAdapter'
+export { default as createIndexProvider } from './createIndexProvider'
