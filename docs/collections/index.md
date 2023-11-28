@@ -28,6 +28,7 @@ Parameters
   * reactivity: A [ReactivityAdapter](/reactivity/other/#custom-reactivity-adapters) for enabling reactivity.
   * persistence: A [PersistenceAdapter](/data-persistence/other/#creating-custom-persistence-adapters) for enabling persistent storage.
   * transform: A transformation function to be applied to items. The document that should be transformed is passed as the only parameter. The function should return the transformed document (e.g. `(doc: T) => U`)
+  * indices: An array of [IndexProvider](/collections/#indexprovider) objects for creating indices on the collection.
 
 ## Methods
 
@@ -74,3 +75,22 @@ Parameters
 ### `removeOne(selector: Selector<T>)`
 
 Behaves the same like `.removeMany()` but only removes the first found document.
+
+## IndexProvider
+
+An IndexProvider is an object that specifies how to create an index on a collection. It can be created with the `createIndexProvider()` function.
+Take a look at the [`createIdIndex`](https://github.com/maxnowack/signaldb/blob/main/src/Collection/createIdIndex.ts) function for an example.
+
+```js
+import { createIndexProvider } from 'signaldb'
+
+const indexProvider = createIndexProvider({
+  getItemPositions(selector: Selector<T>) {
+    // Return an array of all matched items array indices in the memory adapter
+    // or null if the index didn't hit on the selector
+  },
+  rebuild(items: T[]) {
+    // Rebuild the index and save the array indices
+  },
+})
+```

@@ -1,4 +1,4 @@
-import type IndexProvider from '../types/IndexProvider'
+import createIndexProvider from '../createIndexProvider'
 import type Selector from '../types/Selector'
 import compact from '../utils/compact'
 import intersection from '../utils/intersection'
@@ -30,12 +30,10 @@ export function getMatchingIds<
   return null
 }
 
-export default function createIdIndex<
-  T extends BaseItem<I> = BaseItem, I = any
->(): IndexProvider<T, I> {
+export default function createIdIndex<T extends BaseItem<I> = BaseItem, I = any>() {
   const index = new Map<I, number>()
 
-  return {
+  return createIndexProvider<T, I>({
     getItemPositions(selector) {
       const matchingIds = getMatchingIds<T, I>(selector)
       if (matchingIds == null) return null
@@ -49,5 +47,5 @@ export default function createIdIndex<
         index.set(item.id, i)
       })
     },
-  }
+  })
 }
