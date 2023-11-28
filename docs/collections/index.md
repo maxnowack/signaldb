@@ -79,7 +79,7 @@ Behaves the same like `.removeMany()` but only removes the first found document.
 ## IndexProvider
 
 An IndexProvider is an object that specifies how to create an index on a collection. It can be created with the `createIndexProvider()` function.
-Take a look at the [`createIdIndex`](https://github.com/maxnowack/signaldb/blob/main/src/Collection/createIdIndex.ts) function for an example.
+Take a look at the [`createIndex`](https://github.com/maxnowack/signaldb/blob/main/src/Collection/createIndex.ts) function for an example.
 
 ```js
 import { createIndexProvider } from 'signaldb'
@@ -92,5 +92,27 @@ const indexProvider = createIndexProvider({
   rebuild(items: T[]) {
     // Rebuild the index and save the array indices
   },
+})
+```
+
+## createIndex
+
+The `createIndex()` function can be used to create a single field index on a collection. It takes a field name as a parameter and returns an IndexProvider object which can be passed directly to the `indices` option of the Collection constructor.
+
+```js
+
+import { createIndex, Collection } from 'signaldb'
+
+interface User {
+  id: string
+  name: string
+  age: number
+}
+
+const users = new Collection<User>({
+  indices: [
+    createIndex('name'),
+    createIndex('age'),
+  ],
 })
 ```

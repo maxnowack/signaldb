@@ -1,5 +1,5 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
-import { Collection, createMemoryAdapter } from '../src/index'
+import { Collection, createMemoryAdapter, createIndex } from '../src/index'
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
@@ -316,18 +316,18 @@ describe('Collection', () => {
   })
 
   describe('performance', () => {
+    const measureTime = (fn: () => void) => {
+      const start = performance.now()
+      fn()
+      return performance.now() - start
+    }
+
     it('should be faster with id only queries', () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
       // create items
       for (let i = 0; i < 1000; i += 1) {
         col.insert({ id: i.toString(), name: 'John', num: i })
-      }
-
-      const measureTime = (fn: () => void) => {
-        const start = performance.now()
-        fn()
-        return performance.now() - start
       }
 
       const idQueryTime = measureTime(() => {
@@ -340,10 +340,34 @@ describe('Collection', () => {
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
-      expect(idQueryTime).toBeLessThan(nonIdQueryTime)
-
       // id query should use less than 10% of the time of a non-id query
-      expect((100 / nonIdQueryTime) * idQueryTime).toBeLessThan(10)
+      expect(Math.round((100 / nonIdQueryTime) * idQueryTime)).toBeLessThan(10)
+    })
+
+    it('should be faster with field indices', () => {
+      const col1 = new Collection<{ id: string, name: string, num: number }>({
+        indices: [createIndex('num')],
+      })
+      const col2 = new Collection<{ id: string, name: string, num: number }>()
+
+      // create items
+      for (let i = 0; i < 1000; i += 1) {
+        col1.insert({ id: i.toString(), name: 'John', num: i })
+        col2.insert({ id: i.toString(), name: 'John', num: i })
+      }
+
+      const indexQueryTime = measureTime(() => {
+        const item = col1.findOne({ num: 999 })
+        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+      })
+
+      const nonIndexQueryTime = measureTime(() => {
+        const item = col2.findOne({ num: 999 })
+        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+      })
+
+      // index query should use less than 10% of the time of a non-index query
+      expect(Math.round((100 / nonIndexQueryTime) * indexQueryTime)).toBeLessThan(10)
     })
   })
 })
