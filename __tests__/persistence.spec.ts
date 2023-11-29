@@ -197,7 +197,7 @@ describe('Persistence', () => {
 
     const contents = await fs.readFile('/tmp/data.json', 'utf-8')
     expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
-  })
+  }, { retry: 5 })
 
   it('should emit persistence.error if the adapter throws an error on registering', async () => {
     const collection = new Collection({

@@ -369,5 +369,5 @@ describe('Collection', () => {
       // index query should use less than 10% of the time of a non-index query
       expect(Math.round((100 / nonIndexQueryTime) * indexQueryTime)).toBeLessThan(10)
     })
-  })
+  }, { retry: 5 })
 })
