@@ -33,6 +33,7 @@ jobs:
             node_modules
             examples/rxdb/node_modules
             examples/firebase/node_modules
+            examples/appwrite/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.OS }}-modules-${{ matrix.node-version }}-
@@ -41,6 +42,7 @@ jobs:
           npm install --no-audit --force --loglevel=error --no-update-notifier
           (cd examples/rxdb && npm install --no-audit --force --loglevel=error --no-update-notifier)
           (cd examples/firebase && npm install --no-audit --force --loglevel=error --no-update-notifier)
+          (cd examples/appwrite && npm install --no-audit --force --loglevel=error --no-update-notifier)
 
   linting:
     needs: preflight
@@ -61,6 +63,7 @@ jobs:
             node_modules
             examples/rxdb/node_modules
             examples/firebase/node_modules
+            examples/appwrite/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
         run: |
@@ -85,6 +88,7 @@ jobs:
             node_modules
             examples/rxdb/node_modules
             examples/firebase/node_modules
+            examples/appwrite/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
         run: |
@@ -112,6 +116,7 @@ jobs:
             node_modules
             examples/rxdb/node_modules
             examples/firebase/node_modules
+            examples/appwrite/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
         run: |
@@ -143,6 +148,7 @@ jobs:
             node_modules
             examples/rxdb/node_modules
             examples/firebase/node_modules
+            examples/appwrite/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: build package
         run: |
@@ -167,6 +173,7 @@ jobs:
             node_modules
             examples/rxdb/node_modules
             examples/firebase/node_modules
+            examples/appwrite/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: build docs
         run: |

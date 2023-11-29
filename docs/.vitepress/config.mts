@@ -32,6 +32,7 @@ export default defineConfig({
         items: [
           { text: 'RxDB', link: 'https://signaldb.js.org/examples/rxdb/' },
           { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
+          { text: 'Appwrite', link: 'https://signaldb.js.org/examples/appwrite/' },
         ],
       },
       {
@@ -73,6 +74,7 @@ export default defineConfig({
           { text: 'Filesystem', link: '/data-persistence/file-system/' },
           { text: 'RxDB', link: '/data-persistence/rxdb/' },
           { text: 'Firebase', link: '/data-persistence/firebase/' },
+          { text: 'Appwrite', link: '/data-persistence/appwrite/' },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
         ],
       },
@@ -151,6 +153,8 @@ export default defineConfig({
         '/examples/rxdb/404',
         '/examples/firebase',
         '/examples/firebase/404',
+        '/examples/appwrite',
+        '/examples/appwrite/404',
       ],
     })
 

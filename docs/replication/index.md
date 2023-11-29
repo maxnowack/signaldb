@@ -10,5 +10,6 @@ Data replication is a planned feature and not implemented yet. At the moment, da
 
 * [RxDB Persistence Adapter](/data-persistence/rxdb/)
 * [Firebase Persistence Adapter](/data-persistence/firebase/)
+* [Appwrite Persistence Adapter](/data-persistence/appwrite/)
 
 You can discuss the implementation of replication in the [GitHub issue](https://github.com/maxnowack/signaldb/issues/395).

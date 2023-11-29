@@ -14,8 +14,10 @@
     "example:rxdb:copy": "rimraf docs/public/examples/rxdb && cp -R examples/rxdb/out docs/public/examples/rxdb",
     "example:firebase:build": "(cd examples/firebase && npm run build) && npm run example:firebase:copy",
     "example:firebase:copy": "rimraf docs/public/examples/firebase && cp -R examples/firebase/out docs/public/examples/firebase",
+    "example:appwrite:build": "(cd examples/appwrite && npm run build) && npm run example:appwrite:copy",
+    "example:appwrite:copy": "rimraf docs/public/examples/appwrite && cp -R examples/appwrite/out docs/public/examples/appwrite",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "npm run example:rxdb:build && npm run example:firebase:build && vitepress build docs",
+    "docs:build": "npm run example:rxdb:build && npm run example:firebase:build && npm run example:appwrite:build && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "repository": {
