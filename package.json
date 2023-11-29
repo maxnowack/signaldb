@@ -10,8 +10,12 @@
     "coverage": "vitest run --coverage",
     "build": "rimraf dist && vite build",
     "type-check": "tsc --noEmit",
+    "example:rxdb:build": "(cd examples/rxdb && npm run build) && npm run example:rxdb:copy",
+    "example:rxdb:copy": "rimraf docs/public/examples/rxdb && cp -R examples/rxdb/out docs/public/examples/rxdb",
+    "example:firebase:build": "(cd examples/firebase && npm run build) && npm run example:firebase:copy",
+    "example:firebase:copy": "rimraf docs/public/examples/firebase && cp -R examples/firebase/out docs/public/examples/firebase",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "rimraf docs/public/todo-example && (cd example && npm run build) && cp -R example/out docs/public/todo-example && vitepress build docs",
+    "docs:build": "npm run example:rxdb:build && npm run example:firebase:build && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "repository": {
