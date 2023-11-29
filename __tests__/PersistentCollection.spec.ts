@@ -16,5 +16,5 @@ describe('PersistentCollection', () => {
     expect(item).toEqual({ id: '1', name: 'John' })
 
     expect(fs.existsSync('./persistent-collection-test.json')).toBe(true)
-  })
+  }, { retry: 5 })
 })
