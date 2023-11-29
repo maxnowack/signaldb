@@ -6,10 +6,6 @@ head:
 ---
 # Troubleshooting
 
-::: warning
-Keep in mind, that SignalDB is in a very early stage and not yet production ready.
-:::
-
 In this section, we've compiled some common issues you might encounter while using SignalDB and their respective solutions. Keep in mind, that you can always [file an issue](https://github.com/maxnowack/signaldb/issues/new) at our [Github Repository](https://github.com/maxnowack/signaldb).
 
 ## Unable to install SignalDB
