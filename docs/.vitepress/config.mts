@@ -71,6 +71,8 @@ export default defineConfig({
           { text: 'Overview', link: '/data-persistence/' },
           { text: 'localStorage', link: '/data-persistence/local-storage/' },
           { text: 'Filesystem', link: '/data-persistence/file-system/' },
+          { text: 'RxDB', link: '/data-persistence/rxdb/' },
+          { text: 'Firebase', link: '/data-persistence/firebase/' },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
         ],
       },
@@ -79,7 +81,6 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Overview', link: '/replication/' },
-          { text: 'RxDB Persistence adapter', link: '/replication/rxdb/' },
         ],
       },
       {
