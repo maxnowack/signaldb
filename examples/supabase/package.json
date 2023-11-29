@@ -1,0 +1,25 @@
+{
+  "name": "supabase-example",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@maverick-js/signals": "^5.11.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "@types/node": "20.10.0",
+    "@types/react": "18.2.39",
+    "@types/react-dom": "18.2.17",
+    "next": "14.0.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "signaldb": "0.8.0",
+    "typescript": "5.3.2"
+  },
+  "devDependencies": {
+    "sass": "^1.63.6"
+  }
+}
