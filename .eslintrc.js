@@ -21,7 +21,7 @@ module.exports = {
     'node_modules',
     'coverage',
     'docs/.vitepress/dist',
-    'docs/public/todo-example',
+    'docs/public/examples',
     'examples/rxdb/.next',
     'examples/rxdb/out',
     'examples/rxdb/node_modules',
