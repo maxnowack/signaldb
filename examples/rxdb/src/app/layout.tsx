@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Todo Example | SignalDB',
-  description: 'Todo Example app for SignalDB using Next.js and rxdb',
+  description: 'Todo Example app for SignalDB using Next.js and RxDB',
 }
 
 export default function RootLayout({

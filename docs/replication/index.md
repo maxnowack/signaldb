@@ -6,7 +6,7 @@ head:
 ---
 # Replication
 
-Data replication is a planned feature and not implemented yet. At the moment, data replication can be achieved by using a persistence adapter like RxDB or Firebase and using their replication functionality.
+Data replication is a planned feature and not implemented yet. At the moment, data replication can be achieved by using a persistence adapter for Supabase, Appwrite, Firebase or RxDB and using their replication functionality.
 
 * [RxDB Persistence Adapter](/data-persistence/rxdb/)
 * [Firebase Persistence Adapter](/data-persistence/firebase/)
