@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/replication/rxdb/
+    href: https://signaldb.js.org/data-persistence/rxdb/
 ---
 # RxDB Persistence Adapter
 
@@ -12,4 +12,4 @@ Diving deeper into the mechanics of persistence adapters within SignalDB, their 
 
 The inherent benefit of using persistence adapters, especially one optimized for RxDB, is the unparalleled flexibility and abstraction they provide. By allowing SignalDB to communicate with RxDB's powerful storage and replication capabilities, developers can ensure data continuity even in scenarios where applications are reloaded or user sessions are extended. In addition, decoupling SignalDB from the storage mechanism through the adapter ensures that changes or migrations to different storage systems can be made with minimal friction or code changes. In essence, an RxDB persistence adapter acts as a bridge between SignalDB's in-memory operations and persistent, replicated data.
 
-In our [example](https://github.com/maxnowack/signaldb/tree/main/example) is a demo implementation of a persistence adapter for RxDB. It's not optimized, but it works. You'll find the helper function to create a persistence adapter for a RxCollection here: [`createRxPersistenceAdapter`](https://github.com/maxnowack/signaldb/blob/main/example/src/utils/createRxPersistenceAdapter.ts) and the usage of this function [here](https://github.com/maxnowack/signaldb/blob/main/example/src/system/setupCollection/persistence.ts).
+In our [RxDB Example](https://github.com/maxnowack/signaldb/tree/main/examples/rxdb) is a demo implementation of a persistence adapter for RxDB. It's not optimized, but it works. You'll find the helper function to create a persistence adapter for a RxCollection here: [`createRxPersistenceAdapter`](https://github.com/maxnowack/signaldb/blob/main/examples/rxdb/src/utils/createRxPersistenceAdapter.ts) and the usage of this function [here](https://github.com/maxnowack/signaldb/blob/main/examples/rxdb/src/system/setupCollection/persistence.ts).

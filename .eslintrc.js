@@ -22,9 +22,12 @@ module.exports = {
     'coverage',
     'docs/.vitepress/dist',
     'docs/public/todo-example',
-    'example/.next',
-    'example/out',
-    'example/node_modules',
+    'examples/rxdb/.next',
+    'examples/rxdb/out',
+    'examples/rxdb/node_modules',
+    'examples/firebase/.next',
+    'examples/firebase/out',
+    'examples/firebase/node_modules',
   ],
   settings: {
     'import/resolver': {

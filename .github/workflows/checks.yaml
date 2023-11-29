@@ -31,14 +31,16 @@ jobs:
         with:
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.OS }}-modules-${{ matrix.node-version }}-
       - name: install modules
         run: |
           npm install --no-audit --force --loglevel=error --no-update-notifier
-          cd example && npm install --no-audit --force --loglevel=error --no-update-notifier
+          (cd examples/rxdb && npm install --no-audit --force --loglevel=error --no-update-notifier)
+          (cd examples/firebase && npm install --no-audit --force --loglevel=error --no-update-notifier)
 
   linting:
     needs: preflight
@@ -57,7 +59,8 @@ jobs:
           fail-on-cache-miss: true
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
         run: |
@@ -80,7 +83,8 @@ jobs:
           fail-on-cache-miss: true
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
         run: |
@@ -106,7 +110,8 @@ jobs:
           fail-on-cache-miss: true
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
         run: |
@@ -136,7 +141,8 @@ jobs:
           fail-on-cache-miss: true
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: build package
         run: |
@@ -159,7 +165,8 @@ jobs:
           fail-on-cache-miss: true
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: build docs
         run: |

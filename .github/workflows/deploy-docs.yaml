@@ -36,14 +36,16 @@ jobs:
         with:
           path: |
             node_modules
-            example/node_modules
+            examples/rxdb/node_modules
+            examples/firebase/node_modules
           key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.OS }}-modules-
       - name: install modules
         run: |
           npm install --no-audit --force --loglevel=error --no-update-notifier
-          cd example && npm install --no-audit --force --loglevel=error --no-update-notifier
+          (cd examples/rxdb && npm install --no-audit --force --loglevel=error --no-update-notifier)
+          (cd examples/firebase && npm install --no-audit --force --loglevel=error --no-update-notifier)
       - name: Build vitepress
         run: npm run docs:build
       - name: Upload artifact

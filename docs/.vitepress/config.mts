@@ -26,7 +26,14 @@ export default defineConfig({
           { text: 'Installation', link: '/installation/' },
         ],
       },
-      { text: 'Example', link: 'https://signaldb.js.org/todo-example/' },
+      {
+        text: 'Examples',
+        collapsed: false,
+        items: [
+          { text: 'RxDB', link: 'https://signaldb.js.org/examples/rxdb/' },
+          { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
+        ],
+      },
       {
         text: 'Documentation',
         collapsed: false,
@@ -136,7 +143,14 @@ export default defineConfig({
     sitemap({
       hostname: 'https://signaldb.js.org',
       outDir: './docs/.vitepress/dist',
-      exclude: ['/googlef8c159020eb311c9', '/404', '/todo-example', '/todo-example/404'],
+      exclude: [
+        '/googlef8c159020eb311c9',
+        '/404',
+        '/examples/rxdb',
+        '/examples/rxdb/404',
+        '/examples/firebase',
+        '/examples/firebase/404',
+      ],
     })
 
     await new Promise((resolve) => { setTimeout(resolve, 1000) }) // wait a second for the sitemap to be generated
@@ -175,7 +189,8 @@ export default defineConfig({
       '/reactivity/solidjs.html': '/reactivity/solidjs/',
       '/reactivity/usignal.html': '/reactivity/usignal/',
       '/reactivity/vue.html': '/reactivity/vue/',
-      '/replication/rxdb.html': '/replication/rxdb/',
+      '/replication/rxdb.html': '/data-persistence/rxdb/',
+      '/replication/rxdb/index.html': '/data-persistence/rxdb/',
     }
 
     Object.entries(redirects).reduce(async (promise, [from, to]) => {
