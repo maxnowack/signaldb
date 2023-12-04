@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
-import { Collection, createLocalStorageAdapter } from 'signaldb'
+import { Collection, createLocalStorageAdapter } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 
 const persistence = createLocalStorageAdapter('test')

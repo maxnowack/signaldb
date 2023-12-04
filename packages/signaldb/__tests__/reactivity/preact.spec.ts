@@ -1,11 +1,8 @@
 import { vi, describe, it, expect } from 'vitest'
-import {
-  signal,
-  effect,
-} from 'usignal'
-import { Collection, createReactivityAdapter } from 'signaldb'
+import { signal, effect } from '@preact/signals-core'
+import { Collection, createReactivityAdapter } from '../../src'
 
-describe('usignal', () => {
+describe('preact', () => {
   const reactivity = createReactivityAdapter({
     create: () => {
       const dep = signal(0)
@@ -21,7 +18,7 @@ describe('usignal', () => {
     },
   })
 
-  it('should be reactive with usignal', async () => {
+  it('should be reactive with preact', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
     const cleanup = vi.fn()

@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { describe, it, expect, vi } from 'vitest'
-import type { PersistenceAdapter } from 'signaldb'
-import { Collection, createFilesystemAdapter } from 'signaldb'
+import type { PersistenceAdapter } from '../src'
+import { Collection, createFilesystemAdapter } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 
 // eslint-disable-next-line max-len

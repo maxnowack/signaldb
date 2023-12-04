@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Collection } from 'signaldb'
+import { Collection } from '../src'
 
 describe('Queries', () => {
   // thanks to https://github.com/meteor/meteor/blob/devel/packages/minimongo/minimongo_tests_client.js
