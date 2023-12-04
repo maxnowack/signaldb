@@ -9,12 +9,7 @@
     "strictNullChecks": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "skipDefaultLibCheck": true
-  },
-  "exclude": [
-    "**/*.spec.ts",
-  ],
-  "include": [
-    "src/**/*.ts"
-  ]
+    "skipDefaultLibCheck": true,
+    "jsx": "react-jsx"
+  }
 }

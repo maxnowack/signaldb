@@ -7,7 +7,7 @@ import {
   getScope,
   onDispose,
 } from '@maverick-js/signals'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('@maverick-js/signals', () => {
   const reactivity = createReactivityAdapter({

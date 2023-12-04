@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
+        node-version: [18.x, 20.x, 21.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,21 +30,13 @@ jobs:
         continue-on-error: true
         with:
           path: |
-            node_modules
-            examples/rxdb/node_modules
-            examples/firebase/node_modules
-            examples/appwrite/node_modules
-            examples/supabase/node_modules
+            **/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.OS }}-modules-${{ matrix.node-version }}-
       - name: install modules
         run: |
           npm install --no-audit --force --loglevel=error --no-update-notifier
-          (cd examples/rxdb && npm install --no-audit --force --loglevel=error --no-update-notifier)
-          (cd examples/firebase && npm install --no-audit --force --loglevel=error --no-update-notifier)
-          (cd examples/appwrite && npm install --no-audit --force --loglevel=error --no-update-notifier)
-          (cd examples/supabase && npm install --no-audit --force --loglevel=error --no-update-notifier)
 
   linting:
     needs: preflight
@@ -62,14 +54,11 @@ jobs:
         with:
           fail-on-cache-miss: true
           path: |
-            node_modules
-            examples/rxdb/node_modules
-            examples/firebase/node_modules
-            examples/appwrite/node_modules
-            examples/supabase/node_modules
+            **/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
         run: |
+          npm run build
           npm run lint
 
   typecheck:
@@ -88,14 +77,11 @@ jobs:
         with:
           fail-on-cache-miss: true
           path: |
-            node_modules
-            examples/rxdb/node_modules
-            examples/firebase/node_modules
-            examples/appwrite/node_modules
-            examples/supabase/node_modules
+            **/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
         run: |
+          npm run build
           npm run type-check
 
   unit-tests:
@@ -103,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
+        node-version: [18.x, 20.x, 21.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -117,14 +103,11 @@ jobs:
         with:
           fail-on-cache-miss: true
           path: |
-            node_modules
-            examples/rxdb/node_modules
-            examples/firebase/node_modules
-            examples/appwrite/node_modules
-            examples/supabase/node_modules
+            **/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: unit testing
         run: |
+          npm run build
           npm test -- --coverage run
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
@@ -136,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
+        node-version: [18.x, 20.x, 21.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -150,11 +133,7 @@ jobs:
         with:
           fail-on-cache-miss: true
           path: |
-            node_modules
-            examples/rxdb/node_modules
-            examples/firebase/node_modules
-            examples/appwrite/node_modules
-            examples/supabase/node_modules
+            **/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
       - name: build package
         run: |
@@ -176,11 +155,7 @@ jobs:
         with:
           fail-on-cache-miss: true
           path: |
-            node_modules
-            examples/rxdb/node_modules
-            examples/firebase/node_modules
-            examples/appwrite/node_modules
-            examples/supabase/node_modules
+            **/node_modules
           key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
       - name: build docs
         run: |

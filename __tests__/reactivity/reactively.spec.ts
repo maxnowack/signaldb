@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest'
 import { reactive, onCleanup } from '@reactively/core'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('@reactively/core', () => {
   const reactivity = createReactivityAdapter({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Collection } from '../src/index'
+import { Collection } from 'signaldb'
 
 describe('Queries', () => {
   // thanks to https://github.com/meteor/meteor/blob/devel/packages/minimongo/minimongo_tests_client.js
@@ -17,7 +17,7 @@ describe('Queries', () => {
     expect(c.find({ type: 'cryptographer' }).count()).toBe(3)
     expect(c.find({ type: 'kitten' }).fetch().length).toBe(2)
     expect(c.find({ type: 'cryptographer' }).fetch().length).toBe(3)
-    expect(fluffyKittenId).toBe(c.findOne({ type: 'kitten', name: 'fluffy' }).id)
+    expect(fluffyKittenId).toBe(c.findOne({ type: 'kitten', name: 'fluffy' })?.id)
 
     c.removeMany({ name: 'cara' })
     expect(c.find().count()).toBe(4)
@@ -67,9 +67,9 @@ describe('Queries', () => {
     expect(c.find({ tags: 'fruit' }).fetch().length).toBe(2)
     expect(c.find({ tags: 'red' }).fetch().length).toBe(3)
 
-    expect(c.findOne({ id: 1 }).name).toBe('strawberry')
-    expect(c.findOne({ id: 2 }).name).toBe('apple')
-    expect(c.findOne({ id: 3 }).name).toBe('rose')
+    expect(c.findOne({ id: 1 })?.name).toBe('strawberry')
+    expect(c.findOne({ id: 2 })?.name).toBe('apple')
+    expect(c.findOne({ id: 3 })?.name).toBe('rose')
     expect(c.findOne({ id: 4 })).toBeUndefined()
     expect(c.findOne({ id: 'abc' })).toBeUndefined()
     expect(c.findOne({ id: undefined })).toBeUndefined()

@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest'
 import { signal, effect } from '@preact/signals-core'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('preact', () => {
   const reactivity = createReactivityAdapter({

@@ -1,73 +1,28 @@
 {
-  "name": "signaldb",
-  "version": "0.8.1",
-  "description": "SignalDB is a client-side database that provides a simple MongoDB-like interface to the data with first-class typescript support to achieve an optimistic UI. Data persistence can be achieved by using storage providers that store the data through a JSON interface to places such as localStorage.",
+  "name": "signaldb-workspace",
+  "private": true,
   "scripts": {
     "preversion": "npm run lint && npm run test -- run && npm run build",
     "prepare": "npm run build && husky install",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest",
     "coverage": "vitest run --coverage",
-    "build": "rimraf dist && vite build",
+    "build": "npm run build -ws",
     "type-check": "tsc --noEmit",
-    "example:rxdb:build": "(cd examples/rxdb && npm run build) && npm run example:rxdb:copy",
+    "examples:copy": "npm run example:rxdb:copy && npm run example:firebase:copy && npm run example:appwrite:copy && npm run example:supabase:copy",
     "example:rxdb:copy": "rimraf docs/public/examples/rxdb && cp -R examples/rxdb/out docs/public/examples/rxdb",
-    "example:firebase:build": "(cd examples/firebase && npm run build) && npm run example:firebase:copy",
     "example:firebase:copy": "rimraf docs/public/examples/firebase && cp -R examples/firebase/out docs/public/examples/firebase",
-    "example:appwrite:build": "(cd examples/appwrite && npm run build) && npm run example:appwrite:copy",
     "example:appwrite:copy": "rimraf docs/public/examples/appwrite && cp -R examples/appwrite/out docs/public/examples/appwrite",
-    "example:supabase:build": "(cd examples/supabase && npm run build) && npm run example:supabase:copy",
     "example:supabase:copy": "rimraf docs/public/examples/supabase && cp -R examples/supabase/out docs/public/examples/supabase",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "npm run example:rxdb:build && npm run example:firebase:build && npm run example:appwrite:build && npm run example:supabase:build && vitepress build docs",
+    "docs:build": "npm run build && npm run examples:copy && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/maxnowack/signaldb.git"
-  },
-  "homepage": "https://signaldb.js.org",
-  "keywords": [
-    "client-database",
-    "client",
-    "database",
-    "local-database",
-    "meteor",
-    "minimongo",
-    "mongodb",
-    "offline-first",
-    "optimistic-ui",
-    "reactive",
-    "replication",
-    "rxdb",
-    "synchronization",
-    "tracker",
-    "typescript"
-  ],
   "author": "Max Nowack <max.nowack@gmail.com>",
   "license": "MIT",
-  "sideEffects": false,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.es.js",
-      "require": "./dist/index.umd.js",
-      "default": "./dist/index.umd.js"
-    }
-  },
-  "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
-  "types": "./dist/index.d.ts",
-  "typesVersions": {
-    "*": {
-      "*": [
-        "./dist/*",
-        "./dist/index.d.ts"
-      ]
-    }
-  },
-  "files": [
-    "dist"
+  "workspaces": [
+    "packages/*",
+    "examples/*"
   ],
   "devDependencies": {
     "@commitlint/cli": "18.4.3",
@@ -85,6 +40,7 @@
     "eslint-plugin-import": "2.29.0",
     "eslint-plugin-prefer-object-spread": "1.2.1",
     "eslint-plugin-vitest": "0.3.10",
+    "fast-glob": "^3.3.2",
     "happy-dom": "12.10.3",
     "husky": "8.0.3",
     "meteor-ts-tracker": "2.0.2",
@@ -108,9 +64,5 @@
     "vitest": "0.34.6",
     "vitest-github-actions-reporter": "0.11.1",
     "vue": "^3.3.4"
-  },
-  "dependencies": {
-    "fast-sort": "^3.4.0",
-    "mingo": "6.4.9"
   }
 }

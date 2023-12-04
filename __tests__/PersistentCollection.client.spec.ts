@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
-import { PersistentCollection } from '../src/index'
-import waitForEvent from '../src/utils/waitForEvent'
+import { PersistentCollection } from 'signaldb'
+import waitForEvent from './helpers/waitForEvent'
 
 describe('PersistentCollection', () => {
   it('should create a persistent collection on the clientside', async () => {

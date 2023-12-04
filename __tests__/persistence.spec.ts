@@ -1,8 +1,8 @@
 import fs from 'fs/promises'
 import { describe, it, expect, vi } from 'vitest'
-import type { PersistenceAdapter } from '../src/index'
-import { Collection, createFilesystemAdapter } from '../src/index'
-import waitForEvent from '../src/utils/waitForEvent'
+import type { PersistenceAdapter } from 'signaldb'
+import { Collection, createFilesystemAdapter } from 'signaldb'
+import waitForEvent from './helpers/waitForEvent'
 
 // eslint-disable-next-line max-len
 function memoryPersistenceAdapter<T extends { id: I } & Record<string, any>, I = any>(
