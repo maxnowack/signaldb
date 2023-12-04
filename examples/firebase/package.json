@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "copy": "rimraf ../../docs/public/examples/firebase && cp -R out ../../docs/public/examples/firebase",
     "start": "next start",
     "lint": "next lint"
   },

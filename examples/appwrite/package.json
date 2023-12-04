@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "copy": "rimraf ../../docs/public/examples/appwrite && cp -R out ../../docs/public/examples/appwrite",
     "start": "next start",
     "lint": "next lint"
   },
