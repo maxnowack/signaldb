@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest'
 import type { ObserveCallbacks, Transform } from '../src'
-import { Collection } from '../src'
+import { Collection, createReactivityAdapter } from '../src'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => { setImmediate(resolve) })
@@ -396,6 +396,56 @@ describe('Cursor', () => {
       expect(callbacks.changed).not.toHaveBeenCalled()
       expect(callbacks.movedBefore).not.toHaveBeenCalled()
       expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('reactivity', () => {
+    it('should call the functions in the provided reactivity adapter', async () => {
+      const depCreation = vi.fn()
+      const dep = vi.fn()
+      const notify = vi.fn()
+      const scopeCheck = vi.fn()
+      let disposal = vi.fn()
+
+      const reactivity = createReactivityAdapter({
+        create() {
+          depCreation()
+          return {
+            depend() {
+              dep()
+            },
+            notify() {
+              notify()
+            },
+          }
+        },
+        isInScope() {
+          scopeCheck()
+          return true
+        },
+        onDispose(callback) {
+          disposal = vi.fn(callback)
+        },
+      })
+      const cursor = collection.find({}, { reactive: reactivity })
+      const result = cursor.fetch()
+      expect(result).toEqual(items)
+
+      expect(depCreation).toHaveBeenCalled()
+      expect(dep).toHaveBeenCalled()
+      expect(scopeCheck).toHaveBeenCalled()
+      expect(disposal).not.toHaveBeenCalled()
+      expect(notify).not.toHaveBeenCalled()
+
+      collection.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } })
+      await new Promise((resolve) => { setTimeout(resolve, 10) })
+
+      expect(notify).toHaveBeenCalled()
+      disposal()
+      expect(disposal).toHaveBeenCalled()
+      collection.updateOne({ id: 1 }, { $set: { name: 'item1_' } })
+      await new Promise((resolve) => { setTimeout(resolve, 10) })
+      expect(notify).toHaveBeenCalledTimes(1)
     })
   })
 })

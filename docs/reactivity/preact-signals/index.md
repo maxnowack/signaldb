@@ -16,30 +16,15 @@ Signals in Preact are designed to provide an efficient way of expressing and man
 
 The API of Preact doesn't allow [automatic cleanup nor reactive scope checking](/reactivity/#reactivity-libraries). Adapters without automatic cleanup are considered as **experimental**, as a manual cleanup isn't really convenient and a not properly cleanup can lead to memory leaks.
 
-```js
-import { signal } from '@preact/signals-core'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = signal(0)
-    return {
-      depend: () => {
-        // eslint-disable-next-line no-unused-expressions
-        dep.value
-      },
-      notify: () => {
-        dep.value = dep.peek() + 1
-      },
-    }
-  },
-})
+```bash
+  $ npm install signaldb-adapter-preact
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-preact'
 import { effect } from '@preact/signals-core'
 
 const posts = new Collection({

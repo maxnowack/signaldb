@@ -14,32 +14,15 @@ head:
 The API of S.js doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
-```js
-import S from 's-js'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = S.data(true)
-    return {
-      depend: () => {
-        dep()
-      },
-      notify: () => {
-        dep(true)
-      },
-    }
-  },
-  onDispose: (callback) => {
-    S.cleanup(callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-sjs
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-sjs'
 import S from 's-js'
 
 const posts = new Collection({

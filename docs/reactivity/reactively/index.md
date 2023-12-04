@@ -14,26 +14,8 @@ head:
 The API of Reactively doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
-```js
-import { reactive, onCleanup } from '@reactively/core'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = reactive(0)
-    return {
-      depend: () => {
-        dep.get()
-      },
-      notify: () => {
-        dep.set(dep.value + 1)
-      },
-    }
-  },
-  onDispose: (callback) => {
-    onCleanup(callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-reactively
 ```
 
 ## Usage
@@ -41,6 +23,7 @@ const reactivityAdapter = createReactivityAdapter({
 ```js
 import { reactive } from '@reactively/core'
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-reactively'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,

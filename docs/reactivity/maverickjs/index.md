@@ -13,33 +13,15 @@ Maverick.js's signals provide a powerful foundation for reactive programming, an
 * ✅ Automatic Cleanup 
 * ✅ Scope check
 
-```js
-import { signal, peek, onDispose, getScope } from '@maverick-js/signals'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = signal(0)
-    return {
-      depend: () => {
-        dep()
-      },
-      notify: () => {
-        dep.set(peek(() => dep() + 1))
-      },
-    }
-  },
-  isInScope: () => !!getScope(),
-  onDispose: (callback) => {
-    onDispose(callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-maverickjs
 ```
 
 ## Usage
 
 ```js
 import { effect } from '@maverick-js/signals'
+import reactivityAdapter from 'signaldb-adapter-maverickjs'
 import { Collection } from 'signaldb'
 
 const posts = new Collection({
