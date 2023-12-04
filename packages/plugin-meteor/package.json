@@ -1,0 +1,59 @@
+{
+  "name": "signaldb-plugin-meteor",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "rimraf dist && vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxnowack/signaldb.git"
+  },
+  "homepage": "https://signaldb.js.org",
+  "keywords": [
+    "client-database",
+    "client",
+    "database",
+    "local-database",
+    "meteor",
+    "offline-first",
+    "optimistic-ui",
+    "reactive",
+    "reactivity",
+    "plugin",
+    "synchronization",
+    "tracker",
+    "typescript"
+  ],
+  "author": "Max Nowack <max.nowack@gmail.com>",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js",
+      "default": "./dist/index.umd.js"
+    }
+  },
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "meteor-ts-tracker": "2.0.2"
+  },
+  "peerDependencies": {
+    "signaldb": "0.x.x"
+  }
+}

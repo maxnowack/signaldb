@@ -16,32 +16,15 @@ Vue.js is renowned for its powerful reactivity system, enabling developers to ef
 The API of Vue.js doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
-```js
-import { shallowRef, triggerRef, onScopeDispose } from 'vue'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = shallowRef(0)
-    return {
-      depend: () => {
-        dep.value
-      },
-      notify: () => {
-        triggerRef(dep)
-      },
-    }
-  },
-  onDispose: (callback) => {
-    onScopeDispose(callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-vue
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-vue'
 import { watchEffect } from 'vue'
 
 const posts = new Collection({

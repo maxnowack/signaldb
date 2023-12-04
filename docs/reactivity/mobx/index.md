@@ -16,35 +16,15 @@ Integrating signals (or observables) in MobX with signaldb has revolutionized th
 The API of MobX doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
-```js
-import { observable, runInAction, onBecomeUnobserved } from 'mobx'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = observable({ count: 0 })
-    return {
-      depend: () => {
-        dep.count
-      },
-      notify: () => {
-        runInAction(() => {
-          dep.count += 1
-        })
-      },
-      raw: dep,
-    }
-  },
-  onDispose(callback, { raw: dep }) {
-    onBecomeUnobserved(dep, 'count', callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-mobx
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-mobx'
 import { autorun } from 'mobx'
 
 const posts = new Collection({

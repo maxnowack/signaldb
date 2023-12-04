@@ -13,41 +13,18 @@ Meteor Tracker is an integral component of the Meteor framework, offering a seam
 * ✅ Automatic Cleanup 
 * ✅ Scope check
 
-```js
-// import in project without meteor
-import { Tracker } from 'meteor-ts-tracker'
-
-// import in project with meteor
-import { Tracker } from 'meteor/tracker'
-
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = new Tracker.Dependency()
-    return {
-      depend: () => {
-        if (!Tracker.active) return
-        dep.depend()
-      },
-      notify: () => dep.changed(),
-    }
-  },
-  isInScope: () => Tracker.active,
-  onDispose: (callback) => {
-    if (!Tracker.active) return
-    Tracker.onInvalidate(callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-meteor
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-meteor'
 
 const posts = new Collection({
-  reactivity: reactivityAdapter,
+  reactivity: reactivityAdapter(Tracker),
 })
 
 Tracker.autorun(() => {

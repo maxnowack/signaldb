@@ -11,33 +11,15 @@ head:
 * ✅ Automatic Cleanup 
 * ✅ Scope check
 
-```js
-import $oby, { untrack, cleanup, owner } from 'oby'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = $oby(0)
-    return {
-      depend: () => {
-        dep()
-      },
-      notify: () => {
-        dep(untrack(() => dep() + 1))
-      },
-    }
-  },
-  isInScope: () => !!owner(),
-  onDispose: (callback) => {
-    cleanup(callback)
-  },
-})
+```bash
+  $ npm install signaldb-adapter-oby
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
+import reactivityAdapter from 'signaldb-adapter-oby'
 import { effect } from 'oby'
 
 const posts = new Collection({

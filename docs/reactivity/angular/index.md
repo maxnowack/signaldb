@@ -16,23 +16,8 @@ In Angular, the introduction of signals has revolutionized the way data changes 
 
 The API of Angular doesn't allow [automatic cleanup nor reactive scope checking](/reactivity/#reactivity-libraries). Adapters without automatic cleanup are considered as **experimental**, as a manual cleanup isn't really convenient and a not properly cleanup can lead to memory leaks.
 
-```js
-import { signal, untracked } from '@angular/core'
-import { createReactivityAdapter } from 'signaldb'
-
-const reactivityAdapter = createReactivityAdapter({
-  create: () => {
-    const dep = signal(0)
-    return {
-      depend: () => {
-        dep()
-      },
-      notify: () => {
-        dep.set(untracked(() => dep() + 1))
-      },
-    }
-  },
-})
+```bash
+  $ npm install signaldb-adapter-angular
 ```
 
 ## Usage
@@ -40,6 +25,7 @@ const reactivityAdapter = createReactivityAdapter({
 ```js
 import { Collection } from 'signaldb'
 import { effect } from '@angular/core'
+import reactivityAdapter from 'signaldb-adapter-angular'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,
