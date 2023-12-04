@@ -1,4 +1,3 @@
-import fs from 'fs'
 import createPersistenceAdapter from './createPersistenceAdapter'
 
 export default function createFilesystemAdapter<
@@ -9,6 +8,7 @@ export default function createFilesystemAdapter<
   return createPersistenceAdapter<T, I>({
     async register(onChange) {
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
+      const fs = await import('fs')
       const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
       if (!exists) await fs.promises.writeFile(filename, '[]')
       fs.watch(filename, { encoding: 'utf8' }, () => {
@@ -17,6 +17,7 @@ export default function createFilesystemAdapter<
     },
     async load() {
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
+      const fs = await import('fs')
       const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
       if (!exists) return { items: [] }
       if (savePromise) await savePromise
@@ -26,6 +27,7 @@ export default function createFilesystemAdapter<
     },
     async save(items) {
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
+      const fs = await import('fs')
       const content = JSON.stringify(items)
       if (savePromise) await savePromise
       savePromise = fs.promises.writeFile(filename, content)

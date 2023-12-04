@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest'
 import S from 's-js'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('S.js', () => {
   const reactivity = createReactivityAdapter({

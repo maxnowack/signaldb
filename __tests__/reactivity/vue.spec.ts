@@ -8,7 +8,7 @@ import {
   nextTick as vueNextTick,
   effectScope as vueEffectScope,
 } from 'vue'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('Vue.js', () => {
   const reactivity = createReactivityAdapter({

@@ -3,7 +3,7 @@ import {
   signal,
   effect,
 } from 'usignal'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('usignal', () => {
   const reactivity = createReactivityAdapter({

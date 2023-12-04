@@ -3,7 +3,7 @@ import {
   observable,
   api,
 } from 'sinuous'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('sinuous', () => {
   const reactivity = createReactivityAdapter({

@@ -5,8 +5,10 @@ import {
   createEffect,
   onCleanup,
   createRoot,
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
 } from 'solid-js/dist/solid'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('solid', () => {
   const reactivity = createReactivityAdapter({

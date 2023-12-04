@@ -5,7 +5,7 @@ import {
   runInAction,
   onBecomeUnobserved,
 } from 'mobx'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('MobX', () => {
   const reactivity = createReactivityAdapter({

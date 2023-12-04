@@ -1,3 +1,13 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+const fs = require('fs')
+const path = require('path')
+const fg = require('fast-glob')
+const { workspaces } = require('./package.json')
+
+const projectDirs = workspaces
+  .flatMap(pattern => fg.sync(pattern, { onlyDirectories: true }))
+  .filter(projectPath => fs.existsSync(path.join(__dirname, projectPath, 'package.json')))
+
 module.exports = {
   extends: [
     'airbnb-base',
@@ -43,6 +53,26 @@ module.exports = {
     commonjs: true,
     node: true,
   },
+  overrides: [
+    // https://github.com/import-js/eslint-plugin-import/issues/1913#issuecomment-1034025709
+    ...projectDirs.map(projectDir => ({
+      files: [`${projectDir}/**/*.{t,j}s`],
+      rules: {
+        'import/no-extraneous-dependencies': ['error', {
+          devDependencies: [
+            '.eslintrc.js',
+            '**/*.test.ts',
+            '**/*.spec.ts',
+            '__tests__/**/*.ts',
+            '*.config.ts',
+            'docs/.vitepress/config.ts',
+            '**/vite.config.ts',
+          ],
+          packageDir: [__dirname, path.join(__dirname, projectDir)],
+        }],
+      },
+    })),
+  ],
   rules: {
     /*
      * Typescript
@@ -100,11 +130,13 @@ module.exports = {
     }],
     'import/no-extraneous-dependencies': ['error', {
       devDependencies: [
+        '.eslintrc.js',
         '**/*.test.ts',
         '**/*.spec.ts',
         '__tests__/**/*.ts',
         '*.config.ts',
         'docs/.vitepress/config.ts',
+        'vite.config.ts',
       ],
     }],
     'arrow-parens': ['error', 'as-needed', {

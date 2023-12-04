@@ -6,7 +6,7 @@ import $oby, {
   owner,
   tick,
 } from 'oby'
-import { Collection, createReactivityAdapter } from '../../src/index'
+import { Collection, createReactivityAdapter } from 'signaldb'
 
 describe('oby', () => {
   const reactivity = createReactivityAdapter({
