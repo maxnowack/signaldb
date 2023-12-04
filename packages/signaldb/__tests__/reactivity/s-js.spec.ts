@@ -1,46 +1,37 @@
 import { vi, describe, it, expect } from 'vitest'
-import {
-  observable,
-  autorun,
-  runInAction,
-  onBecomeUnobserved,
-} from 'mobx'
-import { Collection, createReactivityAdapter } from 'signaldb'
+import S from 's-js'
+import { Collection, createReactivityAdapter } from '../../src'
 
-describe('MobX', () => {
+describe('S.js', () => {
   const reactivity = createReactivityAdapter({
     create: () => {
-      const dep = observable({ count: 0 })
+      const dep = S.data(true)
       return {
         depend: () => {
-          // eslint-disable-next-line no-unused-expressions
-          dep.count
+          dep()
         },
         notify: () => {
-          runInAction(() => {
-            dep.count += 1
-          })
+          dep(true)
         },
-        raw: dep,
       }
     },
-    onDispose(callback, { raw: dep }) {
-      onBecomeUnobserved(dep, 'count', callback)
-    },
+    onDispose: vi.fn((callback) => {
+      S.cleanup(callback)
+    }),
   })
 
-  it('should be reactive with MobX', async () => {
+  it('should be reactive with S.js', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
 
-    const stop = autorun(() => {
+    S(() => {
       const cursor = collection.find({ name: 'John' })
       callback(cursor.count())
     })
     collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => { setTimeout(resolve, 0) })
+    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
-    stop()
   })
 })

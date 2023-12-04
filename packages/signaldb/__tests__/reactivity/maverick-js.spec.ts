@@ -1,39 +1,45 @@
 import { vi, describe, it, expect } from 'vitest'
-import { signal, effect } from '@preact/signals-core'
-import { Collection, createReactivityAdapter } from 'signaldb'
+import {
+  signal,
+  tick,
+  peek,
+  effect,
+  getScope,
+  onDispose,
+} from '@maverick-js/signals'
+import { Collection, createReactivityAdapter } from '../../src'
 
-describe('preact', () => {
+describe('@maverick-js/signals', () => {
   const reactivity = createReactivityAdapter({
     create: () => {
       const dep = signal(0)
       return {
         depend: () => {
-          // eslint-disable-next-line no-unused-expressions
-          dep.value
+          dep()
         },
         notify: () => {
-          dep.value = dep.peek() + 1
+          dep.set(peek(() => dep() + 1))
         },
       }
     },
+    isInScope: () => !!getScope(),
+    onDispose: vi.fn((callback) => {
+      onDispose(callback)
+    }),
   })
 
-  it('should be reactive with preact', async () => {
+  it('should be reactive with @maverick-js/signals', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
-    const cleanup = vi.fn()
 
     effect(() => {
-      const cursor = collection.find({ name: 'John' })
-      callback(cursor.count())
-      return () => {
-        cleanup()
-        cursor.cleanup()
-      }
+      callback(collection.find({ name: 'John' }).count())
     })
+    tick()
     collection.insert({ id: '1', name: 'John' })
+    tick()
     await new Promise((resolve) => { setTimeout(resolve, 0) })
-    expect(cleanup).toHaveBeenCalledTimes(1)
+    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })

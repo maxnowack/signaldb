@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest'
-import type { ObserveCallbacks, Transform } from 'signaldb'
-import { Collection } from 'signaldb'
+import type { ObserveCallbacks, Transform } from '../src'
+import { Collection } from '../src'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => { setImmediate(resolve) })

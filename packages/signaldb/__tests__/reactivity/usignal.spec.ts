@@ -1,39 +1,42 @@
 import { vi, describe, it, expect } from 'vitest'
 import {
-  observable,
-  api,
-} from 'sinuous'
-import { Collection, createReactivityAdapter } from 'signaldb'
+  signal,
+  effect,
+} from 'usignal'
+import { Collection, createReactivityAdapter } from '../../src'
 
-describe('sinuous', () => {
+describe('usignal', () => {
   const reactivity = createReactivityAdapter({
     create: () => {
-      const dep = observable(0)
+      const dep = signal(0)
       return {
         depend: () => {
-          dep()
+          // eslint-disable-next-line no-unused-expressions
+          dep.value
         },
         notify: () => {
-          dep(api.sample(() => dep()) + 1)
+          dep.value = dep.peek() + 1
         },
       }
     },
-    onDispose: vi.fn((callback) => {
-      api.cleanup(callback)
-    }),
   })
 
-  it('should be reactive with sinuous', async () => {
+  it('should be reactive with usignal', async () => {
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
+    const cleanup = vi.fn()
 
-    api.subscribe(() => {
+    effect(() => {
       const cursor = collection.find({ name: 'John' })
       callback(cursor.count())
+      return () => {
+        cleanup()
+        cursor.cleanup()
+      }
     })
     collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => { setTimeout(resolve, 0) })
-    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
+    expect(cleanup).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })

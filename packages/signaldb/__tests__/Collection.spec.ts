@@ -1,5 +1,5 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
-import { Collection, createMemoryAdapter, createIndex } from 'signaldb'
+import { Collection, createMemoryAdapter, createIndex } from '../src'
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>

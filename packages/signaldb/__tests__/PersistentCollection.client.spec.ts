@@ -1,11 +1,10 @@
-import fs from 'fs'
+// @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
-import { PersistentCollection } from 'signaldb'
+import { PersistentCollection } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 
 describe('PersistentCollection', () => {
-  it('should create a persistent collection on the serverside', async () => {
-    await fs.promises.unlink('./persistent-collection-test.json').catch(() => {})
+  it('should create a persistent collection on the clientside', async () => {
     const collection = new PersistentCollection('test')
     await waitForEvent(collection, 'persistence.init')
     collection.insert({ id: '1', name: 'John' })
@@ -15,6 +14,6 @@ describe('PersistentCollection', () => {
     const item = collection.findOne({ name: 'John' })
     expect(item).toEqual({ id: '1', name: 'John' })
 
-    expect(fs.existsSync('./persistent-collection-test.json')).toBe(true)
-  }, { retry: 5 })
+    expect(!!localStorage.getItem('signaldb-collection-test')).toBe(true)
+  })
 })
