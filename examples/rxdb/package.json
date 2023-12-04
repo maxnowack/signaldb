@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "copy": "rimraf ../../docs/public/examples/rxdb && cp -R out ../../docs/public/examples/rxdb",
     "start": "next start",
     "lint": "next lint"
   },

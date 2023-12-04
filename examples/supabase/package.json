@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "copy": "rimraf ../../docs/public/examples/supabase && cp -R out ../../docs/public/examples/supabase",
     "start": "next start",
     "lint": "next lint"
   },
