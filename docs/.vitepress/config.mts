@@ -1,7 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { defineConfig } from 'vitepress'
-import { generateSitemap as sitemap } from 'sitemap-ts'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -144,11 +143,11 @@ export default defineConfig({
     ['script', { defer: '', 'data-domain': 'signaldb.js.org', src: 'https://plausible.unsou.de/js/script.js' }],
   ],
 
-  buildEnd: async () => {
-    sitemap({
-      hostname: 'https://signaldb.js.org',
-      outDir: './docs/.vitepress/dist',
-      exclude: [
+  sitemap: {
+    hostname: 'https://signaldb.js.org',
+    lastmodDateOnly: true,
+    transformItems(items) {
+      const exclude = [
         '/googlef8c159020eb311c9',
         '/404',
         '/examples/rxdb',
@@ -159,13 +158,12 @@ export default defineConfig({
         '/examples/appwrite/404',
         '/examples/supabase',
         '/examples/supabase/404',
-      ],
-    })
+      ]
+      return items.filter((item) => !exclude.includes(item.url))
+    },
+  },
 
-    await new Promise((resolve) => { setTimeout(resolve, 1000) }) // wait a second for the sitemap to be generated
-    await fs.writeFile('./docs/.vitepress/dist/sitemap.xml', (await fs.readFile('./docs/.vitepress/dist/sitemap.xml', 'utf-8'))
-      .replace(/<loc>([a-z0-9:/.-]+?\w)<\/loc>/g, '<loc>$1/</loc>')) // add trailing slash to all urls
-
+  buildEnd: async () => {
     function buildRedirectHtml(to: string) {
       return `<!DOCTYPE html><html><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><body><a href="${to}">Redirecting...</a></body></html>`
     }
@@ -202,7 +200,7 @@ export default defineConfig({
       '/replication/rxdb/index.html': '/data-persistence/rxdb/',
     }
 
-    Object.entries(redirects).reduce(async (promise, [from, to]) => {
+    await Object.entries(redirects).reduce(async (promise, [from, to]) => {
       await promise
       const dir = path.dirname(`./docs/.vitepress/dist${from}`)
       await fs.mkdir(dir, { recursive: true })
