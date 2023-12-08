@@ -37,7 +37,7 @@
     "husky": "8.0.3",
     "rimraf": "5.0.5",
     "rollup-plugin-typescript-paths": "1.4.0",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "tslib": "2.6.2",
     "typescript": "5.3.3",
     "vite": "5.0.6",
