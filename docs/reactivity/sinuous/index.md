@@ -15,14 +15,14 @@ The API of Sinuous doesn't allow [reactive scope checking](/reactivity/#reactivi
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
 ```bash
-  $ npm install signaldb-adapter-sinuous
+  $ npm install signaldb-plugin-sinuous
 ```
 
 ## Usage
 
 ```js
 import { api } from 'sinuous'
-import reactivityAdapter from 'signaldb-adapter-sinuous'
+import reactivityAdapter from 'signaldb-plugin-sinuous'
 import { Collection } from 'signaldb'
 
 const posts = new Collection({

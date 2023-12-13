@@ -17,7 +17,7 @@ In Angular, the introduction of signals has revolutionized the way data changes 
 The API of Angular doesn't allow [automatic cleanup nor reactive scope checking](/reactivity/#reactivity-libraries). Adapters without automatic cleanup are considered as **experimental**, as a manual cleanup isn't really convenient and a not properly cleanup can lead to memory leaks.
 
 ```bash
-  $ npm install signaldb-adapter-angular
+  $ npm install signaldb-plugin-angular
 ```
 
 ## Usage
@@ -25,7 +25,7 @@ The API of Angular doesn't allow [automatic cleanup nor reactive scope checking]
 ```js
 import { Collection } from 'signaldb'
 import { effect } from '@angular/core'
-import reactivityAdapter from 'signaldb-adapter-angular'
+import reactivityAdapter from 'signaldb-plugin-angular'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,

@@ -14,14 +14,14 @@ Maverick.js's signals provide a powerful foundation for reactive programming, an
 * ✅ Scope check
 
 ```bash
-  $ npm install signaldb-adapter-maverickjs
+  $ npm install signaldb-plugin-maverickjs
 ```
 
 ## Usage
 
 ```js
 import { effect } from '@maverick-js/signals'
-import reactivityAdapter from 'signaldb-adapter-maverickjs'
+import reactivityAdapter from 'signaldb-plugin-maverickjs'
 import { Collection } from 'signaldb'
 
 const posts = new Collection({

@@ -12,14 +12,14 @@ head:
 * ✅ Scope check
 
 ```bash
-  $ npm install signaldb-adapter-oby
+  $ npm install signaldb-plugin-oby
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-adapter-oby'
+import reactivityAdapter from 'signaldb-plugin-oby'
 import { effect } from 'oby'
 
 const posts = new Collection({

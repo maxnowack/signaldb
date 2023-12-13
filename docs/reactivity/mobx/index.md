@@ -17,14 +17,14 @@ The API of MobX doesn't allow [reactive scope checking](/reactivity/#reactivity-
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
 ```bash
-  $ npm install signaldb-adapter-mobx
+  $ npm install signaldb-plugin-mobx
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-adapter-mobx'
+import reactivityAdapter from 'signaldb-plugin-mobx'
 import { autorun } from 'mobx'
 
 const posts = new Collection({

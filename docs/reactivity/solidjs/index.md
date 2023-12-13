@@ -17,14 +17,14 @@ The API of solid-js doesn't allow [reactive scope checking](/reactivity/#reactiv
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
 ```bash
-  $ npm install signaldb-adapter-solid
+  $ npm install signaldb-plugin-solid
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-adapter-solid'
+import reactivityAdapter from 'signaldb-plugin-solid'
 import { createEffect } from 'solid-js'
 
 const posts = new Collection({

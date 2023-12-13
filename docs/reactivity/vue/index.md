@@ -17,14 +17,14 @@ The API of Vue.js doesn't allow [reactive scope checking](/reactivity/#reactivit
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
 ```bash
-  $ npm install signaldb-adapter-vue
+  $ npm install signaldb-plugin-vue
 ```
 
 ## Usage
 
 ```js
 import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-adapter-vue'
+import reactivityAdapter from 'signaldb-plugin-vue'
 import { watchEffect } from 'vue'
 
 const posts = new Collection({
