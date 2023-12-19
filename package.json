@@ -45,7 +45,7 @@
     "vite-plugin-node-polyfills": "0.17.0",
     "vite-tsconfig-paths": "4.2.2",
     "vitepress": "1.0.0-rc.32",
-    "vitest": "1.0.4",
+    "vitest": "1.1.0",
     "vitest-github-actions-reporter": "0.11.1"
   }
 }
