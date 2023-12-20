@@ -54,6 +54,6 @@
   ],
   "dependencies": {
     "fast-sort": "^3.4.0",
-    "mingo": "6.4.9"
+    "mingo": "6.4.10"
   }
 }
