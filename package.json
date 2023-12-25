@@ -31,7 +31,7 @@
     "eslint-import-resolver-typescript": "3.6.1",
     "eslint-plugin-import": "2.29.1",
     "eslint-plugin-prefer-object-spread": "1.2.1",
-    "eslint-plugin-vitest": "0.3.19",
+    "eslint-plugin-vitest": "0.3.20",
     "fast-glob": "^3.3.2",
     "happy-dom": "12.10.3",
     "husky": "8.0.3",
