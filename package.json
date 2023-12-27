@@ -42,7 +42,7 @@
     "typescript": "5.3.3",
     "vite": "5.0.10",
     "vite-plugin-dts": "3.7.0",
-    "vite-plugin-node-polyfills": "0.18.0",
+    "vite-plugin-node-polyfills": "0.19.0",
     "vite-tsconfig-paths": "4.2.2",
     "vitepress": "1.0.0-rc.33",
     "vitest": "1.1.0",
