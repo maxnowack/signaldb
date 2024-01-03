@@ -1,11 +1,11 @@
 import { Collection } from 'signaldb'
-import reactivity from './reactivity'
+import maverickjsReactivityAdapter from 'signaldb-plugin-maverickjs'
 import persistence from './persistence'
 
 export default function setupCollection() {
   const collection = new Collection<{ id: string, text: string, completed: boolean }>({
     memory: [],
-    reactivity,
+    reactivity: maverickjsReactivityAdapter,
     persistence,
   })
   collection.on('persistence.error', (error) => {
