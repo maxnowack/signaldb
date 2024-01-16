@@ -11,6 +11,7 @@ import compact from '../utils/compact'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
 import intersection from '../utils/intersection'
+import type { Changeset } from '../types/PersistenceAdapter'
 import Cursor from './Cursor'
 import createIdIndex from './createIdIndex'
 import type { BaseItem, FindOptions, Transform } from './types'
@@ -39,6 +40,32 @@ interface CollectionEvents<T> {
   'persistence.received': () => void,
 }
 
+function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
+  return pendingUpdates.added.length > 0
+    || pendingUpdates.modified.length > 0
+    || pendingUpdates.removed.length > 0
+}
+function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
+  currentItems: T[],
+  { added, modified, removed }: Changeset<T>,
+) {
+  const items = currentItems.slice()
+  added.forEach((item) => {
+    items.push(item)
+  })
+  modified.forEach((item) => {
+    const index = items.findIndex(({ id }) => id === item.id)
+    if (index === -1) return
+    items[index] = item
+  })
+  removed.forEach((item) => {
+    const index = items.findIndex(({ id }) => id === item.id)
+    if (index === -1) return
+    items.splice(index, 1)
+  })
+  return items
+}
+
 // eslint-disable-next-line max-len
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
@@ -52,7 +79,11 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     if (this.options.persistence) {
       const persistenceAdapter = this.options.persistence
       this.persistenceAdapter = persistenceAdapter
+
       let ongoingSaves = 0
+      let isInitialized = false
+      const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
+
       const loadPersistentData = async () => {
         // load items from persistence adapter and push them into memory
         const { items, changes } = await persistenceAdapter.load()
@@ -83,52 +114,79 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         this.emit('persistence.received')
       }
 
+      this.on('added', (item) => {
+        if (!isInitialized) {
+          pendingUpdates.added.push(item)
+          return
+        }
+        ongoingSaves += 1
+        persistenceAdapter.save(this.memoryArray(), {
+          added: [item],
+          modified: [],
+          removed: [],
+        }).then(() => {
+          this.emit('persistence.transmitted')
+        }).catch((error) => {
+          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+        }).finally(() => {
+          ongoingSaves -= 1
+        })
+      })
+      this.on('changed', (item) => {
+        if (!isInitialized) {
+          pendingUpdates.modified.push(item)
+          return
+        }
+        ongoingSaves += 1
+        persistenceAdapter.save(this.memoryArray(), {
+          added: [],
+          modified: [item],
+          removed: [],
+        }).then(() => {
+          this.emit('persistence.transmitted')
+        }).catch((error) => {
+          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+        }).finally(() => {
+          ongoingSaves -= 1
+        })
+      })
+      this.on('removed', (item) => {
+        if (!isInitialized) {
+          pendingUpdates.removed.push(item)
+          return
+        }
+        ongoingSaves += 1
+        persistenceAdapter.save(this.memoryArray(), {
+          added: [],
+          modified: [],
+          removed: [item],
+        }).then(() => {
+          this.emit('persistence.transmitted')
+        }).catch((error) => {
+          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+        }).finally(() => {
+          ongoingSaves -= 1
+        })
+      })
+
       persistenceAdapter.register(() => loadPersistentData())
         .then(async () => {
+          let currentItems = this.memoryArray()
           await loadPersistentData()
-          this.on('added', (item) => {
-            ongoingSaves += 1
-            persistenceAdapter.save(this.memory().map(i => i), {
-              added: [item],
-              modified: [],
-              removed: [],
-            }).then(() => {
-              this.emit('persistence.transmitted')
-            }).catch((error) => {
-              this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-            }).finally(() => {
-              ongoingSaves -= 1
-            })
-          })
-          this.on('changed', (item) => {
-            ongoingSaves += 1
-            persistenceAdapter.save(this.memory().map(i => i), {
-              added: [],
-              modified: [item],
-              removed: [],
-            }).then(() => {
-              this.emit('persistence.transmitted')
-            }).catch((error) => {
-              this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-            }).finally(() => {
-              ongoingSaves -= 1
-            })
-          })
-          this.on('removed', (item) => {
-            ongoingSaves += 1
-            persistenceAdapter.save(this.memory().map(i => i), {
-              added: [],
-              modified: [],
-              removed: [item],
-            }).then(() => {
-              this.emit('persistence.transmitted')
-            }).catch((error) => {
-              this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-            }).finally(() => {
-              ongoingSaves -= 1
-            })
-          })
+          while (hasPendingUpdates(pendingUpdates)) {
+            const added = pendingUpdates.added.splice(0)
+            const modified = pendingUpdates.modified.splice(0)
+            const removed = pendingUpdates.removed.splice(0)
+            currentItems = applyUpdates(currentItems, { added, modified, removed })
+            // eslint-disable-next-line no-await-in-loop
+            await persistenceAdapter.save(currentItems, { added, modified, removed })
+              .then(() => {
+                this.emit('persistence.transmitted')
+              })
+          }
+          await loadPersistentData()
 
+          isInitialized = true
           this.emit('persistence.init')
         })
         .catch((error) => {

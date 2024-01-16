@@ -1,4 +1,4 @@
-interface Changeset<T> {
+export interface Changeset<T> {
   added: T[],
   modified: T[],
   removed: T[],

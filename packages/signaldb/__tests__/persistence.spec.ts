@@ -184,8 +184,8 @@ describe('Persistence', () => {
   })
 
   it('should persist changes to filesystem', async () => {
-    await fs.unlink('/tmp/data.json').catch(() => { /* do nothing */ })
-    const persistence = createFilesystemAdapter('/tmp/data.json')
+    const file = `/tmp/${Math.floor(Math.random() * 1e17).toString(16)}.json`
+    const persistence = createFilesystemAdapter(file)
     const collection = new Collection({ persistence })
     collection.on('persistence.error', (error) => {
       expect(error).toBeUndefined()
@@ -195,8 +195,25 @@ describe('Persistence', () => {
     collection.insert({ id: '1', name: 'John' })
     await waitForEvent(collection, 'persistence.transmitted')
 
-    const contents = await fs.readFile('/tmp/data.json', 'utf-8')
+    const contents = await fs.readFile(file, 'utf-8')
     expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
+  }, { retry: 5 })
+
+  it('should persist data that was modified before persistence.init', async () => {
+    const file = `/tmp/${Math.floor(Math.random() * 1e17).toString(16)}.json`
+    const persistence = createFilesystemAdapter(file)
+    await persistence.save([], { added: [], removed: [], modified: [] })
+    const collection = new Collection({ persistence })
+    collection.insert({ id: '1', name: 'John' })
+    collection.insert({ id: '2', name: 'Jane' })
+    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    collection.removeOne({ id: '2' })
+    await waitForEvent(collection, 'persistence.init')
+
+    const items = collection.find().fetch()
+    expect(items).toEqual([{ id: '1', name: 'Johnny' }])
+    const contents = await fs.readFile(file, 'utf-8')
+    expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'Johnny' }])
   }, { retry: 5 })
 
   it('should emit persistence.error if the adapter throws an error on registering', async () => {
