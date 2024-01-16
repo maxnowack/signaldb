@@ -76,6 +76,23 @@ Parameters
 
 Behaves the same like `.removeMany()` but only removes the first found document.
 
+## Events
+
+The Collection class is equipped with a set of events that provide insights into the state and changes within the collection. These events, emitted by the class, can be crucial for implementing reactive behaviors and persistence management. Here is an overview of the events:
+
+* `added`: Triggered when a new item is added to the collection. The event handler receives the added item as an argument.
+* `changed`: Fired when an existing item in the collection undergoes modification. The event handler is passed the modified item.
+* `removed`: Signaled when an item is removed or deleted from the collection. The event handler receives the removed item.
+
+In addition to these basic events, there are events related to persistence operations. These events are only emitted when a persistence adapter is used.
+
+* `persistence.init`: Marks the initialization of the persistence adapter.
+* `persistence.error`: Indicates an error during persistence operations. The event handler receives an Error object describing the error.
+* `persistence.transmitted`: Triggered after successfully transmitting data to the persistence adapter.
+* `persistence.received`: Signifies the reception of data from the persistence adapter.
+
+These events empower developers to build dynamic and responsive applications by reacting to changes in the collection, facilitating synchronization with external data sources, and handling persistence-related events.
+
 ## IndexProvider
 
 An IndexProvider is an object that specifies how to create an index on a collection. It can be created with the `createIndexProvider()` function.
