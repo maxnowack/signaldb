@@ -30,7 +30,7 @@ jobs:
           node-version: '20.5.1'
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         timeout-minutes: 5
         continue-on-error: true
         with:
