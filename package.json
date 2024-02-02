@@ -34,7 +34,7 @@
     "eslint-plugin-vitest": "0.3.21",
     "fast-glob": "^3.3.2",
     "happy-dom": "13.3.8",
-    "husky": "9.0.7",
+    "husky": "9.0.10",
     "rimraf": "5.0.5",
     "rollup-plugin-typescript-paths": "1.5.0",
     "ts-node": "10.9.2",
