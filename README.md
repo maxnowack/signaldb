@@ -103,7 +103,7 @@ SignalDB's data persistence layer is designed for scalability and flexibility. I
 Looking ahead, SignalDB plans to implement a cutting-edge data replication engine, drawing inspiration from established protocols like the [RxDB replication protocol](https://rxdb.info/replication.html) ([more info](https://github.com/pubkey/rxdb/issues/3883)). Initially, we'll offer data replication through a persistence interface for RxDB, with further expansions to follow. Our commitment to extensibility means that we're continually evolving, adding new features and capabilities to meet the ever-changing demands of modern web development.
 
 ## License
-Licensed under MIT license. Copyright (c) 2023 Max Nowack
+Licensed under MIT license. Copyright (c) 2024 Max Nowack
 
 ## Contributions
 Contributions are welcome. Please open issues and/or file Pull Requests.
