@@ -340,6 +340,9 @@ describe('Collection', () => {
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
+      // eslint-disable-next-line no-console
+      console.log('id index performance: ', { idQueryTime, nonIdQueryTime })
+
       // id query should use less than 10% of the time of a non-id query
       expect(Math.round((100 / nonIdQueryTime) * idQueryTime)).toBeLessThan(10)
     })
@@ -365,6 +368,9 @@ describe('Collection', () => {
         const item = col2.findOne({ num: 999 })
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
+
+      // eslint-disable-next-line no-console
+      console.log('field index performance: ', { indexQueryTime, nonIndexQueryTime })
 
       // index query should use less than 10% of the time of a non-index query
       expect(Math.round((100 / nonIndexQueryTime) * indexQueryTime)).toBeLessThan(10)
