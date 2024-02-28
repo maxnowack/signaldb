@@ -51,7 +51,10 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual(['John'])
+    expect(result).toEqual({
+      keys: ['John'],
+      optimizedSelector: {},
+    })
   })
 
   it('should return an array of matching keys if the selector field is an $in expression', () => {
@@ -60,7 +63,10 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual(['John', 'Jane'])
+    expect(result).toEqual({
+      keys: ['John', 'Jane'],
+      optimizedSelector: {},
+    })
   })
 
   it('should return an array of matching keys if the selector field is nested within $and expression', () => {
@@ -74,7 +80,10 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual([])
+    expect(result).toEqual({
+      keys: [],
+      optimizedSelector: {},
+    })
   })
 
   it('should return an array of matching keys if the selector field is nested within $or expression', () => {
@@ -88,7 +97,10 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual(['John', 'Jane'])
+    expect(result).toEqual({
+      keys: ['John', 'Jane'],
+      optimizedSelector: {},
+    })
   })
 
   it('should return matching keys in nested expressions', () => {
@@ -102,6 +114,11 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual(['John'])
+    expect(result).toEqual({
+      keys: ['John'],
+      optimizedSelector: {
+        $and: [{ age: 30 }],
+      },
+    })
   })
 })

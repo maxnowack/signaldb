@@ -16,31 +16,78 @@ export function serializeValue(value: any) {
 
 export function getMatchingKeys<
   T extends BaseItem<I> = BaseItem, I = any
->(field: string, selector: Selector<T>): string[] | null {
+>(field: string, selector: Selector<T>): { keys: string[], optimizedSelector: Selector<T> } | null {
   if (selector[field] instanceof RegExp) return null
   if (selector[field] != null) {
     if (isFieldExpression(selector[field])) {
       const is$in = isFieldExpression(selector[field])
         && Array.isArray(selector[field].$in)
         && selector[field].$in.length
-      if (is$in) return selector[field].$in as string[]
+      if (is$in) {
+        const optimizedSelector = { ...selector, [field]: { ...selector[field] } }
+        delete optimizedSelector[field].$in
+        if (Object.keys(optimizedSelector[field] as object).length === 0) {
+          delete optimizedSelector[field]
+        }
+
+        return {
+          keys: (selector[field].$in as I[]).map(serializeValue),
+          optimizedSelector,
+        }
+      }
       return null
     }
-    return [serializeValue(selector[field])]
+    const optimizedSelector = { ...selector }
+    delete optimizedSelector[field]
+    return {
+      keys: [serializeValue(selector[field])],
+      optimizedSelector,
+    }
   }
 
-  if (Array.isArray(selector.$and)) {
-    const subArrays = selector.$and.map(sel => getMatchingKeys(field, sel))
-    const subKeys = compact(subArrays)
-    if (subKeys.length === 0) return null
-    return intersection(...subKeys)
+  const { $and, $or } = selector
+  if (Array.isArray($and)) {
+    const subArrays = $and.map(sel => getMatchingKeys(field, sel))
+
+    if (subArrays.every(i => !i)) return null
+
+    const optimizedSelector = { ...selector }
+    // apply optimized selectors
+    optimizedSelector.$and = subArrays.map((result, index) => {
+      if (result == null) return $and[index]
+      return result.optimizedSelector
+    })
+    // delete empty selectors
+    optimizedSelector.$and = optimizedSelector.$and
+      .filter(item => item != null && Object.keys(item).length > 0)
+    if (optimizedSelector.$and.length === 0) delete optimizedSelector.$and
+
+    return {
+      keys: intersection(...compact(subArrays).map(i => i.keys)),
+      optimizedSelector,
+    }
   }
 
-  if (Array.isArray(selector.$or)) {
-    const subArrays = selector.$or.map(sel => getMatchingKeys(field, sel))
-    const subKeys = compact(subArrays)
-    if (subKeys.length === 0) return null
-    return subKeys.reduce<string[]>((memo, keys) => [...memo, ...keys], [])
+  if (Array.isArray($or)) {
+    const subArrays = $or.map(sel => getMatchingKeys(field, sel))
+    if (subArrays.every(i => !i)) return null
+
+    const optimizedSelector = { ...selector }
+    // apply optimized selectors
+    optimizedSelector.$or = subArrays.map((result, index) => {
+      if (result == null) return $or[index]
+      return result.optimizedSelector
+    })
+    // delete empty selectors
+    optimizedSelector.$or = optimizedSelector.$or
+      .filter(item => item != null && Object.keys(item).length > 0)
+    if (optimizedSelector.$or.length === 0) delete optimizedSelector.$or
+
+    return {
+      keys: compact(subArrays).map(i => i.keys)
+        .reduce<string[]>((memo, keys) => [...memo, ...keys], []),
+      optimizedSelector,
+    }
   }
 
   return null
@@ -50,12 +97,13 @@ export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(f
   const index = new Map<string, Set<number>>()
 
   return createIndexProvider<T, I>({
-    getItemPositions(selector) {
-      const matchingKeys = getMatchingKeys<T, I>(field, selector)
-      if (matchingKeys == null) return null
-      const itemPositions = matchingKeys
+    query(selector) {
+      const match = getMatchingKeys<T, I>(field, selector)
+      if (match == null) return { matched: false }
+      const { keys, optimizedSelector } = match
+      const itemPositions = keys
         .reduce<number[]>((memo, key) => [...memo, ...index.get(key) || []], [])
-      return itemPositions
+      return { matched: true, positions: itemPositions, optimizedSelector }
     },
     rebuild(items) {
       index.clear()

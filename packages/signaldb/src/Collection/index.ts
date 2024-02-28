@@ -7,7 +7,6 @@ import type Modifier from '../types/Modifier'
 import type IndexProvider from '../types/IndexProvider'
 import match from '../utils/match'
 import modify from '../utils/modify'
-import compact from '../utils/compact'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
 import intersection from '../utils/intersection'
@@ -199,22 +198,52 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
   }
 
-  private getItemPositions(selector: Selector<T>) {
-    const positionsByIndex = compact(this.indexProviders.map(index =>
-      index.getItemPositions(selector)))
-    if (positionsByIndex.length === 0) return null
-    const positions = intersection(...positionsByIndex)
-    return positions
+  private getIndexInfo(selector: Selector<T>) {
+    if (selector == null || Object.keys(selector).length <= 0) {
+      return { matched: false, positions: [], optimizedSelector: selector }
+    }
+
+    const indexInfo = this.indexProviders.reduce<{
+      matched: boolean,
+      positions: number[],
+      optimizedSelector: Selector<T>,
+    }>((memo, indexProvider) => {
+      /* istanbul ignore if -- @preserve */
+      if (indexProvider.getItemPositions) {
+        const positions = indexProvider.getItemPositions(memo.optimizedSelector)
+        return {
+          matched: positions != null,
+          positions: positions == null ? memo.positions : [...memo.positions, ...positions],
+          optimizedSelector: memo.optimizedSelector,
+        }
+      }
+      const info = indexProvider.query(memo.optimizedSelector)
+      if (!info.matched) return memo
+      return {
+        matched: true,
+        positions: [...memo.positions, ...info.positions],
+        optimizedSelector: info.optimizedSelector || memo.optimizedSelector,
+      }
+    }, {
+      matched: false,
+      positions: [],
+      optimizedSelector: selector,
+    })
+    return {
+      matched: indexInfo.matched,
+      positions: intersection(indexInfo.positions),
+      optimizedSelector: indexInfo.optimizedSelector,
+    }
   }
 
   private getItemAndIndex(selector: Selector<T>) {
-    const positions = this.getItemPositions(selector)
-    const items = positions == null
-      ? this.memory()
-      : positions.map(index => this.memoryArray()[index])
+    const indexInfo = this.getIndexInfo(selector)
+    const items = indexInfo.matched
+      ? indexInfo.positions.map(index => this.memoryArray()[index])
+      : this.memory()
     const item = items.find(doc => match(doc, selector))
-    const index = (positions != null
-      && positions.find(itemIndex => this.memoryArray()[itemIndex] === item))
+    const index = (indexInfo.matched
+      && indexInfo.positions.find(itemIndex => this.memoryArray()[itemIndex] === item))
         || this.memory().findIndex(doc => doc === item)
     if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
@@ -235,18 +264,22 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private getItems(selector?: Selector<T>) {
-    const positions = selector == null ? null : this.getItemPositions(selector)
+    const indexInfo = selector
+      ? this.getIndexInfo(selector)
+      : { matched: false, positions: [], optimizedSelector: selector }
     const matchItems = (item: T) => {
-      if (!selector) return true
-      const matches = match(item, selector)
+      if (indexInfo.optimizedSelector == null || Object.keys(indexInfo.optimizedSelector).length <= 0) {
+        return true
+      }
+      const matches = match(item, indexInfo.optimizedSelector)
       return matches
     }
 
     // no index available, use complete memory
-    if (positions == null) return this.memory().filter(matchItems)
+    if (!indexInfo.matched) return this.memory().filter(matchItems)
 
     const memory = this.memoryArray()
-    const items = positions.map(index => memory[index])
+    const items = indexInfo.positions.map(index => memory[index])
     return items.filter(matchItems)
   }
 
