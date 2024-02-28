@@ -9,11 +9,11 @@ import match from '../utils/match'
 import modify from '../utils/modify'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
-import intersection from '../utils/intersection'
 import type { Changeset } from '../types/PersistenceAdapter'
 import Cursor from './Cursor'
 import createIdIndex from './createIdIndex'
 import type { BaseItem, FindOptions, Transform } from './types'
+import getIndexInfo from './getIndexInfo'
 
 export type { BaseItem, Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
@@ -198,46 +198,8 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
   }
 
-  private getIndexInfo(selector: Selector<T>) {
-    if (selector == null || Object.keys(selector).length <= 0) {
-      return { matched: false, positions: [], optimizedSelector: selector }
-    }
-
-    const indexInfo = this.indexProviders.reduce<{
-      matched: boolean,
-      positions: number[],
-      optimizedSelector: Selector<T>,
-    }>((memo, indexProvider) => {
-      /* istanbul ignore if -- @preserve */
-      if (indexProvider.getItemPositions) {
-        const positions = indexProvider.getItemPositions(memo.optimizedSelector)
-        return {
-          matched: positions != null,
-          positions: positions == null ? memo.positions : [...memo.positions, ...positions],
-          optimizedSelector: memo.optimizedSelector,
-        }
-      }
-      const info = indexProvider.query(memo.optimizedSelector)
-      if (!info.matched) return memo
-      return {
-        matched: true,
-        positions: [...memo.positions, ...info.positions],
-        optimizedSelector: info.optimizedSelector || memo.optimizedSelector,
-      }
-    }, {
-      matched: false,
-      positions: [],
-      optimizedSelector: selector,
-    })
-    return {
-      matched: indexInfo.matched,
-      positions: intersection(indexInfo.positions),
-      optimizedSelector: indexInfo.optimizedSelector,
-    }
-  }
-
   private getItemAndIndex(selector: Selector<T>) {
-    const indexInfo = this.getIndexInfo(selector)
+    const indexInfo = getIndexInfo(this.indexProviders, selector)
     const items = indexInfo.matched
       ? indexInfo.positions.map(index => this.memoryArray()[index])
       : this.memory()
@@ -265,12 +227,11 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
   private getItems(selector?: Selector<T>) {
     const indexInfo = selector
-      ? this.getIndexInfo(selector)
+      ? getIndexInfo(this.indexProviders, selector)
       : { matched: false, positions: [], optimizedSelector: selector }
     const matchItems = (item: T) => {
-      if (indexInfo.optimizedSelector == null || Object.keys(indexInfo.optimizedSelector).length <= 0) {
-        return true
-      }
+      if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
+      if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
       const matches = match(item, indexInfo.optimizedSelector)
       return matches
     }
