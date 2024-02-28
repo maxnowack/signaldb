@@ -1,13 +1,13 @@
 import type { BaseItem } from '../Collection'
-import type Selector from './Selector'
+import type { FlatSelector } from './Selector'
 
-type IndexResult<T extends BaseItem<I> = BaseItem, I = any> = {
+type IndexResult = {
   positions: number[],
-  optimizedSelector?: Selector<T>,
+  fields: string[],
   matched: true,
 } | {
   positions?: never,
-  optimizedSelector?: never,
+  fields?: never,
   matched: false,
 }
 
@@ -15,13 +15,13 @@ interface OldIndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
   /**
   * @deprecated Use `query` instead
   */
-  getItemPositions(selector: Selector<T>): null | number[],
+  getItemPositions(selector: FlatSelector<T>): null | number[],
   rebuild(items: T[]): void,
 }
 
 interface NewIndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
   getItemPositions?: never,
-  query(selector: Selector<T>): IndexResult<T>,
+  query(selector: FlatSelector<T>): IndexResult,
   rebuild(items: T[]): void,
 }
 

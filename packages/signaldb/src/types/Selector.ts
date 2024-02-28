@@ -37,12 +37,20 @@ export interface FieldExpression<T> {
 
 type Flatten<T> = T extends any[] ? T[0] : T
 
-type Query<T> = { [P in keyof T]?: Flatten<T[P]> | RegExp | FieldExpression<Flatten<T[P]>> } & {
+type FlatQuery<T> = {
+  [P in keyof T]?: Flatten<T[P]> | RegExp | FieldExpression<Flatten<T[P]>>
+} & Record<string, any>
+type Query<T> = FlatQuery<T> & {
   $or?: Query<T>[] | undefined,
   $and?: Query<T>[] | undefined,
   $nor?: Query<T>[] | undefined,
-} & Record<string, any>
+}
+
+export type FlatSelector<T extends Record<string, any> = Record<string, any>> = FlatQuery<T> & {
+  $or?: never,
+  $and?: never,
+  $nor?: never,
+}
 
 type Selector<T extends Record<string, any> = Record<string, any>> = Query<T>
-
 export default Selector

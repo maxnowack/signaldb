@@ -340,11 +340,12 @@ describe('Collection', () => {
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
+      const percentage = (100 / nonIdQueryTime) * idQueryTime
       // eslint-disable-next-line no-console
-      console.log('id index performance: ', { idQueryTime, nonIdQueryTime })
+      console.log('id index performance: ', { idQueryTime, nonIdQueryTime, percentage })
 
       // id query should use less than 10% of the time of a non-id query
-      expect(Math.round((100 / nonIdQueryTime) * idQueryTime)).toBeLessThan(10)
+      expect(percentage).toBeLessThan(10)
     })
 
     it('should be faster with field indices', () => {
@@ -369,11 +370,12 @@ describe('Collection', () => {
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
+      const percentage = (100 / nonIndexQueryTime) * indexQueryTime
       // eslint-disable-next-line no-console
-      console.log('field index performance: ', { indexQueryTime, nonIndexQueryTime })
+      console.log('field index performance: ', { indexQueryTime, nonIndexQueryTime, percentage })
 
       // index query should use less than 10% of the time of a non-index query
-      expect(Math.round((100 / nonIndexQueryTime) * indexQueryTime)).toBeLessThan(10)
+      expect(percentage).toBeLessThan(10)
     })
   }, { retry: 5 })
 })
