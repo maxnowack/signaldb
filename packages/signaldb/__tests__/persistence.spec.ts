@@ -262,6 +262,7 @@ describe('Persistence', () => {
     collection.on('persistence.error', fn)
     await waitForEvent(collection, 'persistence.init')
     collection.insert({ id: '1' })
+    await waitForEvent(collection, 'persistence.error')
 
     collection.updateOne({ id: '1' }, { $set: { name: 'John' } })
     await waitForEvent(collection, 'persistence.error')
@@ -269,7 +270,6 @@ describe('Persistence', () => {
     collection.removeOne({ id: '1' })
     await waitForEvent(collection, 'persistence.error')
 
-    await waitForEvent(collection, 'persistence.error')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 

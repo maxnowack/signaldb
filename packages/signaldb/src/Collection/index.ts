@@ -5,15 +5,18 @@ import EventEmitter from '../types/EventEmitter'
 import type Selector from '../types/Selector'
 import type Modifier from '../types/Modifier'
 import type IndexProvider from '../types/IndexProvider'
+import type { LowLevelIndexProvider } from '../types/IndexProvider'
 import match from '../utils/match'
 import modify from '../utils/modify'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
 import type { Changeset } from '../types/PersistenceAdapter'
+import executeOncePerTick from '../utils/executeOncePerTick'
+import serializeValue from '../utils/serializeValue'
 import Cursor from './Cursor'
-import createIdIndex from './createIdIndex'
 import type { BaseItem, FindOptions, Transform } from './types'
 import getIndexInfo from './getIndexInfo'
+import { createExternalIndex } from './createIndex'
 
 export type { BaseItem, Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
@@ -69,12 +72,17 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
   private options: CollectionOptions<T, I, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
-  private indexProviders: IndexProvider<T, I>[] = []
+  private indexProviders: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = []
+  private indicesOutdated = false
+  private idIndex = new Map<string, Set<number>>()
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
     this.options = { memory: [], ...options }
-    this.indexProviders = [createIdIndex(), ...(this.options.indices || [])]
+    this.indexProviders = [
+      createExternalIndex('id', this.idIndex),
+      ...(this.options.indices || []),
+    ]
     if (this.options.persistence) {
       const persistenceAdapter = this.options.persistence
       this.persistenceAdapter = persistenceAdapter
@@ -93,9 +101,16 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
           // push new items to this.memory() and delete old ones
           this.memory().splice(0, this.memoryArray().length, ...items)
+          this.idIndex.clear()
+          // eslint-disable-next-line array-callback-return
+          this.memory().map((item, index) => {
+            this.idIndex.set(serializeValue(item.id), new Set([index]))
+          })
         } else if (changes) {
           changes.added.forEach((item) => {
             this.memory().push(item)
+            const itemIndex = this.memory().findIndex(doc => doc === item)
+            this.idIndex.set(serializeValue(item.id), new Set([itemIndex]))
           })
           changes.modified.forEach((item) => {
             const index = this.memory().findIndex(doc => doc.id === item.id)
@@ -113,59 +128,57 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         this.emit('persistence.received')
       }
 
+      const saveQueue = {
+        added: [],
+        modified: [],
+        removed: [],
+      } as Changeset<T>
+      let isFlushing = false
+      const flushQueue = () => {
+        if (isFlushing) return
+        if (!hasPendingUpdates(saveQueue)) return
+        isFlushing = true
+        ongoingSaves += 1
+        const currentItems = this.memoryArray()
+        const changes = { ...saveQueue }
+        saveQueue.added = []
+        saveQueue.modified = []
+        saveQueue.removed = []
+        persistenceAdapter.save(currentItems, changes)
+          .then(() => {
+            this.emit('persistence.transmitted')
+          }).catch((error) => {
+            this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+          }).finally(() => {
+            ongoingSaves -= 1
+            isFlushing = false
+            flushQueue()
+          })
+      }
+
       this.on('added', (item) => {
         if (!isInitialized) {
           pendingUpdates.added.push(item)
           return
         }
-        ongoingSaves += 1
-        persistenceAdapter.save(this.memoryArray(), {
-          added: [item],
-          modified: [],
-          removed: [],
-        }).then(() => {
-          this.emit('persistence.transmitted')
-        }).catch((error) => {
-          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-        }).finally(() => {
-          ongoingSaves -= 1
-        })
+        saveQueue.added.push(item)
+        flushQueue()
       })
       this.on('changed', (item) => {
         if (!isInitialized) {
           pendingUpdates.modified.push(item)
           return
         }
-        ongoingSaves += 1
-        persistenceAdapter.save(this.memoryArray(), {
-          added: [],
-          modified: [item],
-          removed: [],
-        }).then(() => {
-          this.emit('persistence.transmitted')
-        }).catch((error) => {
-          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-        }).finally(() => {
-          ongoingSaves -= 1
-        })
+        saveQueue.modified.push(item)
+        flushQueue()
       })
       this.on('removed', (item) => {
         if (!isInitialized) {
           pendingUpdates.removed.push(item)
           return
         }
-        ongoingSaves += 1
-        persistenceAdapter.save(this.memoryArray(), {
-          added: [],
-          modified: [],
-          removed: [item],
-        }).then(() => {
-          this.emit('persistence.transmitted')
-        }).catch((error) => {
-          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-        }).finally(() => {
-          ongoingSaves -= 1
-        })
+        saveQueue.removed.push(item)
+        flushQueue()
       })
 
       persistenceAdapter.register(() => loadPersistentData())
@@ -195,11 +208,21 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private rebuildIndices() {
+    this.indicesOutdated = true
+    this.rebuildIndicesOncePerTick()
+  }
+
+  private rebuildIndicesOncePerTick = executeOncePerTick(this.rebuildAllIndices.bind(this))
+
+  private rebuildAllIndices() {
     this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
+    this.indicesOutdated = false
   }
 
   private getItemAndIndex(selector: Selector<T>) {
-    const indexInfo = getIndexInfo(this.indexProviders, selector)
+    const indexInfo = this.indicesOutdated
+      ? { matched: false, positions: [], optimizedSelector: selector }
+      : getIndexInfo(this.indexProviders, selector)
     const items = indexInfo.matched
       ? indexInfo.positions.map(index => this.memoryArray()[index])
       : this.memory()
@@ -226,7 +249,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private getItems(selector?: Selector<T>) {
-    const indexInfo = selector
+    const indexInfo = selector && !this.indicesOutdated
       ? getIndexInfo(this.indexProviders, selector)
       : { matched: false, positions: [], optimizedSelector: selector }
     const matchItems = (item: T) => {
@@ -251,15 +274,16 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       ...options,
       transform: this.transform.bind(this),
       bindEvents: (requery) => {
-        this.addListener('persistence.received', requery)
-        this.addListener('added', requery)
-        this.addListener('changed', requery)
-        this.addListener('removed', requery)
+        const requeryOnce = executeOncePerTick(requery, true)
+        this.addListener('persistence.received', requeryOnce)
+        this.addListener('added', requeryOnce)
+        this.addListener('changed', requeryOnce)
+        this.addListener('removed', requeryOnce)
         return () => {
-          this.removeListener('persistence.received', requery)
-          this.removeListener('added', requery)
-          this.removeListener('changed', requery)
-          this.removeListener('removed', requery)
+          this.removeListener('persistence.received', requeryOnce)
+          this.removeListener('added', requeryOnce)
+          this.removeListener('changed', requeryOnce)
+          this.removeListener('removed', requeryOnce)
         }
       },
     })
@@ -276,9 +300,10 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
     if (!item) throw new Error('Invalid item')
     const newItem = { id: randomId(), ...item } as T
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    if (this.findOne({ id: newItem.id } as any, { reactive: false })) throw new Error('Item with same id already exists')
+    if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
+    const itemIndex = this.memory().findIndex(doc => doc === newItem)
+    this.idIndex.set(serializeValue(newItem.id), new Set([itemIndex]))
     this.rebuildIndices()
     this.emit('added', newItem)
     return newItem.id

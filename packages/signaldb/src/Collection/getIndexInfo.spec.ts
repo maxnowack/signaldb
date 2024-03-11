@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import getIndexInfo from './getIndexInfo'
-import createIdIndex from './createIdIndex'
 import createIndex from './createIndex'
 
 describe('getIndexInfo', () => {
@@ -59,7 +58,7 @@ describe('getIndexInfo', () => {
   })
 
   it('should return the correct result when using single index provider', () => {
-    const idIndex = createIdIndex()
+    const idIndex = createIndex('id')
     idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
 
     // without match, flat selector
@@ -355,7 +354,7 @@ describe('getIndexInfo', () => {
   })
 
   it('should return unique positions', () => {
-    const idIndex = createIdIndex()
+    const idIndex = createIndex('id')
     idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
 
     // without match, flat selector
