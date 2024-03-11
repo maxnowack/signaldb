@@ -28,4 +28,11 @@ interface NewIndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
 type IndexProvider<T extends BaseItem<I> = BaseItem, I = any> = OldIndexProvider<T, I>
 | NewIndexProvider<T, I>
 
+export type LowLevelIndexProvider<
+  T extends BaseItem<I> = BaseItem,
+  I = any,
+> = IndexProvider<T, I> & {
+  _index: Map<string, Set<number>>,
+}
+
 export default IndexProvider

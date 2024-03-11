@@ -5,7 +5,7 @@ import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
-function isInReactiveScope(reactivity: ReactivityAdapter | undefined | false) {
+export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | false) {
   if (!reactivity) return false // if reactivity is disabled we don't need to check
   if (!reactivity.isInScope) return true // if reactivity is enabled and no isInScope method is provided we assume it is in scope
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
@@ -138,8 +138,10 @@ export default class Cursor<T extends BaseItem, U = T> {
     const observer = new Observer(
       transformedCallbacks,
       () => {
-        const cleanup = this.options.bindEvents && this.options.bindEvents(() =>
-          setTimeout(() => observer.check(this.getItems()), 0))
+        const requery = () => {
+          observer.check(this.getItems())
+        }
+        const cleanup = this.options.bindEvents && this.options.bindEvents(requery)
         return () => {
           if (cleanup) cleanup()
         }

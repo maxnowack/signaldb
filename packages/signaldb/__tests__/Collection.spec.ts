@@ -322,13 +322,16 @@ describe('Collection', () => {
       return performance.now() - start
     }
 
-    it('should be faster with id only queries', () => {
+    it('should be faster with id only queries', async () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
       // create items
       for (let i = 0; i < 1000; i += 1) {
         col.insert({ id: i.toString(), name: 'John', num: i })
       }
+
+      // wait for the next tick to ensure the indices are ready
+      await new Promise((resolve) => { setTimeout(resolve, 0) })
 
       const idQueryTime = measureTime(() => {
         const item = col.findOne({ id: '999' })
@@ -348,7 +351,7 @@ describe('Collection', () => {
       expect(percentage).toBeLessThan(10)
     })
 
-    it('should be faster with field indices', () => {
+    it('should be faster with field indices', async () => {
       const col1 = new Collection<{ id: string, name: string, num: number }>({
         indices: [createIndex('num')],
       })
@@ -359,6 +362,8 @@ describe('Collection', () => {
         col1.insert({ id: i.toString(), name: 'John', num: i })
         col2.insert({ id: i.toString(), name: 'John', num: i })
       }
+      // wait for the next tick to ensure the indices are ready
+      await new Promise((resolve) => { setTimeout(resolve, 0) })
 
       const indexQueryTime = measureTime(() => {
         const item = col1.findOne({ num: 999 })
