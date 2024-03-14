@@ -29,9 +29,10 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   transform?: Transform<T, U>,
   persistence?: PersistenceAdapter<T, I>,
   indices?: IndexProvider<T, I>[],
+  enableDebugMode?: boolean,
 }
 
-interface CollectionEvents<T> {
+interface CollectionEvents<T extends BaseItem, U = T> {
   added: (item: T) => void,
   changed: (item: T) => void,
   removed: (item: T) => void,
@@ -40,6 +41,15 @@ interface CollectionEvents<T> {
   'persistence.error': (error: Error) => void,
   'persistence.transmitted': () => void,
   'persistence.received': () => void,
+
+  '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
+  '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, U>) => void,
+  '_debug.findOne': <O extends FindOptions<T>>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
+  '_debug.insert': (callstack: string, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
+  '_debug.updateOne': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
+  '_debug.updateMany': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
+  '_debug.removeOne': (callstack: string, selector: Selector<T>) => void,
+  '_debug.removeMany': (callstack: string, selector: Selector<T>) => void,
 }
 
 function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
@@ -69,16 +79,28 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
 }
 
 // eslint-disable-next-line max-len
-export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T>> {
+export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T, U>> {
+  static collections: Collection<any, any>[] = []
+  static debugMode = false
+  static enableDebugMode = () => {
+    Collection.debugMode = true
+    Collection.collections.forEach((collection) => {
+      collection.setDebugMode(true)
+    })
+  }
+
   private options: CollectionOptions<T, I, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
   private indexProviders: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = []
   private indicesOutdated = false
   private idIndex = new Map<string, Set<number>>()
+  private debugMode
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
+    Collection.collections.push(this)
     this.options = { memory: [], ...options }
+    this.debugMode = this.options.enableDebugMode ?? Collection.debugMode
     this.indexProviders = [
       createExternalIndex('id', this.idIndex),
       ...(this.options.indices || []),
@@ -207,6 +229,32 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     }
   }
 
+  public getDebugMode() {
+    return this.debugMode
+  }
+
+  public setDebugMode(enable: boolean) {
+    this.debugMode = enable
+  }
+
+  private profile<ReturnValue>(
+    fn: () => ReturnValue,
+    measureFunction: (measuredTime: number) => void,
+  ) {
+    if (!this.debugMode) return fn()
+    const startTime = performance.now()
+    const result = fn()
+    const endTime = performance.now()
+    measureFunction(endTime - startTime)
+    return result
+  }
+
+  private executeInDebugMode(fn: (callstack: string) => void) {
+    if (!this.debugMode) return
+    const callstack = new Error().stack || ''
+    fn(callstack)
+  }
+
   private rebuildIndices() {
     this.indicesOutdated = true
     this.rebuildIndicesOncePerTick()
@@ -249,27 +297,32 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private getItems(selector?: Selector<T>) {
-    const indexInfo = selector && !this.indicesOutdated
-      ? getIndexInfo(this.indexProviders, selector)
-      : { matched: false, positions: [], optimizedSelector: selector }
-    const matchItems = (item: T) => {
-      if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
-      if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
-      const matches = match(item, indexInfo.optimizedSelector)
-      return matches
-    }
+    return this.profile(
+      () => {
+        const indexInfo = selector && !this.indicesOutdated
+          ? getIndexInfo(this.indexProviders, selector)
+          : { matched: false, positions: [], optimizedSelector: selector }
+        const matchItems = (item: T) => {
+          if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
+          if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
+          const matches = match(item, indexInfo.optimizedSelector)
+          return matches
+        }
 
-    // no index available, use complete memory
-    if (!indexInfo.matched) return this.memory().filter(matchItems)
+        // no index available, use complete memory
+        if (!indexInfo.matched) return this.memory().filter(matchItems)
 
-    const memory = this.memoryArray()
-    const items = indexInfo.positions.map(index => memory[index])
-    return items.filter(matchItems)
+        const memory = this.memoryArray()
+        const items = indexInfo.positions.map(index => memory[index])
+        return items.filter(matchItems)
+      },
+      measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
+    )
   }
 
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
-    return new Cursor<T, U>(() => this.getItems(selector), {
+    const cursor = new Cursor<T, U>(() => this.getItems(selector), {
       reactive: this.options.reactivity,
       ...options,
       transform: this.transform.bind(this),
@@ -287,6 +340,8 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         }
       },
     })
+    this.executeInDebugMode(callstack => this.emit('_debug.find', callstack, selector, options, cursor))
+    return cursor
   }
 
   public findOne<O extends Omit<FindOptions<T>, 'limit'>>(selector: Selector<T>, options?: O) {
@@ -294,7 +349,9 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       limit: 1,
       ...options,
     })
-    return cursor.fetch()[0] || undefined
+    const returnValue = cursor.fetch()[0] || undefined
+    this.executeInDebugMode(callstack => this.emit('_debug.findOne', callstack, selector, options, returnValue))
+    return returnValue
   }
 
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
@@ -306,6 +363,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.idIndex.set(serializeValue(newItem.id), new Set([itemIndex]))
     this.rebuildIndices()
     this.emit('added', newItem)
+    this.executeInDebugMode(callstack => this.emit('_debug.insert', callstack, newItem))
     return newItem.id
   }
 
@@ -322,6 +380,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.memory().splice(index, 1, modifiedItem)
     this.rebuildIndices()
     this.emit('changed', modifiedItem)
+    this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return 1
   }
 
@@ -342,12 +401,14 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem)
     })
+    this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
     return modifiedItems.length
   }
 
   public removeOne(selector: Selector<T>) {
     if (!selector) throw new Error('Invalid selector')
     const { item, index } = this.getItemAndIndex(selector)
+    this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
     if (item == null) return 0
     this.memory().splice(index, 1)
     this.rebuildIndices()
@@ -369,6 +430,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     items.forEach((item) => {
       this.emit('removed', item)
     })
+    this.executeInDebugMode(callstack => this.emit('_debug.removeMany', callstack, selector))
     return items.length
   }
 }

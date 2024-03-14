@@ -383,4 +383,73 @@ describe('Collection', () => {
       expect(percentage).toBeLessThan(10)
     })
   }, { retry: 5 })
+
+  describe('Collection Debug Mode', () => {
+    it('should enable debug mode globally', () => {
+      const col1 = new Collection<any>()
+      expect(col1.getDebugMode()).toBe(false)
+
+      Collection.enableDebugMode()
+      const col2 = new Collection<any>()
+
+      expect(col1.getDebugMode()).toBe(true)
+      expect(col2.getDebugMode()).toBe(true)
+    })
+
+    it('should toggle debug mode', () => {
+      Collection.debugMode = false
+      const col = new Collection<any>()
+
+      expect(col.getDebugMode()).toBe(false)
+
+      col.setDebugMode(true)
+      expect(col.getDebugMode()).toBe(true)
+
+      col.setDebugMode(false)
+      expect(col.getDebugMode()).toBe(false)
+    })
+
+    it('should enable debug mode and emit debug events', () => {
+      // Create a new collection instance with debug mode enabled
+      const col = new Collection<any>({ enableDebugMode: true })
+
+      // Spy on EventEmitter's emit method to verify debug events are emitted
+      const emitSpy = vi.spyOn(col, 'emit')
+
+      // Perform operations to trigger debug events
+      const item = { name: 'test' }
+      col.insert(item)
+      col.find({ name: 'test' })
+      col.findOne({ name: 'test' })
+      col.updateOne({ name: 'test' }, { $set: { name: 'updated' } })
+      col.removeOne({ name: 'updated' })
+
+      // Verify that debug events were emitted
+      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.insert'), expect.any(String), expect.any(Object))
+      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.find'), expect.any(String), expect.any(Object), expect.any(Object), expect.any(Object))
+      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.findOne'), expect.any(String), expect.any(Object), expect.any(Object), expect.any(Object))
+      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.updateOne'), expect.any(String), expect.any(Object), expect.any(Object))
+      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.removeOne'), expect.any(String), expect.any(Object))
+
+      // Cleanup
+      emitSpy.mockRestore()
+    })
+
+    it('should not emit debug events when debug mode is disabled', () => {
+      // Create a new collection instance with debug mode disabled
+      const col = new Collection<any>({ enableDebugMode: false })
+
+      // Spy on EventEmitter's emit method to verify debug events are not emitted
+      const emitSpy = vi.spyOn(col, 'emit')
+
+      // Perform operations
+      col.insert({ name: 'test' })
+
+      // Verify that no debug events were emitted
+      expect(emitSpy).not.toHaveBeenCalledWith(expect.stringContaining('_debug.insert'), expect.any(String), expect.any(Object))
+
+      // Cleanup
+      emitSpy.mockRestore()
+    })
+  })
 })
