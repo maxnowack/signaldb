@@ -1,0 +1,71 @@
+{
+  "name": "signaldb-react",
+  "version": "1.0.0",
+  "description": "SignalDB is a client-side database that provides a simple MongoDB-like interface to the data with first-class typescript support to achieve an optimistic UI. Data persistence can be achieved by using storage providers that store the data through a JSON interface to places such as localStorage.",
+  "scripts": {
+    "build": "rimraf dist && vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxnowack/signaldb.git"
+  },
+  "homepage": "https://signaldb.js.org",
+  "keywords": [
+    "client-database",
+    "client",
+    "database",
+    "hook",
+    "local-database",
+    "meteor",
+    "minimongo",
+    "mongodb",
+    "offline-first",
+    "optimistic-ui",
+    "react-hook",
+    "react",
+    "reactive",
+    "reactivity",
+    "replication",
+    "rxdb",
+    "synchronization",
+    "tools",
+    "tracker",
+    "typescript"
+  ],
+  "author": "Max Nowack <max.nowack@gmail.com>",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.umd.js",
+      "default": "./dist/index.umd.js"
+    }
+  },
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "react": ">=16 || >=17 || >= 18",
+    "react-dom": ">=16 || >=17 || >= 18",
+    "signaldb": "0.x.x"
+  },
+  "devDependencies": {
+    "@maverick-js/signals": "^5.11.4",
+    "@testing-library/react": "^14.2.2",
+    "@types/react": "^18.2.67",
+    "happy-dom": "^14.2.1"
+  }
+}
