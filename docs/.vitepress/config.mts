@@ -26,6 +26,13 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Guides',
+        collapsed: false,
+        items: [
+          { text: 'React', link: '/guides/react/' },
+        ],
+      },
+      {
         text: 'Examples',
         collapsed: false,
         items: [
@@ -46,7 +53,14 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Reactivity',
+        text: 'Integrations',
+        collapsed: false,
+        items: [
+          { text: 'React', link: '/integrations/react/' },
+        ],
+      },
+      {
+        text: 'Reactivity Adapters',
         collapsed: false,
         items: [
           { text: 'Overview', link: '/reactivity/' },
