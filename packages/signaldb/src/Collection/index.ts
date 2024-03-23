@@ -411,6 +411,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
     if (item == null) return 0
     this.memory().splice(index, 1)
+    this.idIndex.delete(serializeValue(item.id))
     this.rebuildIndices()
     this.emit('removed', item)
     return 1
@@ -424,6 +425,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       const index = this.memory().findIndex(doc => doc === item)
       if (index === -1) throw new Error('Cannot resolve index for item')
       this.memory().splice(index, 1)
+      this.idIndex.delete(serializeValue(item.id))
       this.rebuildIndices()
     })
 
