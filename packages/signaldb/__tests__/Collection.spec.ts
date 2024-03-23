@@ -176,6 +176,18 @@ describe('Collection', () => {
       expect(eventHandler).toHaveBeenCalledTimes(1)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'John' })
     })
+
+    it('should remove the index if the item is removed', () => {
+      const id = 'test'
+      collection.insert({ id, name: 'John' })
+      expect(collection.findOne({ id })).toEqual({ id, name: 'John' })
+
+      collection.removeOne({ id })
+      expect(collection.findOne({ id })).toBeUndefined()
+
+      collection.insert({ id, name: 'Jane' })
+      expect(collection.findOne({ id })).toEqual({ id, name: 'Jane' })
+    })
   })
 
   describe('removeMany', () => {
