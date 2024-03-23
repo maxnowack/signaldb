@@ -7,6 +7,7 @@ head:
 # SignalDB React Integration
 
 SignalDB can be integrated with React using the `signaldb-react` package. This package provides the necessary bindings to use SignalDB with React components.
+Also check out our guide on [how to use SignalDB with React](/guides/react/).
 
 ## Installation
 
