@@ -464,4 +464,14 @@ describe('Collection', () => {
       emitSpy.mockRestore()
     })
   })
+
+  describe('misc', () => {
+    it('should seed the collection with initial data from the memory adapter', () => {
+      const col = new Collection<{ id: string, name: string }>({
+        memory: createMemoryAdapter([{ id: '1', name: 'John' }]),
+      })
+
+      expect(col.findOne({ id: '1' })).toEqual({ id: '1', name: 'John' })
+    })
+  })
 })
