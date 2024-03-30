@@ -105,6 +105,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       createExternalIndex('id', this.idIndex),
       ...(this.options.indices || []),
     ]
+    this.rebuildIndices()
     if (this.options.persistence) {
       const persistenceAdapter = this.options.persistence
       this.persistenceAdapter = persistenceAdapter
@@ -263,6 +264,11 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   private rebuildIndicesOncePerTick = executeOncePerTick(this.rebuildAllIndices.bind(this))
 
   private rebuildAllIndices() {
+    this.idIndex.clear()
+    // eslint-disable-next-line array-callback-return
+    this.memory().map((item, index) => {
+      this.idIndex.set(serializeValue(item.id), new Set([index]))
+    })
     this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
     this.indicesOutdated = false
   }
