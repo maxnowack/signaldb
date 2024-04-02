@@ -4,7 +4,13 @@ export interface Changeset<T> {
   removed: T[],
 }
 
-type LoadResponse<T> = { items: T[], changes?: never } | { changes: Changeset<T>, items?: never }
+export type LoadResponse<T> = {
+  items: T[],
+  changes?: never,
+} | {
+  changes: Changeset<T>,
+  items?: never,
+}
 
 // eslint-disable-next-line max-len
 export default interface PersistenceAdapter<T extends { id: I } & Record<string, any>, I> {
