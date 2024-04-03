@@ -7,7 +7,7 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest",
     "coverage": "vitest run --coverage",
-    "build": "npm run build -ws",
+    "build": "(cd packages/signaldb && npm run build) && npm run build -ws",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "npm run build && npm run copy -w examples && vitepress build docs",
