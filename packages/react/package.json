@@ -65,7 +65,7 @@
   "devDependencies": {
     "@maverick-js/signals": "^5.11.4",
     "@testing-library/react": "^14.2.2",
-    "@types/react": "^18.2.67",
-    "happy-dom": "^14.2.1"
+    "@types/react": "^18.2.74",
+    "happy-dom": "^14.3.10"
   }
 }
