@@ -1,7 +1,4 @@
-export interface Dependency {
-  depend(): void,
-  notify(): void,
-}
+import type Dependency from './Dependency'
 
 export default interface ReactivityAdapter<T extends Dependency = Dependency> {
   create(): T,

@@ -332,4 +332,52 @@ describe('Persistence', () => {
 
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
+
+  it('should emit all required events', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const collection = new Collection({ persistence })
+    await Promise.all([
+      waitForEvent(collection, 'persistence.pullStarted'),
+      waitForEvent(collection, 'persistence.received'),
+      waitForEvent(collection, 'persistence.pullCompleted'),
+      waitForEvent(collection, 'persistence.init'),
+    ])
+
+    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await Promise.all([
+      waitForEvent(collection, 'persistence.pushStarted'),
+      waitForEvent(collection, 'persistence.pushCompleted'),
+      waitForEvent(collection, 'persistence.transmitted'),
+    ])
+
+    const items = collection.find().fetch()
+    expect(items).toEqual([{ id: '1', name: 'Johnny' }])
+    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+  })
+
+  it('should return correct values from isPulling, isPushing and isLoading', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const collection = new Collection({ persistence })
+
+    const pullStarted = waitForEvent(collection, 'persistence.pullStarted')
+    const pullCompleted = waitForEvent(collection, 'persistence.pullCompleted')
+    const initialized = waitForEvent(collection, 'persistence.init')
+    await pullStarted
+    expect(collection.isPulling()).toBe(true)
+    expect(collection.isLoading()).toBe(true)
+    await pullCompleted
+    expect(collection.isPulling()).toBe(false)
+    expect(collection.isLoading()).toBe(false)
+    await initialized
+
+    const pushStarted = waitForEvent(collection, 'persistence.pushStarted')
+    const pushCompleted = waitForEvent(collection, 'persistence.pushCompleted')
+    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await pushStarted
+    expect(collection.isPushing()).toBe(true)
+    expect(collection.isLoading()).toBe(true)
+    await pushCompleted
+    expect(collection.isPushing()).toBe(false)
+    expect(collection.isLoading()).toBe(false)
+  })
 })
