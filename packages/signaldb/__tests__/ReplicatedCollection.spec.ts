@@ -8,26 +8,26 @@ import createPersistenceAdapter from '../src/persistence/createPersistenceAdapte
 import waitForEvent from './helpers/waitForEvent'
 
 describe('createReplicationAdapter', () => {
-  it('should call handleRemoteChange and register onChange', async () => {
+  it('should call registerRemoteChange and register onChange', async () => {
     const pull = vi.fn().mockResolvedValue({} as LoadResponse<any>)
     const push = vi.fn().mockResolvedValue(undefined)
-    const handleRemoteChange = vi.fn().mockResolvedValue(undefined)
+    const registerRemoteChange = vi.fn().mockResolvedValue(undefined)
     const onChange = vi.fn()
 
     const options = {
       pull,
       push,
-      handleRemoteChange,
+      registerRemoteChange,
     }
 
     const adapter = createReplicationAdapter(options)
     await adapter.register(onChange)
 
-    expect(handleRemoteChange).toHaveBeenCalledTimes(1)
-    expect(handleRemoteChange).toHaveBeenCalledWith(onChange)
+    expect(registerRemoteChange).toHaveBeenCalledTimes(1)
+    expect(registerRemoteChange).toHaveBeenCalledWith(onChange)
   })
 
-  it('should not call handleRemoteChange if it is not provided', async () => {
+  it('should not call registerRemoteChange if it is not provided', async () => {
     const pull = vi.fn().mockResolvedValue({} as LoadResponse<any>)
     const push = vi.fn().mockResolvedValue(undefined)
     const onChange = vi.fn()
@@ -98,7 +98,7 @@ describe('ReplicatedCollection', () => {
   it('should combine persistence and replication adapters', async () => {
     const pull = vi.fn().mockResolvedValue({ items: [] } as LoadResponse<any>)
     const push = vi.fn().mockResolvedValue(undefined)
-    const handleRemoteChange = vi.fn().mockResolvedValue(undefined)
+    const registerRemoteChange = vi.fn().mockResolvedValue(undefined)
 
     const persistenceAdapter = createPersistenceAdapter({
       register: vi.fn().mockResolvedValue(undefined),
@@ -109,7 +109,7 @@ describe('ReplicatedCollection', () => {
     const collection = new ReplicatedCollection({
       pull,
       push,
-      handleRemoteChange,
+      registerRemoteChange,
       persistence: persistenceAdapter,
     })
     expect(collection).toBeInstanceOf(ReplicatedCollection)
@@ -119,6 +119,6 @@ describe('ReplicatedCollection', () => {
     expect(pull).toHaveBeenCalledTimes(1)
     expect(persistenceAdapter.save).toHaveBeenCalledTimes(0)
     expect(push).toHaveBeenCalledTimes(0)
-    expect(handleRemoteChange).toHaveBeenCalledTimes(1)
+    expect(registerRemoteChange).toHaveBeenCalledTimes(1)
   })
 })
