@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react'
-import setupCollection from '../../system/setupCollection'
+import { useState } from 'react'
+import Todos from '../../models/Todos'
 import List from './List'
 
 const App: React.FC = () => {
   const [text, setText] = useState('')
-  const collection = useMemo(() => typeof window !== 'undefined' && setupCollection(), [])
   return (
     <>
       <input
@@ -14,8 +13,8 @@ const App: React.FC = () => {
         onChange={e => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            if (text === '' || !collection) return
-            collection.insert({
+            if (text === '') return
+            Todos.insert({
               text,
               completed: false,
             })
@@ -23,7 +22,7 @@ const App: React.FC = () => {
           }
         }}
       />
-      {collection && <List collection={collection} />}
+      <List />
     </>
   )
 }

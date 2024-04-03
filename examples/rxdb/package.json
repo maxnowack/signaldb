@@ -20,6 +20,7 @@
     "rxjs": "7.8.1",
     "signaldb": "0.8.9",
     "signaldb-plugin-maverickjs": "1.0.1",
+    "signaldb-react": "^1.0.1",
     "typescript": "5.4.3"
   },
   "devDependencies": {

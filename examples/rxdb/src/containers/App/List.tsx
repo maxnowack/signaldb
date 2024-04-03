@@ -1,20 +1,10 @@
-import { useEffect, useState } from 'react'
-import { effect } from '@maverick-js/signals'
-import type { Collection } from 'signaldb'
+import Todos from '../../models/Todos'
+import useReactivity from '../../utils/useReactivity'
 
-interface Props {
-  collection: Collection<{ id: string, text: string, completed: boolean }>,
-}
-
-const List: React.FC<Props> = ({ collection }) => {
-  const [items, setItems] = useState<{ id: string, text: string, completed: boolean }[]>([])
-  useEffect(() => {
-    effect(() => {
-      setItems(collection.find({}, {
-        sort: { completed: 1, text: 1 },
-      }).fetch())
-    })
-  }, [collection])
+const List: React.FC = () => {
+  const items = useReactivity(() => Todos.find({}, {
+    sort: { completed: 1, text: 1 },
+  }).fetch(), [])
   return (
     <ul>
       {items.map(item => (
@@ -22,12 +12,12 @@ const List: React.FC<Props> = ({ collection }) => {
           <input
             type="checkbox"
             checked={item.completed}
-            onChange={() => collection.updateOne({ id: item.id }, {
+            onChange={() => Todos.updateOne({ id: item.id }, {
               $set: { completed: !item.completed },
             })}
           />
           <p>{item.text}</p>
-          <button onClick={() => collection.removeOne({ id: item.id })}>x</button>
+          <button onClick={() => Todos.removeOne({ id: item.id })}>x</button>
         </li>
       ))}
       {items.length === 0 && <li className="empty">Empty</li>}
