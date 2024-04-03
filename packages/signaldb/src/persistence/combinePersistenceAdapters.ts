@@ -5,12 +5,13 @@ export function createTemporaryFallbackExecutor<Args extends Array<any>, ReturnV
   firstResolvingPromiseFn: (...args: Args) => Promise<ReturnVal>,
   secondResolvingPromiseFn: (...args: Args) => Promise<ReturnVal>,
   options?: {
-    onResolve?: () => void,
+    onResolve?: (returnValue: ReturnVal) => void,
     cacheTimeout?: number,
   },
 ): (...args: Args) => Promise<ReturnVal> {
   const cacheTimeout = options?.cacheTimeout ?? 0
   let isResolved = false
+  let resolvedValue: ReturnVal | null = null
   let timeout: NodeJS.Timeout | null = null
   let secondaryPromise: Promise<ReturnVal> | null = null
   return (...args: Args) => {
@@ -23,11 +24,13 @@ export function createTemporaryFallbackExecutor<Args extends Array<any>, ReturnV
         if (cacheTimeout > 0) {
           timeout = setTimeout(() => {
             isResolved = false
+            resolvedValue = null
             secondaryPromise = null
           }, cacheTimeout)
         }
         isResolved = true
-        if (options?.onResolve) options.onResolve()
+        resolvedValue = result
+        if (options?.onResolve) options.onResolve(resolvedValue)
         return result
       })
     } else if (isResolved) {
@@ -56,9 +59,13 @@ export default function combinePersistenceAdapters<
     () => secondaryAdapter.load(),
     {
       cacheTimeout: 100,
-      onResolve: () => {
-        if (!handleChange) return
-        void handleChange()
+      onResolve: (result) => {
+        if (handleChange) void handleChange()
+        void primaryAdapter.save(result.items || [], {
+          added: result.changes?.added || [],
+          modified: result.changes?.modified || [],
+          removed: result.changes?.removed || [],
+        })
       },
     },
   )
