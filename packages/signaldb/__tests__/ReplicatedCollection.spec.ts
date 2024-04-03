@@ -117,7 +117,7 @@ describe('ReplicatedCollection', () => {
     expect(persistenceAdapter.register).toHaveBeenCalledTimes(1)
     expect(persistenceAdapter.load).toHaveBeenCalledTimes(1)
     expect(pull).toHaveBeenCalledTimes(1)
-    expect(persistenceAdapter.save).toHaveBeenCalledTimes(0)
+    expect(persistenceAdapter.save).toHaveBeenCalledTimes(1)
     expect(push).toHaveBeenCalledTimes(0)
     expect(registerRemoteChange).toHaveBeenCalledTimes(1)
   })
