@@ -66,18 +66,18 @@ export default function createAppwritePersistenceAdapter<
     save: async (_items, changes) => {
       await Promise.all([
         ...changes.added.map(async ({ id, ...item }) => {
-          await supabase.from(collectionId).insert(item)
+          await supabase.from(collectionId as any).insert(item)
         }),
         ...changes.modified.map(async ({ id, ...item }) => {
-          await supabase.from(collectionId).update(item).eq('id', id)
+          await supabase.from(collectionId as any).update(item).eq('id', id)
         }),
         ...changes.removed.map(async (item) => {
-          await supabase.from(collectionId).delete().eq('id', item.id)
+          await supabase.from(collectionId as any).delete().eq('id', item.id)
         }),
       ])
     },
     load: async () => {
-      const docs = await supabase.from(collectionId).select().returns<T[]>()
+      const docs = await supabase.from(collectionId as any).select().returns<T[]>()
       return { items: docs.data ?? [] }
     },
   })
