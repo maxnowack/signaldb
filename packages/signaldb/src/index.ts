@@ -13,6 +13,7 @@ export type {
 export { default as Collection, createIndex } from './Collection'
 export { default as PersistentCollection } from './PersistentCollection'
 export { default as ReplicatedCollection } from './ReplicatedCollection'
+export { default as AutoFetchCollection } from './AutoFetchCollection'
 export { default as createLocalStorageAdapter } from './persistence/createLocalStorageAdapter'
 export { default as createFilesystemAdapter } from './persistence/createFilesystemAdapter'
 export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'

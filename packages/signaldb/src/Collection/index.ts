@@ -13,6 +13,8 @@ import randomId from '../utils/randomId'
 import type { Changeset } from '../types/PersistenceAdapter'
 import executeOncePerTick from '../utils/executeOncePerTick'
 import serializeValue from '../utils/serializeValue'
+import type Signal from '../types/Signal'
+import createSignal from '../utils/createSignal'
 import Cursor from './Cursor'
 import type { BaseItem, FindOptions, Transform } from './types'
 import getIndexInfo from './getIndexInfo'
@@ -41,6 +43,13 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'persistence.error': (error: Error) => void,
   'persistence.transmitted': () => void,
   'persistence.received': () => void,
+  'persistence.pullStarted': () => void,
+  'persistence.pullCompleted': () => void,
+  'persistence.pushStarted': () => void,
+  'persistence.pushCompleted': () => void,
+
+  'observer.created': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
+  'observer.disposed': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
   '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, U>) => void,
@@ -91,6 +100,8 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
   private options: CollectionOptions<T, I, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
+  private isPullingSignal: Signal<boolean>
+  private isPushingSignal: Signal<boolean>
   private indexProviders: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = []
   private indicesOutdated = false
   private idIndex = new Map<string, Set<number>>()
@@ -106,17 +117,33 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       ...(this.options.indices || []),
     ]
     this.rebuildIndices()
-    if (this.options.persistence) {
-      const persistenceAdapter = this.options.persistence
-      this.persistenceAdapter = persistenceAdapter
 
+    this.isPullingSignal = createSignal(this.options.reactivity?.create(), false)
+    this.isPushingSignal = createSignal(this.options.reactivity?.create(), false)
+    this.on('persistence.pullStarted', () => {
+      this.isPullingSignal?.set(true)
+    })
+    this.on('persistence.pullCompleted', () => {
+      this.isPullingSignal?.set(false)
+    })
+    this.on('persistence.pushStarted', () => {
+      this.isPushingSignal?.set(true)
+    })
+    this.on('persistence.pushCompleted', () => {
+      this.isPushingSignal?.set(false)
+    })
+
+    this.persistenceAdapter = this.options.persistence ?? null
+    if (this.persistenceAdapter) {
       let ongoingSaves = 0
       let isInitialized = false
       const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
 
       const loadPersistentData = async () => {
+        if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
+        this.emit('persistence.pullStarted')
         // load items from persistence adapter and push them into memory
-        const { items, changes } = await persistenceAdapter.load()
+        const { items, changes } = await this.persistenceAdapter.load()
 
         if (items) {
           // as we overwrite all items, we need to discard if there are ongoing saves
@@ -149,6 +176,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         this.rebuildIndices()
 
         this.emit('persistence.received')
+        this.emit('persistence.pullCompleted')
       }
 
       const saveQueue = {
@@ -158,6 +186,8 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       } as Changeset<T>
       let isFlushing = false
       const flushQueue = () => {
+        if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
+        if (ongoingSaves <= 0) this.emit('persistence.pushStarted')
         if (isFlushing) return
         if (!hasPendingUpdates(saveQueue)) return
         isFlushing = true
@@ -167,7 +197,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         saveQueue.added = []
         saveQueue.modified = []
         saveQueue.removed = []
-        persistenceAdapter.save(currentItems, changes)
+        this.persistenceAdapter.save(currentItems, changes)
           .then(() => {
             this.emit('persistence.transmitted')
           }).catch((error) => {
@@ -176,6 +206,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
             ongoingSaves -= 1
             isFlushing = false
             flushQueue()
+            if (ongoingSaves <= 0) this.emit('persistence.pushCompleted')
           })
       }
 
@@ -204,8 +235,9 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         flushQueue()
       })
 
-      persistenceAdapter.register(() => loadPersistentData())
+      this.persistenceAdapter.register(() => loadPersistentData())
         .then(async () => {
+          if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
           let currentItems = this.memoryArray()
           await loadPersistentData()
           while (hasPendingUpdates(pendingUpdates)) {
@@ -214,7 +246,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
             const removed = pendingUpdates.removed.splice(0)
             currentItems = applyUpdates(currentItems, { added, modified, removed })
             // eslint-disable-next-line no-await-in-loop
-            await persistenceAdapter.save(currentItems, { added, modified, removed })
+            await this.persistenceAdapter.save(currentItems, { added, modified, removed })
               .then(() => {
                 this.emit('persistence.transmitted')
               })
@@ -228,6 +260,20 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
           this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
         })
     }
+  }
+
+  public isPulling() {
+    return this.isPullingSignal.get() ?? false
+  }
+
+  public isPushing() {
+    return this.isPushingSignal.get() ?? false
+  }
+
+  public isLoading() {
+    const isPulling = this.isPulling()
+    const isPushing = this.isPushing()
+    return isPulling || isPushing
   }
 
   public getDebugMode() {
@@ -338,11 +384,13 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         this.addListener('added', requeryOnce)
         this.addListener('changed', requeryOnce)
         this.addListener('removed', requeryOnce)
+        this.emit('observer.created', selector, options)
         return () => {
           this.removeListener('persistence.received', requeryOnce)
           this.removeListener('added', requeryOnce)
           this.removeListener('changed', requeryOnce)
           this.removeListener('removed', requeryOnce)
+          this.emit('observer.disposed', selector, options)
         }
       },
     })
