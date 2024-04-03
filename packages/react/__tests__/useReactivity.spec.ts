@@ -2,6 +2,7 @@
 import { vi, it, expect } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { signal, onDispose, effect } from '@maverick-js/signals'
+import { StrictMode } from 'react'
 import { createUseReactivityHook } from '../src'
 
 function reactiveHelper<T>(initialValue: T) {
@@ -40,6 +41,27 @@ it('should rerun with reactive data', async () => {
   expect(dispose).toBeCalledTimes(1)
   unmount()
   expect(dispose).toBeCalledTimes(2)
+})
+
+it('should rerun in strict mode', async () => {
+  const reactive = reactiveHelper(1)
+  const dispose = vi.fn()
+  const fn = vi.fn().mockImplementation(() => {
+    onDispose(dispose)
+    return reactive.get()
+  })
+  const { result, unmount } = renderHook(() => useReactivity(fn), {
+    wrapper: StrictMode,
+  })
+  await waitFor(async () => expect(await result.current).toBe(1))
+  expect(fn).toBeCalledTimes(3)
+
+  reactive.set(2)
+  await waitFor(async () => expect(await result.current).toBe(2))
+  expect(fn).toBeCalledTimes(5)
+  expect(dispose).toBeCalledTimes(3)
+  unmount()
+  expect(dispose).toBeCalledTimes(4)
 })
 
 it('should rerun with reactive data and dependencies', async () => {

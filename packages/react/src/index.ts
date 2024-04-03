@@ -25,22 +25,30 @@ export function createUseReactivityHook(effect: ReactiveEffect) {
     }>({
       isMounted: true,
     })
-
-    useMemo(() => {
-      if (!refs.current.isMounted) return
-      if (refs.current.stopComputation) refs.current.stopComputation()
+    const ensureComputation = () => {
+      if (refs.current.stopComputation) {
+        refs.current.stopComputation()
+        refs.current.stopComputation = undefined
+      }
       refs.current.stopComputation = effect(() => {
         refs.current.data = reactiveFn()
         forceUpdate()
       })
+    }
+
+    useMemo(() => {
+      if (!refs.current.isMounted) return
+      ensureComputation()
     }, deps || [])
 
     useEffect(() => {
       refs.current.isMounted = true
+      if (!refs.current.stopComputation) ensureComputation()
       return () => {
         refs.current.isMounted = false
         if (!refs.current.stopComputation) return
         refs.current.stopComputation()
+        refs.current.stopComputation = undefined
       }
     }, [])
     return refs.current.data as T
