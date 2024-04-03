@@ -36,9 +36,10 @@ export default defineConfig({
         text: 'Examples',
         collapsed: false,
         items: [
-          { text: 'RxDB', link: 'https://signaldb.js.org/examples/rxdb/' },
-          { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
+          { text: 'HTTP Replication', link: 'https://signaldb.js.org/examples/replication-http/' },
           { text: 'Appwrite', link: 'https://signaldb.js.org/examples/appwrite/' },
+          { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
+          { text: 'RxDB', link: 'https://signaldb.js.org/examples/rxdb/' },
           { text: 'Supabase', link: 'https://signaldb.js.org/examples/supabase/' },
         ],
       },
@@ -80,6 +81,18 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Replication',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/replication/' },
+          { text: 'HTTP', link: '/replication/http/' },
+          { text: 'Appwrite', link: '/replication/appwrite/' },
+          { text: 'Firebase', link: '/replication/firebase/' },
+          { text: 'Supabase', link: '/replication/supabase/' },
+          { text: 'Other Replication Options', link: '/replication/other/' },
+        ],
+      },
+      {
         text: 'Data Persistence',
         collapsed: false,
         items: [
@@ -87,17 +100,7 @@ export default defineConfig({
           { text: 'localStorage', link: '/data-persistence/local-storage/' },
           { text: 'Filesystem', link: '/data-persistence/file-system/' },
           { text: 'RxDB', link: '/data-persistence/rxdb/' },
-          { text: 'Firebase', link: '/data-persistence/firebase/' },
-          { text: 'Appwrite', link: '/data-persistence/appwrite/' },
-          { text: 'Supabase', link: '/data-persistence/supabase/' },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
-        ],
-      },
-      {
-        text: 'Replication (coming soon)',
-        collapsed: false,
-        items: [
-          { text: 'Overview', link: '/replication/' },
         ],
       },
       {
