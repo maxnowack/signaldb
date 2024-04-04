@@ -17,7 +17,7 @@
     "next": "14.1.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "signaldb": "0.8.9",
+    "signaldb": "0.9.0",
     "signaldb-plugin-maverickjs": "1.0.1",
     "signaldb-react": "^1.0.1",
     "typescript": "5.4.3"
