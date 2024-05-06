@@ -35,6 +35,7 @@ export default defineConfig({
       external: [
         'signaldb',
         'solid-js',
+        'solid-js/dist/solid',
       ],
       plugins: [
         typescriptPaths({

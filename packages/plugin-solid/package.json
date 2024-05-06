@@ -1,6 +1,6 @@
 {
   "name": "signaldb-plugin-solid",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build"
