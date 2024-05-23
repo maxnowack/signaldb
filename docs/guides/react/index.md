@@ -51,7 +51,7 @@ import { Collection } from 'signaldb'
 import maverickReactivityAdapter from 'signaldb-plugin-maverickjs'
 
 const Posts = new Collection({
-  reactivityAdapter: maverickReactivityAdapter,
+  reactivity: maverickReactivityAdapter,
 })
 
 export default Posts
