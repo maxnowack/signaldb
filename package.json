@@ -33,7 +33,7 @@
     "eslint-plugin-prefer-object-spread": "1.2.1",
     "eslint-plugin-vitest": "0.4.1",
     "fast-glob": "^3.3.2",
-    "happy-dom": "14.11.2",
+    "happy-dom": "14.11.3",
     "husky": "9.0.11",
     "rimraf": "5.0.7",
     "rollup-plugin-typescript-paths": "1.5.0",
