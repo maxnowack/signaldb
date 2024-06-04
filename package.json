@@ -38,7 +38,7 @@
     "rimraf": "5.0.7",
     "rollup-plugin-typescript-paths": "1.5.0",
     "ts-node": "10.9.2",
-    "tslib": "2.6.2",
+    "tslib": "2.6.3",
     "typescript": "5.4.5",
     "vite": "5.2.12",
     "vite-plugin-dts": "3.9.1",
