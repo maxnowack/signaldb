@@ -6,19 +6,17 @@ export default function createOPFSAdapter<
 >(filename: string) {
   let savePromise: Promise<void> | null = null
 
-  async function getItems() {
-    const opfsRoot = await navigator.storage.getDirectory();
-    const existingFileHandle = await opfsRoot.getFileHandle( filename, { create: true });
-    
+  async function getItems(): Promise<T[]> {
+    const opfsRoot = await navigator.storage.getDirectory()
+    const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
     const contents = await existingFileHandle.getFile().then(val => val.text())
     return JSON.parse(contents || '[]')
   }
 
-  return createPersistenceAdapter({
+  return createPersistenceAdapter<T, I>({
     async register(onChange) {
-
-      const opfsRoot = await navigator.storage.getDirectory();
-      const existingFileHandle = await opfsRoot.getFileHandle( filename, { create: true });
+      const opfsRoot = await navigator.storage.getDirectory()
+      await opfsRoot.getFileHandle(filename, { create: true })
       void onChange()
     },
     async load() {
@@ -29,18 +27,14 @@ export default function createOPFSAdapter<
     },
     async save(_items, { added, modified, removed }) {
       if (savePromise) await savePromise
-
-      async function write(items){
-        const opfsRoot = await navigator.storage.getDirectory();
-        const existingFileHandle = await opfsRoot.getFileHandle( filename );
-        const writeStream = await existingFileHandle.createWritable()
-        await writeStream.write( JSON.stringify(items) )
-        await writeStream.close()
-      }
-
+      const opfsRoot = await navigator.storage.getDirectory()
+      const existingFileHandle = await opfsRoot.getFileHandle(filename)
       if (added.length === 0 && modified.length === 0 && removed.length === 0) {
-        savePromise = write( _items )
-        return await savePromise
+        const writeStream = await existingFileHandle.createWritable()
+        await writeStream.write(JSON.stringify(_items))
+        await writeStream.close()
+        await savePromise
+        return
       }
       savePromise = getItems()
         .then((currentItems) => {
@@ -50,19 +44,23 @@ export default function createOPFSAdapter<
           })
           modified.forEach((item) => {
             const index = items.findIndex(({ id }) => id === item.id)
-            
-            if (index === -1) throw new Error(`Item with ID ${item.id} not found`)
+            /* istanbul ignore if -- @preserve */
+            if (index === -1) throw new Error(`Item with ID ${item.id as string} not found`)
             items[index] = item
           })
           removed.forEach((item) => {
             const index = items.findIndex(({ id }) => id === item.id)
-            
-            if (index === -1) throw new Error(`Item with ID ${item.id} not found`)
+            /* istanbul ignore if -- @preserve */
+            if (index === -1) throw new Error(`Item with ID ${item.id as string} not found`)
             items.splice(index, 1)
           })
           return items
         })
-        .then( write )
+        .then(async (items) => {
+          const writeStream = await existingFileHandle.createWritable()
+          await writeStream.write(JSON.stringify(items))
+          await writeStream.close()
+        })
         .then(() => {
           savePromise = null
         })
