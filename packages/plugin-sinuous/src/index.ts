@@ -1,7 +1,10 @@
 import { observable, api } from 'sinuous'
 import { createReactivityAdapter } from 'signaldb'
 
-const sinuousReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Sinuous. See https://signaldb.js.org/reactivity/sinuous/ for more information.
+ */
+export const sinuousReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = observable(0)
     return {

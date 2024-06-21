@@ -6,7 +6,10 @@ import {
 } from 'solid-js/dist/solid'
 import { createReactivityAdapter } from 'signaldb'
 
-const solidReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Solid. See https://signaldb.js.org/reactivity/solid/ for more information.
+ */
+export const solidReactivityAdapter = createReactivityAdapter({
   create: () => {
     const [depend, rerun] = createSignal(undefined, { equals: false })
     return {

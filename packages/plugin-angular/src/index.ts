@@ -1,7 +1,10 @@
 import { signal, untracked } from '@angular/core'
 import { createReactivityAdapter } from 'signaldb'
 
-const angularReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Angular. See https://signaldb.js.org/reactivity/angular/ for more information.
+ */
+export const angularReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {

@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { Tracker } from 'meteor-ts-tracker'
 import { Collection } from 'signaldb'
-import createMeteorReactivityAdapter from '../src'
+import { createMeteorReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-meteor', () => {
   const reactivity = createMeteorReactivityAdapter(Tracker)

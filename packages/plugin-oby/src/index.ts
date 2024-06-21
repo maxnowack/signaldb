@@ -5,7 +5,10 @@ import $oby, {
 } from 'oby'
 import { createReactivityAdapter } from 'signaldb'
 
-const obyReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for oby. See https://signaldb.js.org/reactivity/oby/ for more information.
+ */
+export const obyReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = $oby(0)
     return {

@@ -1,5 +1,5 @@
 import { ReplicatedCollection, createLocalStorageAdapter } from 'signaldb'
-import maverickjsReactivityAdapter from 'signaldb-plugin-maverickjs'
+import { maverickjsReactivityAdapter } from 'signaldb-plugin-maverickjs'
 
 function authenticatedFetch(path: string, options?: RequestInit) {
   const databaseId = '65676881edfe6a3e7e2c'

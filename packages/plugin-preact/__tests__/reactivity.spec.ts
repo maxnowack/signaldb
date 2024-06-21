@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { effect } from '@preact/signals-core'
 import { Collection } from 'signaldb'
-import preactReactivityAdapter from '../src'
+import { preactReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-preact', () => {
   it('should be reactive with preact', async () => {

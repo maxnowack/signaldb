@@ -1,7 +1,10 @@
 import { signal } from '@preact/signals-core'
 import { createReactivityAdapter } from 'signaldb'
 
-const preactReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Preact. See https://signaldb.js.org/reactivity/preact/ for more information.
+ */
+export const preactReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {

@@ -6,7 +6,7 @@ import {
   // @ts-ignore
 } from 'solid-js/dist/solid'
 import { Collection } from 'signaldb'
-import solidReactivityAdapter from '../src'
+import { solidReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-solid', () => {
   it('should be reactive with solid', async () => {

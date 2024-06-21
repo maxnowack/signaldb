@@ -6,7 +6,10 @@ import {
 } from '@maverick-js/signals'
 import { createReactivityAdapter } from 'signaldb'
 
-const maverickjsReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Maverick.js. See https://signaldb.js.org/reactivity/maverickjs/ for more information.
+ */
+export const maverickjsReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {

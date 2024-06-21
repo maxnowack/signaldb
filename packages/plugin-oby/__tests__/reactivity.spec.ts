@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { effect, tick } from 'oby'
 import { Collection } from 'signaldb'
-import obyReactivityAdapter from '../src'
+import { obyReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-oby', () => {
   it('should be reactive with oby', async () => {

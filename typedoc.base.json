@@ -1,0 +1,14 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "readme": "none",
+  "entryPoints": [
+    "./src/index.ts"
+  ],
+  "entryPointStrategy": "expand",
+  "includeVersion": true,
+  "excludeReferences": true,
+  "excludeExternals": true,
+  "excludePrivate": true,
+  "excludeNotDocumented": false,
+  "placeInternalsInOwningModule": true,
+}

@@ -1,6 +1,7 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { defineConfig } from 'vitepress'
+import typedocSidebar from '../api-reference/typedoc-sidebar.json'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -103,6 +104,10 @@ export default defineConfig({
           { text: 'RxDB', link: '/data-persistence/rxdb/' },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
         ],
+      },
+      {
+        text: 'API Reference',
+        items: typedocSidebar,
       },
       {
         text: 'Help',

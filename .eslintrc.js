@@ -22,8 +22,9 @@ module.exports = {
     allowImportExportEverywhere: true,
   },
   plugins: [
-    'prefer-object-spread',
     '@typescript-eslint',
+    'eslint-plugin-tsdoc',
+    'prefer-object-spread',
     'vitest',
   ],
   ignorePatterns: [
@@ -77,6 +78,7 @@ module.exports = {
     /*
      * Typescript
      */
+    'tsdoc/syntax': 'error',
     '@typescript-eslint/no-non-null-assertion': 'error',
     '@typescript-eslint/consistent-type-imports': ['error', {
       prefer: 'type-imports',

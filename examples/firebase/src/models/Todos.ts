@@ -1,5 +1,5 @@
 import { Collection, combinePersistenceAdapters, createLocalStorageAdapter } from 'signaldb'
-import maverickjsReactivityAdapter from 'signaldb-plugin-maverickjs'
+import { maverickjsReactivityAdapter } from 'signaldb-plugin-maverickjs'
 import createFirebasePersistenceAdapter from '../utils/createFirebasePersistenceAdapter'
 
 const Todos = new Collection<{ id: string, text: string, completed: boolean }>({

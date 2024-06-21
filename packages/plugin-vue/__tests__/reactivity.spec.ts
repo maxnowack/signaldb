@@ -5,7 +5,7 @@ import {
   effectScope,
 } from 'vue'
 import { Collection } from 'signaldb'
-import vueReactivityAdapter from '../src'
+import { vueReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-vue', () => {
   it('should be reactive with Vue.js', async () => {

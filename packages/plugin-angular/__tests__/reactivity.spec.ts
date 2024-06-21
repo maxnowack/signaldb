@@ -2,7 +2,7 @@ import { vi, describe, it, expect } from 'vitest'
 import type { Watch, WatchCleanupFn } from '@angular/core/primitives/signals'
 import { createWatch } from '@angular/core/primitives/signals'
 import { Collection } from 'signaldb'
-import angularReactivityAdapter from '../src'
+import { angularReactivityAdapter } from '../src'
 
 // borrowed from https://github.com/angular/angular/blob/80f472f9f4c09af33f41f7e8dd656eff0b74d03f/packages/core/test/signals/effect_util.ts
 const queue = new Set<Watch>()

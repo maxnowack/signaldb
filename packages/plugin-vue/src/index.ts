@@ -5,7 +5,10 @@ import {
 } from 'vue'
 import { createReactivityAdapter } from 'signaldb'
 
-const vueReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Vue. See https://signaldb.js.org/reactivity/vue/ for more information.
+ */
+export const vueReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = shallowRef(0)
     return {

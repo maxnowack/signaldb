@@ -1,7 +1,10 @@
 import { signal } from 'usignal'
 import { createReactivityAdapter } from 'signaldb'
 
-const usignalReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for usignal. See https://signaldb.js.org/reactivity/usignal/ for more information.
+ */
+export const usignalReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = signal(0)
     return {

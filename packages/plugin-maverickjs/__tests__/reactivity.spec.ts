@@ -4,7 +4,7 @@ import {
   effect,
 } from '@maverick-js/signals'
 import { Collection } from 'signaldb'
-import maverickjsReactivityAdapter from '../src'
+import { maverickjsReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-maverickjs', () => {
   it('should be reactive with @maverick-js/signals', async () => {

@@ -1,0 +1,17 @@
+{
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-vitepress-theme",
+    "typedoc-plugin-missing-exports",
+  ],
+  "entryPoints": [
+    "packages/signaldb",
+    "packages/react",
+    // "packages/plugin-angular",
+    "packages/plugin-*",
+  ],
+  "entryPointStrategy": "packages",
+  "out": "docs/api-reference/",
+  "docsRoot": "docs",
+  "readme": "none",
+}

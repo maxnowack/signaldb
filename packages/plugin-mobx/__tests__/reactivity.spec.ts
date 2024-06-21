@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { autorun } from 'mobx'
 import { Collection } from 'signaldb'
-import mobxReactivityAdapter from '../src'
+import { mobxReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-mobx', () => {
   it('should be reactive with MobX', async () => {

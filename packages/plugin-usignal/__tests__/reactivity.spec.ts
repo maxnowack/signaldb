@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { effect } from 'usignal'
 import { Collection } from 'signaldb'
-import usignalReactivityAdapter from '../src'
+import { usignalReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-usignal', () => {
   it('should be reactive with usignal', async () => {

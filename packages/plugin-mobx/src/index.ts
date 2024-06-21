@@ -5,7 +5,10 @@ import {
 } from 'mobx'
 import { createReactivityAdapter } from 'signaldb'
 
-const mobxReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for MobX. See https://signaldb.js.org/reactivity/mobx/ for more information.
+ */
+export const mobxReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = observable({ count: 0 })
     return {

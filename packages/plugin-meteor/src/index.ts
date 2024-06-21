@@ -1,7 +1,10 @@
 import type { Tracker } from 'meteor-ts-tracker'
 import { createReactivityAdapter } from 'signaldb'
 
-export default function createMeteorReactivityAdapter(tracker: typeof Tracker) {
+/**
+ * Reactivity adapter for Meteor. See https://signaldb.js.org/reactivity/meteor/ for more information.
+ */
+export function createMeteorReactivityAdapter(tracker: typeof Tracker) {
   return createReactivityAdapter({
     create: () => {
       const dep = new tracker.Dependency()
@@ -20,3 +23,5 @@ export default function createMeteorReactivityAdapter(tracker: typeof Tracker) {
     },
   })
 }
+
+export default createMeteorReactivityAdapter

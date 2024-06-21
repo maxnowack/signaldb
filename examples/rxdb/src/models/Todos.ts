@@ -1,5 +1,5 @@
 import { Collection } from 'signaldb'
-import maverickjsReactivityAdapter from 'signaldb-plugin-maverickjs'
+import { maverickjsReactivityAdapter } from 'signaldb-plugin-maverickjs'
 import {
   addRxPlugin,
   createRxDatabase,

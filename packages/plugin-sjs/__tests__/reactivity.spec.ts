@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import S from 's-js'
 import { Collection } from 'signaldb'
-import sReactivityAdapter from '../src'
+import { sReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-sjs', () => {
   it('should be reactive with S.js', async () => {

@@ -1,7 +1,10 @@
 import { reactive, onCleanup } from '@reactively/core'
 import { createReactivityAdapter } from 'signaldb'
 
-const maverickjsReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for Reactively. See https://signaldb.js.org/reactivity/reactively/ for more information.
+ */
+const reactivelyReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = reactive(0)
     return {
@@ -19,4 +22,4 @@ const maverickjsReactivityAdapter = createReactivityAdapter({
   },
 })
 
-export default maverickjsReactivityAdapter
+export default reactivelyReactivityAdapter

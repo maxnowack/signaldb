@@ -1,7 +1,10 @@
 import S from 's-js'
 import { createReactivityAdapter } from 'signaldb'
 
-const sReactivityAdapter = createReactivityAdapter({
+/**
+ * Reactivity adapter for S.js. See https://signaldb.js.org/reactivity/S/ for more information.
+ */
+export const sReactivityAdapter = createReactivityAdapter({
   create: () => {
     const dep = S.data(true)
     return {

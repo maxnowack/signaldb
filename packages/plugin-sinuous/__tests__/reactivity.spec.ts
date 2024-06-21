@@ -1,7 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import { api } from 'sinuous'
 import { Collection } from 'signaldb'
-import sinuousReactivityAdapter from '../src'
+import { sinuousReactivityAdapter } from '../src'
 
 describe('signaldb-plugin-sinuous', () => {
   it('should be reactive with sinuous', async () => {
