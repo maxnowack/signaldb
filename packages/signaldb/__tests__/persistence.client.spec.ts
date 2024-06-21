@@ -101,6 +101,50 @@ describe('Persistence', () => {
 })
 
 describe('PersistenceOPFS', () => {
+  const mockedOPFS = {
+    getDirectory: () => {
+      const fileContents: Record<string, string | null> = {}
+      const opfsRoot = {
+        getFileHandle(filename: string, options?: { create: boolean }) {
+          if (!Object.hasOwnProperty.call(fileContents, filename)) {
+            if (options?.create) {
+              fileContents[filename] = null
+            } else {
+              return Promise.reject(new Error('File not found'))
+            }
+          }
+
+          const fileHandle = {
+            getFile() {
+              return Promise.resolve({
+                text() {
+                  return Promise.resolve(fileContents[filename])
+                },
+              })
+            },
+            createWritable() {
+              return Promise.resolve({
+                write(data: string) {
+                  fileContents[filename] = data
+                  return Promise.resolve()
+                },
+                close() {
+                  return Promise.resolve()
+                },
+              })
+            },
+          }
+
+          return fileHandle
+        },
+      }
+      return Promise.resolve(opfsRoot)
+    },
+  }
+
+  // @ts-expect-error mocking navigator.storage for testing purposes
+  navigator.storage = mockedOPFS
+
   it('should load items from OPFS persistence adapter', async () => {
     const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
     await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
