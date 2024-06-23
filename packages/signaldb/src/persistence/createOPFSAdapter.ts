@@ -28,7 +28,7 @@ export default function createOPFSAdapter<
     async save(_items, { added, modified, removed }) {
       if (savePromise) await savePromise
       const opfsRoot = await navigator.storage.getDirectory()
-      const existingFileHandle = await opfsRoot.getFileHandle(filename)
+      const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
       if (added.length === 0 && modified.length === 0 && removed.length === 0) {
         const writeStream = await existingFileHandle.createWritable()
         await writeStream.write(JSON.stringify(_items))

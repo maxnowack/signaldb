@@ -101,9 +101,9 @@ describe('Persistence', () => {
 })
 
 describe('PersistenceOPFS', () => {
+  const fileContents: Record<string, string | null> = {}
   const mockedOPFS = {
     getDirectory: () => {
-      const fileContents: Record<string, string | null> = {}
       const opfsRoot = {
         getFileHandle(filename: string, options?: { create: boolean }) {
           if (!Object.hasOwnProperty.call(fileContents, filename)) {
