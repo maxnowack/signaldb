@@ -98,6 +98,7 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/data-persistence/' },
           { text: 'localStorage', link: '/data-persistence/local-storage/' },
+          { text: 'OPFS', link: '/data-persistence/opfs/' },
           { text: 'Filesystem', link: '/data-persistence/file-system/' },
           { text: 'RxDB', link: '/data-persistence/rxdb/' },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
