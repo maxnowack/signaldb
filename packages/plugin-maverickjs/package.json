@@ -51,6 +51,6 @@
   ],
   "peerDependencies": {
     "signaldb": "0.x.x",
-    "@maverick-js/signals": "5.x.x"
+    "@maverick-js/signals": "5.x.x || 6.x"
   }
 }
