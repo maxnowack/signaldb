@@ -380,4 +380,29 @@ describe('Persistence', () => {
     expect(collection.isPushing()).toBe(false)
     expect(collection.isLoading()).toBe(false)
   })
+
+  it('should be able to pass load response to onChange callback', async () => {
+    const onChange = vi.fn()
+    const collection = new Collection({
+      persistence: {
+        register: async (onChangeCallback) => {
+          onChange.mockImplementation(onChangeCallback)
+          return Promise.resolve()
+        },
+        load: () => Promise.resolve({
+          items: [{ id: '1', name: 'John' }],
+          meta: { total: 1 },
+        }),
+        save: () => Promise.resolve(),
+      },
+    })
+    await waitForEvent(collection, 'persistence.init')
+
+    expect(onChange).toBeCalledTimes(0)
+    expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }])
+
+    onChange({ changes: { added: [{ id: '2', name: 'Jane' }], modified: [], removed: [] } })
+    expect(onChange).toBeCalledTimes(1)
+    expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }])
+  })
 })
