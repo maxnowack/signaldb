@@ -10,7 +10,7 @@ import match from '../utils/match'
 import modify from '../utils/modify'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
-import type { Changeset } from '../types/PersistenceAdapter'
+import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
 import executeOncePerTick from '../utils/executeOncePerTick'
 import serializeValue from '../utils/serializeValue'
 import type Signal from '../types/Signal'
@@ -139,11 +139,11 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       let isInitialized = false
       const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
 
-      const loadPersistentData = async () => {
+      const loadPersistentData = async (data?: LoadResponse<T>) => {
         if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
         this.emit('persistence.pullStarted')
         // load items from persistence adapter and push them into memory
-        const { items, changes } = await this.persistenceAdapter.load()
+        const { items, changes } = data ?? await this.persistenceAdapter.load()
 
         if (items) {
           // as we overwrite all items, we need to discard if there are ongoing saves
@@ -235,7 +235,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         flushQueue()
       })
 
-      this.persistenceAdapter.register(() => loadPersistentData())
+      this.persistenceAdapter.register(data => loadPersistentData(data))
         .then(async () => {
           if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
           let currentItems = this.memoryArray()
