@@ -1,27 +1,22 @@
-import {
-  createSignal,
-  onCleanup,
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-} from 'solid-js/dist/solid'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from "signaldb";
+import { createSignal, onCleanup } from "solid-js";
 
 const solidReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const [depend, rerun] = createSignal(undefined, { equals: false })
+    const [depend, rerun] = createSignal(undefined, { equals: false });
     return {
       depend: () => {
-        depend()
+        depend();
       },
       notify: () => {
-        rerun()
+        rerun();
       },
-    }
+    };
   },
   isInScope: undefined,
   onDispose: (callback) => {
-    onCleanup(callback)
+    onCleanup(callback);
   },
-})
+});
 
-export default solidReactivityAdapter
+export default solidReactivityAdapter;
