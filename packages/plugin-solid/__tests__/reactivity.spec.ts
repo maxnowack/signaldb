@@ -2,11 +2,16 @@ import { vi, describe, it, expect } from 'vitest'
 import {
   createEffect,
   createRoot,
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-} from 'solid-js/dist/solid'
+} from 'solid-js'
 import { Collection } from 'signaldb'
 import solidReactivityAdapter from '../src'
+
+vi.mock('solid-js', async () => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const solidBrowser = await import('solid-js/dist/solid.js')
+  return solidBrowser
+})
 
 describe('signaldb-plugin-solid', () => {
   it('should be reactive with solid', async () => {
