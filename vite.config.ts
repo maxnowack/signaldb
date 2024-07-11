@@ -9,9 +9,13 @@ export default defineConfig({
       provider: 'istanbul',
       exclude: [
         '.eslintrc.js',
-        'commitlint.config.js',
-        '**/examples/**',
+        '**/*.spec.ts',
+        '**/dist/**',
         '**/docs/**',
+        '**/examples/**',
+        '**/node_modules/**',
+        '**/vite.config.ts',
+        'commitlint.config.js',
       ],
     },
     reporters: process.env.GITHUB_ACTIONS
