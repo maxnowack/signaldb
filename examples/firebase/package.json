@@ -9,20 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@maverick-js/signals": "^5.11.4",
-    "@types/node": "20.12.3",
-    "@types/react": "18.2.74",
-    "@types/react-dom": "18.2.23",
-    "firebase": "^10.10.0",
-    "next": "14.1.4",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "signaldb": "0.9.0",
-    "signaldb-plugin-maverickjs": "1.0.1",
+    "@maverick-js/signals": "^6.0.0",
+    "@types/node": "20.14.10",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "firebase": "^10.12.3",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "signaldb": "0.12.1",
+    "signaldb-plugin-maverickjs": "1.0.2",
     "signaldb-react": "^1.0.1",
-    "typescript": "5.4.3"
+    "typescript": "5.5.3"
   },
   "devDependencies": {
-    "sass": "^1.72.0"
+    "sass": "^1.77.7"
   }
 }
