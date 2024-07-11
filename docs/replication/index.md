@@ -12,6 +12,7 @@ For seamless integration of your app with remote services, SignalDB offers robus
 ## `ReplicatedCollection`
 
 Central to SignalDB's replication functionality is the `ReplicatedCollection` class. This specialized class streamlines the replication process, allowing you to effortlessly replicate data to any remote service. It inherits from the `Collection` class, so you can use it just like any other collection.
+The `ReplicatedCollection` doesn't provide an automatic conflict resolution mechanism. You must handle any conflicts that arise during replication manually. This includes managing both pull and push conflicts in your handlers. Similarly, the `ReplicatedCollection` does not automatically handle errors that occur during the replication process. If a call to your remote service (e.g., https://api.example.com/todos) fails, it is your responsibility to manage these errors and implement appropriate retry or recovery mechanisms.
 
 The usage of the `ReplicatedCollection` is really simple:
 
