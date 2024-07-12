@@ -405,4 +405,18 @@ describe('Persistence', () => {
     expect(onChange).toBeCalledTimes(1)
     expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }])
   })
+
+  it('should upsert added items from persistence adapter', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }], true)
+    const collection = new Collection({ persistence })
+    await waitForEvent(collection, 'persistence.init')
+    const items = collection.find().fetch()
+    expect(items).toEqual([{ id: '1', name: 'John' }])
+
+    persistence.addNewItem({ id: '1', name: 'Jane' })
+    await waitForEvent(collection, 'persistence.received')
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'Jane' },
+    ])
+  })
 })

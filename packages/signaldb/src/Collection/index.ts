@@ -158,6 +158,13 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
           })
         } else if (changes) {
           changes.added.forEach((item) => {
+            const index = this.memory().findIndex(doc => doc.id === item.id)
+            if (index >= 0) { // item already exists; doing upsert
+              this.memory().splice(index, 1, item)
+              return
+            }
+
+            // item does not exists yet; normal insert
             this.memory().push(item)
             const itemIndex = this.memory().findIndex(doc => doc === item)
             this.idIndex.set(serializeValue(item.id), new Set([itemIndex]))
