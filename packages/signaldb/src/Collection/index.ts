@@ -10,6 +10,7 @@ import match from '../utils/match'
 import modify from '../utils/modify'
 import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
+import deepClone from '../utils/deepClone'
 import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
 import executeOncePerTick from '../utils/executeOncePerTick'
 import serializeValue from '../utils/serializeValue'
@@ -434,7 +435,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
-    const modifiedItem = modify({ ...item }, modifier)
+    const modifiedItem = modify(deepClone(item), modifier)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const existingItem = this.findOne({ id: modifiedItem.id } as any, { reactive: false })
     if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) throw new Error('Item with same id already exists')
@@ -454,7 +455,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     items.forEach((item) => {
       const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
       if (index === -1) throw new Error('Cannot resolve index for item')
-      const modifiedItem = modify(item, modifier)
+      const modifiedItem = modify(deepClone(item), modifier)
       this.memory().splice(index, 1, modifiedItem)
       modifiedItems.push(modifiedItem)
     })

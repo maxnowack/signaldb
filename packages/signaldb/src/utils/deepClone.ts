@@ -33,18 +33,13 @@ export function clone<T>(value: T): T {
   if (value instanceof RegExp) return new RegExp(value) as T
 
   // plain objects
-  if (typeof value === 'object') {
-    const result: any = {}
-    for (const key in value) {
-      if (Object.hasOwnProperty.call(value, key)) {
-        result[key] = clone(value[key])
-      }
+  const result: any = {}
+  for (const key in value) {
+    if (Object.hasOwnProperty.call(value, key)) {
+      result[key] = clone(value[key])
     }
-    return result
   }
-
-  // Fallback for other types, return as is
-  return value
+  return result
 }
 
 export default function deepClone<T>(obj: T): T {
@@ -52,5 +47,6 @@ export default function deepClone<T>(obj: T): T {
   if (typeof structuredClone === 'function') return structuredClone(obj)
 
   // Otherwise, perform a manual deep clone
+  /* istanbul ignore next -- @preserve */
   return clone(obj)
 }
