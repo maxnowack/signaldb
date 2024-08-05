@@ -10,6 +10,7 @@ import isEqual from './utils/isEqual'
 
 interface AutoFetchOptions<T extends { id: I } & Record<string, any>, I> {
   fetchQueryItems: (selector: Selector<T>) => ReturnType<ReplicatedCollectionOptions<T, I>['pull']>,
+  purgeDelay?: number,
 }
 export type AutoFetchCollectionOptions<
   T extends BaseItem<I>,
@@ -23,6 +24,8 @@ export default class AutoFetchCollection<
   U = T,
 > extends ReplicatedCollection<T, I, U> {
   private activeObservers = new Map<string, number>()
+  private observerTimeouts = new Map<string, NodeJS.Timeout>()
+  private purgeDelay: number
   private idQueryCache = new Map<I, Selector<T>[]>()
   private itemsCache: T[] = []
   private fetchQueryItems: (selector: Selector<T>) => ReturnType<ReplicatedCollectionOptions<T, I>['pull']>
@@ -40,6 +43,7 @@ export default class AutoFetchCollection<
         if (options.registerRemoteChange) await options.registerRemoteChange(onChange)
       },
     })
+    this.purgeDelay = options.purgeDelay ?? 10000 // 10 seconds
     if (!triggerRemoteChange) throw new Error('No triggerRemoteChange method found. Looks like your persistence adapter was not registered')
     this.triggerReload = triggerRemoteChange
     this.reactivityAdapter = options.reactivity ?? null
@@ -53,6 +57,8 @@ export default class AutoFetchCollection<
     const activeObservers = this.activeObservers.get(JSON.stringify(selector)) ?? 0
     // increment the count of observers for this query
     this.activeObservers.set(JSON.stringify(selector), activeObservers + 1)
+    const timeout = this.observerTimeouts.get(JSON.stringify(selector))
+    if (timeout) clearTimeout(timeout)
 
     // if this is the first observer for this query, fetch the data
     if (activeObservers === 0) {
@@ -83,29 +89,39 @@ export default class AutoFetchCollection<
   }
 
   private handleObserverDisposal(selector: Selector<T>) {
-    const activeObservers = this.activeObservers.get(JSON.stringify(selector)) ?? 0
-    if (activeObservers > 1) {
-      // decrement the count of observers for this query
-      this.activeObservers.set(JSON.stringify(selector), activeObservers - 1)
+    // decrement the count of observers for this query
+    const activeObservers = (this.activeObservers.get(JSON.stringify(selector)) ?? 0) - 1
+    if (activeObservers > 0) {
+      this.activeObservers.set(JSON.stringify(selector), activeObservers)
       return
     }
 
-    // if this is the last observer for this query, remove the query from the cache
-    this.activeObservers.delete(JSON.stringify(selector))
+    const timeout = this.observerTimeouts.get(JSON.stringify(selector))
+    if (timeout) clearTimeout(timeout)
+    const removeObserver = () => {
+      // if this is the last observer for this query and the purge delay was passed, remove the query from the cache
+      this.activeObservers.delete(JSON.stringify(selector))
 
-    // remove the query from the cache
-    this.idQueryCache.forEach((queries, id) => {
-      const updatedQueries = queries.filter(query => !isEqual(query, selector))
-      if (updatedQueries.length === 0) {
-        this.idQueryCache.delete(id)
-        this.itemsCache = this.itemsCache.filter(item => item.id !== id)
-      } else {
-        this.idQueryCache.set(id, updatedQueries)
-      }
-    })
+      // remove the query from the cache
+      this.idQueryCache.forEach((queries, id) => {
+        const updatedQueries = queries.filter(query => !isEqual(query, selector))
+        if (updatedQueries.length === 0) {
+          this.idQueryCache.delete(id)
+          this.itemsCache = this.itemsCache.filter(item => item.id !== id)
+        } else {
+          this.idQueryCache.set(id, updatedQueries)
+        }
+      })
 
-    if (!this.triggerReload) throw new Error('No triggerReload method found. Looks like your persistence adapter was not registered')
-    void this.triggerReload()
+      if (!this.triggerReload) throw new Error('No triggerReload method found. Looks like your persistence adapter was not registered')
+      void this.triggerReload()
+    }
+    if (this.purgeDelay === 0) {
+      // remove the query from the cache immediately
+      removeObserver()
+      return
+    }
+    this.observerTimeouts.set(JSON.stringify(selector), setTimeout(removeObserver, this.purgeDelay))
   }
 
   private ensureSignal(selector: Selector<T>) {
