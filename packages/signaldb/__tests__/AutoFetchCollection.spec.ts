@@ -132,7 +132,7 @@ it('should handle multiple observers for the same query', async () => {
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
-it('should handle multiple queriey', async () => {
+it('should handle multiple queries', async () => {
   const fetchQueryItems = vi.fn()
   const disposalCallbacks: (() => void)[] = []
   const disposeAll = () => disposalCallbacks.forEach(callback => callback())
@@ -173,6 +173,51 @@ it('should handle multiple queriey', async () => {
   await waitForEvent(collection, 'persistence.received')
   await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure fetchQueryItems cache was updated
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(responseAllItems.items)
+
+  disposeAll()
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
+})
+
+it('should update items with result of new fetch', async () => {
+  const fetchQueryItems = vi.fn()
+  const disposalCallbacks: (() => void)[] = []
+  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const reactivity = createReactivityAdapter({
+    create: () => ({
+      depend: vi.fn(),
+      notify: vi.fn(),
+    }),
+    onDispose(callback) {
+      disposalCallbacks.push(callback)
+    },
+  })
+  const collection = new AutoFetchCollection({
+    push: vi.fn(),
+    fetchQueryItems,
+    reactivity,
+  })
+
+  // Mock fetchQueryItems response
+  const responseItems = [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item 2' }]
+  fetchQueryItems.mockImplementation((selector) => {
+    if (selector.id) {
+      return Promise.resolve({
+        items: [...responseItems.filter(i => i.id !== 1), { id: 1, name: 'Item 1 updated' }],
+      })
+    }
+    return Promise.resolve({ items: responseItems })
+  })
+
+  expect(collection.find({}).fetch()).toEqual([])
+  await waitForEvent(collection, 'persistence.received')
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  expect(collection.find({}).fetch()).toEqual(responseItems)
+
+  expect(collection.findOne({ id: 1 })).toEqual(responseItems[0])
+  await waitForEvent(collection, 'persistence.received')
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(2))
+  expect(collection.findOne({ id: 1 })).toEqual({ id: 1, name: 'Item 1 updated' })
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')

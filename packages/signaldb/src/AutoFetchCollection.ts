@@ -61,7 +61,7 @@ export default class AutoFetchCollection<
           if (!response.items) throw new Error('AutoFetchCollection currently only works with a full item response')
 
           // merge the response into the cache
-          this.itemsCache = uniqueBy([...this.itemsCache, ...response.items], 'id')
+          this.itemsCache = uniqueBy([...response.items, ...this.itemsCache], 'id')
 
           response.items.forEach((item) => {
             const queries = this.idQueryCache.get(item.id) ?? []
