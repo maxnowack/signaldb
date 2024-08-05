@@ -272,3 +272,32 @@ it('should purge items after specified delay', async () => {
   await new Promise((resolve) => { setTimeout(resolve, 500) }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
+
+it('should register and unregister queries', async () => {
+  const fetchQueryItems = vi.fn()
+  const collection = new AutoFetchCollection({
+    push: vi.fn(),
+    fetchQueryItems,
+    purgeDelay: 0,
+  })
+
+  // Mock fetchQueryItems response
+  const response = {
+    items: [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item 2' }],
+  }
+  fetchQueryItems.mockResolvedValue(response)
+
+  expect(collection.find({}).fetch()).toEqual([])
+  expect(fetchQueryItems).toBeCalledTimes(0)
+  collection.registerQuery({})
+  await waitForEvent(collection, 'persistence.received')
+
+  // Wait for fetchQueryItems to be called
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  expect(collection.find({}).fetch()).toEqual(response.items)
+
+  collection.unregisterQuery({})
+  await waitForEvent(collection, 'persistence.received')
+  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
+})

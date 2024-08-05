@@ -52,7 +52,15 @@ export default class AutoFetchCollection<
 
     this.fetchQueryItems = options.fetchQueryItems
     this.on('observer.created', selector => this.handleObserverCreation(selector ?? {}))
-    this.on('observer.disposed', selector => this.handleObserverDisposal(selector ?? {}))
+    this.on('observer.disposed', selector => setTimeout(() => this.handleObserverDisposal(selector ?? {}), 100))
+  }
+
+  public registerQuery(selector: Selector<T>) {
+    this.handleObserverCreation(selector)
+  }
+
+  public unregisterQuery(selector: Selector<T>) {
+    this.handleObserverDisposal(selector)
   }
 
   private handleObserverCreation(selector: Selector<T>) {

@@ -95,4 +95,8 @@ const loading = Todos.isLoading()
 
 // The isLoading method takes an optional selector parameter to observe the loading state of a specific query
 const postsFromMaxLoading = Todos.isLoading({ author: 'Max' })
+
+// It's also possible to register and unregister queries manuallly
+Todos.registerQuery({ author: 'Max' })
+Todos.unregisterQuery({ author: 'Max' })
 ```
