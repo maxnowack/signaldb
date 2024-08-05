@@ -28,6 +28,7 @@ it('should fetch query items when observer is created', async () => {
   // Wait for fetchQueryItems to be called
   await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
   await vi.waitFor(() => expect(collection.isLoading({})).toBe(false))
+  await vi.waitFor(() => expect(collection.isLoading()).toBe(false))
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(response.items)
 })
 

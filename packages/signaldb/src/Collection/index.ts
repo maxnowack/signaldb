@@ -122,16 +122,16 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.isPullingSignal = createSignal(this.options.reactivity?.create(), false)
     this.isPushingSignal = createSignal(this.options.reactivity?.create(), false)
     this.on('persistence.pullStarted', () => {
-      this.isPullingSignal?.set(true)
+      this.isPullingSignal.set(true)
     })
     this.on('persistence.pullCompleted', () => {
-      this.isPullingSignal?.set(false)
+      this.isPullingSignal.set(false)
     })
     this.on('persistence.pushStarted', () => {
-      this.isPushingSignal?.set(true)
+      this.isPushingSignal.set(true)
     })
     this.on('persistence.pushCompleted', () => {
-      this.isPushingSignal?.set(false)
+      this.isPushingSignal.set(false)
     })
 
     this.persistenceAdapter = this.options.persistence ?? null
@@ -184,7 +184,10 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         this.rebuildIndices()
 
         this.emit('persistence.received')
-        this.emit('persistence.pullCompleted')
+
+        // emit persistence.pullCompleted in next tick to let cursor observers
+        // do the requery before the loading state updates
+        setTimeout(() => this.emit('persistence.pullCompleted'), 0)
       }
 
       const saveQueue = {
