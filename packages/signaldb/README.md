@@ -16,13 +16,8 @@
 
 # SignalDB: Client-Side JavaScript Database with TypeScript Support and Reactive Interfaces
 
-SignalDB is an innovative client-side database designed for modern web applications. It provides a powerful MongoDB-like interface that simplifies data handling with first-class TypeScript support, enhancing type safety and development experience. This JavaScript database is tailored for creating an optimistic UI, allowing developers to build responsive and dynamic user interfaces with ease.
-
-Data persistence is a core feature of SignalDB. It enables the storage of data through a JSON interface in various storage providers, including the widely-used localStorage. This flexibility allows you to choose the most suitable storage mechanism for your application, whether you're aiming for temporary session storage or more permanent data retention.
-
-SignalDB excels in situations where quick and efficient data handling is crucial. The use of a client-side approach ensures that data is readily available without the latency associated with server-side databases. This instant access to data is particularly beneficial for applications requiring high performance and real-time interactions.
-
-Furthermore, SignalDB's architecture is designed to be lightweight and unobtrusive. It doesn't lock you into a specific framework, making it a versatile choice for a wide range of JavaScript applications. Whether you're working on a small project or a large-scale application, SignalDB's intuitive API and flexible design make it an ideal choice for developers looking to enhance their application's data management capabilities.
+SignalDB is a client-side database optimized for modern web applications, offering a MongoDB-like interface with robust TypeScript support to improve development speed and ensure type safety. SignalDB supports creating an optimistic UI for responsive, dynamic interfaces and offers versatile local data persistence with various storage providers. SignalDB is also able to gather data from multiple sources, enabling real-time updates and synchronization (see examples for [AppWrite](https://github.com/maxnowack/signaldb/tree/main/examples/appwrite), [Firebase](https://github.com/maxnowack/signaldb/tree/main/examples/firebase), [Supabase](https://github.com/maxnowack/signaldb/tree/main/examples/supabase), [RxDB](https://github.com/maxnowack/signaldb/tree/main/examples/rxdb) and [HTTP](https://github.com/maxnowack/signaldb/tree/main/examples/replication-http)).
+Designed for efficiency in applications requiring quick data handling and real-time interactions, SignalDB provides instant data access, minimizing latency typical of server-side databases. Its lightweight architecture is framework-agnostic, making it suitable for both small and large-scale projects that require flexible, intuitive data management solutions. SignalDB provides adapters for popular reactive libraries including [Angular](https://signaldb.js.org/reactivity/angular/), [React](https://signaldb.js.org/guides/react/) (through 3rd party signal libraries), [Solid.js](https://signaldb.js.org/reactivity/solidjs/), [Vue.js](https://signaldb.js.org/reactivity/vue/) and many more.
 
 ## Installation
 
@@ -43,18 +38,18 @@ console.log(cursor.fetch()) // returns an array with all documents in the collec
 
 ### Reactivity
 In theory, every signal library is supported. SignalDB currently have pre-build reactivity adapters for these libraries:
-* **@preact/signals-core**
-* **@reactively/core**
-* **Angular**
-* **Maverick-js Signals**
-* **Meteor Tracker**
-* **MobX**
-* **oby**
-* **S.js**
-* **sinuous**
-* **Solid.js**
-* **usignal**
-* **Vue.js**
+* [**@preact/signals-core**](https://signaldb.js.org/reactivity/preact-signals/)
+* [**@reactively/core**](https://signaldb.js.org/reactivity/reactively/)
+* [**Angular**](https://signaldb.js.org/reactivity/angular/)
+* [**Maverick-js Signals**](https://signaldb.js.org/reactivity/maverickjs/) (current favorite for usage with React)
+* [**Meteor Tracker**](https://signaldb.js.org/reactivity/meteor-tracker/)
+* [**MobX**](https://signaldb.js.org/reactivity/mobx/)
+* [**oby**](https://signaldb.js.org/reactivity/oby/)
+* [**S.js**](https://signaldb.js.org/reactivity/s-js/)
+* [**sinuous**](https://signaldb.js.org/reactivity/sinuous/)
+* [**Solid.js**](https://signaldb.js.org/reactivity/solidjs/)
+* [**usignal**](https://signaldb.js.org/reactivity/usignal/)
+* [**Vue.js**](https://signaldb.js.org/reactivity/vue/)
 * *and more to come!*
 
 More information in the [reactivity section](https://signaldb.js.org/reactivity/) of the documentation.
