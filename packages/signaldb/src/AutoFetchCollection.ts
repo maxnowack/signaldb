@@ -32,6 +32,7 @@ export default class AutoFetchCollection<
   private triggerReload: null | (() => void | Promise<void>) = null
   private reactivityAdapter: ReactivityAdapter | null = null
   private loadingSignals = new Map<string, Signal<boolean>>()
+  private isFetchingSignal: Signal<boolean>
 
   constructor(options: AutoFetchCollectionOptions<T, I, U>) {
     let triggerRemoteChange: (() => Promise<void> | void) | undefined
@@ -44,6 +45,7 @@ export default class AutoFetchCollection<
       },
     })
     this.purgeDelay = options.purgeDelay ?? 10000 // 10 seconds
+    this.isFetchingSignal = createSignal(options.reactivity?.create(), false)
     if (!triggerRemoteChange) throw new Error('No triggerRemoteChange method found. Looks like your persistence adapter was not registered')
     this.triggerReload = triggerRemoteChange
     this.reactivityAdapter = options.reactivity ?? null
@@ -62,6 +64,7 @@ export default class AutoFetchCollection<
 
     // if this is the first observer for this query, fetch the data
     if (activeObservers === 0) {
+      this.isFetchingSignal.set(true)
       this.fetchQueryItems(selector)
         .then((response) => {
           if (!response.items) throw new Error('AutoFetchCollection currently only works with a full item response')
@@ -84,6 +87,9 @@ export default class AutoFetchCollection<
         })
         .catch((error: Error) => {
           this.emit('persistence.error', error)
+        })
+        .finally(() => {
+          this.isFetchingSignal.set(false)
         })
     }
   }
@@ -141,8 +147,11 @@ export default class AutoFetchCollection<
   }
 
   public isLoading(selector?: Selector<T>) {
-    if (!selector) return super.isLoading()
+    const isPushing = this.isPushing()
+    if (!selector) {
+      return this.isFetchingSignal.get() || isPushing
+    }
     const signal = this.ensureSignal(selector)
-    return signal.get()
+    return signal.get() || isPushing
   }
 }
