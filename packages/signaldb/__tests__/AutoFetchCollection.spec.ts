@@ -48,6 +48,7 @@ it('should remove query when observer is disposed', async () => {
     push: vi.fn(),
     fetchQueryItems,
     reactivity,
+    purgeDelay: 0,
   })
 
   // Mock fetchQueryItems response
@@ -65,6 +66,7 @@ it('should remove query when observer is disposed', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
+  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -108,6 +110,7 @@ it('should handle multiple observers for the same query', async () => {
     push: vi.fn(),
     fetchQueryItems,
     reactivity,
+    purgeDelay: 0,
   })
 
   // Mock fetchQueryItems response
@@ -129,6 +132,7 @@ it('should handle multiple observers for the same query', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
+  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -149,6 +153,7 @@ it('should handle multiple queries', async () => {
     push: vi.fn(),
     fetchQueryItems,
     reactivity,
+    purgeDelay: 0,
   })
 
   const responseAllItems = {
@@ -171,11 +176,11 @@ it('should handle multiple queries', async () => {
   expect(fetchQueryItems).toBeCalledWith({})
   expect(fetchQueryItems).toBeCalledTimes(2)
   await waitForEvent(collection, 'persistence.received')
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure fetchQueryItems cache was updated
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(responseAllItems.items)
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
+  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -196,6 +201,7 @@ it('should update items with result of new fetch', async () => {
     push: vi.fn(),
     fetchQueryItems,
     reactivity,
+    purgeDelay: 0,
   })
 
   // Mock fetchQueryItems response
@@ -221,5 +227,47 @@ it('should update items with result of new fetch', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
+  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
+})
+
+it('should purge items after specified delay', async () => {
+  const fetchQueryItems = vi.fn()
+  const disposalCallbacks: (() => void)[] = []
+  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const reactivity = createReactivityAdapter({
+    create: () => ({
+      depend: vi.fn(),
+      notify: vi.fn(),
+    }),
+    onDispose(callback) {
+      disposalCallbacks.push(callback)
+    },
+  })
+  const collection = new AutoFetchCollection({
+    push: vi.fn(),
+    fetchQueryItems,
+    reactivity,
+    purgeDelay: 500,
+  })
+
+  // Mock fetchQueryItems response
+  const response = {
+    items: [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item 2' }],
+  }
+  fetchQueryItems.mockResolvedValue(response)
+
+  expect(collection.find({}).fetch()).toEqual([])
+  await waitForEvent(collection, 'persistence.received')
+
+  // Wait for fetchQueryItems to be called
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  expect(collection.find({}).fetch()).toEqual(response.items)
+
+  disposeAll()
+  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  expect(collection.find({}, { reactive: false }).fetch()).toEqual(response.items)
+
+  await new Promise((resolve) => { setTimeout(resolve, 500) }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })

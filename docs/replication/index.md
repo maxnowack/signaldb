@@ -70,6 +70,12 @@ const Todos = new AutoFetchCollection({
     // Or you can return only the changes
     // return { changes: { added: [...], modified: [...], removed: [...] } }
   },
+
+  // optional, specifie the delay in milliseconds after which the data will be
+  // purged from the collection after the query is not used anymore
+  // default is 10 seconds
+  purgeDelay: 1000 * 10,
+
   push: async (changes, items) => {
     // The push method is the same as in the ReplicatedCollection
     // The push method is called when the local data has changed
