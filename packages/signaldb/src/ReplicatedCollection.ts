@@ -6,7 +6,7 @@ import createPersistenceAdapter from './persistence/createPersistenceAdapter'
 
 interface ReplicationOptions<T extends { id: I } & Record<string, any>, I> {
   pull: () => Promise<LoadResponse<T>>,
-  push(changes: Changeset<T>, items: T[]): Promise<void>,
+  push?(changes: Changeset<T>, items: T[]): Promise<void>,
   registerRemoteChange?: (
     onChange: (data?: LoadResponse<T>) => void | Promise<void>
   ) => Promise<void>,
@@ -20,7 +20,10 @@ export function createReplicationAdapter<T extends { id: I } & Record<string, an
       await options.registerRemoteChange(onChange)
     },
     load: () => options.pull(),
-    save: (items, changes) => options.push(changes, items),
+    save: (items, changes) => {
+      if (!options.push) throw new Error('Pushing is not configured for this collection. Try to pass a `push` function to the collection options.')
+      return options.push(changes, items)
+    },
   })
 }
 
