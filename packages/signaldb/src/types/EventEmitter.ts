@@ -1,16 +1,14 @@
 import { EventEmitter as BaseEventEmitter } from 'events'
 
-declare interface EventEmitter<T extends Record<string | symbol, any>> {
-  on<U extends keyof T>(
-    event: U, listener: T[U]
-  ): this,
+export default class EventEmitter<
+  Events extends Record<string | symbol, any>,
+> extends BaseEventEmitter {
+  on<K extends keyof Events>(event: K, listener: Events[K]) {
+    super.on(event as string, listener as (...args: any[]) => void)
+    return this
+  }
 
-  emit<U extends keyof T>(
-    event: U, ...args: Parameters<T[U]>
-  ): boolean,
+  emit<K extends keyof Events>(event: K, ...args: Parameters<Events[K]>) {
+    return super.emit(event as string, ...args)
+  }
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-declaration-merging
-class EventEmitter<T> extends BaseEventEmitter {}
-
-export default EventEmitter
