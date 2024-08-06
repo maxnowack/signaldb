@@ -279,6 +279,16 @@ it('should register and unregister queries', async () => {
     push: vi.fn(),
     fetchQueryItems,
     purgeDelay: 0,
+    reactivity: createReactivityAdapter({
+      create: () => ({
+        depend: vi.fn(),
+        notify: vi.fn(),
+      }),
+
+      // always return false to simulate that the collection is not in scope
+      // we use the registerQuery and unregisterQuery methods
+      isInScope: () => false,
+    }),
   })
 
   // Mock fetchQueryItems response
@@ -300,4 +310,88 @@ it('should register and unregister queries', async () => {
   await waitForEvent(collection, 'persistence.received')
   await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
+})
+
+it('should keep track which items and which fields were returned by a query', async () => {
+  const fetchQueryItems = vi.fn().mockImplementation((selector: Record<string, any>) => {
+    if (selector.id === 1) {
+      return Promise.resolve({
+        items: [{ id: 1, name: 'Jane', age: 30, country: 'AU' }],
+      })
+    }
+    if (selector.id === 2) {
+      return Promise.resolve({
+        items: [{ id: 2, name: 'John', age: 35, country: 'US' }],
+      })
+    }
+
+    if (selector.age) {
+      return Promise.resolve({
+        items: [{ id: 2, name: 'John', age: 35 }, { id: 1, name: 'Jane', age: 30 }],
+      })
+    }
+
+    return Promise.resolve({
+      items: [{ id: 1, name: 'Jane' }, { id: 2, name: 'John' }],
+    })
+  })
+
+  const collection = new AutoFetchCollection({
+    fetchQueryItems,
+    purgeDelay: 0,
+    reactivity: createReactivityAdapter({
+      create: () => ({
+        depend: vi.fn(),
+        notify: vi.fn(),
+      }),
+
+      // always return false to simulate that the collection is not in scope
+      // we use the registerQuery and unregisterQuery methods
+      isInScope: () => false,
+    }),
+  })
+
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([])
+  expect(fetchQueryItems).toBeCalledTimes(0)
+
+  collection.registerQuery({})
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
+    { id: 1, name: 'Jane' },
+    { id: 2, name: 'John' },
+  ])
+
+  collection.registerQuery({ age: { gt: 20 } })
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(2))
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
+    { id: 1, name: 'Jane', age: 30 },
+    { id: 2, name: 'John', age: 35 },
+  ])
+
+  collection.registerQuery({ id: 1 })
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(3))
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
+    { id: 1, name: 'Jane', age: 30, country: 'AU' },
+    { id: 2, name: 'John', age: 35 },
+  ])
+
+  collection.unregisterQuery({ age: { gt: 20 } })
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
+    { id: 1, name: 'Jane', age: 30, country: 'AU' },
+    { id: 2, name: 'John' },
+  ])
+
+  collection.unregisterQuery({})
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
+    { id: 1, name: 'Jane', age: 30, country: 'AU' },
+  ])
+
+  collection.unregisterQuery({ id: 1 })
+  await waitForEvent(collection, 'persistence.received')
+  expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([])
 })
