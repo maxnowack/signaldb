@@ -36,7 +36,7 @@ const Todos = new ReplicatedCollection({
   },
   registerRemoteChange: async (onChange) => {
     // The registerRemoteChange method is for registering a callback that is called when the remote data has changed
-    // The callback takes no parameters. After you called the onChange callback, the pull method is called
+    // The callback can accept a LoadResponse. If no LoadResponse is supplied, pull will be called instead.
   },
 
   // You can also optionally specify a persistence adapter
