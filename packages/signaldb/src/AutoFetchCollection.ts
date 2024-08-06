@@ -4,9 +4,7 @@ import ReplicatedCollection from './ReplicatedCollection'
 import type ReactivityAdapter from './types/ReactivityAdapter'
 import type Signal from './types/Signal'
 import type Selector from './types/Selector'
-import uniqueBy from './utils/uniqueBy'
 import createSignal from './utils/createSignal'
-import isEqual from './utils/isEqual'
 
 interface AutoFetchOptions<T extends { id: I } & Record<string, any>, I> {
   fetchQueryItems: (selector: Selector<T>) => ReturnType<ReplicatedCollectionOptions<T, I>['pull']>,
@@ -27,7 +25,7 @@ export default class AutoFetchCollection<
   private observerTimeouts = new Map<string, NodeJS.Timeout>()
   private purgeDelay: number
   private idQueryCache = new Map<I, Selector<T>[]>()
-  private itemsCache: T[] = []
+  private itemsCache = new Map<string, T[]>()
   private fetchQueryItems: (selector: Selector<T>) => ReturnType<ReplicatedCollectionOptions<T, I>['pull']>
   private triggerReload: null | (() => void | Promise<void>) = null
   private reactivityAdapter: ReactivityAdapter | null = null
@@ -38,7 +36,20 @@ export default class AutoFetchCollection<
     let triggerRemoteChange: (() => Promise<void> | void) | undefined
     super({
       ...options,
-      pull: () => Promise.resolve({ items: this.itemsCache }),
+      pull: () => Promise.resolve({
+        items: [...this.itemsCache.values()].reduce((memo, items) => {
+          const newItems = [...memo]
+          items.forEach((item) => {
+            const index = newItems.findIndex(i => i.id === item.id)
+            if (index === -1) {
+              newItems.push(item)
+              return
+            }
+            newItems[index] = { ...newItems[index], ...item }
+          })
+          return newItems
+        }, []),
+      }),
       registerRemoteChange: async (onChange) => {
         triggerRemoteChange = onChange
         if (options.registerRemoteChange) await options.registerRemoteChange(onChange)
@@ -63,11 +74,16 @@ export default class AutoFetchCollection<
     this.handleObserverDisposal(selector)
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  private getKeyForSelector(selector: Selector<T>) {
+    return JSON.stringify(selector)
+  }
+
   private handleObserverCreation(selector: Selector<T>) {
-    const activeObservers = this.activeObservers.get(JSON.stringify(selector)) ?? 0
+    const activeObservers = this.activeObservers.get(this.getKeyForSelector(selector)) ?? 0
     // increment the count of observers for this query
-    this.activeObservers.set(JSON.stringify(selector), activeObservers + 1)
-    const timeout = this.observerTimeouts.get(JSON.stringify(selector))
+    this.activeObservers.set(this.getKeyForSelector(selector), activeObservers + 1)
+    const timeout = this.observerTimeouts.get(this.getKeyForSelector(selector))
     if (timeout) clearTimeout(timeout)
 
     // if this is the first observer for this query, fetch the data
@@ -78,7 +94,7 @@ export default class AutoFetchCollection<
           if (!response.items) throw new Error('AutoFetchCollection currently only works with a full item response')
 
           // merge the response into the cache
-          this.itemsCache = uniqueBy([...response.items, ...this.itemsCache], 'id')
+          this.itemsCache.set(this.getKeyForSelector(selector), response.items)
 
           response.items.forEach((item) => {
             const queries = this.idQueryCache.get(item.id) ?? []
@@ -104,28 +120,20 @@ export default class AutoFetchCollection<
 
   private handleObserverDisposal(selector: Selector<T>) {
     // decrement the count of observers for this query
-    const activeObservers = (this.activeObservers.get(JSON.stringify(selector)) ?? 0) - 1
+    const activeObservers = (this.activeObservers.get(this.getKeyForSelector(selector)) ?? 0) - 1
     if (activeObservers > 0) {
-      this.activeObservers.set(JSON.stringify(selector), activeObservers)
+      this.activeObservers.set(this.getKeyForSelector(selector), activeObservers)
       return
     }
 
-    const timeout = this.observerTimeouts.get(JSON.stringify(selector))
+    const timeout = this.observerTimeouts.get(this.getKeyForSelector(selector))
     if (timeout) clearTimeout(timeout)
     const removeObserver = () => {
       // if this is the last observer for this query and the purge delay was passed, remove the query from the cache
-      this.activeObservers.delete(JSON.stringify(selector))
+      this.activeObservers.delete(this.getKeyForSelector(selector))
 
-      // remove the query from the cache
-      this.idQueryCache.forEach((queries, id) => {
-        const updatedQueries = queries.filter(query => !isEqual(query, selector))
-        if (updatedQueries.length === 0) {
-          this.idQueryCache.delete(id)
-          this.itemsCache = this.itemsCache.filter(item => item.id !== id)
-        } else {
-          this.idQueryCache.set(id, updatedQueries)
-        }
-      })
+      // remove items for query from the cache
+      this.itemsCache.delete(this.getKeyForSelector(selector))
 
       if (!this.triggerReload) throw new Error('No triggerReload method found. Looks like your persistence adapter was not registered')
       void this.triggerReload()
@@ -135,18 +143,21 @@ export default class AutoFetchCollection<
       removeObserver()
       return
     }
-    this.observerTimeouts.set(JSON.stringify(selector), setTimeout(removeObserver, this.purgeDelay))
+    this.observerTimeouts.set(
+      this.getKeyForSelector(selector),
+      setTimeout(removeObserver, this.purgeDelay),
+    )
   }
 
   private ensureSignal(selector: Selector<T>) {
     if (!this.reactivityAdapter) throw new Error('No reactivity adapter found')
-    if (!this.loadingSignals.has(JSON.stringify(selector))) {
+    if (!this.loadingSignals.has(this.getKeyForSelector(selector))) {
       this.loadingSignals.set(
-        JSON.stringify(selector),
+        this.getKeyForSelector(selector),
         createSignal(this.reactivityAdapter.create(), false),
       )
     }
-    return this.loadingSignals.get(JSON.stringify(selector)) as Signal<boolean>
+    return this.loadingSignals.get(this.getKeyForSelector(selector)) as Signal<boolean>
   }
 
   private setLoading(selector: Selector<T>, value: boolean) {
