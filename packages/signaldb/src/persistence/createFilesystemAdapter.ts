@@ -3,7 +3,15 @@ import createPersistenceAdapter from './createPersistenceAdapter'
 export default function createFilesystemAdapter<
   T extends { id: I } & Record<string, any>,
   I,
->(filename: string) {
+>(
+  filename: string,
+  options?: {
+    serialize?: (items: T[]) => string,
+    deserialize?: (itemsString: string) => T[],
+  },
+) {
+  const { serialize = JSON.stringify, deserialize = JSON.parse } = options || {}
+
   let savePromise: Promise<void> | null = null
 
   async function getItems(): Promise<T[]> {
@@ -16,7 +24,7 @@ export default function createFilesystemAdapter<
       /* istanbul ignore next -- @preserve */
       throw err
     })
-    return JSON.parse(contents)
+    return deserialize(contents)
   }
 
   return createPersistenceAdapter<T, I>({
@@ -60,7 +68,7 @@ export default function createFilesystemAdapter<
         })
         .then(async (items) => {
           const fs = await import('fs')
-          await fs.promises.writeFile(filename, JSON.stringify(items))
+          await fs.promises.writeFile(filename, serialize(items))
         })
         .then(() => {
           savePromise = null
