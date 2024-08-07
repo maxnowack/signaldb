@@ -14,10 +14,6 @@ export default function createLocalStorageAdapter<
       return Promise.resolve({ items })
     },
     async save(items, { added, modified, removed }) {
-      if (added.length === 0 && modified.length === 0 && removed.length === 0) {
-        localStorage.setItem(collectionId, JSON.stringify(items))
-        return Promise.resolve()
-      }
       const currentItems = getItems()
       added.forEach((item) => {
         currentItems.push(item)
