@@ -3,14 +3,22 @@ import createPersistenceAdapter from './createPersistenceAdapter'
 export default function createOPFSAdapter<
   T extends { id: I } & Record<string, any>,
   I,
->(filename: string) {
+>(
+  filename: string,
+  options?: {
+    serialize?: (items: T[]) => string,
+    deserialize?: (itemsString: string) => T[],
+  },
+) {
+  const { serialize = JSON.stringify, deserialize = JSON.parse } = options || {}
+
   let savePromise: Promise<void> | null = null
 
   async function getItems(): Promise<T[]> {
     const opfsRoot = await navigator.storage.getDirectory()
     const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
     const contents = await existingFileHandle.getFile().then(val => val.text())
-    return JSON.parse(contents || '[]')
+    return deserialize(contents || '[]')
   }
 
   return createPersistenceAdapter<T, I>({
@@ -31,7 +39,7 @@ export default function createOPFSAdapter<
       const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
       if (added.length === 0 && modified.length === 0 && removed.length === 0) {
         const writeStream = await existingFileHandle.createWritable()
-        await writeStream.write(JSON.stringify(_items))
+        await writeStream.write(serialize(_items))
         await writeStream.close()
         await savePromise
         return
@@ -58,7 +66,7 @@ export default function createOPFSAdapter<
         })
         .then(async (items) => {
           const writeStream = await existingFileHandle.createWritable()
-          await writeStream.write(JSON.stringify(items))
+          await writeStream.write(serialize(items))
           await writeStream.close()
         })
         .then(() => {
