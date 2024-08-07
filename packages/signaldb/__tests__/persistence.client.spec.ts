@@ -99,6 +99,17 @@ describe('Persistence', () => {
       expect(items).toEqual([{ id: '1', name: 'Johnny' }])
       expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
     }, { retry: 5 })
+
+    it('should not overwrite persisted data if items is undefined and changeSet is empty.', async () => {
+      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
+      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
+      const collection = new Collection({ persistence })
+      await waitForEvent(collection, 'persistence.init')
+      await persistence.save([], { added: [], removed: [], modified: [] })
+      const items = collection.find().fetch()
+      expect(items).toEqual([{ id: '1', name: 'John' }])
+      expect((await persistence.load()).items).toEqual([{ id: '1', name: 'John' }])
+    })
   })
 
   describe('OPFS', () => {
