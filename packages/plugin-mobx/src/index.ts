@@ -10,7 +10,7 @@ const mobxReactivityAdapter = createReactivityAdapter({
     const dep = observable({ count: 0 })
     return {
       depend: () => {
-        // eslint-disable-next-line no-unused-expressions
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         dep.count
       },
       notify: () => {
