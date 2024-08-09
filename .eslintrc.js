@@ -18,12 +18,17 @@ module.exports = {
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: './tsconfig.eslint.json',
     allowImportExportEverywhere: true,
+    projectService: {
+      // allowDefaultProject: ['*.js'],
+      // projectFolderIgnoreList: ['**/node_modules/**', "**/dist/**"]
+      defaultProject: './tsconfig.eslint.json',
+    },
   },
   plugins: [
-    'prefer-object-spread',
+    '@stylistic',
     '@typescript-eslint',
+    'prefer-object-spread',
     'vitest',
   ],
   ignorePatterns: [
@@ -84,8 +89,7 @@ module.exports = {
     'no-void': ['error', {
       allowAsStatement: true,
     }],
-    indent: 'off',
-    '@typescript-eslint/indent': ['error', 2],
+    '@stylistic/indent': ['error', 2],
     'no-shadow': 'off',
     '@typescript-eslint/no-shadow': ['error'],
     'import/extensions': 'off',
@@ -104,7 +108,7 @@ module.exports = {
     '@typescript-eslint/no-use-before-define': ['error', {
       functions: false,
     }],
-    '@typescript-eslint/member-delimiter-style': ['error', {
+    '@stylistic/member-delimiter-style': ['error', {
       multiline: {
         delimiter: 'comma',
         requireLast: true,
