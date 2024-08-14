@@ -8,8 +8,10 @@ head:
 
 ## Adapter
 
-* ✅ Automatic Cleanup 
+* ✅ Automatic Cleanup
 * ✅ Scope check
+
+## Installation
 
 ```bash
   $ npm install signaldb-plugin-oby

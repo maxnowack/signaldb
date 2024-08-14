@@ -10,8 +10,10 @@ Meteor Tracker is an integral component of the Meteor framework, offering a seam
 
 ## Adapter
 
-* ✅ Automatic Cleanup 
+* ✅ Automatic Cleanup
 * ✅ Scope check
+
+## Installation
 
 ```bash
   $ npm install signaldb-plugin-meteor

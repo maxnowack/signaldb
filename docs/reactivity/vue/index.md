@@ -16,6 +16,8 @@ Vue.js is renowned for its powerful reactivity system, enabling developers to ef
 The API of Vue.js doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
 You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
+## Installation
+
 ```bash
   $ npm install signaldb-plugin-vue
 ```

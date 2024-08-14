@@ -10,8 +10,10 @@ Maverick.js's signals provide a powerful foundation for reactive programming, an
 
 ## Adapter
 
-* ✅ Automatic Cleanup 
+* ✅ Automatic Cleanup
 * ✅ Scope check
+
+## Installation
 
 ```bash
   $ npm install signaldb-plugin-maverickjs

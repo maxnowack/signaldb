@@ -16,6 +16,8 @@ The API of usignal doesn't allow [automatic cleanup](/reactivity/other/#ondispos
 With usignal, you can return a function from your `effect` that will be called on cleanup. Use this one to cleanup your cursors (see below for an example).
 You also must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
+## Installation
+
 ```bash
   $ npm install signaldb-plugin-usignal
 ```
