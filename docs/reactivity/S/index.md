@@ -8,11 +8,11 @@ head:
 
 ## Adapter
 
-* ✅ Automatic Cleanup 
+* ✅ Automatic Cleanup
 * ❌ Scope check
 
 The API of S.js doesn't allow [reactive scope checking](/reactivity/#reactivity-libraries).
-You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `reactive: false` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
+You must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
 ```bash
   $ npm install signaldb-plugin-sjs

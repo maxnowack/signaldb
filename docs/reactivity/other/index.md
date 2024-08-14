@@ -38,7 +38,7 @@ create: () => {
 
 ### `isInScope(dependency: Dependency): boolean`
 
-The `isInScope` function is used for checking wether a SignalDB is in a reactive context. If SignalDB is not in a reactive context, reactivity will be automatically disabled to avoid memory leaks.
+The `isInScope` function is used for checking wether a SignalDB is in a reactive scope. If SignalDB is not in a reactive context, reactivity will be automatically disabled to avoid memory leaks. That mean that if you are not in a reactive scope ([`find`](/collections/#find-selector-selector-t-options-options)/[findOne](/collections/#findone-selector-selector-t-options-options) called outside an `effect` function), you have to turn off reactivity manually by adding the `{ reactivity: false }` option to the [`find`](collections/#find-selector-selector-t-options-options)/[findOne](/collections/#findone-selector-selector-t-options-options) method (e.g. `<collection>.find({ … }, { reactive: false })`). If you're not doing this, SignalDB thinks setup reaactivity unnecessarily and is not able to cleanup this automatically later on.
 
 ```js
 isInScope() {
@@ -50,6 +50,7 @@ isInScope() {
 ### `onDispose(callback: () -> void, dependency: Dependency)`
 
 This method is used to register a callback to be executed when the reactive computation is disposed. The dependency created in the [`create`](/reactivity/other/#create-dependency) method, will be passed as the second parameter. This can be useful if a framework requires data from the creation on disposal.
+The `onDispose` function is optional, but it's highly recommended to implement it whenever it's possible. Without `onDispose`, SignalDB will not be able to clean up resources automatically when they are no longer needed. That means, that you have to call the [`cursor.cleanup()`](/cursors/#cleanup) method manually at the end of the computation.
 
 ```js
 onDispose: (callback, dependency) => {

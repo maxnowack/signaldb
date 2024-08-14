@@ -9,10 +9,12 @@ head:
 ## Adapter
 
 * 🚧 Experimental
-* ❌ Automatic Cleanup 
+* ❌ Automatic Cleanup
 * ❌ Scope check
 
-The API of usignal doesn't allow [automatic cleanup nor reactive scope checking](/reactivity/#reactivity-libraries). Adapters without automatic cleanup are considered as **experimental**, as a manual cleanup isn't really convenient and a not properly cleanup can lead to memory leaks.
+The API of usignal doesn't allow [automatic cleanup](/reactivity/other/#ondispose-callback-void-dependency-dependency) nor [reactive scope checking](/reactivity/other/#isinscope-dependency-dependency-boolean).
+With usignal, you can return a function from your `effect` that will be called on cleanup. Use this one to cleanup your cursors (see below for an example).
+You also must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 
 ```bash
   $ npm install signaldb-plugin-usignal

@@ -12,7 +12,7 @@ Today, users demand near-instant feedback from their applications, expecting smo
 
 Optimistic UI is a design pattern where the application UI is updated immediately based on the expected result of an action, without waiting for a server's confirmation. It's all about improving the perceived performance of the application and delivering a more responsive user experience.
 
-Key benefits of Optimistic UI are an improved User Experience (UX) and a general improved responsiveness of an application. 
+Key benefits of Optimistic UI are an improved User Experience (UX) and a general improved responsiveness of an application.
 Immediate feedback enhances user confidence in the application. The application feels more faster, since it will not wait for server confirmation and this means there's no noticeable lag for the user.
 
 ## SignalDB's Role in Promoting Optimistic UI
@@ -39,9 +39,9 @@ Also check out the [core concepts about reactivity](/core-concepts/#signals-and-
 
 We provide prebuilt reactivity adapters for existing reactivity libraries. If an adapter is missing, feel free to request it by [opening an issue](https://github.com/maxnowack/signaldb/issues/new) at Github.
 
-Some libraries don't have a cleanup method. That mean you have to call `<cursor>.cleanup()` manually after the reactive context was closed. Since this can lead to memory leaks, this is not very practical in a production environment. Adapters without the automatic cleanup should be considered as experimental.
+For some libraries, it wasn't possible to implement a [`onDispose`](/reactivity/other/#ondispose-callback-void-dependency-dependency) method in the adapter. That means that you have to cleanup the cursor manually after the reactive context was closed. There are examples on the specific adapter documentation pages. Make sure that you implement it properly, since not doing this can lead to memory leaks.
 
-Scope checking is also only supported by a few libraries. This means, that SignalDB is not able to check if a cursor was created from a reactive scope and applies the required event handlers used to provide the reactivity. To avoid memory leaks, use an adapter with scope checking or pass `reactive: false` to your options (e.g. `<collection>.find({ … }, { reactive: false })`)
+[Scope checking](/reactivity/other/#isinscope-dependency-dependency-boolean) is only supported by a few libraries. Scope checking means, that SignalDB is not able to check if a cursor was created from a reactive scope (([`find`](/collections/#find-selector-selector-t-options-options)/[findOne](/collections/#findone-selector-selector-t-options-options) called in an `effect` function)) and applies the required event handlers used to provide the reactivity. To avoid memory leaks, use an adapter with scope checking or pass `{ reactive: false }` to your options (e.g. `<collection>.find({ … }, { reactive: false })`).
 
 | Library | Reactivity adapter | Automatic Cleanup | Scope check |
 |---|---|---|---|
@@ -53,7 +53,7 @@ Scope checking is also only supported by a few libraries. This means, that Signa
 | [`MobX`](/reactivity/mobx/) | ✅ | ✅ | ❌ |
 | [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
 | [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
-| [`signia`](https://signia.tldraw.dev/) | ❌ | - | - | 
+| [`signia`](https://signia.tldraw.dev/) | ❌ | - | - |
 | [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
 | [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
 | [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
