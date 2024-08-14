@@ -27,9 +27,10 @@ describe('angular', () => {
     const collection = new Collection({ reactivity: angularReactivityAdapter })
     const callback = vi.fn()
 
-    testingEffect(() => {
+    testingEffect((onCleanup) => {
       const cursor = collection.find({ name: 'John' })
       callback(cursor.count())
+      onCleanup(() => cursor.cleanup())
     })
     flushEffects()
     expect(callback).toHaveBeenCalledTimes(1)
