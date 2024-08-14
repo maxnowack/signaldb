@@ -39,7 +39,7 @@ create: () => {
 ### `isInScope(dependency: Dependency): boolean`
 
 The `isInScope` function is used for checking wether a SignalDB is in a reactive scope. If SignalDB is not in a reactive context, reactivity will be automatically disabled to avoid memory leaks. That mean that if you are not in a reactive scope ([`find`](/collections/#find-selector-selector-t-options-options)/[`findOne`](/collections/#findone-selector-selector-t-options-options) called outside an `effect` function), you have to turn off reactivity manually by adding the `{ reactivity: false }` option to the [`find`](/collections/#find-selector-selector-t-options-options)/[`findOne`](/collections/#findone-selector-selector-t-options-options) method<br>(e.g. `<collection>.find({ … }, { reactive: false })`).<br>
-If you're not doing this, SignalDB setups reaactivity unnecessarily and is not able to cleanup this automatically later on.
+If you're not doing this, SignalDB setups reactivity unnecessarily and is not able to cleanup this automatically later on.
 
 ```js
 isInScope() {
