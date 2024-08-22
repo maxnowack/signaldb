@@ -52,6 +52,23 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'observer.created': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
   'observer.disposed': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
+  getItems: (selector: Selector<T> | undefined) => void,
+  find: <O extends FindOptions<T>>(
+    selector: Selector<T> | undefined,
+    options: O | undefined,
+    cursor: Cursor<T, U>,
+  ) => void,
+  findOne: <O extends FindOptions<T>>(
+    selector: Selector<T>,
+    options: O | undefined,
+    item: U | undefined,
+  ) => void,
+  insert: (item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
+  updateOne: (selector: Selector<T>, modifier: Modifier<T>) => void,
+  updateMany: (selector: Selector<T>, modifier: Modifier<T>) => void,
+  removeOne: (selector: Selector<T>) => void,
+  removeMany: (selector: Selector<T>) => void,
+
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
   '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, U>) => void,
   '_debug.findOne': <O extends FindOptions<T>>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
@@ -377,6 +394,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
         const memory = this.memoryArray()
         const items = indexInfo.positions.map(index => memory[index])
+        this.emit('getItems', selector)
         return items.filter(matchItems)
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
@@ -405,6 +423,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
         }
       },
     })
+    this.emit('find', selector, options, cursor)
     this.executeInDebugMode(callstack => this.emit('_debug.find', callstack, selector, options, cursor))
     return cursor
   }
@@ -415,6 +434,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       ...options,
     })
     const returnValue = cursor.fetch()[0] || undefined
+    this.emit('findOne', selector, options, returnValue)
     this.executeInDebugMode(callstack => this.emit('_debug.findOne', callstack, selector, options, returnValue))
     return returnValue
   }
@@ -428,6 +448,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.idIndex.set(serializeValue(newItem.id), new Set([itemIndex]))
     this.rebuildIndices()
     this.emit('added', newItem)
+    this.emit('insert', newItem)
     this.executeInDebugMode(callstack => this.emit('_debug.insert', callstack, newItem))
     return newItem.id
   }
@@ -445,6 +466,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.memory().splice(index, 1, modifiedItem)
     this.rebuildIndices()
     this.emit('changed', modifiedItem)
+    this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return 1
   }
@@ -466,6 +488,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem)
     })
+    this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
     return modifiedItems.length
   }
@@ -473,13 +496,15 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   public removeOne(selector: Selector<T>) {
     if (!selector) throw new Error('Invalid selector')
     const { item, index } = this.getItemAndIndex(selector)
+    if (item != null) {
+      this.memory().splice(index, 1)
+      this.idIndex.delete(serializeValue(item.id))
+      this.rebuildIndices()
+      this.emit('removed', item)
+    }
+    this.emit('removeOne', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
-    if (item == null) return 0
-    this.memory().splice(index, 1)
-    this.idIndex.delete(serializeValue(item.id))
-    this.rebuildIndices()
-    this.emit('removed', item)
-    return 1
+    return item == null ? 0 : 1
   }
 
   public removeMany(selector: Selector<T>) {
@@ -497,6 +522,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     items.forEach((item) => {
       this.emit('removed', item)
     })
+    this.emit('removeMany', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeMany', callstack, selector))
     return items.length
   }
