@@ -84,6 +84,16 @@ The Collection class is equipped with a set of events that provide insights into
 * `changed`: Fired when an existing item in the collection undergoes modification. The event handler is passed the modified item.
 * `removed`: Signaled when an item is removed or deleted from the collection. The event handler receives the removed item.
 
+In addition to that, the collection will fire events for each executed method. For example, if you call `.updateOne()`, the collection will fire an `updateOne` event. The event handler will receive the selector and the modifier as arguments.
+
+* `find`: Emitted when the `find` method is called. The event handler receives the selector, options and the cursor as arguments.
+* `findOne`: Triggered when the `findOne` method is called. The event handler receives the selector, options and the returned item as arguments.
+* `insert`: Fired when the `insert` method is called. The event handler receives the inserted item as an argument.
+* `updateMany`: Emitted when the `updateMany` method is called. The event handler receives the selector and the modifier as arguments.
+* `updateOne`: Triggered when the `updateOne` method is called. The event handler receives the selector and the modifier as arguments.
+* `removeMany`: Emitted when the `removeMany` method is called. The event handler receives the selector as an argument.
+* `removeOne`: Triggered when the `removeOne` method is called. The event handler receives the selector as an argument.
+
 In addition to these basic events, there are events related to persistence operations. These events are only emitted when a persistence adapter is used.
 
 * `persistence.init`: Marks the initialization of the persistence adapter.

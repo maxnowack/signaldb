@@ -36,6 +36,18 @@ describe('Collection', () => {
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
+
+    it('should emit "findOne" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
+
+      const eventHandler = vi.fn()
+      collection.on('findOne', eventHandler)
+
+      collection.findOne({ name: 'John' }, { fields: { id: 1 } })
+
+      expect(eventHandler).toHaveBeenCalledWith({ name: 'John' }, { fields: { id: 1 } }, { id: '1' })
+    })
   })
 
   describe('find', () => {
@@ -59,6 +71,23 @@ describe('Collection', () => {
 
       expect(items).toEqual([])
     })
+
+    it('should emit "find" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
+
+      const eventHandler = vi.fn().mockImplementation((selector, options, cursor) => {
+        expect(selector).toEqual({ name: 'John' })
+        expect(options).toEqual({ fields: { id: 1 } })
+        expect(cursor.fetch()).toEqual([{ id: '1' }])
+      })
+
+      collection.on('find', eventHandler)
+
+      collection.find({ name: 'John' }, { fields: { id: 1 } })
+
+      expect(eventHandler).toHaveBeenCalled()
+    })
   })
 
   describe('insert', () => {
@@ -70,7 +99,7 @@ describe('Collection', () => {
       expect(collection.findOne({ id: '1' })).toEqual(item)
     })
 
-    it('should emit "inserted" event when an item is inserted', () => {
+    it('should emit "added" event when an item is inserted', () => {
       const item = { id: '1', name: 'John' }
       const eventHandler = vi.fn()
       collection.on('added', eventHandler)
@@ -86,6 +115,16 @@ describe('Collection', () => {
       collection.insert(item)
 
       expect(() => collection.insert(item)).toThrow()
+    })
+
+    it('should emit "insert" event', () => {
+      const item = { id: '1', name: 'John' }
+      const eventHandler = vi.fn()
+      collection.on('insert', eventHandler)
+
+      collection.insert(item)
+
+      expect(eventHandler).toHaveBeenCalledWith(item)
     })
   })
 
@@ -122,6 +161,16 @@ describe('Collection', () => {
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '2' } })).toThrow()
     })
+
+    it('should emit "updateOne" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      const eventHandler = vi.fn()
+      collection.on('updateOne', eventHandler)
+
+      collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
+    })
   })
 
   describe('updateMany', () => {
@@ -150,6 +199,16 @@ describe('Collection', () => {
       expect(eventHandler).toHaveBeenCalledTimes(2)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' })
       expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' })
+    })
+
+    it('should emit "updateMany" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      const eventHandler = vi.fn()
+      collection.on('updateMany', eventHandler)
+
+      collection.updateMany({ id: '1' }, { $set: { name: 'Jane' } })
+
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
     })
   })
 
@@ -188,6 +247,16 @@ describe('Collection', () => {
       collection.insert({ id, name: 'Jane' })
       expect(collection.findOne({ id })).toEqual({ id, name: 'Jane' })
     })
+
+    it('should emit "removeOne" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      const eventHandler = vi.fn()
+      collection.on('removeOne', eventHandler)
+
+      collection.removeOne({ id: '1' })
+
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1' })
+    })
   })
 
   describe('removeMany', () => {
@@ -213,6 +282,19 @@ describe('Collection', () => {
       expect(eventHandler).toHaveBeenCalledTimes(2)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'John' })
       expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'John' })
+    })
+
+    it('should emit "removeMany" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
+      collection.insert({ id: '3', name: 'John' })
+
+      const eventHandler = vi.fn()
+      collection.on('removeMany', eventHandler)
+
+      collection.removeMany({ name: 'John' })
+
+      expect(eventHandler).toHaveBeenCalledWith({ name: 'John' })
     })
   })
 
