@@ -117,7 +117,10 @@ export default defineConfig({
         text: 'Articles',
         collapsed: true,
         items: [
+          { text: 'Signals', link: '/signals/' },
+          { text: 'Live Updates', link: '/live-updates/' },
           { text: 'Optimistic UI', link: '/optimistic-ui/' },
+          { text: 'Real-Time Web Apps', link: '/real-time/' },
           { text: 'Offline-First', link: '/offline-first/' },
           { text: 'Reactive Databases', link: '/reactive-databases/' },
           { text: 'AWS Amplify', link: '/aws-amplify/' },
