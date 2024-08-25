@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  hello_world_job:
+  release_creation:
     runs-on: ubuntu-latest
     name: Create Release
     steps:
