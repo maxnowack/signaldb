@@ -10,11 +10,19 @@
   <img src="https://img.shields.io/npm/types/signaldb" alt="TypeScript" />
   <a href="https://app.codecov.io/gh/maxnowack/signaldb"><img src="https://img.shields.io/codecov/c/github/maxnowack/signaldb" alt="Coverage" /></a>
   <a href="https://github.com/maxnowack/signaldb/blob/main/LICENSE"><img src="https://img.shields.io/github/license/maxnowack/signaldb" alt="License" /></a>
+  <a href="https://discord.gg/MB4ZGJX7"><img height=20 src="https://img.shields.io/discord/1277179248725200937" /></a>
   <a href="https://github.com/maxnowack/signaldb/stargazers"><img src="https://img.shields.io/github/stars/maxnowack/signaldb" alt="Stargazers" /></a>
-  <a href="https://www.npmjs.com/package/signaldb"><img src="https://img.shields.io/npm/dm/signaldb" alt="npm" /></a>
 </p>
 
-# SignalDB: Client-Side JavaScript Database with TypeScript Support and Reactive Interfaces
+<p align="center">
+   <a href="https://signaldb.js.org/getting-started/">Get Started</a> |
+   <a href="https://signaldb.js.org/guides/react/">Guide for React</a> |
+   <a href="https://signaldb.js.org/core-concepts/">Core Concepts</a> |
+   <a href="https://signaldb.js.org/reactivity/">Reactivity Adapters</a> |
+   <a href="https://discord.com/invite/VU53p7uQcE">Discord</a>
+<p>
+
+# SignalDB: Real-Time Client-Side Database with Optimistic UI
 
 SignalDB is a client-side database optimized for modern web applications, offering a MongoDB-like interface with robust TypeScript support to improve development speed and ensure type safety. SignalDB supports creating an optimistic UI for responsive, dynamic interfaces and offers versatile local data persistence with various storage providers. SignalDB is also able to gather data from multiple sources, enabling real-time updates and synchronization (see examples for [AppWrite](https://github.com/maxnowack/signaldb/tree/main/examples/appwrite), [Firebase](https://github.com/maxnowack/signaldb/tree/main/examples/firebase), [Supabase](https://github.com/maxnowack/signaldb/tree/main/examples/supabase), [RxDB](https://github.com/maxnowack/signaldb/tree/main/examples/rxdb) and [HTTP](https://github.com/maxnowack/signaldb/tree/main/examples/replication-http)).
 Designed for efficiency in applications requiring quick data handling and real-time interactions, SignalDB provides instant data access, minimizing latency typical of server-side databases. Its lightweight architecture is framework-agnostic, making it suitable for both small and large-scale projects that require flexible, intuitive data management solutions. SignalDB provides adapters for popular reactive libraries including [Angular](https://signaldb.js.org/reactivity/angular/), [React](https://signaldb.js.org/guides/react/) (through 3rd party signal libraries), [Solid.js](https://signaldb.js.org/reactivity/solidjs/), [Vue.js](https://signaldb.js.org/reactivity/vue/) and many more.
