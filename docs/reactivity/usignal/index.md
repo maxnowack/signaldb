@@ -8,7 +8,6 @@ head:
 
 ## Adapter
 
-* 🚧 Experimental
 * ❌ Automatic Cleanup
 * ❌ Scope check
 
