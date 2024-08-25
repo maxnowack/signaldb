@@ -47,14 +47,18 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reactivity/
 |---|---|---|---|
 | [`@preact/signals-core`](/reactivity/preact-signals/) | ✅ | ❌ | ❌ |
 | [`@reactively/core`](/reactivity/reactively/) | ✅ | ✅ | ❌ |
+| [`@webreflection/signal`](https://github.com/WebReflection/signal) | ❌ | - | - |
 | [`Angular Signals`](/reactivity/angular/) | ✅ | ❌ | ❌ |
 | [`Maverick-js Signals`](/reactivity/maverickjs/) | ✅ | ✅ | ✅ |
 | [`Meteor Tracker`](/reactivity/meteor-tracker/) | ✅ | ✅ | ✅ |
 | [`MobX`](/reactivity/mobx/) | ✅ | ✅ | ❌ |
 | [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
 | [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
+| [`signal-polyfill`](https://github.com/proposal-signals/signal-polyfill) | ❌ | - | - |
 | [`signia`](https://signia.tldraw.dev/) | ❌ | - | - |
 | [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
 | [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
+| [`sprae`](https://github.com/dy/sprae) (see [#858](https://github.com/maxnowack/signaldb/issues/858)) | ✅ | ❌ | ❌ |
+| [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |
 | [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
 | [`Vue.js refs`](/reactivity/vue/) | ✅ | ✅ | ❌ |
