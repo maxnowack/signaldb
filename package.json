@@ -29,7 +29,7 @@
     "@vitest/coverage-istanbul": "^2.0.4",
     "eslint": "8.57.0",
     "eslint-config-airbnb-base": "15.0.0",
-    "eslint-import-resolver-typescript": "3.6.1",
+    "eslint-import-resolver-typescript": "3.6.3",
     "eslint-plugin-import": "2.29.1",
     "eslint-plugin-prefer-object-spread": "1.2.1",
     "eslint-plugin-vitest": "0.5.4",
