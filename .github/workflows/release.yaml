@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: maxnowack/action-release-generator@v1.4.0
         with:
-          token: "${{ secrets.GITHUB_TOKEN }}"
+          token: "${{ secrets.RELEASE_TOKEN }}"
           useNameFromRef: 'true'
           ref: "${{ github.ref }}"
           badwords: 'ci:,docs:,chore:,chore(deps),fix(deps)'
