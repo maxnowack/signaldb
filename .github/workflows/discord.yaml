@@ -1,3 +1,5 @@
+name: Discord
+
 on:
   release:
     types: [published]
