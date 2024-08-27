@@ -144,7 +144,7 @@ describe('Collection', () => {
 
       collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
 
-      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
     })
 
     it('should not throw an error if no item matches the selector', () => {
@@ -197,8 +197,8 @@ describe('Collection', () => {
       collection.updateMany({ name: 'John' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledTimes(2)
-      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' })
-      expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' }, { $set: { name: 'Jane' } })
     })
 
     it('should emit "updateMany" event', () => {

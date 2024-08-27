@@ -37,7 +37,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
 
 interface CollectionEvents<T extends BaseItem, U = T> {
   added: (item: T) => void,
-  changed: (item: T) => void,
+  changed: (item: T, modifier: Modifier<T>) => void,
   removed: (item: T) => void,
 
   'persistence.init': () => void,
@@ -465,7 +465,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) throw new Error('Item with same id already exists')
     this.memory().splice(index, 1, modifiedItem)
     this.rebuildIndices()
-    this.emit('changed', modifiedItem)
+    this.emit('changed', modifiedItem, modifier)
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return 1
@@ -486,7 +486,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     })
     this.rebuildIndices()
     modifiedItems.forEach((modifiedItem) => {
-      this.emit('changed', modifiedItem)
+      this.emit('changed', modifiedItem, modifier)
     })
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
