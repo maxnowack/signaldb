@@ -59,9 +59,13 @@ export default class Cursor<T extends BaseItem, U = T> {
     const notify = () => signal.notify()
 
     const enabledEvents = Object.entries(changeEvents)
+      // filter out all values that are not true, so we only get the enabled events
       .filter(([, value]) => value)
+      // map to only get the keys of the enabled events
       .map(([key]) => key)
+      // reduce to an object with the enabled events as keys and the notify function as value
       .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
+
     const stop = this.observeChanges(enabledEvents, true, initialItems)
     if (this.options.reactive.onDispose) {
       this.options.reactive.onDispose(() => stop(), signal)
