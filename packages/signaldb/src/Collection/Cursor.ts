@@ -17,7 +17,7 @@ export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T>
 }
 
 export default class Cursor<T extends BaseItem, U = T> {
-  private observers: Observer<T>[] = []
+  private observer: Observer<T> | undefined
   private getFilteredItems: () => T[]
   private options: CursorOptions<T, U>
   private onCleanupCallbacks: (() => void)[] = []
@@ -30,7 +30,31 @@ export default class Cursor<T extends BaseItem, U = T> {
     this.options = options || {}
   }
 
-  private transform(item: T): U {
+  private addGetters(item: T) {
+    if (!isInReactiveScope(this.options.reactive)) return item
+    const depend = this.depend.bind(this)
+    return Object.entries(item).reduce((memo, [key, value]) => {
+      Object.defineProperty(memo, key, {
+        get() {
+          depend({
+            changedField: notify => (changedItem, changedFieldName) => {
+              if (changedFieldName !== key || changedItem.id !== item.id) return
+              notify()
+            },
+          })
+          return value
+        },
+        enumerable: true,
+        configurable: true,
+      })
+      return memo
+    }, {}) as T
+  }
+
+  private transform(rawItem: T): U {
+    const item = this.options.fieldTracking
+      ? this.addGetters(rawItem)
+      : rawItem
     if (!this.options.transform) return item as unknown as U
     return this.options.transform(item)
   }
@@ -51,26 +75,73 @@ export default class Cursor<T extends BaseItem, U = T> {
     })
   }
 
-  private depend(changeEvents: { [P in keyof ObserveCallbacks<U>]?: true }, initialItems?: T[]) {
+  private depend(
+    changeEvents: {
+      [P in keyof ObserveCallbacks<T>]?: true
+        | ((notify: () => void) => NonNullable<ObserveCallbacks<T>[P]>)
+    },
+  ) {
     if (!this.options.reactive) return
     if (!isInReactiveScope(this.options.reactive)) return
     const signal = this.options.reactive.create()
     signal.depend()
     const notify = () => signal.notify()
 
-    const enabledEvents = Object.entries(changeEvents)
-      // filter out all values that are not true, so we only get the enabled events
-      .filter(([, value]) => value)
-      // map to only get the keys of the enabled events
-      .map(([key]) => key)
-      // reduce to an object with the enabled events as keys and the notify function as value
-      .reduce((memo, key) => ({ ...memo, [key]: notify }), {})
+    function buildNotifier<
+      Event extends keyof ObserveCallbacks<T>,
+      EventHandler extends NonNullable<ObserveCallbacks<T>[Event]>,
+    >(event: Event) {
+      const eventHandler = changeEvents[event]
+      if (eventHandler === true) return notify
+      return (...args: Parameters<EventHandler>) => {
+        if (typeof eventHandler !== 'function') return
+        eventHandler(notify)(...args as [T, T & keyof T, T[keyof T], T[keyof T]])
+      }
+    }
 
-    const stop = this.observeChanges(enabledEvents, true, initialItems)
+    const stop = this.observeRawChanges({
+      added: buildNotifier('added'),
+      addedBefore: buildNotifier('addedBefore'),
+      changed: buildNotifier('changed'),
+      changedField: buildNotifier('changedField'),
+      movedBefore: buildNotifier('movedBefore'),
+      removed: buildNotifier('removed'),
+    }, true)
     if (this.options.reactive.onDispose) {
       this.options.reactive.onDispose(() => stop(), signal)
     }
     this.onCleanup(stop)
+  }
+
+  private ensureObserver() {
+    if (!this.observer) {
+      const observer = new Observer<T>(() => {
+        const requery = () => {
+          observer.runChecks(this.getItems())
+        }
+        const cleanup = this.options.bindEvents && this.options.bindEvents(requery)
+        return () => {
+          if (cleanup) cleanup()
+        }
+      })
+      this.onCleanup(() => observer.stop())
+      this.observer = observer
+    }
+    return this.observer
+  }
+
+  private observeRawChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+    const observer = this.ensureObserver()
+    observer.addCallbacks(callbacks, skipInitial)
+    observer.runChecks(this.getItems())
+    return () => {
+      observer.removeCallbacks(callbacks)
+      if (!observer.isEmpty()) return
+
+      // remove observer if it's empty
+      observer.stop()
+      this.observer = undefined
+    }
   }
 
   public cleanup() {
@@ -89,9 +160,9 @@ export default class Cursor<T extends BaseItem, U = T> {
     this.depend({
       addedBefore: true,
       removed: true,
-      changed: true,
       movedBefore: true,
-    }, items)
+      ...this.options.fieldTracking ? {} : { changed: true },
+    })
     items.forEach((item) => {
       callback(this.transform(item))
     })
@@ -118,9 +189,8 @@ export default class Cursor<T extends BaseItem, U = T> {
     return items.length
   }
 
-  // eslint-disable-next-line default-param-last
-  public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false, initialItems?: T[]) {
-    const transformedCallbacks = Object
+  public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false) {
+    return this.observeRawChanges(Object
       .entries(callbacks)
       .reduce((memo, [callbackName, callback]) => {
         if (!callback) return memo
@@ -138,32 +208,11 @@ export default class Cursor<T extends BaseItem, U = T> {
             )
           },
         }
-      }, {}) as ObserveCallbacks<T>
-    const observer = new Observer(
-      transformedCallbacks,
-      () => {
-        const requery = () => {
-          observer.check(this.getItems())
-        }
-        const cleanup = this.options.bindEvents && this.options.bindEvents(requery)
-        return () => {
-          if (cleanup) cleanup()
-        }
-      },
-      skipInitial,
-    )
-    this.observers.push(observer)
-    observer.check(initialItems || this.getItems())
-    this.onCleanup(() => observer.stop())
-
-    return () => {
-      observer.stop()
-      this.observers = this.observers.filter(o => o !== observer)
-    }
+      }, {}), skipInitial)
   }
 
   public requery() {
-    const items = this.getItems()
-    this.observers.forEach(observer => observer.check(items))
+    if (!this.observer) return
+    this.observer.runChecks(this.getItems())
   }
 }

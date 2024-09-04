@@ -19,4 +19,6 @@ export interface FindOptions<T extends BaseItem> {
   fields?: FieldSpecifier<T> | undefined,
   /** pass `false` to disable reactivity */
   reactive?: ReactivityAdapter | false,
+  /** pass `true` to enable automatic field-level reactitivy */
+  fieldTracking?: boolean,
 }

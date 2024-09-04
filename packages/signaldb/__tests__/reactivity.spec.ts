@@ -165,4 +165,70 @@ describe('reactivity primitives', () => {
     expect(callback).toHaveBeenCalledTimes(3)
     expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', count: { a: 2 } }])
   })
+
+  it('should be reactive with field-level tracking', async () => {
+    const collection = new Collection({ reactivity: primitiveReactivityAdapter })
+    const callback = vi.fn()
+    collection.insert({ id: '1', name: 'John', postCount: 20, age: 30 })
+
+    primitiveReactivity.effect(() => {
+      const items = collection.find({ name: 'John' }, {
+        fieldTracking: true,
+      }).fetch()
+      callback(items.map(item => item.postCount))
+    })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenLastCalledWith([20])
+
+    collection.updateOne({ id: '1' }, { $set: { postCount: 21 } })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenLastCalledWith([21])
+
+    collection.updateOne({ id: '1' }, { $set: { age: 35 } })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenLastCalledWith([21])
+  })
+
+  it('should be reactive with field-level tracking on item level', async () => {
+    const collection = new Collection({ reactivity: primitiveReactivityAdapter })
+    const callback = vi.fn()
+    collection.insert({ id: '1', name: 'John', postCount: 20, age: 30 })
+    collection.insert({ id: '2', name: 'Jane', postCount: 40, age: 20 })
+
+    primitiveReactivity.effect(() => {
+      const items = collection.find({}, {
+        fieldTracking: true,
+        sort: { postCount: -1 },
+      }).fetch()
+      callback(items[0].postCount)
+    })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenLastCalledWith(40)
+
+    collection.updateOne({ name: 'John' }, { $set: { postCount: 21 } })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenLastCalledWith(40)
+
+    collection.updateOne({ name: 'Jane' }, { $set: { age: 35 } })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenLastCalledWith(40)
+
+    collection.updateOne({ name: 'Jane' }, { $set: { postCount: 35 } })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenLastCalledWith(35)
+  })
 })
