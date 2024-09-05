@@ -61,4 +61,4 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reactivity/
 | [`sprae`](https://github.com/dy/sprae) (see [#858](https://github.com/maxnowack/signaldb/issues/858)) | ✅ | ❌ | ❌ |
 | [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |
 | [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
-| [`Vue.js refs`](/reactivity/vue/) | ✅ | ✅ | ❌ |
+| [`Vue.js refs`](/reactivity/vue/) | ✅ | ✅ | ✅ |
