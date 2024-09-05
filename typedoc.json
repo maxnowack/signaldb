@@ -1,0 +1,11 @@
+{
+   "plugin": [],
+   "entryPoints": [
+     "packages/signaldb",
+     "packages/react",
+     "packages/plugin-*",
+   ],
+   "entryPointStrategy": "packages",
+   "readme": "none",
+   "json": "docs/typedoc.json",
+ }
