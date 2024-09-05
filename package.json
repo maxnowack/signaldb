@@ -8,10 +8,10 @@
     "test": "vitest",
     "typedoc": "typedoc",
     "coverage": "vitest run --coverage",
-    "build": "(cd packages/signaldb && npm run build) && npm run build -ws",
+    "build": "(cd packages/signaldb && npm run build) && npm run build -w packages",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "npm run build && npm run copy -w examples && npm run typedoc && vitepress build docs",
+    "docs:build": "npm run build && npm run build -w examples && npm run copy -w examples && npm run typedoc && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "author": "Max Nowack <max.nowack@gmail.com>",
