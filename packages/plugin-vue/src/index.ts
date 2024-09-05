@@ -2,6 +2,7 @@ import {
   shallowRef,
   triggerRef,
   onScopeDispose,
+  getCurrentScope,
 } from 'vue'
 import { createReactivityAdapter } from 'signaldb'
 
@@ -21,7 +22,7 @@ const vueReactivityAdapter = createReactivityAdapter({
   onDispose: (callback) => {
     onScopeDispose(callback)
   },
-  isInScope: undefined,
+  isInScope: () => !!getCurrentScope(),
 })
 
 export default vueReactivityAdapter
