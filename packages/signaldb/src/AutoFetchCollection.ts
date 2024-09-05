@@ -16,6 +16,9 @@ export type AutoFetchCollectionOptions<
   U = T,
 > = Omit<ReplicatedCollectionOptions<T, I, U>, 'pull'> & AutoFetchOptions<T, I>
 
+/**
+ * @summary A special collection that automatically fetches items when they are needed.
+ */
 export default class AutoFetchCollection<
   T extends BaseItem<I> = BaseItem,
   I = any,
@@ -32,6 +35,11 @@ export default class AutoFetchCollection<
   private loadingSignals = new Map<string, Signal<boolean>>()
   private isFetchingSignal: Signal<boolean>
 
+  /**
+   * @param options {Object} - Options for the collection.
+   * @param options.fetchQueryItems {Function} - A function that fetches items from the server. It takes the selector as an argument and returns a promise that resolves to an object with an `items` property.
+   * @param options.purgeDelay {Number} - The delay in milliseconds before purging an item from the cache.
+   */
   constructor(options: AutoFetchCollectionOptions<T, I, U>) {
     let triggerRemoteChange: (() => Promise<void> | void) | undefined
     super({
@@ -66,10 +74,18 @@ export default class AutoFetchCollection<
     this.on('observer.disposed', selector => setTimeout(() => this.handleObserverDisposal(selector ?? {}), 100))
   }
 
+  /**
+   * @summary Registers a query manually that items should be fetched for it
+   * @param selector {Object} Selector of the query
+   */
   public registerQuery(selector: Selector<T>) {
     this.handleObserverCreation(selector)
   }
 
+  /**
+   * @summary Unregisters a query manually that items are not fetched anymore for it
+   * @param selector {Object} Selector of the query
+   */
   public unregisterQuery(selector: Selector<T>) {
     this.handleObserverDisposal(selector)
   }
@@ -165,6 +181,11 @@ export default class AutoFetchCollection<
     signal.set(value)
   }
 
+  /**
+   * @summary Indicates wether a query is currently been loaded
+   * @param selector {Object} Selector of the query
+   * @returns The loading state
+   */
   public isLoading(selector?: Selector<T>) {
     const isPushing = this.isPushing()
     if (!selector) {
