@@ -12,9 +12,10 @@ module.exports = {
   extends: [
     'airbnb-base',
     'plugin:@typescript-eslint/eslint-recommended',
-    'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:@typescript-eslint/recommended',
     'plugin:vitest/legacy-recommended',
+    'plugin:jsdoc/recommended-typescript',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -24,6 +25,7 @@ module.exports = {
   plugins: [
     '@stylistic',
     '@typescript-eslint',
+    'jsdoc',
     'prefer-object-spread',
     'vitest',
   ],
@@ -75,6 +77,17 @@ module.exports = {
     })),
   ],
   rules: {
+    'jsdoc/require-jsdoc': ['warn', {
+      publicOnly: true,
+      require: {
+        ArrowFunctionExpression: true,
+        ClassDeclaration: true,
+        ClassExpression: true,
+        FunctionDeclaration: true,
+        FunctionExpression: true,
+        MethodDefinition: true,
+      },
+    }],
     /*
      * Typescript
      */
