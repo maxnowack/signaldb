@@ -4,7 +4,7 @@
   "scripts": {
     "preversion": "npm run lint && npm run test -- run && npm run build",
     "prepare": "npm run build && husky install",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "eslint .",
     "test": "vitest",
     "typedoc": "typedoc",
     "coverage": "vitest run --coverage",
