@@ -15,6 +15,10 @@ export default defineConfig({
       { text: 'Get Started', link: '/getting-started/' },
     ],
 
+    outline: {
+      level: [2, 3],
+    },
+
     sidebar: [
       {
         text: 'Quickstart',
@@ -48,8 +52,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Collections', link: '/collections/' },
-          { text: 'Queries', link: '/queries/' },
-          { text: 'Cursors', link: '/cursors/' },
+          { text: 'Querying Data', link: '/queries/' },
           { text: 'Data manipulation', link: '/data-manipulation/' },
         ],
       },
@@ -192,19 +195,17 @@ export default defineConfig({
     const redirects = {
       '/collections.html': '/collections/',
       '/core-concepts.html': '/core-concepts/',
-      '/cursors.html': '/cursors/',
+      '/cursors.html': '/queries/',
+      '/cursors/index.html': '/queries/',
       '/data-manipulation.html': '/data-manipulation/',
       '/data-persistence.html': '/data-persistence/',
+      '/data-persistence/file-system.html': '/data-persistence/file-system/',
+      '/data-persistence/local-storage.html': '/data-persistence/local-storage/',
+      '/data-persistence/other.html': '/data-persistence/other/',
       '/getting-started.html': '/getting-started/',
       '/installation.html': '/installation/',
       '/queries.html': '/queries/',
       '/reactivity.html': '/reactivity/',
-      '/replication.html': '/replication/',
-      '/troubleshooting.html': '/troubleshooting/',
-      '/data-persistence/file-system.html': '/data-persistence/file-system/',
-      '/data-persistence/local-storage.html': '/data-persistence/local-storage/',
-      '/data-persistence/other.html': '/data-persistence/other/',
-      '/reactivity/S.html': '/reactivity/S/',
       '/reactivity/angular.html': '/reactivity/angular/',
       '/reactivity/maverickjs.html': '/reactivity/maverickjs/',
       '/reactivity/meteor-tracker.html': '/reactivity/meteor-tracker/',
@@ -213,12 +214,15 @@ export default defineConfig({
       '/reactivity/other.html': '/reactivity/other/',
       '/reactivity/preact-signals.html': '/reactivity/preact-signals/',
       '/reactivity/reactively.html': '/reactivity/reactively/',
+      '/reactivity/S.html': '/reactivity/S/',
       '/reactivity/sinuous.html': '/reactivity/sinuous/',
       '/reactivity/solidjs.html': '/reactivity/solidjs/',
       '/reactivity/usignal.html': '/reactivity/usignal/',
       '/reactivity/vue.html': '/reactivity/vue/',
+      '/replication.html': '/replication/',
       '/replication/rxdb.html': '/data-persistence/rxdb/',
       '/replication/rxdb/index.html': '/data-persistence/rxdb/',
+      '/troubleshooting.html': '/troubleshooting/',
     }
 
     await Object.entries(redirects).reduce(async (promise, [from, to]) => {
