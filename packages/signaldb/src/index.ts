@@ -22,3 +22,5 @@ export { default as combinePersistenceAdapters } from './persistence/combinePers
 export { default as createMemoryAdapter } from './createMemoryAdapter'
 export { default as createReactivityAdapter } from './createReactivityAdapter'
 export { default as createIndexProvider } from './createIndexProvider'
+
+export { default as SyncManager } from './SyncManager'
