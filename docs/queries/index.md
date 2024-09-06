@@ -39,6 +39,10 @@ collection.find({}, {
 
 You can also control which fields should be returned in the query. To do this, specify the `fields` object in the `options` of the `.find()` method.
 
+> With the `fields` option you can also control when you query will rerun. If you only query for a field that is not changing, the query will not rerun.
+>
+> Also see [⚡ Field-Level Reactitivity](#⚡%EF%B8%8F-field-level-reactivity-beta)
+
 ```js
 collection.find({}, {
   fields: { title: 1 },
@@ -118,3 +122,37 @@ Re-queries the cursor to fetch items and check observers for any changes.
 
 ### `cleanup()`
 The cleanup method is used to invoke all the cleanup callbacks. This helps in managing resources and ensuring efficient garbage collection. You have to call this method, if you're using a reactivity adapter, that doesn't support automatic cleanup.
+
+## ⚡️ Field-Level Reactivity (beta)
+
+SignalDB introduces a powerful enhancement to its reactivity system called **Field-Level Reactivity**, which ensures that reactive functions (such as `effect` or `autorun`) only rerun when specific fields accessed in your code are changed. Previously, the reactive system would rerun the query if any field in any item of the result set was modified, regardless of whether those fields were actually used in the code. This led to unnecessary reactivity and potential performance bottlenecks, especially with large datasets.
+
+### Key Features
+
+* **Field-Level Reactivity**: Reactive reruns now occur only when the fields actually accessed by your code are modified, rather than triggering for all changes in the dataset.
+* **Item-Level Reactivity**: If a query returns multiple items but you only access fields from specific items, changes in unaccessed items will not trigger a rerun.
+* **Automatic Field Tracking**: Instead of manually specifying which fields to track using the `fields` option, SignalDB now automatically tracks fields as you access them. This reduces the chance of developer oversight and simplifies code maintenance.
+
+### Opt-In to Field-Level Tracking
+
+To leverage this feature, you must explicitly enable field-level reactivity by passing the `fieldTracking: true` option in the `.find()` method. When this option is enabled, the system will only track and respond to changes in the fields you access:
+
+```js
+effect(() => {
+  const items = someCollection.find({}, { fieldTracking: true }).fetch()
+  // Access the fields you care about here
+  console.log(items[0].name) // Will rerun only if 'name' field of the 0th item changes
+})
+```
+
+This behavior optimizes your app’s performance by reducing the number of unnecessary reruns. Instead of rerunning every time any field in any document changes, it only reruns when the relevant fields you’re interacting with are modified.
+
+### Benefits of Automatic Field Tracking
+
+1. Improved Performance: By reducing the scope of reactive reruns to only relevant data, SignalDB minimizes computational overhead and maximizes efficiency, particularly in scenarios where queries return large datasets or where irrelevant fields change frequently.
+2. Simplified Code: Developers no longer need to manually specify fields to track. With automatic field tracking, the system handles this for you, allowing you to focus on business logic rather than managing reactivity manually.
+3. Reduced Developer Error: Manually tracking fields can be error-prone, especially as queries evolve. Automatic field-level reactivity ensures that your queries remain optimal even as your code changes, making it easier to maintain over time.
+
+Transition and Future Plans
+
+This feature is currently in beta and must be explicitly enabled using `{ fieldTracking: true }` in the query options. Feel free to [open an issue](https://github.com/maxnowack/signaldb/issues/new) if you encounter any bugs. In future versions (such as v1.0.0), SignalDB plans to make field-level reactivity the default behavior. This will remove the need to explicitly enable the option, making the system more intuitive and efficient out-of-the-box.
