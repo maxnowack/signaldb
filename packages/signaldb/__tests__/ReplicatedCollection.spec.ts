@@ -1,4 +1,4 @@
-import { vi, it, describe, expect, beforeAll } from 'vitest'
+import { vi, it, describe, expect } from 'vitest'
 import type { ReplicatedCollectionOptions } from '../src/ReplicatedCollection'
 import ReplicatedCollection, { createReplicationAdapter } from '../src/ReplicatedCollection'
 import type { BaseItem } from '../src/Collection'
@@ -79,10 +79,6 @@ describe('createReplicationAdapter', () => {
 })
 
 describe('ReplicatedCollection', () => {
-  beforeAll(() => {
-    vi.useFakeTimers()
-  })
-
   it('should create a ReplicatedCollection instance', () => {
     const options: ReplicatedCollectionOptions<BaseItem<number>, number> = {
       pull: vi.fn().mockResolvedValue({} as LoadResponse<BaseItem<number>>),
@@ -120,5 +116,47 @@ describe('ReplicatedCollection', () => {
     expect(persistenceAdapter.save).toHaveBeenCalledTimes(1)
     expect(push).toHaveBeenCalledTimes(0)
     expect(registerRemoteChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('should output the correct isLoading state', async () => {
+    const pull = vi.fn().mockImplementation(() => new Promise((resolve) => {
+      setTimeout(() => resolve({ items: [{ id: '1', name: 'Item 1' }] } as LoadResponse<any>), 10)
+    }))
+    const push = vi.fn().mockResolvedValue(() => new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), 10)
+    }))
+    const registerRemoteChange = vi.fn().mockResolvedValue(undefined)
+
+    const persistenceAdapter = createPersistenceAdapter({
+      register: vi.fn().mockResolvedValue(undefined),
+      load: vi.fn().mockResolvedValue({ items: [] } as LoadResponse<any>),
+      save: vi.fn().mockResolvedValue(undefined),
+    })
+
+    const collection = new ReplicatedCollection({
+      pull,
+      push,
+      registerRemoteChange,
+      persistence: persistenceAdapter,
+    })
+    expect(collection.isLoading()).toBe(true)
+    expect(collection.find().fetch()).toEqual([])
+    await waitForEvent(collection, 'persistence.init')
+
+    expect(collection.isLoading()).toBe(true)
+    expect(collection.find().fetch()).toEqual([])
+
+    expect(pull).toHaveBeenCalledTimes(1)
+    expect(push).toHaveBeenCalledTimes(0)
+
+    await new Promise((resolve) => { setTimeout(resolve, 20) })
+    expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
+    expect(collection.isLoading()).toBe(false)
+
+    collection.insert({ id: '2', name: 'Item 2' })
+    expect(collection.isLoading()).toBe(true)
+
+    await new Promise((resolve) => { setTimeout(resolve, 20) })
+    expect(collection.isLoading()).toBe(false)
   })
 })

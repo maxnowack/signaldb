@@ -136,7 +136,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     ]
     this.rebuildIndices()
 
-    this.isPullingSignal = createSignal(this.options.reactivity?.create(), false)
+    this.isPullingSignal = createSignal(this.options.reactivity?.create(), !!options?.persistence)
     this.isPushingSignal = createSignal(this.options.reactivity?.create(), false)
     this.on('persistence.pullStarted', () => {
       this.isPullingSignal.set(true)
@@ -282,7 +282,9 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
           await loadPersistentData()
 
           isInitialized = true
-          this.emit('persistence.init')
+          // emit persistence.init in next tick to make
+          // data available before the loading state updates
+          setTimeout(() => this.emit('persistence.init'), 0)
         })
         .catch((error) => {
           this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
