@@ -1,5 +1,6 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
+import waitForEvent from './helpers/waitForEvent'
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
@@ -295,6 +296,30 @@ describe('Collection', () => {
       collection.removeMany({ name: 'John' })
 
       expect(eventHandler).toHaveBeenCalledWith({ name: 'John' })
+    })
+  })
+
+  describe('isLoading', () => {
+    it('should ouput the correct value without persistence', () => {
+      const col = new Collection()
+      expect(col.isLoading()).toBe(false)
+    })
+
+    it('should ouput the correct value with persistence', async () => {
+      const col = new Collection({
+        persistence: {
+          register: () => new Promise((resolve) => {
+            setTimeout(() => resolve(), 100)
+          }),
+          load: () => Promise.resolve({ items: [{ id: '1', name: 'Item 1' }] }),
+          save: () => Promise.resolve(),
+        },
+      })
+      expect(col.isLoading()).toBe(true)
+      expect(col.find().fetch()).toEqual([])
+      await waitForEvent(col, 'persistence.init')
+      expect(col.isLoading()).toBe(false)
+      expect(col.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
     })
   })
 

@@ -3,6 +3,8 @@ import type { BaseItem, CollectionOptions } from './Collection'
 import type { Changeset, LoadResponse } from './types/PersistenceAdapter'
 import combinePersistenceAdapters from './persistence/combinePersistenceAdapters'
 import createPersistenceAdapter from './persistence/createPersistenceAdapter'
+import type Signal from './types/Signal'
+import createSignal from './utils/createSignal'
 
 interface ReplicationOptions<T extends { id: I } & Record<string, any>, I> {
   pull: () => Promise<LoadResponse<T>>,
@@ -38,8 +40,31 @@ export default class ReplicatedCollection<
   I = any,
   U = T,
 > extends Collection<T, I, U> {
+  private isPullingRemoteSignal: Signal<boolean>
+  private isPushingRemoteSignal: Signal<boolean>
+
   constructor(options: ReplicatedCollectionOptions<T, I, U>) {
-    const replicationAdapter = createReplicationAdapter(options)
+    const replicationAdapter = createReplicationAdapter({
+      registerRemoteChange: options.registerRemoteChange,
+      pull: async () => {
+        this.isPullingRemoteSignal.set(true)
+        try {
+          return await options.pull()
+        } finally {
+          this.isPullingRemoteSignal.set(false)
+        }
+      },
+      push: options.push ? (async (changes, items) => {
+        if (!options.push) throw new Error('Pushing is not configured for this collection. Try to pass a `push` function to the collection options.')
+
+        this.isPushingRemoteSignal.set(true)
+        try {
+          await options.push(changes, items)
+        } finally {
+          this.isPushingRemoteSignal.set(false)
+        }
+      }) : undefined,
+    })
     const persistenceAdapter = options?.persistence
       ? combinePersistenceAdapters(replicationAdapter, options.persistence)
       : replicationAdapter
@@ -47,5 +72,13 @@ export default class ReplicatedCollection<
       ...options,
       persistence: persistenceAdapter,
     })
+    this.isPullingRemoteSignal = createSignal(options.reactivity?.create(), false)
+    this.isPushingRemoteSignal = createSignal(options.reactivity?.create(), false)
+  }
+
+  public isLoading() {
+    return this.isPullingRemoteSignal.get()
+      || this.isPushingRemoteSignal.get()
+      || super.isLoading()
   }
 }
