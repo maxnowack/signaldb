@@ -172,16 +172,16 @@ export default class SyncManager<
     })
   }
 
-  private deboucedPush = debounce(async (name: string) => {
-    await this.pushChanges(name)
-  }, 100)
-
-  private schedulePush(name: string) {
-    this.deboucedPush(name)
+  private deboucedPush = debounce((name: string) => {
+    this.pushChanges(name)
       .catch((error: Error) => {
         if (!this.options.onError) return
         this.options.onError(error)
       })
+  }, 100)
+
+  private schedulePush(name: string) {
+    this.deboucedPush(name)
   }
 
   /**
