@@ -77,8 +77,9 @@ export default class ReplicatedCollection<
   }
 
   public isLoading() {
-    return this.isPullingRemoteSignal.get()
-      || this.isPushingRemoteSignal.get()
-      || super.isLoading()
+    const isPullingRemote = this.isPullingRemoteSignal.get()
+    const isPushingRemote = this.isPushingRemoteSignal.get()
+    const isLoading = super.isLoading()
+    return isPullingRemote || isPushingRemote || isLoading
   }
 }
