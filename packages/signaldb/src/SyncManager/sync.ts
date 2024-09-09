@@ -31,6 +31,20 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
   remove: (id: IdType) => void,
 }
 
+/**
+ * Does a sync operation based on the provided options. If changes are supplied, these will be rebased on the new data.
+ * Afterwards the push method will be called with the remaining changes. A new snapshot will be created and returned.
+ * @param options Sync options
+ * @param options.changes Changes to call the push method with
+ * @param [options.lastSnapshot] The last snapshot
+ * @param options.data The new data
+ * @param options.pull Method to pull new data
+ * @param options.push Method to push changes
+ * @param options.insert Method to insert an item
+ * @param options.update Method to update an item
+ * @param options.remove Method to remove an item
+ * @returns The new snapshot
+ */
 export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   changes,
   lastSnapshot,

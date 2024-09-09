@@ -35,8 +35,15 @@ interface Options<
   id?: string,
   persistenceAdapter?: (id: string) => PersistenceAdapter<any, any>,
   reactivity?: ReactivityAdapter,
+  onError?: (error: Error) => void,
 }
 
+/**
+ * Class to manage syncing of collections.
+ * @template CollectionOptions
+ * @template ItemType
+ * @template IdType
+ */
 export default class SyncManager<
   CollectionOptions extends Record<string, any>,
   ItemType extends BaseItem<IdType> = BaseItem,
@@ -54,6 +61,16 @@ export default class SyncManager<
   private remoteChanges: Collection<Change>
   private syncQueues: Map<string, PromiseQueue> = new Map()
 
+  /**
+   * @param options Collection options
+   * @param options.pull Function to pull data from remote source.
+   * @param options.push Function to push data to remote source.
+   * @param [options.registerRemoteChange] Function to register a callback for remote changes.
+   * @param [options.id] Unique identifier for this sync manager. Only nessesary if you have multiple sync managers.
+   * @param [options.persistenceAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
+   * @param [options.reactivity] Reactivity adapter to use for reactivity.
+   * @param [options.onError] Function to handle errors that occur async during syncing.
+   */
   constructor(options: Options<CollectionOptions, ItemType, IdType>) {
     this.options = options
     const id = this.options.id ?? 'default-sync-manager'
@@ -87,12 +104,24 @@ export default class SyncManager<
     return this.syncQueues.get(name) as PromiseQueue
   }
 
+  /**
+   * Gets a collection with it's options by name
+   * @param name Name of the collection
+   * @throws Will throw an error if the name wasn't found
+   * @returns Tuple of collection and options
+   */
   public getCollection(name: string) {
     const entry = this.collections.get(name)
     if (entry == null) throw new Error(`Collection with id '${name}' not found`)
     return entry
   }
 
+  /**
+   * Adds a collection to the sync manager.
+   * @param collection Collection to add
+   * @param options Options for the collection. The object needs at least a `name` property.
+   * @param options.name Unique name of the collection
+   */
   public addCollection(
     collection: Collection<ItemType, IdType, any>,
     options: SyncOptions<CollectionOptions>,
@@ -149,15 +178,24 @@ export default class SyncManager<
 
   private schedulePush(name: string) {
     this.deboucedPush(name)
+      .catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(error)
+      })
   }
 
   /**
-   *
+   * Starts the sync process for all collections
    */
   public async syncAll() {
     await Promise.all([...this.collections.keys()].map(id => this.sync(id)))
   }
 
+  /**
+   * Checks if a collection is currently beeing synced
+   * @param [name] Name of the collection. If not provided, it will check if any collection is currently beeing synced.
+   * @returns True if the collection is currently beeing synced, false otherwise.
+   */
   public isSyncing(name?: string) {
     return this.syncOperations.findOne({
       ...name ? { collectionName: name } : {},
@@ -165,6 +203,13 @@ export default class SyncManager<
     }, { fields: { status: 1 } }) != null
   }
 
+  /**
+   * Starts the sync process for a collection
+   * @param name Name of the collection
+   * @param options Options for the sync process.
+   * @param options.force If true, the sync process will be started even if there are no changes and onlyWithChanges is true.
+   * @param options.onlyWithChanges If true, the sync process will only be started if there are changes.
+   */
   public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
     // schedule for next tick to allow other tasks to run first
     await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -189,6 +234,10 @@ export default class SyncManager<
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
   }
 
+  /**
+   * Starts the push process for a collection (sync process but only if there are changes)
+   * @param name Name of the collection
+   */
   public async pushChanges(name: string) {
     await this.sync(name, {
       onlyWithChanges: true,
