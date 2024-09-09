@@ -410,3 +410,39 @@ it('should sync after a empty remote change was received', async () => {
   // Verify that the collection includes the remote change
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
 })
+
+it('should call onError handler if an async error occurs', async () => {
+  let callCount = 0
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockImplementation(() => {
+    callCount += 1
+    if (callCount === 1) {
+      return Promise.resolve({
+        items: [{ id: '1', name: 'Test Item' }],
+      })
+    }
+    return Promise.resolve({
+      items: [{ id: '1', name: 'New Item' }],
+    })
+  })
+
+  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+    .mockRejectedValue(new Error('Push error'))
+
+  const onError = vi.fn()
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+    onError,
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>()
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+  await syncManager.sync('test')
+
+  mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
+  await new Promise((resolve) => { setTimeout(resolve, 110) })
+
+  expect(mockPush).toHaveBeenCalled()
+  expect(onError).toHaveBeenCalledWith(new Error('Push error'))
+})
