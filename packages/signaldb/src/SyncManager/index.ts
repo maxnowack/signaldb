@@ -43,6 +43,26 @@ interface Options<
  * @template CollectionOptions
  * @template ItemType
  * @template IdType
+ * @example
+ * const syncManager = new SyncManager({
+ *    pull: async (collectionOptions) => {
+ *      const response = await fetch(`/api/collections/${collectionOptions.name}`)
+ *      return await response.json()
+ *    },
+ *    push: async (collectionOptions, changes) => {
+ *      await fetch(`/api/collections/${collectionOptions.name}`, {
+ *        method: 'POST',
+ *        body: JSON.stringify(changes),
+ *      })
+ *    },
+ *  })
+ *
+ *  const collection = new Collection()
+ *  syncManager.addCollection(collection, {
+ *    name: 'todos',
+ *  })
+ *
+ *  syncManager.sync('todos')
  */
 export default class SyncManager<
   CollectionOptions extends Record<string, any>,
