@@ -1,9 +1,9 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+export default withMermaid({
   title: 'SignalDB',
   description: 'A reactive local JavaScript database with a MongoDB-like interface, first-class TypeScript support and signal-based reactivity.',
   lastUpdated: true,
@@ -64,6 +64,15 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Synchronization',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/sync/' },
+          { text: 'Implementation', link: '/sync/implementation/' },
+          { text: 'Reference', link: '/sync/reference/' },
+        ],
+      },
+      {
         text: 'Reactivity Adapters',
         collapsed: false,
         items: [
@@ -84,18 +93,6 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Replication',
-        collapsed: false,
-        items: [
-          { text: 'Overview', link: '/replication/' },
-          { text: 'HTTP', link: '/replication/http/' },
-          { text: 'Appwrite', link: '/replication/appwrite/' },
-          { text: 'Firebase', link: '/replication/firebase/' },
-          { text: 'Supabase', link: '/replication/supabase/' },
-          { text: 'Other Replication Options', link: '/replication/other/' },
-        ],
-      },
-      {
         text: 'Data Persistence',
         collapsed: false,
         items: [
@@ -104,6 +101,18 @@ export default defineConfig({
           { text: 'OPFS', link: '/data-persistence/opfs/' },
           { text: 'Filesystem', link: '/data-persistence/file-system/' },
           { text: 'RxDB', link: '/data-persistence/rxdb/' },
+          {
+            text: 'External Sources',
+            collapsed: true,
+            items: [
+              { text: 'Overview', link: '/replication/' },
+              { text: 'HTTP', link: '/replication/http/' },
+              { text: 'Appwrite', link: '/replication/appwrite/' },
+              { text: 'Firebase', link: '/replication/firebase/' },
+              { text: 'Supabase', link: '/replication/supabase/' },
+              { text: 'Other Replication Options', link: '/replication/other/' },
+            ],
+          },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
         ],
       },
