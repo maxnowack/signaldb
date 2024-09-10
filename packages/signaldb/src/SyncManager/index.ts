@@ -27,7 +27,7 @@ interface Options<
   ) => Promise<void>,
   registerRemoteChange?: (
     onChange: (
-      collectionOptions: SyncOptions<CollectionOptions>,
+      collectionName: string,
       data?: LoadResponse<ItemType>,
     ) => void | Promise<void>
   ) => void,
@@ -102,7 +102,7 @@ export default class SyncManager<
     this.snapshots = new Collection({ persistence: persistenceAdapter(`${id}-snapshots`), reactivity })
     this.syncOperations = new Collection({ persistence: persistenceAdapter(`${id}-sync-operations`), reactivity })
     if (this.options.registerRemoteChange) {
-      this.options.registerRemoteChange(({ name }, data) => {
+      this.options.registerRemoteChange((name, data) => {
         if (data == null) {
           void this.sync(name)
         } else {
