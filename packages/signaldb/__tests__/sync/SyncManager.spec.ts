@@ -318,7 +318,7 @@ it('should register and apply remote changes with items', async () => {
   const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionOptions: { name: string},
+  let onRemoteChangeHandler = vi.fn<(collectionName: string,
     data?: LoadResponse<TestItem>) => void>()
   const syncManager = new SyncManager({
     pull: mockPull,
@@ -333,7 +333,7 @@ it('should register and apply remote changes with items', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   // Simulate a remote change
-  onRemoteChangeHandler({ name: 'test' }, { items: [{ id: '2', name: 'Remote Item' }] })
+  onRemoteChangeHandler('test', { items: [{ id: '2', name: 'Remote Item' }] })
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -355,7 +355,7 @@ it('should register and apply remote changes with changes', async () => {
   const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionOptions: { name: string},
+  let onRemoteChangeHandler = vi.fn<(collectionName: string,
     data?: LoadResponse<TestItem>) => void>()
   const syncManager = new SyncManager({
     pull: mockPull,
@@ -370,7 +370,7 @@ it('should register and apply remote changes with changes', async () => {
   await syncManager.sync('test')
 
   // Simulate a remote change
-  onRemoteChangeHandler({ name: 'test' }, { changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
+  onRemoteChangeHandler('test', { changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -387,7 +387,7 @@ it('should sync after a empty remote change was received', async () => {
   const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionOptions: { name: string},
+  let onRemoteChangeHandler = vi.fn<(collectionName: string,
     data?: LoadResponse<TestItem>) => void>()
   const syncManager = new SyncManager({
     pull: mockPull,
@@ -402,7 +402,7 @@ it('should sync after a empty remote change was received', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   // Simulate a remote change
-  onRemoteChangeHandler({ name: 'test' })
+  onRemoteChangeHandler('test')
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
