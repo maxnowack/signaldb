@@ -441,16 +441,15 @@ describe('Collection', () => {
       return performance.now() - start
     }
 
-    it('should be faster with id only queries', async () => {
+    it('should be faster with id only queries', () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
       // create items
-      for (let i = 0; i < 1000; i += 1) {
-        col.insert({ id: i.toString(), name: 'John', num: i })
-      }
-
-      // wait for the next tick to ensure the indices are ready
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      col.batch(() => {
+        for (let i = 0; i < 1000; i += 1) {
+          col.insert({ id: i.toString(), name: 'John', num: i })
+        }
+      })
 
       const idQueryTime = measureTime(() => {
         const item = col.findOne({ id: '999' })
@@ -470,19 +469,19 @@ describe('Collection', () => {
       expect(percentage).toBeLessThan(10)
     })
 
-    it('should be faster with field indices', async () => {
+    it('should be faster with field indices', () => {
       const col1 = new Collection<{ id: string, name: string, num: number }>({
         indices: [createIndex('num')],
       })
       const col2 = new Collection<{ id: string, name: string, num: number }>()
 
-      // create items
-      for (let i = 0; i < 1000; i += 1) {
-        col1.insert({ id: i.toString(), name: 'John', num: i })
-        col2.insert({ id: i.toString(), name: 'John', num: i })
-      }
-      // wait for the next tick to ensure the indices are ready
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      Collection.batch(() => {
+        // create items
+        for (let i = 0; i < 10000; i += 1) {
+          col1.insert({ id: i.toString(), name: 'John', num: i })
+          col2.insert({ id: i.toString(), name: 'John', num: i })
+        }
+      })
 
       const indexQueryTime = measureTime(() => {
         const item = col1.findOne({ num: 999 })
@@ -579,6 +578,18 @@ describe('Collection', () => {
       })
 
       expect(col.findOne({ id: '1' })).toEqual({ id: '1', name: 'John' })
+    })
+
+    it('should disable indexing temporarily if indices are outdated', () => {
+      const col = new Collection<{ id: string, name: string }>()
+      col.batch(() => {
+        col.insert({ id: '1', name: 'John' })
+        col.insert({ id: '2', name: 'Jane' })
+        col.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
+        col.removeOne({ id: '2' })
+
+        expect(col.find().fetch()).toEqual([{ id: '1', name: 'John Doe' }])
+      })
     })
   })
 })
