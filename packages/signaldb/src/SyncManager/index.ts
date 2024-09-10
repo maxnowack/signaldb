@@ -208,7 +208,7 @@ export default class SyncManager<
    * Starts the sync process for all collections
    */
   public async syncAll() {
-    await Promise.all([...this.collections.keys()].map(id => this.sync(id)))
+    await Promise.allSettled([...this.collections.keys()].map(id => this.sync(id)))
   }
 
   /**
