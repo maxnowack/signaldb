@@ -12,7 +12,6 @@ import isEqual from '../utils/isEqual'
 import randomId from '../utils/randomId'
 import deepClone from '../utils/deepClone'
 import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
-import executeOncePerTick from '../utils/executeOncePerTick'
 import serializeValue from '../utils/serializeValue'
 import type Signal from '../types/Signal'
 import createSignal from '../utils/createSignal'
@@ -109,11 +108,19 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
 export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T, U>> {
   static collections: Collection<any, any>[] = []
   static debugMode = false
+  static batchOperationInProgress = false
   static enableDebugMode = () => {
     Collection.debugMode = true
     Collection.collections.forEach((collection) => {
       collection.setDebugMode(true)
     })
+  }
+
+  static batch(callback: () => void) {
+    Collection.batchOperationInProgress = true
+    Collection.collections.reduce((memo, collection) => () =>
+      collection.batch(() => memo()), callback)()
+    Collection.batchOperationInProgress = false
   }
 
   private options: CollectionOptions<T, I, U>
@@ -124,6 +131,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   private indicesOutdated = false
   private idIndex = new Map<string, Set<number>>()
   private debugMode
+  private batchOperationInProgress = false
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
@@ -334,10 +342,9 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
 
   private rebuildIndices() {
     this.indicesOutdated = true
-    this.rebuildIndicesOncePerTick()
+    if (this.batchOperationInProgress) return
+    this.rebuildAllIndices()
   }
-
-  private rebuildIndicesOncePerTick = executeOncePerTick(this.rebuildAllIndices.bind(this))
 
   private rebuildAllIndices() {
     this.idIndex.clear()
@@ -410,17 +417,16 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       ...options,
       transform: this.transform.bind(this),
       bindEvents: (requery) => {
-        const requeryOnce = executeOncePerTick(requery, true)
-        this.addListener('persistence.received', requeryOnce)
-        this.addListener('added', requeryOnce)
-        this.addListener('changed', requeryOnce)
-        this.addListener('removed', requeryOnce)
+        this.addListener('persistence.received', requery)
+        this.addListener('added', requery)
+        this.addListener('changed', requery)
+        this.addListener('removed', requery)
         this.emit('observer.created', selector, options)
         return () => {
-          this.removeListener('persistence.received', requeryOnce)
-          this.removeListener('added', requeryOnce)
-          this.removeListener('changed', requeryOnce)
-          this.removeListener('removed', requeryOnce)
+          this.removeListener('persistence.received', requery)
+          this.removeListener('added', requery)
+          this.removeListener('changed', requery)
+          this.removeListener('removed', requery)
           this.emit('observer.disposed', selector, options)
         }
       },
@@ -439,6 +445,15 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.emit('findOne', selector, options, returnValue)
     this.executeInDebugMode(callstack => this.emit('_debug.findOne', callstack, selector, options, returnValue))
     return returnValue
+  }
+
+  public batch(callback: () => void) {
+    this.batchOperationInProgress = true
+    callback()
+    this.batchOperationInProgress = false
+
+    // do stuff that wasn't executed during the batch operation
+    this.rebuildAllIndices()
   }
 
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {

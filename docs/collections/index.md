@@ -76,6 +76,18 @@ Parameters
 
 Behaves the same like `.removeMany()` but only removes the first found document.
 
+### `batch(callback: () => void)`
+
+If you need to execute many operations at once, things can get slow as the index would be rebuild on every change to the collection. To prevent this, you can use the `.batch()` method. This method will execute all operations inside the callback without rebuilding the index on every change. If you need to batch updates of multiple collections, you can use the global `Collection.batch()` method.
+
+```js
+collection.batch(() => {
+  collection.insert({ name: 'Item 1' })
+  collection.insert({ name: 'Item 2' })
+  // …
+})
+```
+
 ## Events
 
 The Collection class is equipped with a set of events that provide insights into the state and changes within the collection. These events, emitted by the class, can be crucial for implementing reactive behaviors and persistence management. Here is an overview of the events:
