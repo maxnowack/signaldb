@@ -128,24 +128,26 @@ SignalDB’s sync process consists of several key steps:
 
 * **Pulls Again for Verification**: Finally, the client performs another pull to verify that all changes have been correctly applied and synchronized with the server.
 
-This following chart illustrates the sync flow in detail:
+The following pseudo code shows the sync flow in detail. It's based on the actual implementation of the sync function, but it's simplified to illustrate the main concepts.
 
-```mermaid
-graph TB
-    Start[Start sync] --> FirstPull[Pulls Data from Server]
-    FirstPull --> ChangesPresent{Are Local Changes Present?}
-    ChangesPresent -->|No| UpdateData
-    ChangesPresent -->|Yes| ApplyOnLastSnapshot[Apply Changes to\nLast Local Snapshot]
-    ApplyOnLastSnapshot --> FirstDiff{Has Snapshot with Applied Changes\na Difference to the Last Snapshot?}
-    FirstDiff -->|No| UpdateData
-    FirstDiff -->|Yes| ApplyOnNewSnapshot[Apply Changes to the\nSnapshot of Pulled Data]
-    ApplyOnNewSnapshot --> ChangesToPush{Are There Any Remaining Changes\nThat Need To Be Pushed to the Server?}
-    ChangesToPush -->|No| UpdateData
-    ChangesToPush -->|Yes| Push[Push Changes to the Server]
-    Push --> Pull[Pull Updated Data]
-    Pull --> UpdateData[Apply Pulled Changes on the Collection]
-    UpdateData --> SnapshotUpdate[Update the Last Snapshot with the New Data]
-    SnapshotUpdate --> End[End of Sync]
+```js
+async function sync(changes, lastSnapshot, newData) {
+    let dataFromServer = await pullDataFromServer();
+
+    if (changes) {
+        let localSnapshot = applyChangesToSnapshot(changes, lastSnapshot);
+
+        if (hasDifference(localSnapshot, lastSnapshot)) {
+            let newSnapshot = applyChangesToSnapshot(changes, newData);
+
+            if (hasDifference(newData, newSnapshot)) {
+                pushChangesToServer(newSnapshot);
+                dataFromServer = pullUpdatedData();
+            }
+        }
+    }
+    updateDataOnCollection(dataFromServer);
+}
 ```
 
 ### Conflict Resolution
