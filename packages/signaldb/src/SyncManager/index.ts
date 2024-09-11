@@ -20,10 +20,16 @@ interface Options<
 > {
   pull: (
     collectionOptions: SyncOptions<CollectionOptions>,
+    pullParameters: {
+      lastFinishedSyncStart?: number,
+      lastFinishedSyncEnd?: number,
+    },
   ) => Promise<LoadResponse<ItemType>>,
   push: (
     collectionOptions: SyncOptions<CollectionOptions>,
-    changes: Changeset<ItemType>,
+    pushParameters: {
+      changes: Changeset<ItemType>,
+    }
   ) => Promise<void>,
   registerRemoteChange?: (
     onChange: (
@@ -49,7 +55,7 @@ interface Options<
  *      const response = await fetch(`/api/collections/${collectionOptions.name}`)
  *      return await response.json()
  *    },
- *    push: async (collectionOptions, changes) => {
+ *    push: async (collectionOptions, { changes }) => {
  *      await fetch(`/api/collections/${collectionOptions.name}`, {
  *        method: 'POST',
  *        body: JSON.stringify(changes),
@@ -234,8 +240,8 @@ export default class SyncManager<
     // schedule for next tick to allow other tasks to run first
     await new Promise((resolve) => { setTimeout(resolve, 0) })
     const doSync = async () => {
+      const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { time: -1 } })
       if (options?.onlyWithChanges) {
-        const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { time: -1 } })
         const currentChanges = this.changes.find({
           collectionName: name,
           $and: [
@@ -248,7 +254,10 @@ export default class SyncManager<
       const entry = this.getCollection(name)
       const collectionOptions = entry[1]
 
-      const data = await this.options.pull(collectionOptions)
+      const data = await this.options.pull(collectionOptions, {
+        lastFinishedSyncStart: lastFinishedSync?.start,
+        lastFinishedSyncEnd: lastFinishedSync?.end,
+      })
       await this.syncWithData(name, data)
     }
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
@@ -290,8 +299,11 @@ export default class SyncManager<
       changes: currentChanges,
       lastSnapshot: lastSnapshot?.items,
       data,
-      pull: () => this.options.pull(collectionOptions),
-      push: changes => this.options.push(collectionOptions, changes),
+      pull: () => this.options.pull(collectionOptions, {
+        lastFinishedSyncStart: lastFinishedSync?.start,
+        lastFinishedSyncEnd: lastFinishedSync?.end,
+      }),
+      push: changes => this.options.push(collectionOptions, { changes }),
       insert: (item) => {
         this.remoteChanges.insert({
           collectionName: name,
