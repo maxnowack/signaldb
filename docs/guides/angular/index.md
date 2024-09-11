@@ -98,3 +98,8 @@ export class AppComponent {
 ## Wrapping Up
 
 You have now successfully integrated SignalDB into an Angular app and created a reactive component to display and manage posts. With this setup, you can leverage SignalDB’s reactive capabilities to handle data updates and synchronization in your Angular application.
+
+## Next Steps
+
+Now that you’ve learned how to use SignalDB in Angular, you maybe want to explore the possibilities how you can synchronize the data with your backend.
+Take a look at the [Synchronization Overview](/sync/) to get started

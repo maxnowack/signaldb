@@ -96,3 +96,8 @@ In this example, we use the `useReactivity` hook to make the component reactive.
 ## Conclusion
 
 That's it! You have successfully set up SignalDB in your React project and created a reactive component that displays a list of posts. You can now use SignalDB in your React project to manage your data and make your components reactive.
+
+## Next Steps
+
+Now that you’ve learned how to use SignalDB in Angular, you maybe want to explore the possibilities how you can synchronize the data with your backend.
+Take a look at the [Synchronization Overview](/sync/) to get started

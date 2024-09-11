@@ -120,3 +120,8 @@ Now let's create a component that lists posts and allows the user to add new one
 ## Conclusion
 
 You’ve now learned how to set up SignalDB in a Svelte project and create a reactive component to display and add posts. By leveraging Svelte’s reactivity, you can efficiently manage data and create dynamic user interfaces with SignalDB.
+
+## Next Steps
+
+Now that you’ve learned how to use SignalDB in Angular, you maybe want to explore the possibilities how you can synchronize the data with your backend.
+Take a look at the [Synchronization Overview](/sync/) to get started

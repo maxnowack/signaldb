@@ -74,3 +74,8 @@ In this example, the `.find()` and `.fetch()` methods are used to retrieve data.
 ## Final Thoughts
 
 You’ve now set up SignalDB in your Solid project and created a reactive component to display posts. With this, you can manage your data effectively and build reactive components in your Solid apps.
+
+## Next Steps
+
+Now that you’ve learned how to use SignalDB in Angular, you maybe want to explore the possibilities how you can synchronize the data with your backend.
+Take a look at the [Synchronization Overview](/sync/) to get started

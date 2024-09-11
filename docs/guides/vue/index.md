@@ -83,3 +83,8 @@ Now, let’s build a Vue component that lists posts and allows you to add new on
 ## Conclusion
 
 You have successfully integrated SignalDB into a Vue project and created a reactive component to manage and display posts. This setup allows you to take advantage of SignalDB’s reactivity and Vue's capabilities to build dynamic and responsive applications.
+
+## Next Steps
+
+Now that you’ve learned how to use SignalDB in Angular, you maybe want to explore the possibilities how you can synchronize the data with your backend.
+Take a look at the [Synchronization Overview](/sync/) to get started
