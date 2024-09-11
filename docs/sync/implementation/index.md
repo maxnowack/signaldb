@@ -111,3 +111,77 @@ const syncManager = new SyncManager({
   // …
 })
 ```
+
+## Example Implementations
+
+### Simple RESTful API
+
+Below is an example implementation of a simple REST API.
+
+```js
+import { EventEmitter } from 'node:events'
+import { Collection, SyncManager } from 'signaldb'
+
+const Authors = new Collection()
+const Posts = new Collection()
+const Comments = new Collection()
+
+const errorEmitter = new EventEmitter()
+errorEmitter.on('error', (message) => {
+  // display validation errors to the user
+})
+
+const apiBaseUrl = 'https://example.com/api'
+const syncManager = new SyncManager({
+  pull: async ({ apiPath }) => {
+    const data = await fetch(`${apiBaseUrl}${apiPath}`).then(res => res.json())
+    return { items: data }
+  },
+  push: async ({ apiPath }, changes) => {
+    await Promise.all(changes.added.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(item) })
+      const responseText = await response.text()
+      if (response.status >= 400 && response.status <= 499) {
+        errorEmitter.emit('error', responseText)
+        return
+      }
+    }))
+
+    await Promise.all(changes.modified.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'PUT', body: JSON.stringify(item) })
+      const responseText = await response.text()
+      if (response.status >= 400 && response.status <= 499) {
+        errorEmitter.emit('error', responseText)
+        return
+      }
+    }))
+
+    await Promise.all(changes.removed.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'DELETE', body: JSON.stringify(item) })
+      const responseText = await response.text()
+      if (response.status >= 400 && response.status <= 499) {
+        errorEmitter.emit('error', responseText)
+        return
+      }
+    }))
+  },
+})
+
+syncManager.addCollection(Posts, {
+  name: 'posts',
+  apiPath: '/posts',
+})
+syncManager.addCollection(Authors, {
+  name: 'authors',
+  apiPath: '/authors',
+})
+syncManager.addCollection(Comments, {
+  name: 'comments',
+  apiPath: '/comments',
+})
+```
+
+### More Examples
+
+If you think that an example is definitely missing here, feel free to create a pull request.
+Also don't hesitate to create a [discussion](https://github.com/maxnowack/signaldb/discussions/new/choose) if you have any questions or need help with your implementation.
