@@ -70,6 +70,6 @@ Now you know the basics about SignalDB. It's time to learn how to integrate it w
 Take a look at our guides:
 - [Angular](/guides/angular/)
 - [React](/guides/react/)
-- [Solid](/guides/solid/)
+- [Solid](/guides/solid-js/)
 - [Svelte](/guides/svelte/)
 - [Vue](/guides/vue/)
