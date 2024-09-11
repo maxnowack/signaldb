@@ -48,13 +48,13 @@ syncManager.addCollection(someCollection, {
 
 ## Implementing the `pull` method
 
-After we've added our collection to the `syncManager`, we can start implementing the `pull` method. The `pull` method is responsible for fetching the latest data from the server and applying it to the collection. The `pull` method is called whenever the `syncAll` or the `sync(name)` method are called. During sync, the `pull` method will be called for each collection that was added to the `syncManager`. It's receiving the collection options, passed to the `addCollection` method, as the first parameter. The `pull` method must return a promise that resolves to an object with either an `items` property containing all items that should be applied to the collection or a `changes` property containing all changes `{ added: T[], modified: T[], removed: T[] }`.
+After we've added our collection to the `syncManager`, we can start implementing the `pull` method. The `pull` method is responsible for fetching the latest data from the server and applying it to the collection. The `pull` method is called whenever the `syncAll` or the `sync(name)` method are called. During sync, the `pull` method will be called for each collection that was added to the `syncManager`. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and an object with additional information, like the `lastFinishedSyncStart` and `lastFinishedSyncEnd` timestamps, as the second parameter. The `pull` method must return a promise that resolves to an object with either an `items` property containing all items that should be applied to the collection or a `changes` property containing all changes `{ added: T[], modified: T[], removed: T[] }`.
 
 ```ts
 const syncManager = new SyncManager({
   // …
-  pull: async ({ apiPath }) => {
-    const data = await fetch(apiPath).then(res => res.json())
+  pull: async ({ apiPath }, { lastFinishedSyncStart }) => {
+    const data = await fetch(`${apiPath}?since=${lastFinishedSyncStart}`).then(res => res.json())
 
     return { items: data }
   },
@@ -64,7 +64,7 @@ const syncManager = new SyncManager({
 
 ## Implementing the `push` method
 
-The `push` method is responsible for sending the changes to the server. The `push` method is called during sync for each collection that was added to the `syncManager` if changes are present. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and the changes that should be sent to the server as the second parameter. The `push` method returns a promise without a resolved value.
+The `push` method is responsible for sending the changes to the server. The `push` method is called during sync for each collection that was added to the `syncManager` if changes are present. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and an object including the changes that should be sent to the server as the second parameter. The `push` method returns a promise without a resolved value.
 
 If an error occurs during the `push`, the sync for the collection will be aborted and the error will be thrown.
 **There are some errors that need to be handled by yourself. These are normally validation errors (e.g. `4xx` status codes) were the sync shouldn't fail, but the local data should be overwritten with the latest server data.**
@@ -73,7 +73,7 @@ If you throw these errors in your `push` method, the `syncManager` will keep the
 ```ts
 const syncManager = new SyncManager({
   // …
-  push: async ({ apiPath }, changes) => {
+  push: async ({ apiPath }, { changes }) => {
     await Promise.all(changes.added.map(async (item) => {
       const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(item) })
       if (response.status >= 400 && response.status <= 499) return
@@ -137,7 +137,7 @@ const syncManager = new SyncManager({
     const data = await fetch(`${apiBaseUrl}${apiPath}`).then(res => res.json())
     return { items: data }
   },
-  push: async ({ apiPath }, changes) => {
+  push: async ({ apiPath }, { changes }) => {
     await Promise.all(changes.added.map(async (item) => {
       const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(item) })
       const responseText = await response.text()

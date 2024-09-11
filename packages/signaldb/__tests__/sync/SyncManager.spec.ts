@@ -1,7 +1,7 @@
 import { it, expect, vi } from 'vitest'
 import { Collection, SyncManager } from '../../src'
 import type { BaseItem } from '../../src/Collection'
-import type { Changeset, LoadResponse } from '../../src/types/PersistenceAdapter'
+import type { LoadResponse } from '../../src/types/PersistenceAdapter'
 
 interface TestItem extends BaseItem<string> {
   id: string,
@@ -13,7 +13,7 @@ it('should add a collection and register sync events', async () => {
     items: [{ id: '1', name: 'Test Item' }],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -36,7 +36,7 @@ it('should handle pull and apply new changes during sync', async () => {
     items: [{ id: '1', name: 'Test Item' }],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -68,7 +68,7 @@ it('should handle updates correctly during sync', async () => {
     })
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -93,7 +93,7 @@ it('should push changes when items are added locally', async () => {
     items: [],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -126,7 +126,7 @@ it('should push changes when items are updated locally', async () => {
     })
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -160,7 +160,7 @@ it('should push changes when items are removed locally', async () => {
     })
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -185,7 +185,7 @@ it('should debounce push requests', async () => {
     items: [],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -208,7 +208,7 @@ it('should debounce push requests', async () => {
 it('should handle sync errors and update sync operation status', async () => {
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockRejectedValue(new Error('Sync failed'))
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -235,7 +235,7 @@ it('should sync all collections', async () => {
     items: [],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -257,7 +257,7 @@ it('should sync all collections', async () => {
 it('should handle pull errors and update sync operation status', async () => {
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockRejectedValue(new Error('Pull failed'))
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
@@ -285,7 +285,7 @@ it('should handle push errors and update sync operation status', async () => {
     items: [{ id: '1', name: 'Test Item' }],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockRejectedValue(new Error('Push failed'))
 
   const syncManager = new SyncManager({
@@ -315,7 +315,7 @@ it('should register and apply remote changes with items', async () => {
     items: [{ id: '1', name: 'Test Item' }],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   let onRemoteChangeHandler = vi.fn<(collectionName: string,
@@ -352,7 +352,7 @@ it('should register and apply remote changes with changes', async () => {
     return Promise.resolve({ changes: { added: [], modified: [], removed: [] } })
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   let onRemoteChangeHandler = vi.fn<(collectionName: string,
@@ -384,7 +384,7 @@ it('should sync after a empty remote change was received', async () => {
     items: [{ id: '1', name: 'Test Item' }],
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
   let onRemoteChangeHandler = vi.fn<(collectionName: string,
@@ -425,7 +425,7 @@ it('should call onError handler if an async error occurs', async () => {
     })
   })
 
-  const mockPush = vi.fn<(options: any, changes: Changeset<TestItem>) => Promise<void>>()
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockRejectedValue(new Error('Push error'))
 
   const onError = vi.fn()
