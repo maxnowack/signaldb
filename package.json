@@ -39,7 +39,7 @@
     "fast-glob": "^3.3.2",
     "happy-dom": "15.7.3",
     "husky": "9.1.5",
-    "mermaid": "^10.9.1",
+    "mermaid": "^11.0.0",
     "rimraf": "6.0.1",
     "rollup-plugin-typescript-paths": "1.5.0",
     "ts-node": "10.9.2",
