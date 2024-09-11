@@ -37,6 +37,7 @@ export default withMermaid({
           { text: 'React', link: '/guides/react/' },
           { text: 'Solid', link: '/guides/solid-js/' },
           { text: 'Svelte', link: '/guides/svelte/' },
+          { text: 'Vue', link: '/guides/vue/' },
         ],
       },
       {
