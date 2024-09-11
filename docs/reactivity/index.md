@@ -59,6 +59,7 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reactivity/
 | [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
 | [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
 | [`sprae`](https://github.com/dy/sprae) (see [#858](https://github.com/maxnowack/signaldb/issues/858)) | ✅ | ❌ | ❌ |
+| [`Svelte Runes`](https://svelte.dev/blog/runes) | ❌ | - | - |
 | [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |
 | [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
 | [`Vue.js refs`](/reactivity/vue/) | ✅ | ✅ | ✅ |
