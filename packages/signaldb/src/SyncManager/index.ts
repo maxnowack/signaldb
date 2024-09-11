@@ -1,5 +1,5 @@
-import type { BaseItem } from 'signaldb/Collection/types'
-import type { Changeset, LoadResponse } from 'signaldb/types/PersistenceAdapter'
+import type { BaseItem } from '../Collection/types'
+import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
 import Collection from '../Collection'
 import debounce from '../utils/debounce'
 import PromiseQueue from '../utils/PromiseQueue'
