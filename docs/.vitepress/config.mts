@@ -41,17 +41,6 @@ export default withMermaid({
         ],
       },
       {
-        text: 'Examples',
-        collapsed: false,
-        items: [
-          { text: 'HTTP Replication', link: 'https://signaldb.js.org/examples/replication-http/' },
-          { text: 'Appwrite', link: 'https://signaldb.js.org/examples/appwrite/' },
-          { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
-          { text: 'RxDB', link: 'https://signaldb.js.org/examples/rxdb/' },
-          { text: 'Supabase', link: 'https://signaldb.js.org/examples/supabase/' },
-        ],
-      },
-      {
         text: 'Documentation',
         collapsed: false,
         items: [
@@ -118,6 +107,17 @@ export default withMermaid({
             ],
           },
           { text: 'Other Persistence Options', link: '/data-persistence/other/' },
+        ],
+      },
+      {
+        text: 'Examples',
+        collapsed: false,
+        items: [
+          { text: 'HTTP Replication', link: 'https://signaldb.js.org/examples/replication-http/' },
+          { text: 'Appwrite', link: 'https://signaldb.js.org/examples/appwrite/' },
+          { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
+          { text: 'RxDB', link: 'https://signaldb.js.org/examples/rxdb/' },
+          { text: 'Supabase', link: 'https://signaldb.js.org/examples/supabase/' },
         ],
       },
       {
