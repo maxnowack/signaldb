@@ -34,6 +34,7 @@ export default withMermaid({
         collapsed: false,
         items: [
           { text: 'React', link: '/guides/react/' },
+          { text: 'Solid', link: '/guides/solid-js/' },
         ],
       },
       {
