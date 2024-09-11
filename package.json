@@ -21,8 +21,8 @@
     "examples/*"
   ],
   "devDependencies": {
-    "@commitlint/cli": "19.4.1",
-    "@commitlint/config-conventional": "19.4.1",
+    "@commitlint/cli": "19.5.0",
+    "@commitlint/config-conventional": "19.5.0",
     "@rollup/plugin-typescript": "11.1.6",
     "@stylistic/eslint-plugin": "^2.6.4",
     "@typescript-eslint/eslint-plugin": "8.5.0",
