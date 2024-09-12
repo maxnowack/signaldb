@@ -33,7 +33,7 @@ const syncManager = new SyncManager({
 ```
 ## Adding Collections
 
-Before we go in the details of the `pull` and `push` methods, we need to understand how we add collection to our `syncManager`. The `addCollection` method takes to parameters. The first one is the collection itself and the second one is an option object. This object must contain at least a `name` property that will be used to identify the collection in the `syncManager`. You can also pass other informations to the options object. These properties are will be passed to your `push` & `pull` methods and can be used to access additionally informations about the collection that are needed for the synchronization (e.g. api endpoint url). This concept also allows you to do things like passing `canRead`/`canWrite` methods to the options that are later on used to check if the user has the necessary permissions to `pull`/`push`.
+Before we go in the details of the `pull` and `push` methods, we need to understand how we add collection to our `syncManager`. The `addCollection` method takes two parameters. The first one is the collection itself and the second one is an option object. This object must contain at least a `name` property that will be used to identify the collection in the `syncManager`. You can also pass other informations to the options object. These properties will be passed to your `push` & `pull` methods and can be used to access additionally informations about the collection that are needed for the synchronization (e.g. api endpoint url). This concept also allows you to do things like passing `canRead`/`canWrite` methods to the options that are later on used to check if the user has the necessary permissions to `pull`/`push`.
 
 ```ts
 import { Collection } from 'signaldb'
