@@ -53,6 +53,7 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reactivity/
 | [`Meteor Tracker`](/reactivity/meteor-tracker/) | ✅ | ✅ | ✅ |
 | [`MobX`](/reactivity/mobx/) | ✅ | ✅ | ❌ |
 | [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
+| [`Qwik`](https://qwik.dev/docs/components/state/) | ❌ | - | - |
 | [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
 | [`signal-polyfill`](https://github.com/proposal-signals/signal-polyfill) | ❌ | - | - |
 | [`signia`](https://signia.tldraw.dev/) | ❌ | - | - |
