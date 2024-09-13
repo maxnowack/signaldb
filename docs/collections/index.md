@@ -48,6 +48,9 @@ Behaves the same like `.find()` but doesn't return a cursor. Instead it will dir
 Inserts an item into the collection and returns the ID of the newly inserted item.
 Also check out the [data manipulation section](/data-manipulation/).
 
+### `insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>)`
+Inserts multiple items into the collection and returns the IDs of the newly inserted items.
+
 Parameters
 * `item`: The item to be inserted into the collection.
 

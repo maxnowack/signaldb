@@ -129,6 +129,25 @@ describe('Collection', () => {
     })
   })
 
+  describe('insertMany', () => {
+    it('should insert multiple items into the collection', () => {
+      const items = [
+        { id: '1', name: 'John' },
+        { id: '2', name: 'Bob' },
+        { id: '3', name: 'Jack' },
+      ]
+
+      const ids = collection.insertMany(items)
+
+      expect(ids).toEqual(['1', '2', '3'])
+      expect(collection.find({}).fetch()).toEqual(items)
+    })
+
+    it('should not fail if empty array was passed', () => {
+      expect(collection.insertMany([])).toEqual([])
+    })
+  })
+
   describe('updateOne', () => {
     it('should update a single item that matches the selector', () => {
       collection.insert({ id: '1', name: 'John' })
