@@ -470,6 +470,21 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return newItem.id
   }
 
+  public insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
+    if (!items) throw new Error('Invalid items')
+    if (items.length === 0) {
+      return []
+    }
+
+    const ids: I[] = []
+    this.batch(() => {
+      items.forEach((item) => {
+        ids.push(this.insert(item))
+      })
+    })
+    return ids
+  }
+
   public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
