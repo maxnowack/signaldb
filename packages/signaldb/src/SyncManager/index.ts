@@ -214,7 +214,13 @@ export default class SyncManager<
    * Starts the sync process for all collections
    */
   public async syncAll() {
-    await Promise.allSettled([...this.collections.keys()].map(id => this.sync(id)))
+    const errors: {id: string, error: Error}[] = []
+    await Promise.all([...this.collections.keys()].map(id =>
+      this.sync(id).catch((error: Error) => {
+        errors.push({ id, error })
+        if (this.options.onError) this.options.onError(error)
+      })))
+    if (errors.length > 0) throw new Error(`Error while syncing collections:\n${errors.map(e => `${e.id}: ${e.error.message}`).join('\n\n')}`)
   }
 
   /**

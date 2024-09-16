@@ -446,3 +446,29 @@ it('should call onError handler if an async error occurs', async () => {
   expect(mockPush).toHaveBeenCalled()
   expect(onError).toHaveBeenCalledWith(new Error('Push error'))
 })
+
+it('should fail if there are errors on syncAll and call onError handler', async () => {
+  const mockPull = vi.fn<(options: { name: string }) => Promise<LoadResponse<TestItem>>>()
+    .mockImplementation(({ name }) => {
+      if (name === 'collection2') throw new Error('failed')
+      return Promise.resolve({
+        items: [{ id: '1', name: 'Test Item' }],
+      })
+    })
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+
+  const onError = vi.fn()
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+    onError,
+  })
+
+  const collection1 = new Collection<TestItem, string, any>()
+  const collection2 = new Collection<TestItem, string, any>()
+  syncManager.addCollection(collection1, { name: 'collection1' })
+  syncManager.addCollection(collection2, { name: 'collection2' })
+
+  await expect(syncManager.syncAll()).rejects.toThrow('failed')
+  expect(onError).toHaveBeenCalledWith(new Error('failed'))
+})
