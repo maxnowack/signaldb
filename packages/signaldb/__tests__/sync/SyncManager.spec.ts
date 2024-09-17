@@ -472,3 +472,79 @@ it('should fail if there are errors on syncAll and call onError handler', async 
   await expect(syncManager.syncAll()).rejects.toThrow('failed')
   expect(onError).toHaveBeenCalledWith(new Error('failed'))
 })
+
+it('should update items that already exist on insert', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [{ id: '1', name: 'Test Item' }],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const collection = new Collection<TestItem, string, any>()
+  collection.insert({ id: '1', name: 'Local Test Item' })
+
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  syncManager.addCollection(collection, { name: 'test' })
+  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+
+  // wait to next tick
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+
+  // Verify that the collection includes the remote change
+  expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
+})
+
+it('should insert items that not exist on update', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    changes: { modified: [{ id: '1', name: 'Test Item' }], added: [], removed: [] },
+  })
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const collection = new Collection<TestItem, string, any>()
+
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  syncManager.addCollection(collection, { name: 'test' })
+  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+
+  // wait to next tick
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+
+  // Verify that the collection includes the remote change
+  expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
+})
+
+it('should not fail while removing non existing items', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    changes: { removed: [{ id: '1', name: 'Test Item' }], added: [], modified: [] },
+  })
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const collection = new Collection<TestItem, string, any>()
+
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  syncManager.addCollection(collection, { name: 'test' })
+  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+
+  // wait to next tick
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+
+  // Verify that the collection includes the remote change
+  expect(collection.find().fetch()).toEqual([])
+})
