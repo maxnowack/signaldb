@@ -1,5 +1,5 @@
 import { createReactivityAdapter } from 'signaldb'
-import { createSignal, onCleanup } from 'solid-js'
+import { createSignal, getOwner, onCleanup } from 'solid-js'
 
 const solidReactivityAdapter = createReactivityAdapter({
   create: () => {
@@ -13,7 +13,7 @@ const solidReactivityAdapter = createReactivityAdapter({
       },
     }
   },
-  isInScope: undefined,
+  isInScope: () => !!getOwner(),
   onDispose: (callback) => {
     onCleanup(callback)
   },
