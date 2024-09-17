@@ -317,6 +317,11 @@ export default class SyncManager<
           type: 'insert',
           data: item,
         })
+        if (item.id && !!collection.findOne({ id: item.id })) {
+          // update the item if it already exists
+          collection.updateOne({ id: item.id }, { $set: item })
+          return
+        }
         collection.insert(item)
       },
       update: (itemId, modifier) => {
@@ -326,6 +331,11 @@ export default class SyncManager<
           type: 'update',
           data: { id: itemId, modifier },
         })
+        if (itemId && !collection.findOne({ id: itemId })) {
+          // insert the item if it does not exist
+          collection.insert({ ...modifier.$set as ItemType, id: itemId })
+          return
+        }
         collection.updateOne({ id: itemId } as Record<string, any>, modifier)
       },
       remove: (itemId) => {
