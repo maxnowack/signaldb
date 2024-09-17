@@ -246,7 +246,7 @@ export default class SyncManager<
     // schedule for next tick to allow other tasks to run first
     await new Promise((resolve) => { setTimeout(resolve, 0) })
     const doSync = async () => {
-      const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { time: -1 } })
+      const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { end: -1 } })
       if (options?.onlyWithChanges) {
         const currentChanges = this.changes.find({
           collectionName: name,
@@ -291,7 +291,7 @@ export default class SyncManager<
       status: 'active',
     })
 
-    const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { time: -1 } })
+    const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { end: -1 } })
     const lastSnapshot = this.snapshots.findOne({ collectionName: name }, { sort: { time: -1 } })
     const currentChanges = this.changes.find({
       collectionName: name,
