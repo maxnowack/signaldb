@@ -14,10 +14,10 @@ head:
     content: Overview of Synchronization in SignalDB
 - - meta
   - name: og:description
-    content: Discover how SignalDB handles synchronization with its `SyncManager` class. Learn about local-first synchronization, on-demand fetching, backend compatibility, and conflict resolution to keep your data consistent and up-to-date.
+    content: Discover how SignalDB handles synchronization. Learn about the local-first approach, backend compatibility and conflict resolution to keep your data consistent.
 - - meta
   - name: description
-    content: Discover how SignalDB handles synchronization with its `SyncManager` class. Learn about local-first synchronization, on-demand fetching, backend compatibility, and conflict resolution to keep your data consistent and up-to-date.
+    content: Discover how SignalDB handles synchronization. Learn about the local-first approach, backend compatibility and conflict resolution to keep your data consistent.
 - - meta
   - name: keywords
     content: SignalDB, synchronization, SyncManager, local-first synchronization, on-demand fetching, data consistency, backend integration, conflict resolution, real-time updates, REST API, GraphQL, data sync

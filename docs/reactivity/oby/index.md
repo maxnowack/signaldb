@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for oby
 - - meta
   - name: og:description
-    content: Discover how to use the SignalDB reactivity adapter for `oby`. This guide covers installation, usage, and key features such as automatic cleanup and scope check.
+    content: Discover how to integrate oby with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to use the SignalDB reactivity adapter for `oby`. This guide covers installation, usage, and key features such as automatic cleanup and scope check.
+    content: Discover how to integrate oby with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, reactivity adapter, `oby`, JavaScript, TypeScript, integration guide, automatic cleanup, scope check, SignalDB plugin, real-time updates

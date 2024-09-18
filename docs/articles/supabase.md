@@ -14,10 +14,10 @@ head:
     content: Optimistic UI with Client-side Databases and Supabase
 - - meta
   - name: og:description
-    content: Explore how Supabase, a dynamic Backend-as-a-Service (BaaS) platform, integrates with client-side databases like SignalDB to enhance real-time data synchronization and create a powerful optimistic UI. Learn about the benefits, integration steps, and future developments in this comprehensive guide.
+    content: Explore how Supabase integrates with client-side databases to enhance real-time data synchronization and create a powerful optimistic UI.
 - - meta
   - name: description
-    content: Explore how Supabase, a dynamic Backend-as-a-Service (BaaS) platform, integrates with client-side databases like SignalDB to enhance real-time data synchronization and create a powerful optimistic UI. Learn about the benefits, integration steps, and future developments in this comprehensive guide.
+    content: Explore how Supabase integrates with client-side databases to enhance real-time data synchronization and create a powerful optimistic UI.
 - - meta
   - name: keywords
     content: Supabase, SignalDB, optimistic UI, real-time data synchronization, client-side databases, Backend-as-a-Service, BaaS, JavaScript databases, web development, real-time updates, integration, data synchronization, user experience, reactive UI, local-first databases

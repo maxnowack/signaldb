@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for @preact/signals
 - - meta
   - name: og:description
-    content: Discover how to integrate SignalDB with Preact signals for efficient state management and real-time data updates. Learn about the adapter, installation process, and usage examples to enhance your Preact applications.
+    content: Discover how to integrate Preact Signals with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to integrate SignalDB with Preact signals for efficient state management and real-time data updates. Learn about the adapter, installation process, and usage examples to enhance your Preact applications.
+    content: Discover how to integrate Preact Signals with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, Preact, @preact/signals, reactivity adapter, real-time updates, JavaScript, state management, Preact integration, SignalDB plugin, data synchronization

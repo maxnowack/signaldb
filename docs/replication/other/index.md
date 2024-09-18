@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/replication/other/
 - - meta
   - name: og:title
-    content: Other Replication Options - SignalDB
+    content: Other Replication Options | SignalDB
 - - meta
   - name: og:description
-    content: Explore custom replication options for SignalDB, including implementing your own replication logic and using the RxDB Persistence Adapter. Note that this documentation is deprecated; refer to the SyncManager and new synchronization pages for the latest information.
+    content: Explore custom replication options for SignalDB, including implementing your own replication logic and using the RxDB Persistence Adapter.
 - - meta
   - name: description
-    content: Explore custom replication options for SignalDB, including implementing your own replication logic and using the RxDB Persistence Adapter. Note that this documentation is deprecated; refer to the SyncManager and new synchronization pages for the latest information.
+    content: Explore custom replication options for SignalDB, including implementing your own replication logic and using the RxDB Persistence Adapter.
 - - meta
   - name: keywords
     content: SignalDB, replication options, custom replication, RxDB Persistence Adapter, SyncManager, data synchronization, backend integration, ReplicatedCollection, SignalDB documentation

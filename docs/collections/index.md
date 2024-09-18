@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/collections/
 - - meta
   - name: og:title
-    content: SignalDB Collections - Manage and Manipulate Data
+    content: Collections | SignalDB
 - - meta
   - name: og:description
-    content: Learn how to manage and manipulate data with SignalDB's Collection class. This guide covers creating collections, schema-less data storage, reactivity, transformations, persistence adapters, and indexing. Discover how to effectively use collections in your SignalDB applications.
+    content: Learn how to use SignalDB's Collection class for managing data, including schema-less storage, reactivity, transformations, and indexing.
 - - meta
   - name: description
-    content: Learn how to manage and manipulate data with SignalDB's Collection class. This guide covers creating collections, schema-less data storage, reactivity, transformations, persistence adapters, and indexing. Discover how to effectively use collections in your SignalDB applications.
+    content: Learn how to use SignalDB's Collection class for managing data, including schema-less storage, reactivity, transformations, and indexing.
 - - meta
   - name: keywords
     content: SignalDB collections, data management, schema-less database, reactivity, JavaScript collections, SignalDB persistence, indexing, data manipulation, Collection class, frontend development, SignalDB features

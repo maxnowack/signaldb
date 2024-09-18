@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for Angular Signals
 - - meta
   - name: og:description
-    content: Discover how SignalDB integrates with Angular's signals to enhance reactivity and performance in Angular applications. Learn about the reactivity adapter, installation, and usage.
+    content: Discover how SignalDB integrates with Angular's signals to enhance reactivity and performance in Angular applications using the reactivity adapter.
 - - meta
   - name: description
-    content: Discover how SignalDB integrates with Angular's signals to enhance reactivity and performance in Angular applications. Learn about the reactivity adapter, installation, and usage.
+    content: Discover how SignalDB integrates with Angular's signals to enhance reactivity and performance in Angular applications using the reactivity adapter.
 - - meta
   - name: keywords
     content: SignalDB, Angular, reactivity adapter, Angular signals, integration, performance, state management, real-time updates, JavaScript, TypeScript

@@ -14,10 +14,10 @@ head:
     content: Data Replication in SignalDB
 - - meta
   - name: og:description
-    content: Explore the data replication capabilities of SignalDB, including `ReplicatedCollection` and `AutoFetchCollection`. Learn about their usage, deprecation, and alternatives like `SyncManager` for efficient data synchronization.
+    content: Explore the data replication capabilities of SignalDB, including `ReplicatedCollection` and `AutoFetchCollection` and their usage.
 - - meta
   - name: description
-    content: Explore the data replication capabilities of SignalDB, including `ReplicatedCollection` and `AutoFetchCollection`. Learn about their usage, deprecation, and alternatives like `SyncManager` for efficient data synchronization.
+    content: Explore the data replication capabilities of SignalDB, including `ReplicatedCollection` and `AutoFetchCollection` and their usage.
 - - meta
   - name: keywords
     content: SignalDB, data replication, ReplicatedCollection, AutoFetchCollection, data synchronization, SyncManager, JavaScript, TypeScript, data synchronization alternatives

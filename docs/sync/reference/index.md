@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/sync/reference/
 - - meta
   - name: og:title
-    content: SyncManager Reference - SignalDB
+    content: SyncManager Reference | SignalDB
 - - meta
   - name: og:description
-    content: Explore the `SyncManager` class in SignalDB. This reference guide covers automatic syncing, error handling, debouncing, and collection management, providing all the details you need to efficiently manage data synchronization between local storage and remote sources.
+    content: Explore the `SyncManager` class in SignalDB with all the details you need to efficiently manage data synchronization between local storage and remote sources.
 - - meta
   - name: description
-    content: Explore the `SyncManager` class in SignalDB. This reference guide covers automatic syncing, error handling, debouncing, and collection management, providing all the details you need to efficiently manage data synchronization between local storage and remote sources.
+    content: Explore the `SyncManager` class in SignalDB with all the details you need to efficiently manage data synchronization between local storage and remote sources.
 - - meta
   - name: keywords
     content: SyncManager, SignalDB, data synchronization, local storage, remote source, JavaScript, error handling, debouncing, collection management, sync process, reactivity adapter

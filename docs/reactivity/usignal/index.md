@@ -11,18 +11,18 @@ head:
     content: https://signaldb.js.org/reactivity/usignal/
 - - meta
   - name: og:title
-    content: SignalDB Reactivity Adapter for usignal
+    content: SignalDB Reactivity Adapter for µsignal
 - - meta
   - name: og:description
-    content: Discover how to use the SignalDB reactivity adapter for usignal. This guide covers installation, usage, and important considerations like manual cleanup and reactivity scope handling.
+    content: Discover how to integrate µsignal with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to use the SignalDB reactivity adapter for usignal. This guide covers installation, usage, and important considerations like manual cleanup and reactivity scope handling.
+    content: Discover how to integrate µsignal with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, usignal, reactivity adapter, integration guide, JavaScript, TypeScript, manual cleanup, reactivity scope, signaldb-plugin-usignal
 ---
-# Reactivity adapter for [`usignal`](https://github.com/WebReflection/usignal)
+# Reactivity adapter for [`µsignal`](https://github.com/WebReflection/usignal)
 
 ## Adapter
 

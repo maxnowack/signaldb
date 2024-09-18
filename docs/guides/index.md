@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/guides/
 - - meta
   - name: og:title
-    content: SignalDB Guides - Learn to Use SignalDB in Angular, React, Svelte, Vue, and Solid.js
+    content: Guides | SignalDB
 - - meta
   - name: og:description
-    content: Explore step-by-step guides to integrate SignalDB with popular frameworks like Angular, React, Solid.js, Svelte, and Vue. Learn how to build real-time, reactive applications with SignalDB's local-first, sync-enabled database.
+    content: Explore step-by-step guides to integrate SignalDB with popular frameworks like Angular, React, Solid.js, Svelte, and Vue.
 - - meta
   - name: description
-    content: Explore step-by-step guides to integrate SignalDB with popular frameworks like Angular, React, Solid.js, Svelte, and Vue. Learn how to build real-time, reactive applications with SignalDB's local-first, sync-enabled database.
+    content: Explore step-by-step guides to integrate SignalDB with popular frameworks like Angular, React, Solid.js, Svelte, and Vue.
 - - meta
   - name: keywords
     content: signaldb guides, signaldb angular, signaldb react, signaldb solid.js, signaldb svelte, signaldb vue, real-time database, local first database, reactive applications, JavaScript database, optimistic UI, sync database, frontend frameworks

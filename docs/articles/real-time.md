@@ -14,10 +14,10 @@ head:
     content: Real-Time Web Apps
 - - meta
   - name: og:description
-    content: Discover the essentials of real-time web applications and how SignalDB enhances real-time data handling. Learn about the evolution of real-time technologies, their technical aspects, and the benefits of using SignalDB for reduced latency, scalability, and seamless integration.
+    content: Learn about essentials of real-time web applications and the evolution of real-time technologies, their technical aspects.
 - - meta
   - name: description
-    content: Explore the concept of real-time web applications and how SignalDB improves real-time data management. This article covers the evolution of real-time technologies, including WebSockets and Server-Sent Events, and demonstrates how SignalDB provides low latency, scalability, and ease of integration.
+    content: Learn about essentials of real-time web applications and the evolution of real-time technologies, their technical aspects.
 - - meta
   - name: keywords
     content: real-time web apps, SignalDB, real-time data, WebSockets, Server-Sent Events, AJAX, Comet, reactive programming, data synchronization, live updates, JavaScript frameworks, in-memory database, reactive data flows

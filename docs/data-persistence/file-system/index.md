@@ -11,13 +11,16 @@ head:
     content: https://signaldb.js.org/data-persistence/file-system/
 - - meta
   - name: og:title
-    content: Filesystem Adapter - SignalDB
+    content: Filesystem Adapter | SignalDB
 - - meta
   - name: og:description
-    content: Learn how to use the Filesystem Adapter in SignalDB for data persistence in a Node.js environment. Save your data as JSON files and easily manage collection items with our example code.
+    content: Learn how to use the Filesystem Adapter in SignalDB for data persistence in a Node.js environment.
 - - meta
   - name: description
-    content: Learn​⬤
+    content: Learn how to use the Filesystem Adapter in SignalDB for data persistence in a Node.js environment.
+- - meta
+  - name: kewords
+    content: SignalDB, Filesystem Adapter, data persistence, Node.js, JSON files
 ---
 # Filesystem Adapter
 

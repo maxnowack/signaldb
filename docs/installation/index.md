@@ -11,7 +11,7 @@ head:
     content: https://signaldb.js.org/installation/
 - - meta
   - name: og:title
-    content: Installation - SignalDB
+    content: Installation | SignalDB
 - - meta
   - name: og:description
     content: Learn how to install SignalDB in your project with this simple guide. Get started by running a single npm command and begin working with collections and more.

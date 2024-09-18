@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for @reactively/core
 - - meta
   - name: og:description
-    content: Discover how to integrate SignalDB with `@reactively/core` using the Reactivity Adapter. Learn about installation, usage, and handling reactivity in your application.
+    content: Discover how to integrate Reactively with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to integrate SignalDB with `@reactively/core` using the Reactivity Adapter. Learn about installation, usage, and handling reactivity in your application.
+    content: Discover how to integrate Reactively with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, Reactively, reactivity adapter, integration guide, JavaScript, TypeScript, reactive programming, SignalDB plugin, collection setup, reactive scope

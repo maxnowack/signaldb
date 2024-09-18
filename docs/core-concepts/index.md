@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/core-concepts/
 - - meta
   - name: og:title
-    content: SignalDB - Core Concepts and Key Features
+    content: Core Concepts | SignalDB
 - - meta
   - name: og:description
-    content: Understand the core concepts of SignalDB, including collections, schema-less data storage, optimistic UI, signals and reactivity, memory adapters, and data persistence. Learn how these features work together to create a powerful, reactive JavaScript database.
+    content: Learn about the core concepts of SignalDB, including collections, schema-less data storage, optimistic UI, signals and reactivity and data persistence.
 - - meta
   - name: description
-    content: Understand the core concepts of SignalDB, including collections, schema-less data storage, optimistic UI, signals and reactivity, memory adapters, and data persistence. Learn how these features work together to create a powerful, reactive JavaScript database.
+    content: Learn about the core concepts of SignalDB, including collections, schema-less data storage, optimistic UI, signals and reactivity and data persistence.
 - - meta
   - name: keywords
     content: SignalDB core concepts, SignalDB collections, schema-less database, optimistic UI, JavaScript reactivity, signals, memory adapters, data persistence, reactive database, frontend development, SignalDB features

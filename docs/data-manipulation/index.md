@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/data-manipulation/
 - - meta
   - name: og:title
-    content: Data Manipulation in SignalDB
+    content: Data Manipulation | SignalDB
 - - meta
   - name: og:description
-    content: Learn how to insert, update, and delete data in SignalDB. This guide covers methods such as `.insert()`, `.updateOne()`, `.updateMany()`, `.removeOne()`, and `.removeMany()`, along with using MongoDB-like modifiers through the `mingo` library.
+    content: Learn how to manipulate data in SignalDB. This guide covers methods such as `.insert()`, `.updateOne()`, `.updateMany()`, `.removeOne()`, and `.removeMany()`.
 - - meta
   - name: description
-    content: Learn how to insert, update, and delete data in SignalDB. This guide covers methods such as `.insert()`, `.updateOne()`, `.updateMany()`, `.removeOne()`, and `.removeMany()`, along with using MongoDB-like modifiers through the `mingo` library.
+    content: Learn how to manipulate data in SignalDB. This guide covers methods such as `.insert()`, `.updateOne()`, `.updateMany()`, `.removeOne()`, and `.removeMany()`.
 - - meta
   - name: keywords
     content: signaldb, data manipulation, insert data, update data, delete data, JavaScript database, mingo, MongoDB modifiers, SignalDB methods, reactive database

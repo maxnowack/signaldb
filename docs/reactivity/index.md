@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/reactivity/
 - - meta
   - name: og:title
-    content: Reactivity & Optimistic UI - SignalDB
+    content: Reactivity & Optimistic UI | SignalDB
 - - meta
   - name: og:description
-    content: Discover how SignalDB uses reactivity and Optimistic UI to enhance user experience. Learn about signals, real-time updates, and data persistence with SignalDB's architecture.
+    content: Discover how SignalDB uses reactivity and Optimistic UI to enhance user experience. Learn about signals, real-time updates, and data persistence.
 - - meta
   - name: description
-    content: Discover how SignalDB uses reactivity and Optimistic UI to enhance user experience. Learn about signals, real-time updates, and data persistence with SignalDB's architecture.
+    content: Discover how SignalDB uses reactivity and Optimistic UI to enhance user experience. Learn about signals, real-time updates, and data persistence.
 - - meta
   - name: keywords
     content: SignalDB, reactivity, Optimistic UI, JavaScript, real-time updates, user experience, signals, functional reactive programming, data persistence, reactivity libraries

@@ -14,10 +14,10 @@ head:
     content: Integrate SignalDB with Firebase
 - - meta
   - name: og:description
-    content: Learn how to integrate SignalDB with Firebase to ensure data persistence and leverage Firebase's features. Note that this guide is deprecated; refer to the new documentation for SyncManager and data synchronization.
+    content: Learn how to integrate SignalDB with Firebase to ensure data persistence and leverage Firebase's features.
 - - meta
   - name: description
-    content: Learn how to integrate SignalDB with Firebase to ensure data persistence and leverage Firebase's features. Note that this guide is deprecated; refer to the new documentation for SyncManager and data synchronization.
+    content: Learn how to integrate SignalDB with Firebase to ensure data persistence and leverage Firebase's features.
 - - meta
   - name: keywords
     content: SignalDB, Firebase, integration, persistence adapter, data synchronization, Firestore, Realtime Database, cloud storage, JavaScript, data persistence, SignalDB Firebase adapter, deprecated guide

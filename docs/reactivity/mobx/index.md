@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for MobX
 - - meta
   - name: og:description
-    content: Discover how to integrate MobX with SignalDB for powerful state management and reactivity. Learn about the adapter, installation, and usage for combining MobX's dynamic observables with SignalDB's collections.
+    content: Discover how to integrate MobX with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to integrate MobX with SignalDB for powerful state management and reactivity. Learn about the adapter, installation, and usage for combining MobX's dynamic observables with SignalDB's collections.
+    content: Discover how to integrate MobX with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, MobX, reactivity adapter, state management, real-time updates, observables, JavaScript, TypeScript, MobX integration, SignalDB collections, dynamic reactivity

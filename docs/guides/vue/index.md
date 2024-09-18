@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/guides/vue/
 - - meta
   - name: og:title
-    content: Using SignalDB with Vue - Integration Guide
+    content: Using SignalDB with Vue
 - - meta
   - name: og:description
-    content: Learn how to integrate SignalDB into your Vue project. This guide covers setting up collections, using SignalDB with Vue’s reactivity system, and building a component to manage and display data.
+    content: Learn how to integrate SignalDB into your Vue project. This guide covers the initial setup and using SignalDB with Vue’s reactivity system.
 - - meta
   - name: description
-    content: Learn how to integrate SignalDB into your Vue project. This guide covers setting up collections, using SignalDB with Vue’s reactivity system, and building a component to manage and display data.
+    content: Learn how to integrate SignalDB into your Vue project. This guide covers the initial setup and using SignalDB with Vue’s reactivity system.
 - - meta
   - name: keywords
     content: SignalDB, Vue, integration guide, reactivity, real-time updates, JavaScript, TypeScript, Vue reactivity, SignalDB plugin, collection setup, reactive components

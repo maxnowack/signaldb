@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for Sinuous
 - - meta
   - name: og:description
-    content: Discover how to use SignalDB's reactivity adapter for Sinuous. This guide covers installation, usage, and best practices for integrating SignalDB with the Sinuous framework.
+    content: Discover how to integrate Sinuous with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to use SignalDB's reactivity adapter for Sinuous. This guide covers installation, usage, and best practices for integrating SignalDB with the Sinuous framework.
+    content: Discover how to integrate Sinuous with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, Sinuous, reactivity adapter, integration guide, JavaScript, TypeScript, reactive programming, SignalDB plugin, collection setup, automatic cleanup, memory management

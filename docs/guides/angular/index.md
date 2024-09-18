@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/guides/angular/
 - - meta
   - name: og:title
-    content: Use SignalDB in Angular - Integration Guide
+    content: Use SignalDB in Angular
 - - meta
   - name: og:description
-    content: Learn how to integrate SignalDB into your Angular application. This guide covers setting up collections, using SignalDB’s reactive features, and building a component with real-time updates.
+    content: Learn how to integrate SignalDB into your Angular application. This guide covers the initial setup and building a component with real-time updates.
 - - meta
   - name: description
-    content: Learn how to integrate SignalDB into your Angular application. This guide covers setting up collections, using SignalDB’s reactive features, and building a component with real-time updates.
+    content: Learn how to integrate SignalDB into your Angular application. This guide covers the initial Setup and building a component with real-time updates.
 - - meta
   - name: keywords
     content: SignalDB, Angular, integration guide, reactivity, real-time updates, JavaScript, TypeScript, Angular reactivity, SignalDB plugin, collection setup, reactive components

@@ -14,10 +14,10 @@ head:
     content: Replicating Data with External HTTP REST API in SignalDB
 - - meta
   - name: og:description
-    content: Learn how to set up data replication with an external HTTP REST API in SignalDB. This guide covers creating a `ReplicatedCollection`, fetching data, and handling changes using HTTP requests.
+    content: Learn to set up data replication with an HTTP REST API in SignalDB by creating ReplicatedCollection, fetching data, and handling changes via HTTP requests.
 - - meta
   - name: description
-    content: Learn how to set up data replication with an external HTTP REST API in SignalDB. This guide covers creating a `ReplicatedCollection`, fetching data, and handling changes using HTTP requests.
+    content: Learn to set up data replication with an HTTP REST API in SignalDB by creating ReplicatedCollection, fetching data, and handling changes via HTTP requests.
 - - meta
   - name: keywords
     content: SignalDB, data replication, HTTP REST API, ReplicatedCollection, JavaScript, TypeScript, data synchronization, external API, HTTP requests, todo list example

@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/guides/react/
 - - meta
   - name: og:title
-    content: Use SignalDB with React - Integration Guide
+    content: Use SignalDB with React
 - - meta
   - name: og:description
-    content: Learn how to integrate SignalDB with your React project. This guide covers the installation process, basic setup, and creating reactive components using SignalDB and React hooks.
+    content: Learn how to integrate SignalDB with your React project. This guide covers the initial setup and creating reactive components using SignalDB and React hooks.
 - - meta
   - name: description
-    content: Learn how to integrate SignalDB with your React project. This guide covers the installation process, basic setup, and creating reactive components using SignalDB and React hooks.
+    content: Learn how to integrate SignalDB with your React project. This guide covers the initial setup and creating reactive components using SignalDB and React hooks.
 - - meta
   - name: keywords
     content: SignalDB, React, integration guide, reactivity, real-time updates, JavaScript, TypeScript, SignalDB React bindings, Maverick Signals, reactive components, collection setup

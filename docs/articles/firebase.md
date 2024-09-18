@@ -14,10 +14,10 @@ head:
     content: Combining Firebase with Reactive Local Databases
 - - meta
   - name: og:description
-    content: Explore the powerful combination of Firebase and SignalDB for modern app development. Learn how integrating Firebase with a reactive local database enhances performance, user experience, and real-time synchronization, making apps faster, more reliable, and engaging.
+    content: Integrate Firebase with SignalDB for modern app development. Enhance performance, user experience, and real-time sync with this powerful combination.
 - - meta
   - name: description
-    content: Explore the powerful combination of Firebase and SignalDB for modern app development. Learn how integrating Firebase with a reactive local database enhances performance, user experience, and real-time synchronization, making apps faster, more reliable, and engaging.
+    content: Integrate Firebase with SignalDB for modern app development. Enhance performance, user experience, and real-time sync with this powerful combination.
 - - meta
   - name: keywords
     content: Firebase, SignalDB, reactive local databases, real-time sync, app development, JavaScript, cloud database, local-first, performance optimization, user experience, data synchronization, mobile apps, development trends, data security

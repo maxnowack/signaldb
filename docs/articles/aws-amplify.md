@@ -2,25 +2,25 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/aws-amplify/
+    href: https://signaldb.js.org/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/aws-amplify/
+    content: https://signaldb.js.org/leveraging-aws-amplify-with-reactive-databases
 - - meta
   - name: og:title
     content: Leveraging AWS Amplify with Reactive Databases
 - - meta
   - name: og:description
-    content: Discover how AWS Amplify integrates with reactive databases to enhance full-stack development. Learn about real-time data synchronization, scalability, and seamless offline functionality.
+    content: Discover how AWS Amplify integrates with reactive databases for real-time updates and scalability in web development.
 - - meta
   - name: description
-    content: Discover how AWS Amplify integrates with reactive databases to enhance full-stack development. Learn about real-time data synchronization, scalability, and seamless offline functionality.
+    content: Discover how AWS Amplify integrates with reactive databases for real-time updates and scalability in web development.
 - - meta
   - name: keywords
-    content: AWS Amplify, reactive databases, real-time data synchronization, full-stack development, scalability, offline functionality, cloud services, data management, web development, signals reactivity
+    content: AWS Amplify, reactive databases, real-time data, full-stack development, cloud services, data synchronization, scalability, user experience
 ---
 # Leveraging AWS Amplify with Reactive Databases
 

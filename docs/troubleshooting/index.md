@@ -14,10 +14,10 @@ head:
     content: Troubleshooting SignalDB - Common Issues and Solutions
 - - meta
   - name: og:description
-    content: Discover solutions to common issues encountered while using SignalDB. This troubleshooting guide addresses installation problems, instance creation errors, data persistence issues, and reactivity challenges.
+    content: Find solutions for SignalDB issues, from installation and instance creation to data persistence and reactivity challenges, in this troubleshooting guide.
 - - meta
   - name: description
-    content: Discover solutions to common issues encountered while using SignalDB. This troubleshooting guide addresses installation problems, instance creation errors, data persistence issues, and reactivity challenges.
+    content: Find solutions for SignalDB issues, from installation and instance creation to data persistence and reactivity challenges, in this troubleshooting guide.
 - - meta
   - name: keywords
     content: SignalDB, troubleshooting, common issues, installation problems, data persistence, reactivity, error solutions, JavaScript database, SignalDB issues, help, support

@@ -14,10 +14,10 @@ head:
     content: Signals in JavaScript
 - - meta
   - name: og:description
-    content: Discover the power of signals in JavaScript for managing real-time data and user interactions. Learn how SignalDB leverages signals to enhance user experience (UX) and developer experience (DX) with real-time synchronization and efficient state management.
+    content: Discover the power of signals in JavaScript for real-time data and user interactions with efficient state management.
 - - meta
   - name: description
-    content: Discover the power of signals in JavaScript for managing real-time data and user interactions. Learn how SignalDB leverages signals to enhance user experience (UX) and developer experience (DX) with real-time synchronization and efficient state management.
+    content: Discover the power of signals in JavaScript for real-time data and user interactions with efficient state management.
 - - meta
   - name: keywords
     content: signals, JavaScript signals, real-time data, reactive programming, SignalDB, user experience, developer experience, state management, SolidJS, reactive primitives, web development

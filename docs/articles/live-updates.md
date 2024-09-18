@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/live-updates/
 - - meta
   - name: og:title
-    content: Live Updates in Modern Apps - SignalDB
+    content: Live Updates in Modern Apps
 - - meta
   - name: og:description
-    content: Discover how live updates transform user interactions in web applications. Explore server-sent and frontend reactive updates, their benefits, and how SignalDB enhances real-time data handling for a seamless user experience.
+    content: Explore how live updates and frontend reactivity improve web apps. Learn how SignalDB boosts real-time data handling for a seamless user experience.
 - - meta
   - name: description
-    content: Discover how live updates transform user interactions in web applications. Explore server-sent and frontend reactive updates, their benefits, and how SignalDB enhances real-time data handling for a seamless user experience.
+    content: Explore how live updates and frontend reactivity improve web apps. Learn how SignalDB boosts real-time data handling for a seamless user experience.
 - - meta
   - name: keywords
     content: live updates, real-time data, frontend reactivity, server-sent updates, WebSockets, SignalDB, AJAX, Comet, long polling, virtual DOM, state management, reactive programming, web applications, JavaScript frameworks

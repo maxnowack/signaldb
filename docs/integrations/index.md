@@ -11,7 +11,7 @@ head:
     content: https://signaldb.js.org/integrations/
 - - meta
   - name: og:title
-    content: SignalDB Integrations - Connect with Your Favorite Frameworks
+    content: Integrations | SignalDB
 - - meta
   - name: og:description
     content: Discover how to integrate SignalDB with various libraries and frameworks. Explore our collection of integrations and find helpful packages for a seamless setup.

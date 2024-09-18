@@ -11,13 +11,13 @@ head:
     content: https://signaldb.js.org/data-persistence/
 - - meta
   - name: og:title
-    content: Data Persistence Adapters - SignalDB
+    content: Data Persistence Adapters | SignalDB
 - - meta
   - name: og:description
-    content: Learn about Data Persistence Adapters in SignalDB, which handle the storage and retrieval of data, providing an abstraction layer over different storage systems like localStorage, IndexedDB, and remote servers.
+    content: Learn how Data Persistence Adapters in SignalDB provide an abstraction layer over different storage systems like localStorage, IndexedDB, and remote servers.
 - - meta
   - name: description
-    content: Learn about Data Persistence Adapters in SignalDB, which handle the storage and retrieval of data, providing an abstraction layer over different storage systems like localStorage, IndexedDB, and remote servers.
+    content: Learn how Data Persistence Adapters in SignalDB provide an abstraction layer over different storage systems like localStorage, IndexedDB, and remote servers.
 - - meta
   - name: keywords
     content: data persistence, adapters, SignalDB, localStorage, IndexedDB, remote server, data storage, data retrieval, storage abstraction

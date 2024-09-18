@@ -14,10 +14,10 @@ head:
     content: SignalDB Reactivity Adapter for @maverick-js/signals
 - - meta
   - name: og:description
-    content: Discover how to integrate @maverick-js/signals with SignalDB using the reactivity adapter. This guide covers installation, usage, and the benefits of seamless reactive database integration.
+    content: Discover how to integrate @maverick-js/signals with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: description
-    content: Discover how to integrate @maverick-js/signals with SignalDB using the reactivity adapter. This guide covers installation, usage, and the benefits of seamless reactive database integration.
+    content: Discover how to integrate @maverick-js/signals with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
     content: SignalDB, @maverick-js/signals, reactivity adapter, reactive programming, JavaScript, real-time updates, integration guide, signaldb-plugin-maverickjs, collection setup, automatic cleanup, scope check

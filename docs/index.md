@@ -16,13 +16,13 @@ head:
     content: https://signaldb.js.org/
 - - meta
   - name: og:title
-    content: SignalDB - Reactive, Local-First JavaScript Database with Real-Time Sync
+    content: SignalDB - Reactive Local-First JavaScript Database
 - - meta
   - name: og:description
-    content: SignalDB is a powerful, reactive, local-first JavaScript database with real-time synchronization, MongoDB-like queries, signal-based reactivity, and seamless support for TypeScript. It integrates with any framework including React, Angular, Solid.js, Vue, and more, offering an Optimistic UI and flexible backend support like REST and GraphQL.
+    content: SignalDB is a reactive, local-first JavaScript database with real-time sync, Optimistic UI and signal-based reactivity.
 - - meta
   - name: description
-    content: SignalDB is a powerful, reactive, local-first JavaScript database with real-time synchronization, MongoDB-like queries, signal-based reactivity, and seamless support for TypeScript. It integrates with any framework including React, Angular, Solid.js, Vue, and more, offering an Optimistic UI and flexible backend support like REST and GraphQL.
+    content: SignalDB is a reactive, local-first JavaScript database with real-time sync, Optimistic UI and signal-based reactivity
 - - meta
   - name: keywords
     content: signaldb, local first, real time, live updates, MongoDB-like, sync, reactive, JavaScript, TypeScript, database, Angular, Solid.js, React, Vue, Svelte, GraphQL, REST API, optimistic UI, framework agnostic, adapters, signals, schema-less
