@@ -57,3 +57,25 @@ it('should handle a mix of inserts, updates, and removes', () => {
   const result = applyChanges(items, changes)
   expect(result).toEqual([{ id: 1, name: 'Updated Item 1' }])
 })
+
+it('should update already existing items with insert', () => {
+  const items: TestItem[] = [{ id: 1, name: 'Item 1' }]
+  const changes: Change<TestItem, number>[] = [
+    { ...getDefaultChangeItem(), type: 'insert', data: { id: 1, name: 'New Item Name' } },
+  ]
+
+  const result = applyChanges(items, changes)
+  expect(result).toEqual([
+    { id: 1, name: 'New Item Name' },
+  ])
+})
+
+it('should insert non-existing items on update', () => {
+  const items: TestItem[] = []
+  const changes: Change<TestItem, number>[] = [
+    { ...getDefaultChangeItem(), type: 'update', data: { id: 1, modifier: { $set: { name: 'Updated Item 1' } } } },
+  ]
+
+  const result = applyChanges(items, changes)
+  expect(result).toEqual([{ id: 1, name: 'Updated Item 1' }])
+})

@@ -1,7 +1,9 @@
+/* @vitest-environment happy-dom */
 import { it, expect, vi } from 'vitest'
 import { Collection, SyncManager } from '../../src'
 import type { BaseItem } from '../../src/Collection'
 import type { LoadResponse } from '../../src/types/PersistenceAdapter'
+import memoryPersistenceAdapter from '../helpers/memoryPersistenceAdapter'
 
 interface TestItem extends BaseItem<string> {
   id: string,
@@ -15,8 +17,11 @@ it('should add a collection and register sync events', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -28,6 +33,7 @@ it('should add a collection and register sync events', async () => {
 
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
 })
 
@@ -38,8 +44,11 @@ it('should handle pull and apply new changes during sync', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -50,6 +59,7 @@ it('should handle pull and apply new changes during sync', async () => {
 
   await syncManager.sync('test')
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPull).toHaveBeenCalled()
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
 })
@@ -70,8 +80,11 @@ it('should handle updates correctly during sync', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -85,6 +98,7 @@ it('should handle updates correctly during sync', async () => {
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'New Item' } })
   await syncManager.sync('test')
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockCollection.findOne({ id: '1' })?.name).toBe('New Item')
 })
 
@@ -95,8 +109,11 @@ it('should push changes when items are added locally', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -109,6 +126,7 @@ it('should push changes when items are added locally', async () => {
 
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
 })
 
@@ -128,8 +146,11 @@ it('should push changes when items are updated locally', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -142,6 +163,7 @@ it('should push changes when items are updated locally', async () => {
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
   expect(mockCollection.findOne({ id: '1' })?.name).toBe('New Item')
 })
@@ -162,8 +184,11 @@ it('should push changes when items are removed locally', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -176,6 +201,7 @@ it('should push changes when items are removed locally', async () => {
   mockCollection.removeOne({ id: '1' })
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
   expect(mockCollection.findOne({ id: '1' })).toBeUndefined()
 })
@@ -187,8 +213,11 @@ it('should debounce push requests', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -202,6 +231,7 @@ it('should debounce push requests', async () => {
 
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(1)
 })
 
@@ -210,8 +240,11 @@ it('should handle sync errors and update sync operation status', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -226,6 +259,7 @@ it('should handle sync errors and update sync operation status', async () => {
     expect(error).toBeDefined()
   }
 
+  expect(onError).not.toHaveBeenCalled()
   const syncOperation = syncManager.isSyncing('test')
   expect(syncOperation).toBe(false)
 })
@@ -237,8 +271,11 @@ it('should sync all collections', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -251,6 +288,7 @@ it('should sync all collections', async () => {
 
   await syncManager.syncAll()
 
+  expect(onError).not.toHaveBeenCalled()
   expect(mockPull).toHaveBeenCalledTimes(2)
 })
 
@@ -259,8 +297,11 @@ it('should handle pull errors and update sync operation status', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -277,6 +318,7 @@ it('should handle pull errors and update sync operation status', async () => {
   }
 
   const syncOperation = syncManager.isSyncing('test')
+  expect(onError).not.toHaveBeenCalled()
   expect(syncOperation).toBe(false)
 })
 
@@ -287,8 +329,11 @@ it('should handle push errors and update sync operation status', async () => {
 
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockRejectedValue(new Error('Push failed'))
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -306,6 +351,7 @@ it('should handle push errors and update sync operation status', async () => {
     expect((error as Error).message).toBe('Push failed')
   }
 
+  expect(onError).not.toHaveBeenCalled()
   const syncOperation = syncManager.isSyncing('test')
   expect(syncOperation).toBe(false)
 })
@@ -320,7 +366,10 @@ it('should register and apply remote changes with items', async () => {
 
   let onRemoteChangeHandler = vi.fn<(collectionName: string,
     data?: LoadResponse<TestItem>) => void>()
+  const onError = vi.fn()
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (onRemoteChange) => {
@@ -338,6 +387,7 @@ it('should register and apply remote changes with items', async () => {
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
 
+  expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
   expect(mockCollection.find().fetch()).toEqual([{ id: '2', name: 'Remote Item' }])
 })
@@ -357,7 +407,10 @@ it('should register and apply remote changes with changes', async () => {
 
   let onRemoteChangeHandler = vi.fn<(collectionName: string,
     data?: LoadResponse<TestItem>) => void>()
+  const onError = vi.fn()
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (onRemoteChange) => {
@@ -375,6 +428,7 @@ it('should register and apply remote changes with changes', async () => {
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
 
+  expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }, { id: '2', name: 'Remote Item' }])
 })
@@ -389,13 +443,17 @@ it('should sync after a empty remote change was received', async () => {
 
   let onRemoteChangeHandler = vi.fn<(collectionName: string,
     data?: LoadResponse<TestItem>) => void>()
+  const onError = vi.fn()
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
+  await syncManager.isReady()
 
   const mockCollection = new Collection<TestItem, string, any>()
 
@@ -404,9 +462,10 @@ it('should sync after a empty remote change was received', async () => {
   // Simulate a remote change
   onRemoteChangeHandler('test')
 
-  // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  // wait until sync finished
+  await new Promise((resolve) => { setTimeout(resolve, 100) })
 
+  expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
 })
@@ -430,6 +489,7 @@ it('should call onError handler if an async error occurs', async () => {
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -459,6 +519,7 @@ it('should fail if there are errors on syncAll and call onError handler', async 
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -483,8 +544,11 @@ it('should update items that already exist on insert', async () => {
 
   const collection = new Collection<TestItem, string, any>()
   collection.insert({ id: '1', name: 'Local Test Item' })
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -495,6 +559,7 @@ it('should update items that already exist on insert', async () => {
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
 
+  expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
   expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
 })
@@ -508,8 +573,11 @@ it('should insert items that not exist on update', async () => {
     .mockResolvedValue()
 
   const collection = new Collection<TestItem, string, any>()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -520,6 +588,7 @@ it('should insert items that not exist on update', async () => {
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
 
+  expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
   expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
 })
@@ -533,8 +602,11 @@ it('should not fail while removing non existing items', async () => {
     .mockResolvedValue()
 
   const collection = new Collection<TestItem, string, any>()
+  const onError = vi.fn()
 
   const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -545,6 +617,7 @@ it('should not fail while removing non existing items', async () => {
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
 
+  expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
   expect(collection.find().fetch()).toEqual([])
 })

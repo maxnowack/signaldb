@@ -1,5 +1,6 @@
 import type { BaseItem } from '../Collection'
 import Collection from '../Collection'
+import modify from '../utils/modify'
 import type { Change } from './types'
 
 /**
@@ -16,9 +17,19 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
   items.forEach(item => collection.insert(item))
   changes.forEach((change) => {
     if (change.type === 'insert') {
-      collection.insert(change.data)
+      const itemExists = collection.findOne({ id: change.data.id } as Record<string, any>)
+      if (itemExists) {
+        collection.updateOne({ id: change.data.id } as Record<string, any>, { $set: change.data })
+      } else {
+        collection.insert(change.data)
+      }
     } else if (change.type === 'update') {
-      collection.updateOne({ id: change.data.id } as Record<string, any>, change.data.modifier)
+      const itemExists = collection.findOne({ id: change.data.id } as Record<string, any>)
+      if (itemExists) {
+        collection.updateOne({ id: change.data.id } as Record<string, any>, change.data.modifier)
+      } else {
+        collection.insert(modify({ id: change.data.id } as ItemType, change.data.modifier))
+      }
     } else if (change.type === 'remove') {
       collection.removeOne({ id: change.data } as Record<string, any>)
     }
