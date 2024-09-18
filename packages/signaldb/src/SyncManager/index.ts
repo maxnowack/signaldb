@@ -86,6 +86,7 @@ export default class SyncManager<
   private syncOperations: Collection<SyncOperation>
   private remoteChanges: Collection<Change>
   private syncQueues: Map<string, PromiseQueue> = new Map()
+  private persistenceReady: Promise<void>
 
   /**
    * @param options Collection options
@@ -103,10 +104,47 @@ export default class SyncManager<
     const { reactivity } = this.options
 
     const persistenceAdapter = options.persistenceAdapter ?? createLocalStorageAdapter
-    this.changes = new Collection({ persistence: persistenceAdapter(`${id}-changes`), reactivity })
-    this.remoteChanges = new Collection({ persistence: persistenceAdapter(`${id}-remote-changes`), reactivity })
-    this.snapshots = new Collection({ persistence: persistenceAdapter(`${id}-snapshots`), reactivity })
-    this.syncOperations = new Collection({ persistence: persistenceAdapter(`${id}-sync-operations`), reactivity })
+    const changesPersistenceAdapter = persistenceAdapter(`${id}-changes`)
+    const remoteChangesPersistenceAdapter = persistenceAdapter(`${id}-remote-changes`)
+    const snapshotsPersistenceAdapter = persistenceAdapter(`${id}-snapshots`)
+    const syncOperationsPersistenceAdapter = persistenceAdapter(`${id}-sync-operations`)
+
+    this.changes = new Collection({
+      persistence: changesPersistenceAdapter,
+      reactivity,
+    })
+    this.remoteChanges = new Collection({
+      persistence: remoteChangesPersistenceAdapter,
+      reactivity,
+    })
+    this.snapshots = new Collection({
+      persistence: snapshotsPersistenceAdapter,
+      reactivity,
+    })
+    this.syncOperations = new Collection({
+      persistence: syncOperationsPersistenceAdapter,
+      reactivity,
+    })
+
+    this.persistenceReady = Promise.all([
+      new Promise<void>((resolve, reject) => {
+        this.syncOperations.once('persistence.error', reject)
+        this.syncOperations.once('persistence.init', resolve)
+      }),
+      new Promise<void>((resolve, reject) => {
+        this.changes.once('persistence.error', reject)
+        this.changes.once('persistence.init', resolve)
+      }),
+      new Promise<void>((resolve, reject) => {
+        this.remoteChanges.once('persistence.error', reject)
+        this.remoteChanges.once('persistence.init', resolve)
+      }),
+      new Promise<void>((resolve, reject) => {
+        this.snapshots.once('persistence.error', reject)
+        this.snapshots.once('persistence.init', resolve)
+      }),
+    ]).then(() => { /* noop */ })
+
     if (this.options.registerRemoteChange) {
       this.options.registerRemoteChange((name, data) => {
         if (data == null) {
@@ -236,6 +274,14 @@ export default class SyncManager<
   }
 
   /**
+   * Checks if the sync manager is ready to sync.
+   * @returns A promise that resolves when the sync manager is ready to sync.
+   */
+  public async isReady() {
+    await this.persistenceReady
+  }
+
+  /**
    * Starts the sync process for a collection
    * @param name Name of the collection
    * @param options Options for the sync process.
@@ -243,6 +289,7 @@ export default class SyncManager<
    * @param options.onlyWithChanges If true, the sync process will only be started if there are changes.
    */
   public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
+    await this.isReady()
     // schedule for next tick to allow other tasks to run first
     await new Promise((resolve) => { setTimeout(resolve, 0) })
     const doSync = async () => {
