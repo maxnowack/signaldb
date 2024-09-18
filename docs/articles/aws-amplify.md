@@ -2,13 +2,13 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/
+    href: https://signaldb.js.org/aws-amplify/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/leveraging-aws-amplify-with-reactive-databases
+    content: https://signaldb.js.org/aws-amplify/
 - - meta
   - name: og:title
     content: Leveraging AWS Amplify with Reactive Databases
