@@ -28,6 +28,6 @@ Welcome to the Guides section of SignalDB. Here you will find a collection of gu
 
 * [Angular](/guides/angular/)
 * [React](/guides/react/)
-* [SolidJS](/guides/solid/)
+* [SolidJS](/guides/solid-js/)
 * [Svelte 5](/guides/svelte/)
 * [Vue](/guides/vue/)
