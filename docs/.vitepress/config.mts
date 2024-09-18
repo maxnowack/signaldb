@@ -196,6 +196,8 @@ export default withMermaid({
         '/examples/appwrite/404',
         '/examples/supabase',
         '/examples/supabase/404',
+        'guides/',
+        'integrations/'
       ]
       return items.filter((item) => !exclude.includes(item.url))
     },
