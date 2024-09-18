@@ -61,15 +61,15 @@ features:
     details: SignalDB's schema-less design and in-memory storage significantly enhance the Developer Experience by simplifying data management and ensuring rapid query performance.
   - icon: <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 166 155.3"><defs><linearGradient id="a" x1="27.5" x2="152" y1="3" y2="63.5" gradientUnits="userSpaceOnUse"><stop offset=".1" stop-color="#76b3e1"/><stop offset=".3" stop-color="#dcf2fd"/><stop offset="1" stop-color="#76b3e1"/></linearGradient><linearGradient id="b" x1="95.8" x2="74" y1="32.6" y2="105.2" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#76b3e1"/><stop offset=".5" stop-color="#4377bb"/><stop offset="1" stop-color="#1f3b77"/></linearGradient><linearGradient id="c" x1="18.4" x2="144.3" y1="64.2" y2="149.8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#315aa9"/><stop offset=".5" stop-color="#518ac8"/><stop offset="1" stop-color="#315aa9"/></linearGradient><linearGradient id="d" x1="75.2" x2="24.4" y1="74.5" y2="260.8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4377bb"/><stop offset=".5" stop-color="#1a336b"/><stop offset="1" stop-color="#1a336b"/></linearGradient></defs><path fill="#76b3e1" d="M163 35S110-4 69 5l-3 1c-6 2-11 5-14 9l-2 3-15 26 26 5c11 7 25 10 38 7l46 9 18-30z"/><path fill="url(#a)" d="M163 35S110-4 69 5l-3 1c-6 2-11 5-14 9l-2 3-15 26 26 5c11 7 25 10 38 7l46 9 18-30z" opacity=".3"/><path fill="#518ac8" d="m52 35-4 1c-17 5-22 21-13 35 10 13 31 20 48 15l62-21S92 26 52 35z"/><path fill="url(#b)" d="m52 35-4 1c-17 5-22 21-13 35 10 13 31 20 48 15l62-21S92 26 52 35z" opacity=".3"/><path fill="url(#c)" d="M134 80a45 45 0 0 0-48-15L24 85 4 120l112 19 20-36c4-7 3-15-2-23z"/><path fill="url(#d)" d="M114 115a45 45 0 0 0-48-15L4 120s53 40 94 30l3-1c17-5 23-21 13-34z"/></svg>
     title: Solid.js
-    link: /guide/solid-js/
+    link: /guides/solid-js/
     details: Solid.js's granular reactivity and efficient data management provide a robust foundation for SignalDB, enabling the creation and management of signals which are core reactive primitives, thereby allowing for real-time data updates and synchronization.
   - icon: <svg width="32" height="32" viewBox="-11.5 -10.23174 23 20.46348"xmlns=http://www.w3.org/2000/svg><title>React Logo</title><circle cx=0 cy=0 fill=#61dafb r=2.05 /><g fill=none stroke=#61dafb stroke-width=1><ellipse rx=11 ry=4.2 /><ellipse rx=11 ry=4.2 transform=rotate(60) /><ellipse rx=11 ry=4.2 transform=rotate(120) /></g></svg>
     title: React
-    link: /guide/react/
+    link: /guides/react/
     details: SignalDB's reactivity adapters allow for seamless integration with signal libraries, enabling auto-updates to reactive queries whenever data changes, which aligns well with React's reactivity model.
   - icon: <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 261.76 226.69"><path fill="#41b883" d="m161.096.001-30.224 52.35L100.647.002H-.005L130.872 226.69 261.749 0z"/><path fill="#34495e" d="m161.096.001-30.224 52.35L100.647.002H52.346l78.526 136.01L209.398.001z"/></svg>
     title: Vue
-    link: /guide/vue/
+    link: /guides/vue/
     details: Vue.js's powerful reactivity system, which allows for effortless binding and updating of the UI based on data changes, pairs well with SignalDB's reactivity adapters, creating a fusion of two reactivity paradigms and ensuring real-time data accuracy.
   - icon: 🥳
     title: and many more!
