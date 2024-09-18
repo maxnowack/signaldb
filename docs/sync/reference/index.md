@@ -2,7 +2,7 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/sync/implementation/
+    href: https://signaldb.js.org/sync/reference/
 ---
 # `SyncManager`
 
