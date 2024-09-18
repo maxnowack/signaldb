@@ -6,6 +6,10 @@ head:
 ---
 # Integrate SignalDB with [Appwrite](https://appwrite.io/)
 
+::: warning
+This section of the documentation is deprecated in favor of the [`SyncManager`](/sync/reference/). Please also see the new documentation pages about [data synchronization](/sync/) and [sync implementation](/sync/implementation/).
+:::
+
 In the landscape of contemporary web applications, ensuring data persistence and consistency is increasingly important. SignalDB stands out for its efficiency as an in-memory database, but it faces the challenge of potential data loss during events like page reloads. This is where the role of persistence adapters becomes essential, particularly for platforms like Appwrite. Appwrite, a backend server for web, mobile, and Flutter developers, offers a range of features that can greatly enhance SignalDB’s capabilities. Integrating an Appwrite persistence adapter not only ensures data persistence within SignalDB but also allows for smooth integration with Appwrite’s services.
 
 The primary role of persistence adapters in SignalDB is to act as connectors between SignalDB and various storage solutions. In this case, the adapter links SignalDB with Appwrite’s database and storage services. These adapters effectively translate the high-level data operations used in applications into the low-level operations compatible with Appwrite’s storage systems. The integration of an Appwrite persistence adapter means that developers can harness Appwrite's database management aligning it with SignalDB. The aim is to use the persistence adapter to store data within Appwrite, ensuring secure management and accessibility.

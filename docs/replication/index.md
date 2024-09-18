@@ -6,6 +6,10 @@ head:
 ---
 # Data Replication in SignalDB
 
+::: warning
+This feature was deprecated in favor of the [`SyncManager`](/sync/reference/). Please also see the new documentation pages about [data synchronization](/sync/) and [sync implementation](/sync/implementation/).
+:::
+
 For seamless integration of your app with remote services, SignalDB offers robust data replication capabilities. Whether you're building a local app or sharing data across multiple clients, SignalDB's modular replication system ensures efficient data synchronization.
 
 

@@ -6,6 +6,10 @@ head:
 ---
 # Integrate SignalDB with [Supabase](https://supabase.io/)
 
+::: warning
+This section of the documentation is deprecated in favor of the [`SyncManager`](/sync/reference/). Please also see the new documentation pages about [data synchronization](/sync/) and [sync implementation](/sync/implementation/).
+:::
+
 In the evolving world of web applications, the importance of data persistence and consistency cannot be overstated. While SignalDB excels as an efficient in-memory database, it faces the risk of data loss during events like page reloads. Addressing this challenge, the integration of persistence adapters, such as one for Supabase, becomes critical. Supabase, an open-source Firebase alternative, provides a suite of powerful features that can significantly augment SignalDB's functionality. Incorporating a Supabase persistence adapter ensures not only the persistence of data within SignalDB but also enables seamless interaction with Supabase’s real-time database and authentication services.
 
 The role of persistence adapters within SignalDB is to facilitate a connection between SignalDB and various storage solutions, in this case, Supabase’s PostgreSQL database and storage services. These adapters convert the high-level data operations of applications into low-level operations that are compatible with Supabase's storage system. With a Supabase persistence adapter integrated, developers can leverage the platform's capabilities, including real-time data updates, secure user authentication, and efficient data storage, aligning them with SignalDB’s in-memory data handling. The aim is to utilize the persistence adapter for storing and managing data within the robust framework of Supabase.

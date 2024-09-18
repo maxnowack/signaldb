@@ -6,6 +6,10 @@ head:
 ---
 # Replicating Data with External HTTP REST API in SignalDB
 
+::: warning
+This section of the documentation is deprecated in favor of the [`SyncManager`](/sync/reference/). Please also see the new documentation pages about [data synchronization](/sync/) and [sync implementation](/sync/implementation/).
+:::
+
 If you've familiarized yourself with the [Replication Overview](/replication/), you're likely already acquainted with the process of achieving replication using an external HTTP REST API.
 
 This page is dedicated to guiding you through the utilization of your existing HTTP REST API for data replication with SignalDB.
