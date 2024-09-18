@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/vue/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/vue/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for Vue.js
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB with Vue.js using the reactivity adapter. This guide explains automatic cleanup, scope checks, and provides code examples for seamless synchronization between Vue.js components and SignalDB collections.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB with Vue.js using the reactivity adapter. This guide explains automatic cleanup, scope checks, and provides code examples for seamless synchronization between Vue.js components and SignalDB collections.
+- - meta
+  - name: keywords
+    content: SignalDB, Vue.js, reactivity adapter, integration guide, JavaScript, TypeScript, real-time updates, signaldb-plugin-vue, watchEffect, component state, dynamic UI
 ---
 # Reactivity adapter for [`Vue.js`](https://vuejs.org/guide/essentials/reactivity-fundamentals.html)
 

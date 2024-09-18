@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactive-databases/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactive-databases/
+- - meta
+  - name: og:title
+    content: Integrating Reactive JavaScript Databases with Popular JS Frameworks
+- - meta
+  - name: og:description
+    content: Explore how reactive JavaScript databases like SignalDB enhance web applications by integrating with popular frameworks such as Angular, Vue, and Solid.js. Discover the benefits, practical use cases, and future trends in reactive database technology.
+- - meta
+  - name: description
+    content: Explore how reactive JavaScript databases like SignalDB enhance web applications by integrating with popular frameworks such as Angular, Vue, and Solid.js. Discover the benefits, practical use cases, and future trends in reactive database technology.
+- - meta
+  - name: keywords
+    content: SignalDB, reactive databases, JavaScript databases, real-time data, Angular integration, Vue integration, Solid.js integration, web development, data synchronization, reactive technology, JavaScript frameworks, real-time applications
 ---
 # Integrating Reactive JavaScript Databases with Popular JS Frameworks
 

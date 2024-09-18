@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/sync/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/sync/
+- - meta
+  - name: og:title
+    content: Overview of Synchronization in SignalDB
+- - meta
+  - name: og:description
+    content: Discover how SignalDB handles synchronization with its `SyncManager` class. Learn about local-first synchronization, on-demand fetching, backend compatibility, and conflict resolution to keep your data consistent and up-to-date.
+- - meta
+  - name: description
+    content: Discover how SignalDB handles synchronization with its `SyncManager` class. Learn about local-first synchronization, on-demand fetching, backend compatibility, and conflict resolution to keep your data consistent and up-to-date.
+- - meta
+  - name: keywords
+    content: SignalDB, synchronization, SyncManager, local-first synchronization, on-demand fetching, data consistency, backend integration, conflict resolution, real-time updates, REST API, GraphQL, data sync
 ---
 # Overview of Synchronization in SignalDB
 

@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/replication/supabase/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/replication/supabase/
+- - meta
+  - name: og:title
+    content: Integrate SignalDB with Supabase - Data Persistence and Synchronization
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB with Supabase for enhanced data persistence and synchronization. Learn about the Supabase persistence adapter, its advantages, and how it facilitates seamless data management and real-time updates.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB with Supabase for enhanced data persistence and synchronization. Learn about the Supabase persistence adapter, its advantages, and how it facilitates seamless data management and real-time updates.
+- - meta
+  - name: keywords
+    content: SignalDB, Supabase, data persistence, synchronization, real-time updates, Firebase alternative, persistence adapter, PostgreSQL, data storage, authentication, web applications
 ---
 # Integrate SignalDB with [Supabase](https://supabase.io/)
 

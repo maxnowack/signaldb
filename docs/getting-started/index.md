@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/getting-started/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/getting-started/
+- - meta
+  - name: og:title
+    content: SignalDB - Getting Started Guide
+- - meta
+  - name: og:description
+    content: Learn how to get started with SignalDB, a client-side, MongoDB-like database with real-time synchronization, TypeScript support, and blazing fast performance. This guide covers installation, creating collections, adding data, and querying documents.
+- - meta
+  - name: description
+    content: Learn how to get started with SignalDB, a client-side, MongoDB-like database with real-time synchronization, TypeScript support, and blazing fast performance. This guide covers installation, creating collections, adding data, and querying documents.
+- - meta
+  - name: keywords
+    content: getting started with SignalDB, SignalDB installation, MongoDB-like JavaScript database, TypeScript database, SignalDB collections, data persistence, local storage, real-time database, optimistic UI, JavaScript database, reactivity, frontend integration, reactive collections
 ---
 # Getting Started
 

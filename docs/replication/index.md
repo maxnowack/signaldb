@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/replication/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/replication/
+- - meta
+  - name: og:title
+    content: Data Replication in SignalDB
+- - meta
+  - name: og:description
+    content: Explore the data replication capabilities of SignalDB, including `ReplicatedCollection` and `AutoFetchCollection`. Learn about their usage, deprecation, and alternatives like `SyncManager` for efficient data synchronization.
+- - meta
+  - name: description
+    content: Explore the data replication capabilities of SignalDB, including `ReplicatedCollection` and `AutoFetchCollection`. Learn about their usage, deprecation, and alternatives like `SyncManager` for efficient data synchronization.
+- - meta
+  - name: keywords
+    content: SignalDB, data replication, ReplicatedCollection, AutoFetchCollection, data synchronization, SyncManager, JavaScript, TypeScript, data synchronization alternatives
 ---
 # Data Replication in SignalDB
 

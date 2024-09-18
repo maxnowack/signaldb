@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/other/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/other/
+- - meta
+  - name: og:title
+    content: Custom Reactivity Adapters for SignalDB
+- - meta
+  - name: og:description
+    content: Learn how to create custom reactivity adapters for SignalDB. This guide provides an overview of the reactivity adapter interface and includes code examples for implementing your own adapter using the `@maverick-js/signals` library.
+- - meta
+  - name: description
+    content: Learn how to create custom reactivity adapters for SignalDB. This guide provides an overview of the reactivity adapter interface and includes code examples for implementing your own adapter using the `@maverick-js/signals` library.
+- - meta
+  - name: keywords
+    content: SignalDB, reactivity adapters, custom reactivity, JavaScript, TypeScript, @maverick-js/signals, dependency management, reactive programming, SignalDB adapter
 ---
 # Custom Reactivity Adapters
 

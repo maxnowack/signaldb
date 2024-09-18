@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/preact-signals/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/preact-signals/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for @preact/signals
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB with Preact signals for efficient state management and real-time data updates. Learn about the adapter, installation process, and usage examples to enhance your Preact applications.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB with Preact signals for efficient state management and real-time data updates. Learn about the adapter, installation process, and usage examples to enhance your Preact applications.
+- - meta
+  - name: keywords
+    content: SignalDB, Preact, @preact/signals, reactivity adapter, real-time updates, JavaScript, state management, Preact integration, SignalDB plugin, data synchronization
 ---
 # Reactivity adapter for [`@preact/signals`](https://preactjs.com/blog/introducing-signals/)
 

@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/mobx/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/mobx/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for MobX
+- - meta
+  - name: og:description
+    content: Discover how to integrate MobX with SignalDB for powerful state management and reactivity. Learn about the adapter, installation, and usage for combining MobX's dynamic observables with SignalDB's collections.
+- - meta
+  - name: description
+    content: Discover how to integrate MobX with SignalDB for powerful state management and reactivity. Learn about the adapter, installation, and usage for combining MobX's dynamic observables with SignalDB's collections.
+- - meta
+  - name: keywords
+    content: SignalDB, MobX, reactivity adapter, state management, real-time updates, observables, JavaScript, TypeScript, MobX integration, SignalDB collections, dynamic reactivity
 ---
 # Reactivity adapter for [`MobX`](https://mobx.js.org/)
 

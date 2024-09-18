@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/replication/appwrite/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/replication/appwrite/
+- - meta
+  - name: og:title
+    content: Integrate SignalDB with Appwrite
+- - meta
+  - name: og:description
+    content: Learn how to integrate SignalDB with Appwrite to ensure data persistence and consistency in your web applications.
+- - meta
+  - name: descrption
+    content: Learn how to integrate SignalDB with Appwrite to ensure data persistence and consistency in your web applications.
+- - meta
+  - name: keywords
+    content: appwrite, signaldb, local first, real time, live updates
 ---
 # Integrate SignalDB with [Appwrite](https://appwrite.io/)
 

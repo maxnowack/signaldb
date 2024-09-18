@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/data-persistence/opfs/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/data-persistence/opfs/
+- - meta
+  - name: og:title
+    content: OPFS Adapter - SignalDB
+- - meta
+  - name: og:description
+    content: Learn about the OPFS Adapter for SignalDB, a simple and straightforward way to store data in a browser's filesystem using the Origin Private File System API. Discover how it differs from the Filesystem Adapter and how to use it in your projects.
+- - meta
+  - name: description
+    content: Learn about the OPFS Adapter for SignalDB, a simple and straightforward way to store data in a browser's filesystem using the Origin Private File System API. Discover how it differs from the Filesystem Adapter and how to use it in your projects.
+- - meta
+  - name: keywords
+    content: OPFS Adapter, SignalDB, Origin Private File System API, data persistence, browser storage, Filesystem Adapter, JavaScript, TypeScript
 ---
 # OPFS Adapter
 

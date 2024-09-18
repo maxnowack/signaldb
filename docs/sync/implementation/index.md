@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/sync/implementation/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/sync/implementation/
+- - meta
+  - name: og:title
+    content: Implementing Synchronization with SignalDB
+- - meta
+  - name: og:description
+    content: Discover how to implement remote synchronization on the frontend using SignalDB. This guide covers creating a SyncManager instance, adding collections, and implementing pull and push methods for syncing data.
+- - meta
+  - name: description
+    content: Discover how to implement remote synchronization on the frontend using SignalDB. This guide covers creating a SyncManager instance, adding collections, and implementing pull and push methods for syncing data.
+- - meta
+  - name: keywords
+    content: SignalDB, synchronization, SyncManager, frontend sync, pull method, push method, real-time sync, JavaScript, TypeScript, collection setup, API integration, reactive updates
 ---
 
 # Implementing Synchronization

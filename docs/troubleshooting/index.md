@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/troubleshooting/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/troubleshooting/
+- - meta
+  - name: og:title
+    content: Troubleshooting SignalDB - Common Issues and Solutions
+- - meta
+  - name: og:description
+    content: Discover solutions to common issues encountered while using SignalDB. This troubleshooting guide addresses installation problems, instance creation errors, data persistence issues, and reactivity challenges.
+- - meta
+  - name: description
+    content: Discover solutions to common issues encountered while using SignalDB. This troubleshooting guide addresses installation problems, instance creation errors, data persistence issues, and reactivity challenges.
+- - meta
+  - name: keywords
+    content: SignalDB, troubleshooting, common issues, installation problems, data persistence, reactivity, error solutions, JavaScript database, SignalDB issues, help, support
 ---
 # Troubleshooting
 

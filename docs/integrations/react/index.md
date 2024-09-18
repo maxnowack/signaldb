@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/integrations/react/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/integrations/react/
+- - meta
+  - name: og:title
+    content: SignalDB React Integration - How to Use SignalDB with React
+- - meta
+  - name: og:description
+    content: Learn how to integrate SignalDB with React using the `signaldb-react` package. This guide covers installation, and the `createUseReactivityHook` function for adding reactivity to your React components.
+- - meta
+  - name: description
+    content: Learn how to integrate SignalDB with React using the `signaldb-react` package. This guide covers installation, and the `createUseReactivityHook` function for adding reactivity to your React components.
+- - meta
+  - name: keywords
+    content: SignalDB, React integration, signaldb-react, reactivity, JavaScript, TypeScript, React components, createUseReactivityHook, installation guide
 ---
 # SignalDB React Integration
 

@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/data-persistence/rxdb/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/data-persistence/rxdb/
+- - meta
+  - name: og:title
+    content: RxDB Persistence Adapter - SignalDB
+- - meta
+  - name: og:description
+    content: Discover how to integrate an RxDB persistence adapter with SignalDB to enhance data persistence and replication. Learn about the benefits, mechanics, and implementation details of using RxDB for extended data management capabilities.
+- - meta
+  - name: description
+    content: Discover how to integrate an RxDB persistence adapter with SignalDB to enhance data persistence and replication. Learn about the benefits, mechanics, and implementation details of using RxDB for extended data management capabilities.
+- - meta
+  - name: keywords
+    content: SignalDB, RxDB, persistence adapter, data persistence, data replication, JavaScript, IndexedDB, localStorage, storage systems, data management, real-time database, implementation guide
 ---
 # RxDB Persistence Adapter
 

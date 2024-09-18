@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/guides/svelte/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/guides/svelte/
+- - meta
+  - name: og:title
+    content: Using SignalDB with Svelte 5 - Integration Guide
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB into your Svelte 5 project. This guide covers setting up SignalDB collections, configuring reactivity with Svelte runes, and building a reactive component to manage and display data.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB into your Svelte 5 project. This guide covers setting up SignalDB collections, configuring reactivity with Svelte runes, and building a reactive component to manage and display data.
+- - meta
+  - name: keywords
+    content: SignalDB, Svelte 5, integration guide, reactivity, JavaScript, TypeScript, Svelte runes, SignalDB plugin, collection setup, reactive components, real-time updates
 ---
 # Using SignalDB with Svelte 5
 

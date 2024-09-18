@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/solidjs/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/solidjs/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for Solid.js
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB with Solid-js using the reactivity adapter. Learn about automatic cleanup, installation, and usage to enhance your application's responsiveness with real-time data updates.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB with Solid-js using the reactivity adapter. Learn about automatic cleanup, installation, and usage to enhance your application's responsiveness with real-time data updates.
+- - meta
+  - name: keywords
+    content: SignalDB, Solid-js, reactivity adapter, real-time data, JavaScript, TypeScript, reactive primitives, integration guide, collection setup, automatic cleanup
 ---
 # Reactivity adapter for [`solid-js`](https://www.solidjs.com/docs/latest)
 

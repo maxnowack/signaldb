@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/optimistic-ui/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/optimistic-ui/
+- - meta
+  - name: og:title
+    content: 'Optimistic UI: How Local Databases Transform User Experience'
+- - meta
+  - name: og:description
+    content: Discover how Optimistic UI and local databases are transforming user interactions in web and app development. Learn about the seamless integration of local databases with Optimistic UI to enhance real-time responsiveness, improve user experience, and address challenges in modern application design.
+- - meta
+  - name: description
+    content: Discover how Optimistic UI and local databases are transforming user interactions in web and app development. Learn about the seamless integration of local databases with Optimistic UI to enhance real-time responsiveness, improve user experience, and address challenges in modern application design.
+- - meta
+  - name: keywords
+    content: optimistic UI, local databases, real-time updates, user experience, web development, app development, SQLite, IndexedDB, Realm Database, real-time responsiveness, digital interfaces
 ---
 # Optimistic UI: How Local Databases Transform User Experience
 

@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/replication/firebase/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/replication/firebase/
+- - meta
+  - name: og:title
+    content: Integrate SignalDB with Firebase
+- - meta
+  - name: og:description
+    content: Learn how to integrate SignalDB with Firebase to ensure data persistence and leverage Firebase's features. Note that this guide is deprecated; refer to the new documentation for SyncManager and data synchronization.
+- - meta
+  - name: description
+    content: Learn how to integrate SignalDB with Firebase to ensure data persistence and leverage Firebase's features. Note that this guide is deprecated; refer to the new documentation for SyncManager and data synchronization.
+- - meta
+  - name: keywords
+    content: SignalDB, Firebase, integration, persistence adapter, data synchronization, Firestore, Realtime Database, cloud storage, JavaScript, data persistence, SignalDB Firebase adapter, deprecated guide
 ---
 # Integrate SignalDB with [Firebase](https://firebase.google.com/)
 

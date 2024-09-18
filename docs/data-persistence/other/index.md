@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/data-persistence/other/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/data-persistence/other/
+- - meta
+  - name: og:title
+    content: Creating Custom Persistence Adapters with SignalDB
+- - meta
+  - name: og:description
+    content: Learn how to create custom persistence adapters for SignalDB to meet specific requirements. This guide includes details on implementing the `createPersistenceAdapter` function and a practical example using the File System.
+- - meta
+  - name: description
+    content: Learn how to create custom persistence adapters for SignalDB to meet specific requirements. This guide includes details on implementing the `createPersistenceAdapter` function and a practical example using the File System.
+- - meta
+  - name: keywords
+    content: SignalDB, custom persistence adapters, createPersistenceAdapter, data persistence, File System adapter, JavaScript, TypeScript, data storage, adapter implementation, SignalDB extensions
 ---
 # Creating Custom Persistence Adapters
 

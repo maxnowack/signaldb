@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/queries/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/queries/
+- - meta
+  - name: og:title
+    content: Querying Data with SignalDB - Learn How to Use Cursors and Selectors
+- - meta
+  - name: og:description
+    content: Discover how to query data in SignalDB with MongoDB-like selectors, sorting, projection, and more. Learn about reactive queries, cursors, and the new field-level reactivity feature to optimize performance.
+- - meta
+  - name: description
+    content: Discover how to query data in SignalDB with MongoDB-like selectors, sorting, projection, and more. Learn about reactive queries, cursors, and the new field-level reactivity feature to optimize performance.
+- - meta
+  - name: keywords
+    content: SignalDB, querying data, MongoDB-like, reactive queries, cursors, selectors, sorting, projection, field-level reactivity, JavaScript database, performance optimization
 ---
 # Querying Data
 

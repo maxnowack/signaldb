@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/guides/solid-js/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/guides/solid-js/
+- - meta
+  - name: og:title
+    content: Integrating SignalDB with Solid - Setup and Usage Guide
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB with Solid.js in this comprehensive guide. Learn how to set up collections, use SignalDB’s reactivity features, and build Solid components with real-time updates.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB with Solid.js in this comprehensive guide. Learn how to set up collections, use SignalDB’s reactivity features, and build Solid components with real-time updates.
+- - meta
+  - name: keywords
+    content: SignalDB, Solid.js, integration guide, reactivity, real-time updates, JavaScript, TypeScript, Solid reactivity, SignalDB plugin, collection setup, reactive components
 ---
 # Integrating SignalDB with Solid
 

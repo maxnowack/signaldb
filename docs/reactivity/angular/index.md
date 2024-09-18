@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/angular/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/angular/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for Angular Signals
+- - meta
+  - name: og:description
+    content: Discover how SignalDB integrates with Angular's signals to enhance reactivity and performance in Angular applications. Learn about the reactivity adapter, installation, and usage.
+- - meta
+  - name: description
+    content: Discover how SignalDB integrates with Angular's signals to enhance reactivity and performance in Angular applications. Learn about the reactivity adapter, installation, and usage.
+- - meta
+  - name: keywords
+    content: SignalDB, Angular, reactivity adapter, Angular signals, integration, performance, state management, real-time updates, JavaScript, TypeScript
 ---
 # Reactivity adapter for [`Angular Signals`](https://angular.io/guide/signals)
 

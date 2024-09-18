@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/sinuous/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/sinuous/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for Sinuous
+- - meta
+  - name: og:description
+    content: Discover how to use SignalDB's reactivity adapter for Sinuous. This guide covers installation, usage, and best practices for integrating SignalDB with the Sinuous framework.
+- - meta
+  - name: description
+    content: Discover how to use SignalDB's reactivity adapter for Sinuous. This guide covers installation, usage, and best practices for integrating SignalDB with the Sinuous framework.
+- - meta
+  - name: keywords
+    content: SignalDB, Sinuous, reactivity adapter, integration guide, JavaScript, TypeScript, reactive programming, SignalDB plugin, collection setup, automatic cleanup, memory management
 ---
 # Reactivity adapter for [`sinuous`](https://sinuous.netlify.app/)
 

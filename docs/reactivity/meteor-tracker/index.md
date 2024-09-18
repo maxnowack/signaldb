@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/meteor-tracker/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/meteor-tracker/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for Meteor Tracker
+- - meta
+  - name: og:description
+    content: Discover how to integrate SignalDB with Meteor Tracker for seamless reactivity. Learn about the adapter, installation steps, and usage examples to enhance your Meteor applications with SignalDB’s reactive features.
+- - meta
+  - name: description
+    content: Discover how to integrate SignalDB with Meteor Tracker for seamless reactivity. Learn about the adapter, installation steps, and usage examples to enhance your Meteor applications with SignalDB’s reactive features.
+- - meta
+  - name: keywords
+    content: SignalDB, Meteor Tracker, reactivity adapter, integration guide, dependency tracking, automatic updates, JavaScript, npm package, Tracker.autorun, reactivity, Meteor framework
 ---
 # Reactivity adapter for [Meteor Tracker](https://docs.meteor.com/api/tracker.html)
 

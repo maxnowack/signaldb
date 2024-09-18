@@ -3,6 +3,24 @@ head:
 - - link
   - rel: canonical
     href: https://signaldb.js.org/reactivity/S/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reactivity/S/
+- - meta
+  - name: og:title
+    content: SignalDB Reactivity Adapter for S.js
+- - meta
+  - name: og:description
+    content: Learn how to integrate SignalDB with the S.js reactivity library. This guide covers installation, usage, and how to handle scope limitations with S.js.
+- - meta
+  - name: description
+    content: Learn how to integrate SignalDB with the S.js reactivity library. This guide covers installation, usage, and how to handle scope limitations with S.js.
+- - meta
+  - name: keywords
+    content: SignalDB, S.js, reactivity adapter, integration guide, JavaScript, reactive scope, memory leaks, real-time updates, npm package, collection setup
 ---
 # Reactivity adapter for [`S.js`](https://github.com/adamhaile/S)
 
