@@ -81,10 +81,10 @@ export default class SyncManager<
     SyncOptions<CollectionOptions>,
   ]> = new Map()
 
-  private changes: Collection<Change<ItemType>>
-  private snapshots: Collection<Snapshot<ItemType>>
-  private syncOperations: Collection<SyncOperation>
-  private remoteChanges: Collection<Change>
+  private changes: Collection<Change<ItemType>, string>
+  private snapshots: Collection<Snapshot<ItemType>, string>
+  private syncOperations: Collection<SyncOperation, string>
+  private remoteChanges: Collection<Change, string>
   private syncQueues: Map<string, PromiseQueue> = new Map()
 
   /**
@@ -260,11 +260,22 @@ export default class SyncManager<
       const entry = this.getCollection(name)
       const collectionOptions = entry[1]
 
+      const syncId = this.syncOperations.insert({
+        start: Date.now(),
+        collectionName: name,
+        status: 'active',
+      })
       const data = await this.options.pull(collectionOptions, {
         lastFinishedSyncStart: lastFinishedSync?.start,
         lastFinishedSyncEnd: lastFinishedSync?.end,
+      }).catch((error: any) => {
+        this.syncOperations.updateOne({ id: syncId }, {
+          $set: { status: 'error', end: Date.now(), error },
+        })
+        throw error
       })
-      await this.syncWithData(name, data)
+
+      await this.syncWithData(name, data, syncId)
     }
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
   }
@@ -279,13 +290,14 @@ export default class SyncManager<
     })
   }
 
-  private async syncWithData(name: string, data: LoadResponse<ItemType>) {
+  private async syncWithData(name: string, data: LoadResponse<ItemType>, syncOperationId?: string) {
     const entry = this.getCollection(name)
     const [collection, collectionOptions] = entry
 
-    const syncTime = Date.now()
-
-    const syncId = this.syncOperations.insert({
+    const syncTime = (
+      syncOperationId && this.syncOperations.findOne({ id: syncOperationId })?.start
+    ) || Date.now()
+    const syncId = syncOperationId || this.syncOperations.insert({
       start: syncTime,
       collectionName: name,
       status: 'active',
