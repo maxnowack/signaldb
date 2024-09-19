@@ -24,6 +24,7 @@ it('should add a collection and register sync events', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
+  await syncManager.startSync('test')
   mockCollection.insert({ id: '2', name: 'New Item' })
 
   await new Promise((resolve) => { setTimeout(resolve, 110) })
@@ -48,7 +49,7 @@ it('should handle pull and apply new changes during sync', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  await syncManager.sync('test')
+  await syncManager.startSync('test')
 
   expect(mockPull).toHaveBeenCalled()
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
@@ -79,11 +80,11 @@ it('should handle updates correctly during sync', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
-  await syncManager.sync('test')
+  await syncManager.startSync('test')
   expect(mockCollection.findOne({ id: '1' })?.name).toBe('Test Item')
 
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'New Item' } })
-  await syncManager.sync('test')
+  await syncManager.startSync('test')
 
   expect(mockCollection.findOne({ id: '1' })?.name).toBe('New Item')
 })
@@ -104,6 +105,7 @@ it('should push changes when items are added locally', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
+  await syncManager.startSync('test')
 
   mockCollection.emit('added', { id: '2', name: 'New Item' })
 
@@ -137,7 +139,7 @@ it('should push changes when items are updated locally', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
-  await syncManager.sync('test')
+  await syncManager.startSync('test')
 
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
   await new Promise((resolve) => { setTimeout(resolve, 110) })
@@ -171,7 +173,7 @@ it('should push changes when items are removed locally', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
-  await syncManager.sync('test')
+  await syncManager.startSync('test')
 
   mockCollection.removeOne({ id: '1' })
   await new Promise((resolve) => { setTimeout(resolve, 110) })
@@ -196,6 +198,7 @@ it('should debounce push requests', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
+  await syncManager.startSync('test')
 
   mockCollection.emit('added', { id: '2', name: 'First Item' })
   mockCollection.emit('added', { id: '3', name: 'Second Item' })
@@ -221,7 +224,7 @@ it('should handle sync errors and update sync operation status', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   try {
-    await syncManager.sync('test')
+    await syncManager.startSync('test')
   } catch (error) {
     expect(error).toBeDefined()
   }
@@ -249,7 +252,7 @@ it('should sync all collections', async () => {
   syncManager.addCollection(mockCollection1, { name: 'test1' })
   syncManager.addCollection(mockCollection2, { name: 'test2' })
 
-  await syncManager.syncAll()
+  await syncManager.startSyncAll()
 
   expect(mockPull).toHaveBeenCalledTimes(2)
 })
@@ -270,7 +273,7 @@ it('should handle pull errors and update sync operation status', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   try {
-    await syncManager.sync('test')
+    await syncManager.startSync('test')
   } catch (error) {
     expect(error).toBeDefined()
     expect((error as Error).message).toBe('Pull failed')
@@ -300,7 +303,7 @@ it('should handle push errors and update sync operation status', async () => {
   mockCollection.insert({ id: '2', name: 'New Item' })
 
   try {
-    await syncManager.sync('test')
+    await syncManager.startSync('test')
   } catch (error) {
     expect(error).toBeDefined()
     expect((error as Error).message).toBe('Push failed')
@@ -318,12 +321,11 @@ it('should register and apply remote changes with items', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void>()
+  let onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void>()
   const syncManager = new SyncManager({
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (options, onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
@@ -332,8 +334,10 @@ it('should register and apply remote changes with items', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
+  await syncManager.startSync('test')
+
   // Simulate a remote change
-  onRemoteChangeHandler('test', { items: [{ id: '2', name: 'Remote Item' }] })
+  onRemoteChangeHandler({ items: [{ id: '2', name: 'Remote Item' }] })
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -355,22 +359,22 @@ it('should register and apply remote changes with changes', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void>()
+  let onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void>()
   const syncManager = new SyncManager({
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (options, onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
 
   const mockCollection = new Collection<TestItem, string, any>()
   syncManager.addCollection(mockCollection, { name: 'test' })
-  await syncManager.sync('test')
+
+  await syncManager.startSync('test')
 
   // Simulate a remote change
-  onRemoteChangeHandler('test', { changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
+  onRemoteChangeHandler({ changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -387,12 +391,11 @@ it('should sync after a empty remote change was received', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void>()
+  let onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void>()
   const syncManager = new SyncManager({
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (options, onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
@@ -400,9 +403,10 @@ it('should sync after a empty remote change was received', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
+  await syncManager.startSync('test')
 
   // Simulate a remote change
-  onRemoteChangeHandler('test')
+  onRemoteChangeHandler()
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -438,7 +442,7 @@ it('should call onError handler if an async error occurs', async () => {
   const mockCollection = new Collection<TestItem, string, any>()
 
   syncManager.addCollection(mockCollection, { name: 'test' })
-  await syncManager.sync('test')
+  await syncManager.startSync('test')
 
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
   await new Promise((resolve) => { setTimeout(resolve, 110) })
@@ -469,7 +473,7 @@ it('should fail if there are errors on syncAll and call onError handler', async 
   syncManager.addCollection(collection1, { name: 'collection1' })
   syncManager.addCollection(collection2, { name: 'collection2' })
 
-  await expect(syncManager.syncAll()).rejects.toThrow('failed')
+  await expect(syncManager.startSyncAll()).rejects.toThrow('failed')
   expect(onError).toHaveBeenCalledWith(new Error('failed'))
 })
 
@@ -490,7 +494,7 @@ it('should update items that already exist on insert', async () => {
   })
 
   syncManager.addCollection(collection, { name: 'test' })
-  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+  await expect(syncManager.startSync('test')).resolves.toBeUndefined()
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -515,7 +519,7 @@ it('should insert items that not exist on update', async () => {
   })
 
   syncManager.addCollection(collection, { name: 'test' })
-  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+  await expect(syncManager.startSync('test')).resolves.toBeUndefined()
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -540,7 +544,7 @@ it('should not fail while removing non existing items', async () => {
   })
 
   syncManager.addCollection(collection, { name: 'test' })
-  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+  await expect(syncManager.startSync('test')).resolves.toBeUndefined()
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })

@@ -13,6 +13,8 @@ type SyncOptions<T extends Record<string, any>> = {
   name: string,
 } & T
 
+type CleanupFn = (() => void | Promise<void>) | void
+
 interface Options<
   CollectionOptions extends Record<string, any>,
   ItemType extends BaseItem<IdType> = BaseItem,
@@ -32,11 +34,11 @@ interface Options<
     }
   ) => Promise<void>,
   registerRemoteChange?: (
+    options: SyncOptions<CollectionOptions>,
     onChange: (
-      collectionName: string,
       data?: LoadResponse<ItemType>,
     ) => void | Promise<void>
-  ) => void,
+  ) => CleanupFn | Promise<CleanupFn>,
 
   id?: string,
   persistenceAdapter?: (id: string) => PersistenceAdapter<any, any>,
@@ -68,7 +70,7 @@ interface Options<
  *    name: 'todos',
  *  })
  *
- *  syncManager.sync('todos')
+ *  syncManager.startSync('todos')
  */
 export default class SyncManager<
   CollectionOptions extends Record<string, any>,
@@ -79,6 +81,8 @@ export default class SyncManager<
   private collections: Map<string, [
     Collection<ItemType, IdType, any>,
     SyncOptions<CollectionOptions>,
+    isSyncing: boolean,
+    CleanupFn,
   ]> = new Map()
 
   private changes: Collection<Change<ItemType>>
@@ -107,15 +111,6 @@ export default class SyncManager<
     this.remoteChanges = new Collection({ persistence: persistenceAdapter(`${id}-remote-changes`), reactivity })
     this.snapshots = new Collection({ persistence: persistenceAdapter(`${id}-snapshots`), reactivity })
     this.syncOperations = new Collection({ persistence: persistenceAdapter(`${id}-sync-operations`), reactivity })
-    if (this.options.registerRemoteChange) {
-      this.options.registerRemoteChange((name, data) => {
-        if (data == null) {
-          void this.sync(name)
-        } else {
-          void this.syncWithData(name, data)
-        }
-      })
-    }
 
     this.changes.setMaxListeners(1000)
     this.remoteChanges.setMaxListeners(1000)
@@ -152,7 +147,7 @@ export default class SyncManager<
     collection: Collection<ItemType, IdType, any>,
     options: SyncOptions<CollectionOptions>,
   ) {
-    this.collections.set(options.name, [collection, options])
+    this.collections.set(options.name, [collection, options, false, undefined])
     collection.on('added', (item) => {
       // skip the change if it was a remote change
       if (this.remoteChanges.findOne({ collectionName: options.name, type: 'insert', data: item })) {
@@ -165,7 +160,11 @@ export default class SyncManager<
         type: 'insert',
         data: item,
       })
-      this.schedulePush(options.name)
+
+      const isSyncing = this.getCollection(options.name)[2]
+      if (isSyncing) {
+        this.schedulePush(options.name)
+      }
     })
     collection.on('changed', ({ id }, modifier) => {
       const data = { id, modifier }
@@ -180,7 +179,11 @@ export default class SyncManager<
         type: 'update',
         data,
       })
-      this.schedulePush(options.name)
+
+      const isSyncing = this.getCollection(options.name)[2]
+      if (isSyncing) {
+        this.schedulePush(options.name)
+      }
     })
     collection.on('removed', ({ id }) => {
       // skip the change if it was a remote change
@@ -194,7 +197,11 @@ export default class SyncManager<
         type: 'remove',
         data: id,
       })
-      this.schedulePush(options.name)
+
+      const isSyncing = this.getCollection(options.name)[2]
+      if (isSyncing) {
+        this.schedulePush(options.name)
+      }
     })
   }
 
@@ -208,19 +215,6 @@ export default class SyncManager<
 
   private schedulePush(name: string) {
     this.deboucedPush(name)
-  }
-
-  /**
-   * Starts the sync process for all collections
-   */
-  public async syncAll() {
-    const errors: {id: string, error: Error}[] = []
-    await Promise.all([...this.collections.keys()].map(id =>
-      this.sync(id).catch((error: Error) => {
-        errors.push({ id, error })
-        if (this.options.onError) this.options.onError(error)
-      })))
-    if (errors.length > 0) throw new Error(`Error while syncing collections:\n${errors.map(e => `${e.id}: ${e.error.message}`).join('\n\n')}`)
   }
 
   /**
@@ -242,7 +236,7 @@ export default class SyncManager<
    * @param options.force If true, the sync process will be started even if there are no changes and onlyWithChanges is true.
    * @param options.onlyWithChanges If true, the sync process will only be started if there are changes.
    */
-  public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
+  private async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
     // schedule for next tick to allow other tasks to run first
     await new Promise((resolve) => { setTimeout(resolve, 0) })
     const doSync = async () => {
@@ -385,5 +379,82 @@ export default class SyncManager<
       force: true,
       onlyWithChanges: true,
     })
+  }
+
+  /**
+   * Starts the sync process for a collection
+   * @param name Name of the collection
+   */
+  public async startSync(name: string) {
+    const [collection, option, syncing, oldCleanup] = this.getCollection(name)
+    let cleanup: CleanupFn = undefined
+
+    if (this.options.registerRemoteChange) {
+      cleanup = await Promise.resolve(this.options.registerRemoteChange(option, (data) => {
+        if (data == null) {
+          void this.sync(name)
+        } else {
+          void this.syncWithData(name, data)
+        }
+      })).catch((error: Error) => {
+        if (this.options.onError) this.options.onError(error)
+      })
+
+      if (oldCleanup) {
+        await Promise.resolve(oldCleanup()).catch((error: Error) => {
+          if (this.options.onError) this.options.onError(error)
+        })
+      }
+    }
+
+    this.collections.set(name, [collection, option, true, cleanup])
+
+    await this.sync(name)
+  }
+
+  /**
+   * Starts the sync process for all collections
+   */
+  public async startSyncAll() {
+    const errors: { id: string; error: Error }[] = []
+    await Promise.all(
+      [...this.collections.keys()].map((id) =>
+        this.startSync(id).catch((error: Error) => {
+          errors.push({ id, error })
+          if (this.options.onError) this.options.onError(error)
+        })
+      )
+    )
+    if (errors.length > 0) throw new Error(`Error while syncing collections:\n${errors.map((e) => `${e.id}: ${e.error.message}`).join('\n\n')}`)
+  }
+
+  /**
+   * Pauses the sync process for a collection
+   * @param name Name of the collection
+   */
+  public async pauseSync(name: string) {
+    const [collection, option, syncing, cleanup] = this.getCollection(name)
+    if (cleanup) {
+      await Promise.resolve(cleanup()).catch((error: Error) => {
+        if (this.options.onError) this.options.onError(error)
+      })
+    }
+    this.collections.set(name, [collection, option, false, undefined])
+  }
+
+  /**
+   * Pauses the sync process for all collections
+   */
+  public async pauseSyncAll() {
+    const errors: { id: string; error: Error }[] = []
+    await Promise.all(
+      [...this.collections.keys()].map((id) =>
+        this.pauseSync(id).catch((error: Error) => {
+          errors.push({ id, error })
+          if (this.options.onError) this.options.onError(error)
+        })
+      )
+    )
+    if (errors.length > 0) throw new Error(`Error while pausing syncing collections:\n${errors.map((e) => `${e.id}: ${e.error.message}`).join('\n\n')}`)
   }
 }
