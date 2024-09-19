@@ -1,5 +1,6 @@
 import type { BaseItem } from '../Collection'
 import Collection from '../Collection'
+import type Selector from '../types/Selector'
 import modify from '../utils/modify'
 import type { Change } from './types'
 
@@ -16,22 +17,28 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
   const collection = new Collection<ItemType, IdType>()
   items.forEach(item => collection.insert(item))
   changes.forEach((change) => {
+    if (change.type === 'remove') {
+      collection.removeOne({ id: change.data } as Selector<ItemType>)
+      return
+    }
+
+    const selector = { id: change.data.id } as ItemType
+    const itemExists = collection.findOne(selector)
+
     if (change.type === 'insert') {
-      const itemExists = collection.findOne({ id: change.data.id } as Record<string, any>)
-      if (itemExists) {
-        collection.updateOne({ id: change.data.id } as Record<string, any>, { $set: change.data })
-      } else {
+      if (itemExists) { // update item if it alread exists
+        collection.updateOne(selector, { $set: change.data })
+      } else { // insert item if it does not exist
         collection.insert(change.data)
       }
-    } else if (change.type === 'update') {
-      const itemExists = collection.findOne({ id: change.data.id } as Record<string, any>)
-      if (itemExists) {
-        collection.updateOne({ id: change.data.id } as Record<string, any>, change.data.modifier)
-      } else {
-        collection.insert(modify({ id: change.data.id } as ItemType, change.data.modifier))
-      }
-    } else if (change.type === 'remove') {
-      collection.removeOne({ id: change.data } as Record<string, any>)
+      return
+    }
+
+    // change.type === 'update'
+    if (itemExists) { // update item if it exists
+      collection.updateOne(selector, change.data.modifier)
+    } else { // insert item if it does not exist
+      collection.insert(modify(selector, change.data.modifier))
     }
   })
   return collection.find().fetch()
