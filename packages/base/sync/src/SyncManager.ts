@@ -15,6 +15,8 @@ type SyncOptions<T extends Record<string, any>> = {
   name: string,
 } & T
 
+type CleanupFunction = (() => void | Promise<void>) | void
+
 interface Options<
   CollectionOptions extends Record<string, any>,
   ItemType extends BaseItem<IdType> = BaseItem,
@@ -36,7 +38,7 @@ interface Options<
   registerRemoteChange?: (
     collectionOptions: SyncOptions<CollectionOptions>,
     onChange: (data?: LoadResponse<ItemType>) => Promise<void>,
-  ) => void,
+  ) => CleanupFunction | Promise<CleanupFunction>,
 
   id?: string,
   persistenceAdapter?: (
@@ -45,6 +47,8 @@ interface Options<
   ) => PersistenceAdapter<any, any>,
   reactivity?: ReactivityAdapter,
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
+
+  autostart?: boolean,
 }
 
 /**
@@ -79,11 +83,13 @@ export default class SyncManager<
   IdType = any,
 > {
   protected options: Options<CollectionOptions, ItemType, IdType>
-  protected collections: Map<string, [
-    Collection<ItemType, IdType, any>,
-    SyncOptions<CollectionOptions>,
+  protected collections: Map<string, {
+    collection: Collection<ItemType, IdType, any>,
+    options: SyncOptions<CollectionOptions>,
     readyPromise: Promise<void>,
-  ]> = new Map()
+    syncPaused: boolean,
+    cleanupFunction?: CleanupFunction,
+  }> = new Map()
 
   protected changes: Collection<Change<ItemType>, string>
   protected snapshots: Collection<Snapshot<ItemType>, string>
@@ -106,7 +112,10 @@ export default class SyncManager<
    * @param [options.onError] Function to handle errors that occur async during syncing.
    */
   constructor(options: Options<CollectionOptions, ItemType, IdType>) {
-    this.options = options
+    this.options = {
+      autostart: true,
+      ...options,
+    }
     this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
 
@@ -202,14 +211,26 @@ export default class SyncManager<
 
   /**
    * Gets a collection with it's options by name
+   * @deprecated Use getCollectionProperties instead.
    * @param name Name of the collection
    * @throws Will throw an error if the name wasn't found
    * @returns Tuple of collection and options
    */
   public getCollection(name: string) {
-    const entry = this.collections.get(name)
-    if (entry == null) throw new Error(`Collection with id '${name}' not found`)
-    return entry
+    const { collection, options } = this.getCollectionProperties(name)
+    return [collection, options]
+  }
+
+  /**
+   * Gets collection options by name
+   * @param name Name of the collection
+   * @throws Will throw an error if the name wasn't found
+   * @returns An object of all properties of the collection
+   */
+  public getCollectionProperties(name: string) {
+    const collectionParameters = this.collections.get(name)
+    if (collectionParameters == null) throw new Error(`Collection with id '${name}' not found`)
+    return collectionParameters
   }
 
   /**
@@ -235,48 +256,12 @@ export default class SyncManager<
       })
       collection.once('persistence.init', resolve)
     })
-
-    if (this.options.registerRemoteChange) {
-      this.options.registerRemoteChange(options, async (data) => {
-        if (data == null) {
-          await this.sync(options.name)
-        } else {
-          const syncTime = Date.now()
-          const syncId = this.syncOperations.insert({
-            start: syncTime,
-            collectionName: options.name,
-            instanceId: this.instanceId,
-            status: 'active',
-          })
-          await this.syncWithData(options.name, data)
-            .then(() => {
-              // clean up old sync operations
-              this.syncOperations.removeMany({
-                id: { $ne: syncId },
-                collectionName: options.name,
-                $or: [
-                  { end: { $lte: syncTime } },
-                  { status: 'active' },
-                ],
-              })
-
-              // update sync operation status to done after everthing was finished
-              this.syncOperations.updateOne({ id: syncId }, {
-                $set: { status: 'done', end: Date.now() },
-              })
-            })
-            .catch((error: Error) => {
-              if (this.options.onError) this.options.onError(options, error)
-              this.syncOperations.updateOne({ id: syncId }, {
-                $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
-              })
-              throw error
-            })
-        }
-      })
-    }
-
-    this.collections.set(options.name, [collection, options, readyPromise])
+    this.collections.set(options.name, {
+      collection,
+      options,
+      readyPromise,
+      syncPaused: true, // always start paused as the autostart will start it
+    })
 
     const hasRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
       for (const remoteChange of this.remoteChanges) {
@@ -307,6 +292,8 @@ export default class SyncManager<
         type: 'insert',
         data: item,
       })
+
+      if (this.getCollectionProperties(options.name).syncPaused) return
       this.schedulePush(options.name)
     })
     collection.on('changed', ({ id }, modifier) => {
@@ -322,6 +309,8 @@ export default class SyncManager<
         type: 'update',
         data,
       })
+
+      if (this.getCollectionProperties(options.name).syncPaused) return
       this.schedulePush(options.name)
     })
     collection.on('removed', ({ id }) => {
@@ -336,8 +325,18 @@ export default class SyncManager<
         type: 'remove',
         data: id,
       })
+
+      if (this.getCollectionProperties(options.name).syncPaused) return
       this.schedulePush(options.name)
     })
+
+    if (this.options.autostart) {
+      this.startSync(options.name)
+        .catch((error: Error) => {
+          if (!this.options.onError) return
+          this.options.onError(this.getCollectionProperties(options.name).options, error)
+        })
+    }
   }
 
   protected deboucedPush = debounce((name: string) => {
@@ -346,6 +345,85 @@ export default class SyncManager<
 
   protected schedulePush(name: string) {
     this.deboucedPush(name)
+  }
+
+  /**
+   * Setup a collection to be synced with remote changes
+   * and enable automatic pushing changes to the remote source.
+   * @param name Name of the collection
+   */
+  public async startSync(name: string) {
+    const collectionParameters = this.getCollectionProperties(name)
+    if (!collectionParameters.syncPaused) return // already started
+
+    this.schedulePush(name) // push changes that were made while paused
+
+    const cleanupFunction = this.options.registerRemoteChange
+      ? await this.options.registerRemoteChange(
+        collectionParameters.options,
+        async (data) => {
+          if (data == null) {
+            await this.sync(name)
+          } else {
+            const syncTime = Date.now()
+            const syncId = this.syncOperations.insert({
+              start: syncTime,
+              collectionName: name,
+              instanceId: this.instanceId,
+              status: 'active',
+            })
+            await this.syncWithData(name, data)
+              .then(() => {
+                // clean up old sync operations
+                this.syncOperations.removeMany({
+                  id: { $ne: syncId },
+                  collectionName: name,
+                  $or: [
+                    { end: { $lte: syncTime } },
+                    { status: 'active' },
+                  ],
+                })
+
+                // update sync operation status to done after everthing was finished
+                this.syncOperations.updateOne({ id: syncId }, {
+                  $set: { status: 'done', end: Date.now() },
+                })
+              })
+              .catch((error: Error) => {
+                if (this.options.onError) {
+                  this.options.onError(this.getCollectionProperties(name).options, error)
+                }
+                this.syncOperations.updateOne({ id: syncId }, {
+                  $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
+                })
+                throw error
+              })
+          }
+        },
+      )
+      : undefined
+    this.collections.set(name, {
+      ...collectionParameters,
+      syncPaused: false,
+      cleanupFunction,
+    })
+  }
+
+  /**
+   * Pauses the sync process for a collection.
+   * This means that the collection will not be synced with remote changes
+   * and changes will not automatically be pushed to the remote source.
+   * @param name Name of the collection
+   */
+  public async pauseSync(name: string) {
+    const collectionParameters = this.getCollectionProperties(name)
+    if (collectionParameters.syncPaused) return // already paused
+    if (collectionParameters.cleanupFunction) await collectionParameters.cleanupFunction()
+    this.collections.set(name, {
+      ...collectionParameters,
+      cleanupFunction: undefined,
+      syncPaused: true,
+    })
   }
 
   /**
@@ -391,9 +469,7 @@ export default class SyncManager<
   public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
     if (this.isDisposed) throw new Error('SyncManager is disposed')
     await this.isReady()
-    const entry = this.getCollection(name)
-    const collectionOptions = entry[1]
-    const readyPromise = entry[2]
+    const { options: collectionOptions, readyPromise } = this.getCollectionProperties(name)
     await readyPromise
 
     const hasActiveSyncs = this.syncOperations.find({
@@ -479,8 +555,7 @@ export default class SyncManager<
     name: string,
     data: LoadResponse<ItemType>,
   ) {
-    const entry = this.getCollection(name)
-    const [collection, collectionOptions] = entry
+    const { collection, options: collectionOptions } = this.getCollectionProperties(name)
 
     const syncTime = Date.now()
 

@@ -55,11 +55,13 @@ Creates a new instance of `SyncManager`.
 
   - `pull`: Function to fetch data from the remote source.
   - `push`: Function to send changes to the remote source.
-  - `registerRemoteChange`: Optional function to register a callback for remote changes.
+  - `registerRemoteChange`: Optional function to register a callback for remote changes. The callback can also return a cleanup function to remove the listener.
   - `id`: Optional unique identifier for the sync manager.
   - `persistenceAdapter`: Optional function to create a persistence adapter. Takes 2 arguments: `name` and `registerErrorHandler`. Defaults to [`createLocalStorageAdapter`](/reference/localstorage/)).
   - `reactivity`: Optional reactivity adapter for handling reactivity.
   - `onError`: Optional function to handle errors.
+  - `autostart`: Optional flag to start syncing automatically after adding collections (default: `true`).
+
 
 ## Methods
 
@@ -72,9 +74,13 @@ Adds a collection to the sync manager.
 - `collection` (`Collection`): The collection to add.
 - `options` (`SyncOptions`): Configuration options for the collection.
 
-### `getCollection(name)`
+### `getCollection(name)` (deprecated)
 
 Retrieves a collection and its options by name.
+
+### `getCollectionProperties(name)`
+
+Retrieves the collection options by name.
 
 #### Parameters
 
@@ -110,6 +116,22 @@ Starts the sync process for a specific collection.
 - `options` (`object`, optional): Sync options.
   - `force` (`boolean`, optional): If `true`, forces the sync process even if no changes are detected.
   - `onlyWithChanges` (`boolean`, optional): If `true`, syncs only if there are changes.
+
+### `startSync(name)`
+
+Setup a collection to be synced with remote changes and enable automatic pushing changes to the remote source.
+
+#### Parameters
+
+- `name` (`string`): The name of the collection.
+
+### `pauseSync(name)`
+
+Pauses the sync process for a collection. This means that the collection will not be synced with remote changes and changes will not automatically be pushed to the remote source.
+
+#### Parameters
+
+- `name` (`string`): The name of the collection.
 
 ### `pushChanges(name)`
 
