@@ -31,6 +31,7 @@ export function createUseReactivityHook(effect: ReactiveEffect) {
         refs.current.stopComputation = undefined
       }
       refs.current.stopComputation = effect(() => {
+        if (!refs.current.isMounted) return
         refs.current.data = reactiveFn()
         forceUpdate()
       })
