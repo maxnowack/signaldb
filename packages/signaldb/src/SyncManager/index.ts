@@ -298,7 +298,6 @@ export default class SyncManager<
         const currentChanges = this.changes.find({
           collectionName: name,
           $and: [
-            { time: { $gte: lastFinishedSync?.end ?? 0 } },
             { time: { $lte: Date.now() } },
           ],
         }, { sort: { time: 1 } }).count()
@@ -355,7 +354,6 @@ export default class SyncManager<
     const currentChanges = this.changes.find({
       collectionName: name,
       $and: [
-        { time: { $gte: lastFinishedSync?.end ?? 0 } },
         { time: { $lte: syncTime } },
       ],
     }, { sort: { time: 1 } }).fetch()
