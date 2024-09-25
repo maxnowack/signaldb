@@ -417,6 +417,13 @@ export default class SyncManager<
           id: { $in: currentChanges.map(c => c.id) },
         })
 
+        // clean up old sync operations
+        this.syncOperations.removeMany({
+          id: { $ne: syncId },
+          collectionName: name,
+          end: { $lte: syncTime },
+        })
+
         // insert new snapshot
         this.snapshots.insert({
           time: syncTime,
