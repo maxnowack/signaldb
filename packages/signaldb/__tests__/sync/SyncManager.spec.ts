@@ -122,7 +122,7 @@ it('should push changes when items are added locally', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  mockCollection.emit('added', { id: '2', name: 'New Item' })
+  mockCollection.insert({ id: '2', name: 'New Item' })
 
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
@@ -226,8 +226,8 @@ it('should debounce push requests', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  mockCollection.emit('added', { id: '2', name: 'First Item' })
-  mockCollection.emit('added', { id: '3', name: 'Second Item' })
+  mockCollection.insert({ id: '2', name: 'First Item' })
+  mockCollection.insert({ id: '3', name: 'Second Item' })
 
   await new Promise((resolve) => { setTimeout(resolve, 110) })
 
