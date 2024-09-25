@@ -280,7 +280,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
             const added = pendingUpdates.added.splice(0)
             const modified = pendingUpdates.modified.splice(0)
             const removed = pendingUpdates.removed.splice(0)
-            currentItems = applyUpdates(currentItems, { added, modified, removed })
+            currentItems = applyUpdates(this.memoryArray(), { added, modified, removed })
             // eslint-disable-next-line no-await-in-loop
             await this.persistenceAdapter.save(currentItems, { added, modified, removed })
               .then(() => {
