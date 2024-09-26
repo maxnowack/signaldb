@@ -253,11 +253,7 @@ it('should handle sync errors and update sync operation status', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  try {
-    await syncManager.sync('test')
-  } catch (error) {
-    expect(error).toBeDefined()
-  }
+  await expect(syncManager.sync('test')).rejects.toThrow()
 
   expect(onError).not.toHaveBeenCalled()
   const syncOperation = syncManager.isSyncing('test')
@@ -310,12 +306,39 @@ it('should handle pull errors and update sync operation status', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  try {
-    await syncManager.sync('test')
-  } catch (error) {
-    expect(error).toBeDefined()
-    expect((error as Error).message).toBe('Pull failed')
-  }
+  await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
+
+  const syncOperation = syncManager.isSyncing('test')
+  expect(onError).not.toHaveBeenCalled()
+  expect(syncOperation).toBe(false)
+})
+
+it('should handle pull errors and update sync operation status after first sync', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({ items: [] })
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>()
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  mockPull.mockImplementation(() => {
+    if (mockPull.mock.calls.length === 1) {
+      mockCollection.insert({ id: '1', name: 'Test Item' })
+      return Promise.resolve({ items: [] })
+    }
+    return Promise.reject(new Error('Pull failed'))
+  })
+
+  await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
 
   const syncOperation = syncManager.isSyncing('test')
   expect(onError).not.toHaveBeenCalled()
@@ -344,12 +367,7 @@ it('should handle push errors and update sync operation status', async () => {
 
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  try {
-    await syncManager.sync('test')
-  } catch (error) {
-    expect(error).toBeDefined()
-    expect((error as Error).message).toBe('Push failed')
-  }
+  await expect(syncManager.sync('test')).rejects.toThrow('Push failed')
 
   expect(onError).not.toHaveBeenCalled()
   const syncOperation = syncManager.isSyncing('test')
@@ -433,6 +451,64 @@ it('should register and apply remote changes with changes', async () => {
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }, { id: '2', name: 'Remote Item' }])
 })
 
+it('should handle error in remote changes without data', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockRejectedValue(new Error('Pull failed'))
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const onRemoteChangeHandler = vi.fn<(collectionName: string,
+    data?: LoadResponse<TestItem>) => void | Promise<void>>()
+  const onError = vi.fn()
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+    registerRemoteChange: (onRemoteChange) => {
+      onRemoteChangeHandler.mockImplementation(onRemoteChange)
+    },
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>()
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  // Simulate a remote change
+  await expect(onRemoteChangeHandler('test')).rejects.toThrow('Pull failed')
+  expect(onError).toHaveBeenCalledWith(new Error('Pull failed'))
+})
+
+it('should handle error in remote changes with data', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockRejectedValue(new Error('Pull failed'))
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const onRemoteChangeHandler = vi.fn<(collectionName: string,
+    data?: LoadResponse<TestItem>) => void | Promise<void>>()
+  const onError = vi.fn()
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+    registerRemoteChange: (onRemoteChange) => {
+      onRemoteChangeHandler.mockImplementation(onRemoteChange)
+    },
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>()
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  // Simulate a remote change
+  const promise = onRemoteChangeHandler('test', { items: [{ id: '2', name: 'Remote Item' }] })
+  mockCollection.insert({ id: '1', name: 'Test Item' })
+  await expect(promise).rejects.toThrow('Pull failed')
+  expect(onError).toHaveBeenCalledWith(new Error('Pull failed'))
+})
+
 it('should sync after a empty remote change was received', async () => {
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -510,7 +586,7 @@ it('should call onError handler if an async error occurs', async () => {
 it('should fail if there are errors on syncAll and call onError handler', async () => {
   const mockPull = vi.fn<(options: { name: string }) => Promise<LoadResponse<TestItem>>>()
     .mockImplementation(({ name }) => {
-      if (name === 'collection2') throw new Error('failed')
+      if (name === 'collection2') return Promise.reject(new Error('failed'))
       return Promise.resolve({
         items: [{ id: '1', name: 'Test Item' }],
       })
