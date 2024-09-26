@@ -253,11 +253,7 @@ it('should handle sync errors and update sync operation status', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  try {
-    await syncManager.sync('test')
-  } catch (error) {
-    expect(error).toBeDefined()
-  }
+  await expect(syncManager.sync('test')).rejects.toThrow()
 
   expect(onError).not.toHaveBeenCalled()
   const syncOperation = syncManager.isSyncing('test')
@@ -310,12 +306,7 @@ it('should handle pull errors and update sync operation status', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  try {
-    await syncManager.sync('test')
-  } catch (error) {
-    expect(error).toBeDefined()
-    expect((error as Error).message).toBe('Pull failed')
-  }
+  await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
 
   const syncOperation = syncManager.isSyncing('test')
   expect(onError).not.toHaveBeenCalled()
@@ -344,12 +335,7 @@ it('should handle push errors and update sync operation status', async () => {
 
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  try {
-    await syncManager.sync('test')
-  } catch (error) {
-    expect(error).toBeDefined()
-    expect((error as Error).message).toBe('Push failed')
-  }
+  await expect(syncManager.sync('test')).rejects.toThrow('Push failed')
 
   expect(onError).not.toHaveBeenCalled()
   const syncOperation = syncManager.isSyncing('test')
@@ -510,7 +496,7 @@ it('should call onError handler if an async error occurs', async () => {
 it('should fail if there are errors on syncAll and call onError handler', async () => {
   const mockPull = vi.fn<(options: { name: string }) => Promise<LoadResponse<TestItem>>>()
     .mockImplementation(({ name }) => {
-      if (name === 'collection2') throw new Error('failed')
+      if (name === 'collection2') return Promise.reject(new Error('failed'))
       return Promise.resolve({
         items: [{ id: '1', name: 'Test Item' }],
       })

@@ -150,7 +150,7 @@ export default class SyncManager<
         if (data == null) {
           void this.sync(name)
         } else {
-          void this.syncWithData(name, data)
+          void this.syncWithData(name, data, true)
         }
       })
     }
@@ -290,6 +290,10 @@ export default class SyncManager<
    */
   public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
     await this.isReady()
+
+    const hasActiveSyncs = this.syncOperations.find({ collectionName: name }).count() > 0
+    let syncId: string | null = null
+
     // schedule for next tick to allow other tasks to run first
     await new Promise((resolve) => { setTimeout(resolve, 0) })
     const doSync = async () => {
@@ -306,24 +310,43 @@ export default class SyncManager<
       const entry = this.getCollection(name)
       const collectionOptions = entry[1]
 
-      const syncId = this.syncOperations.insert({
-        start: Date.now(),
-        collectionName: name,
-        status: 'active',
-      })
+      if (!hasActiveSyncs) {
+        syncId = this.syncOperations.insert({
+          start: Date.now(),
+          collectionName: name,
+          status: 'active',
+        })
+      }
       const data = await this.options.pull(collectionOptions, {
         lastFinishedSyncStart: lastFinishedSync?.start,
         lastFinishedSyncEnd: lastFinishedSync?.end,
-      }).catch((error: any) => {
-        this.syncOperations.updateOne({ id: syncId }, {
-          $set: { status: 'error', end: Date.now(), error },
-        })
+      }).catch((error: Error) => {
+        if (syncId != null) {
+          this.syncOperations.updateOne({ id: syncId }, {
+            $set: { status: 'error', end: Date.now(), error },
+          })
+        }
         throw error
       })
 
-      await this.syncWithData(name, data, syncId)
+      await this.syncWithData(name, data, false)
     }
+
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
+      .catch((error: Error) => {
+        if (syncId != null) {
+          this.syncOperations.updateOne({ id: syncId }, {
+            $set: { status: 'error', end: Date.now(), error },
+          })
+        }
+        throw error
+      })
+
+    if (syncId != null) {
+      this.syncOperations.updateOne({ id: syncId }, {
+        $set: { status: 'done', end: Date.now() },
+      })
+    }
   }
 
   /**
@@ -336,18 +359,20 @@ export default class SyncManager<
     })
   }
 
-  private async syncWithData(name: string, data: LoadResponse<ItemType>, syncOperationId?: string) {
+  private async syncWithData(
+    name: string,
+    data: LoadResponse<ItemType>,
+    createSyncOperation: boolean,
+  ) {
     const entry = this.getCollection(name)
     const [collection, collectionOptions] = entry
 
-    const syncTime = (
-      syncOperationId && this.syncOperations.findOne({ id: syncOperationId })?.start
-    ) || Date.now()
-    const syncId = syncOperationId || this.syncOperations.insert({
+    const syncTime = Date.now()
+    const syncId = createSyncOperation ? this.syncOperations.insert({
       start: syncTime,
       collectionName: name,
       status: 'active',
-    })
+    }) : null
 
     const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { end: -1 } })
     const lastSnapshot = this.snapshots.findOne({ collectionName: name }, { sort: { time: -1 } })
@@ -415,12 +440,14 @@ export default class SyncManager<
           id: { $in: currentChanges.map(c => c.id) },
         })
 
-        // clean up old sync operations
-        this.syncOperations.removeMany({
-          id: { $ne: syncId },
-          collectionName: name,
-          end: { $lte: syncTime },
-        })
+        if (syncId != null) {
+          // clean up old sync operations
+          this.syncOperations.removeMany({
+            id: { $ne: syncId },
+            collectionName: name,
+            end: { $lte: syncTime },
+          })
+        }
 
         // insert new snapshot
         this.snapshots.insert({
@@ -431,23 +458,28 @@ export default class SyncManager<
 
         // delay sync operation update to next tick to allow other tasks to run first
         await new Promise((resolve) => { setTimeout(resolve, 0) })
-
-        this.syncOperations.updateOne({ id: syncId }, {
-          $set: { status: 'done', end: Date.now() },
-        })
       })
-      .catch((error: any) => {
-        this.syncOperations.updateOne({ id: syncId }, {
-          $set: { status: 'error', end: Date.now(), error },
-        })
+      .catch((error: Error) => {
+        if (syncId) {
+          this.syncOperations.updateOne({ id: syncId }, {
+            $set: { status: 'error', end: Date.now(), error },
+          })
+        }
         throw error
       })
-
-    // check if there are unsynced changes to push
-    // after the sync was finished successfully
-    await this.sync(name, {
-      force: true,
-      onlyWithChanges: true,
-    })
+      // check if there are unsynced changes to push
+      // after the sync was finished successfully
+      .then(() => this.sync(name, {
+        force: true,
+        onlyWithChanges: true,
+      }))
+      .then(() => {
+        // update sync operation status to done after everthing was finished
+        if (syncId != null) {
+          this.syncOperations.updateOne({ id: syncId }, {
+            $set: { status: 'done', end: Date.now() },
+          })
+        }
+      })
   }
 }
