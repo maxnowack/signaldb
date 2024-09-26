@@ -41,7 +41,7 @@ interface Options<
   id?: string,
   persistenceAdapter?: (id: string) => PersistenceAdapter<any, any>,
   reactivity?: ReactivityAdapter,
-  onError?: (error: Error) => void,
+  onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 }
 
 /**
@@ -147,11 +147,9 @@ export default class SyncManager<
 
     if (this.options.registerRemoteChange) {
       this.options.registerRemoteChange(async (name, data) => {
+        const collectionOptions = this.getCollection(name)[1]
         if (data == null) {
-          await this.sync(name).catch((error: Error) => {
-            if (this.options.onError) this.options.onError(error)
-            throw error
-          })
+          await this.sync(name)
         } else {
           const syncTime = Date.now()
           const syncId = this.syncOperations.insert({
@@ -174,7 +172,7 @@ export default class SyncManager<
               })
             })
             .catch((error: Error) => {
-              if (this.options.onError) this.options.onError(error)
+              if (this.options.onError) this.options.onError(collectionOptions, error)
               this.syncOperations.updateOne({ id: syncId }, {
                 $set: { status: 'error', end: Date.now(), error },
               })
@@ -266,10 +264,12 @@ export default class SyncManager<
   }
 
   private deboucedPush = debounce((name: string) => {
+    const entry = this.getCollection(name)
+    const collectionOptions = entry[1]
     this.pushChanges(name)
       .catch((error: Error) => {
         if (!this.options.onError) return
-        this.options.onError(error)
+        this.options.onError(collectionOptions, error)
       })
   }, 100)
 
@@ -285,7 +285,6 @@ export default class SyncManager<
     await Promise.all([...this.collections.keys()].map(id =>
       this.sync(id).catch((error: Error) => {
         errors.push({ id, error })
-        if (this.options.onError) this.options.onError(error)
       })))
     if (errors.length > 0) throw new Error(`Error while syncing collections:\n${errors.map(e => `${e.id}: ${e.error.message}`).join('\n\n')}`)
   }
@@ -319,6 +318,8 @@ export default class SyncManager<
    */
   public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
     await this.isReady()
+    const entry = this.getCollection(name)
+    const collectionOptions = entry[1]
 
     const hasActiveSyncs = this.syncOperations.find({ collectionName: name }).count() > 0
     const syncTime = Date.now()
@@ -337,8 +338,6 @@ export default class SyncManager<
         }, { sort: { time: 1 } }).count()
         if (currentChanges === 0) return
       }
-      const entry = this.getCollection(name)
-      const collectionOptions = entry[1]
 
       if (!hasActiveSyncs) {
         syncId = this.syncOperations.insert({
@@ -350,13 +349,6 @@ export default class SyncManager<
       const data = await this.options.pull(collectionOptions, {
         lastFinishedSyncStart: lastFinishedSync?.start,
         lastFinishedSyncEnd: lastFinishedSync?.end,
-      }).catch((error: Error) => {
-        if (syncId != null) {
-          this.syncOperations.updateOne({ id: syncId }, {
-            $set: { status: 'error', end: Date.now(), error },
-          })
-        }
-        throw error
       })
 
       await this.syncWithData(name, data)
@@ -365,6 +357,7 @@ export default class SyncManager<
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
       .catch((error: Error) => {
         if (syncId != null) {
+          if (this.options.onError) this.options.onError(collectionOptions, error)
           this.syncOperations.updateOne({ id: syncId }, {
             $set: { status: 'error', end: Date.now(), error },
           })
