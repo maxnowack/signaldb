@@ -30,6 +30,7 @@ export type SyncOperation = {
   id: string,
   start: number,
   collectionName: string,
+  instanceId: string,
 } & ({
   status: 'active',
   end?: never,

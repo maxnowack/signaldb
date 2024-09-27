@@ -6,6 +6,7 @@ import PromiseQueue from '../utils/PromiseQueue'
 import createLocalStorageAdapter from '../persistence/createLocalStorageAdapter'
 import type PersistenceAdapter from '../types/PersistenceAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
+import randomId from '../utils/randomId'
 import sync from './sync'
 import type { Change, Snapshot, SyncOperation } from './types'
 
@@ -86,6 +87,7 @@ export default class SyncManager<
   private syncQueues: Map<string, PromiseQueue> = new Map()
   private persistenceReady: Promise<void>
   private isDisposed = false
+  private instanceId = randomId()
 
   /**
    * @param options Collection options
@@ -204,6 +206,7 @@ export default class SyncManager<
           const syncId = this.syncOperations.insert({
             start: syncTime,
             collectionName: options.name,
+            instanceId: this.instanceId,
             status: 'active',
           })
           await this.syncWithData(options.name, data)
@@ -278,13 +281,7 @@ export default class SyncManager<
   }
 
   private deboucedPush = debounce((name: string) => {
-    const entry = this.getCollection(name)
-    const collectionOptions = entry[1]
-    this.pushChanges(name)
-      .catch((error: Error) => {
-        if (!this.options.onError) return
-        this.options.onError(collectionOptions, error)
-      })
+    this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
   }, 100)
 
   private schedulePush(name: string) {
@@ -337,7 +334,11 @@ export default class SyncManager<
     const entry = this.getCollection(name)
     const collectionOptions = entry[1]
 
-    const hasActiveSyncs = this.syncOperations.find({ collectionName: name }).count() > 0
+    const hasActiveSyncs = this.syncOperations.find({
+      collectionName: name,
+      instanceId: this.instanceId,
+      status: 'active',
+    }).count() > 0
     const syncTime = Date.now()
     let syncId: string | null = null
 
@@ -359,6 +360,7 @@ export default class SyncManager<
         syncId = this.syncOperations.insert({
           start: syncTime,
           collectionName: name,
+          instanceId: this.instanceId,
           status: 'active',
         })
       }
