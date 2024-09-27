@@ -453,7 +453,8 @@ describe('Collection', () => {
     })
   })
 
-  describe('performance', () => {
+  // eslint-disable-next-line vitest/valid-describe-callback
+  describe('performance', { retry: 5 }, () => {
     const measureTime = (fn: () => void) => {
       const start = performance.now()
       fn()
@@ -519,7 +520,7 @@ describe('Collection', () => {
       // index query should use less than 10% of the time of a non-index query
       expect(percentage).toBeLessThan(10)
     })
-  }, { retry: 5 })
+  })
 
   describe('Collection Debug Mode', () => {
     it('should enable debug mode globally', () => {
@@ -609,6 +610,44 @@ describe('Collection', () => {
 
         expect(col.find().fetch()).toEqual([{ id: '1', name: 'John Doe' }])
       })
+    })
+
+    it('should dipose the collection', async () => {
+      const col = new Collection<{ id: string, name: string }>()
+      col.insert({ id: '1', name: 'John' })
+      await col.dispose()
+
+      expect(() => col.find()).toThrowError('Collection is disposed')
+      expect(() => col.findOne({})).toThrowError('Collection is disposed')
+      expect(() => col.insert({ name: 'Jane' })).toThrowError('Collection is disposed')
+      expect(() => col.insertMany([{ name: 'Jerry' }])).toThrowError('Collection is disposed')
+      expect(() => col.updateOne({}, {})).toThrowError('Collection is disposed')
+      expect(() => col.updateMany({}, {})).toThrowError('Collection is disposed')
+      expect(() => col.removeOne({})).toThrowError('Collection is disposed')
+      expect(() => col.removeMany({})).toThrowError('Collection is disposed')
+
+      // @ts-expect-error - private property
+      expect(col.memoryArray()).toEqual([])
+
+      // @ts-expect-error - private property
+      expect([...col.idIndex.keys()]).toEqual([])
+
+      // @ts-expect-error - private property
+      expect(col.indexProviders).toEqual([])
+    })
+
+    it('should call unregister on the persistence adapter during dispose', async () => {
+      const unregister = vi.fn()
+      const col = new Collection({
+        persistence: {
+          register: () => Promise.resolve(),
+          unregister,
+          load: () => Promise.resolve({ items: [] }),
+          save: () => Promise.resolve(),
+        },
+      })
+      await col.dispose()
+      expect(unregister).toHaveBeenCalledOnce()
     })
   })
 })

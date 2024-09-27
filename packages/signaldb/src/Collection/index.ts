@@ -132,6 +132,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   private idIndex = new Map<string, Set<number>>()
   private debugMode
   private batchOperationInProgress = false
+  private isDisposed = false
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
@@ -410,7 +411,21 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     )
   }
 
+  /**
+   * Disposes the collection, runs the dispose method of the persistence adapter
+   * and clears all internal data structures.
+   */
+  public async dispose() {
+    if (this.persistenceAdapter?.unregister) await this.persistenceAdapter.unregister()
+    this.persistenceAdapter = null
+    this.memory().map(() => this.memory().pop())
+    this.idIndex.clear()
+    this.indexProviders = []
+    this.isDisposed = true
+  }
+
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
     const cursor = new Cursor<T, U>(() => this.getItems(selector), {
       reactive: this.options.reactivity,
@@ -437,6 +452,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public findOne<O extends Omit<FindOptions<T>, 'limit'>>(selector: Selector<T>, options?: O) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     const cursor = this.find(selector, {
       limit: 1,
       ...options,
@@ -457,6 +473,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
     const newItem = { id: randomId(), ...item } as T
     if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
@@ -471,6 +488,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (!items) throw new Error('Invalid items')
     if (items.length === 0) {
       return []
@@ -486,6 +504,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
 
@@ -504,6 +523,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
 
@@ -526,6 +546,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public removeOne(selector: Selector<T>) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     const { item, index } = this.getItemAndIndex(selector)
     if (item != null) {
@@ -540,6 +561,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   public removeMany(selector: Selector<T>) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     const items = this.getItems(selector)
 

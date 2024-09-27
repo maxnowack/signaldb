@@ -109,6 +109,10 @@ collection.batch(() => {
 })
 ```
 
+### `dispose()`
+
+Disposes the collection and all its resources. This will unregister the persistence adapter and clean up all internal data structures.
+
 ## Events
 
 The Collection class is equipped with a set of events that provide insights into the state and changes within the collection. These events, emitted by the class, can be crucial for implementing reactive behaviors and persistence management. Here is an overview of the events:

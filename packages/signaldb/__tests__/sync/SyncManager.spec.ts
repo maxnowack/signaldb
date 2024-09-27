@@ -719,3 +719,32 @@ it('should not fail while removing non existing items', async () => {
   // Verify that the collection includes the remote change
   expect(collection.find().fetch()).toEqual([])
 })
+
+it('should clear all internal data structures on dispose', async () => {
+  const syncManager = new SyncManager<any, any>({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  // @ts-expect-error - private property
+  expect(syncManager.collections.size).toBe(1)
+
+  await syncManager.dispose()
+
+  // @ts-expect-error - private property
+  expect(syncManager.collections.size).toBe(0)
+  // @ts-expect-error - private property
+  expect(syncManager.syncQueues.size).toBe(0)
+  // @ts-expect-error - private property
+  expect(() => syncManager.changes.insert({})).toThrowError('Collection is disposed')
+  // @ts-expect-error - private property
+  expect(() => syncManager.remoteChanges.insert({})).toThrowError('Collection is disposed')
+  // @ts-expect-error - private property
+  expect(() => syncManager.snapshots.insert({})).toThrowError('Collection is disposed')
+  // @ts-expect-error - private property
+  expect(() => syncManager.syncOperations.insert({})).toThrowError('Collection is disposed')
+})
