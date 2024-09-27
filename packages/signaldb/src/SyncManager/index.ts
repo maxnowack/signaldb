@@ -215,7 +215,10 @@ export default class SyncManager<
               this.syncOperations.removeMany({
                 id: { $ne: syncId },
                 collectionName: options.name,
-                end: { $lte: syncTime },
+                $or: [
+                  { end: { $lte: syncTime } },
+                  { status: 'active' },
+                ],
               })
 
               // update sync operation status to done after everthing was finished
@@ -388,7 +391,10 @@ export default class SyncManager<
       this.syncOperations.removeMany({
         id: { $ne: syncId },
         collectionName: name,
-        end: { $lte: syncTime },
+        $or: [
+          { end: { $lte: syncTime } },
+          { status: 'active' },
+        ],
       })
 
       // update sync operation status to done after everthing was finished
