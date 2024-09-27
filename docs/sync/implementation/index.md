@@ -44,7 +44,7 @@ const syncManager = new SyncManager({
   push: async () => {
     // your push logic
   },
-  registerRemoteChange: (onChange) => {
+  registerRemoteChange: (collectionOptions, onChange) => {
     // …
   }
 })
@@ -116,14 +116,14 @@ const syncManager = new SyncManager({
 
 ## Handle Remote Changes
 
-To handle remote changes, you have to get the event handler to call on remote changes through the `registerRemoteChange` method. This method takes a function as the first parameter, that takes an `onChange` handler a the first parameter. The `onChange` handler can be called after changes were received from the server. The `onChange` handler takes the collection name as the first parameter and optionally the changes as the second parameter. If the changes are not provided, the `pull` method will be called for the collection.
+To handle remote changes for a specific collection, you have to get the event handler to call on remote changes through the `registerRemoteChange` method. This method gets the `collectionOptions` as the first parameter and an `onChange` handler a the second parameter. The `onChange` handler can be called after changes were received from the server for the collection that matches the provided `collectionOptions`. The `onChange` handler takes optionally the changes as the first parameter. If the changes are not provided, the `pull` method will be called for the collection.
 
 ```ts
 const syncManager = new SyncManager({
   // …
-  registerRemoteChanges: (onChange) => {
-    someRemoteEventSource.addEventListener('change', () => {
-      onChange('someCollection')
+  registerRemoteChanges: (collectionOptions, onChange) => {
+    someRemoteEventSource.addEventListener('change', (collection) => {
+      if (collectionOptions.name === collection) onChange()
     })
   },
   // …

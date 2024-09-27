@@ -385,15 +385,14 @@ it('should register and apply remote changes with items', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void>()
+  let onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void>()
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (_options, onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
@@ -403,7 +402,7 @@ it('should register and apply remote changes with items', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   // Simulate a remote change
-  onRemoteChangeHandler('test', { items: [{ id: '2', name: 'Remote Item' }] })
+  onRemoteChangeHandler({ items: [{ id: '2', name: 'Remote Item' }] })
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -426,15 +425,14 @@ it('should register and apply remote changes with changes', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void>()
+  let onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void>()
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (_options, onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
@@ -444,7 +442,7 @@ it('should register and apply remote changes with changes', async () => {
   await syncManager.sync('test')
 
   // Simulate a remote change
-  onRemoteChangeHandler('test', { changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
+  onRemoteChangeHandler({ changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
 
   // wait to next tick
   await new Promise((resolve) => { setTimeout(resolve, 0) })
@@ -460,15 +458,14 @@ it('should handle error in remote changes without data', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  const onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void | Promise<void>>()
+  const onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void | Promise<void>>()
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (_options, onRemoteChange) => {
       onRemoteChangeHandler.mockImplementation(onRemoteChange)
     },
   })
@@ -478,7 +475,7 @@ it('should handle error in remote changes without data', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   // Simulate a remote change
-  await expect(onRemoteChangeHandler('test')).rejects.toThrow('Pull failed')
+  await expect(onRemoteChangeHandler()).rejects.toThrow('Pull failed')
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
 })
@@ -489,15 +486,14 @@ it('should handle error in remote changes with data', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  const onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void | Promise<void>>()
+  const onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void | Promise<void>>()
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (_options, onRemoteChange) => {
       onRemoteChangeHandler.mockImplementation(onRemoteChange)
     },
   })
@@ -507,7 +503,7 @@ it('should handle error in remote changes with data', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   // Simulate a remote change
-  const promise = onRemoteChangeHandler('test', { items: [{ id: '2', name: 'Remote Item' }] })
+  const promise = onRemoteChangeHandler({ items: [{ id: '2', name: 'Remote Item' }] })
   mockCollection.insert({ id: '1', name: 'Test Item' })
   await expect(promise).rejects.toThrow('Pull failed')
   expect(onError).toHaveBeenCalledTimes(1)
@@ -522,15 +518,14 @@ it('should sync after a empty remote change was received', async () => {
   const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
     .mockResolvedValue()
 
-  let onRemoteChangeHandler = vi.fn<(collectionName: string,
-    data?: LoadResponse<TestItem>) => void>()
+  let onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void>()
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
-    registerRemoteChange: (onRemoteChange) => {
+    registerRemoteChange: (_options, onRemoteChange) => {
       onRemoteChangeHandler = vi.fn().mockImplementation(onRemoteChange)
     },
   })
@@ -541,7 +536,7 @@ it('should sync after a empty remote change was received', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   // Simulate a remote change
-  onRemoteChangeHandler('test')
+  onRemoteChangeHandler()
 
   // wait until sync finished
   await new Promise((resolve) => { setTimeout(resolve, 100) })
