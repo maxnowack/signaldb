@@ -17,4 +17,5 @@ export default interface PersistenceAdapter<T extends { id: I } & Record<string,
   load(): Promise<LoadResponse<T>>,
   save(items: T[], changes: Changeset<T>): Promise<void>,
   register(onChange: (data?: LoadResponse<T>) => void | Promise<void>): Promise<void>,
+  unregister?(): Promise<void>,
 }

@@ -108,3 +108,7 @@ Initiates the push process for a collection, syncing only if there are changes.
 #### Parameters
 
 - `name` (`string`): The name of the collection.
+
+### `dispose()`
+
+Disposes all internal collections and other data structures.

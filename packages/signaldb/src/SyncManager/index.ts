@@ -85,6 +85,7 @@ export default class SyncManager<
   private remoteChanges: Collection<Change, string>
   private syncQueues: Map<string, PromiseQueue> = new Map()
   private persistenceReady: Promise<void>
+  private isDisposed = false
 
   /**
    * @param options Collection options
@@ -157,6 +158,21 @@ export default class SyncManager<
   }
 
   /**
+   * Clears all internal data structures
+   */
+  public async dispose() {
+    this.collections.clear()
+    this.syncQueues.clear()
+    await Promise.all([
+      this.changes.dispose(),
+      this.remoteChanges.dispose(),
+      this.snapshots.dispose(),
+      this.syncOperations.dispose(),
+    ])
+    this.isDisposed = true
+  }
+
+  /**
    * Gets a collection with it's options by name
    * @param name Name of the collection
    * @throws Will throw an error if the name wasn't found
@@ -178,6 +194,7 @@ export default class SyncManager<
     collection: Collection<ItemType, IdType, any>,
     options: SyncOptions<CollectionOptions>,
   ) {
+    if (this.isDisposed) throw new Error('SyncManager is disposed')
     if (this.options.registerRemoteChange) {
       this.options.registerRemoteChange(options, async (data) => {
         if (data == null) {
@@ -278,6 +295,7 @@ export default class SyncManager<
    * Starts the sync process for all collections
    */
   public async syncAll() {
+    if (this.isDisposed) throw new Error('SyncManager is disposed')
     const errors: {id: string, error: Error}[] = []
     await Promise.all([...this.collections.keys()].map(id =>
       this.sync(id).catch((error: Error) => {
@@ -314,6 +332,7 @@ export default class SyncManager<
    * @param options.onlyWithChanges If true, the sync process will only be started if there are changes.
    */
   public async sync(name: string, options: { force?: boolean, onlyWithChanges?: boolean } = {}) {
+    if (this.isDisposed) throw new Error('SyncManager is disposed')
     await this.isReady()
     const entry = this.getCollection(name)
     const collectionOptions = entry[1]
