@@ -32,10 +32,8 @@ interface Options<
     }
   ) => Promise<void>,
   registerRemoteChange?: (
-    onChange: (
-      collectionName: string,
-      data?: LoadResponse<ItemType>,
-    ) => Promise<void>
+    collectionOptions: SyncOptions<CollectionOptions>,
+    onChange: (data?: LoadResponse<ItemType>) => Promise<void>,
   ) => void,
 
   id?: string,
@@ -145,43 +143,6 @@ export default class SyncManager<
       }),
     ]).then(() => { /* noop */ })
 
-    if (this.options.registerRemoteChange) {
-      this.options.registerRemoteChange(async (name, data) => {
-        const collectionOptions = this.getCollection(name)[1]
-        if (data == null) {
-          await this.sync(name)
-        } else {
-          const syncTime = Date.now()
-          const syncId = this.syncOperations.insert({
-            start: syncTime,
-            collectionName: name,
-            status: 'active',
-          })
-          await this.syncWithData(name, data)
-            .then(() => {
-              // clean up old sync operations
-              this.syncOperations.removeMany({
-                id: { $ne: syncId },
-                collectionName: name,
-                end: { $lte: syncTime },
-              })
-
-              // update sync operation status to done after everthing was finished
-              this.syncOperations.updateOne({ id: syncId }, {
-                $set: { status: 'done', end: Date.now() },
-              })
-            })
-            .catch((error: Error) => {
-              if (this.options.onError) this.options.onError(collectionOptions, error)
-              this.syncOperations.updateOne({ id: syncId }, {
-                $set: { status: 'error', end: Date.now(), error },
-              })
-              throw error
-            })
-        }
-      })
-    }
-
     this.changes.setMaxListeners(1000)
     this.remoteChanges.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
@@ -217,6 +178,42 @@ export default class SyncManager<
     collection: Collection<ItemType, IdType, any>,
     options: SyncOptions<CollectionOptions>,
   ) {
+    if (this.options.registerRemoteChange) {
+      this.options.registerRemoteChange(options, async (data) => {
+        if (data == null) {
+          await this.sync(options.name)
+        } else {
+          const syncTime = Date.now()
+          const syncId = this.syncOperations.insert({
+            start: syncTime,
+            collectionName: options.name,
+            status: 'active',
+          })
+          await this.syncWithData(options.name, data)
+            .then(() => {
+              // clean up old sync operations
+              this.syncOperations.removeMany({
+                id: { $ne: syncId },
+                collectionName: options.name,
+                end: { $lte: syncTime },
+              })
+
+              // update sync operation status to done after everthing was finished
+              this.syncOperations.updateOne({ id: syncId }, {
+                $set: { status: 'done', end: Date.now() },
+              })
+            })
+            .catch((error: Error) => {
+              if (this.options.onError) this.options.onError(options, error)
+              this.syncOperations.updateOne({ id: syncId }, {
+                $set: { status: 'error', end: Date.now(), error },
+              })
+              throw error
+            })
+        }
+      })
+    }
+
     this.collections.set(options.name, [collection, options])
     collection.on('added', (item) => {
       // skip the change if it was a remote change
