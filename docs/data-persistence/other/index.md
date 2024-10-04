@@ -28,11 +28,14 @@ While SignalDB comes with a few built-in Persistence Adapters, there may be scen
 
 You can create a custom persistene adapter by calling the `createPersistenceAdapter` function. The function takes the adapter definition as the only argument. The definition is an object with the following keys:
 
-* `register` (`onChange: (data?: LoadResponse<T>) => void) => Promise<void>`): *(required)*
-This function should register the adapter. It will be called when initializing the collection and gets an `onChange` callback as the first parameter. This callback should be called, when the data in the adapter was updated externally, so that the collection could update it's internal memory. You can also pass a `LoadResponse<T>` object to the callback (same as the return value of the `load` function), to make the implementation of your adapter more straightforward.
-* `unregister` (`() => Promise<void>`): *(optional)* This function should unregister the adapter. Here you can clean up things. It will be called when the `dispose` method on the collection is called.
-* `load` (`() => Promise<{ items: T[] } | { changes: { added: T[], modified: T[], removed: T[] } }>`): *(required)* This function loads the data from the adapter and should return all it's items or a changeset, for optimizing performance. If the load function returns an object with an `items` property, the collection will do a full load and replace all it's items with the ones from the adapter. If the `items` property is omitted in the return value of the load function, the collection will do a partial load and apply the `changes` to it's internal memory.
-* `save` (`(items: T[], changes: Changeset<T>) => Promise<void>`): *(required)* This function will be called from the collection, when data was updated. This function should save this data to the adapter.
+* `register` (`onChange: (data?: LoadResponse<T>) => Promise<void> | void`) => `Promise<void>`:
+Called when initializing the collection.  The `onChange` function should be called when data in the adapter was updated externally so the collection can update its internal memory. You can optionally pass a `LoadResponse<T>` object (same as the return value of the `load` function) to make the implementation of your adapter more straightforward.
+* `load` () => `Promise<{ items: T[] } | { changes: { added: T[], modified: T[], removed: T[] } }>`:
+Load data from the adapter and return all its items (simple) or a changeset (more optimized). If it returns an object with an `items` property, the collection will replace all of its items with the ones from the adapter. Otherwise, this a partial load and the collection will apply only the `changes` to its internal memory.
+* `save` ( `items: T[], changes: Changeset<T>` ) => `Promise<void>`:
+Called by collection when data was updated.  Should save the data.
+* `unregister?` ( `() => Promise<void>` ): *(optional)*
+Called when the `dispose` method of the collection is called. Allows you to clean up things.
 
 To make things more clear, here is a short example how the File system persistence adapter is implemented.
 
