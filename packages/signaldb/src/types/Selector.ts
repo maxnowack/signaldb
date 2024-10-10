@@ -39,7 +39,7 @@ type Flatten<T> = T extends any[] ? T[0] : T
 
 type FlatQuery<T> = {
   [P in keyof T]?: Flatten<T[P]> | RegExp | FieldExpression<Flatten<T[P]>>
-} & Record<string, any>
+}
 type Query<T> = FlatQuery<T> & {
   $or?: Query<T>[] | undefined,
   $and?: Query<T>[] | undefined,
