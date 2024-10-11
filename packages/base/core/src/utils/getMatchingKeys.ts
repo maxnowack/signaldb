@@ -17,24 +17,28 @@ import serializeValue from './serializeValue'
 export default function getMatchingKeys<
   T extends BaseItem<I> = BaseItem, I = any,
 >(field: string, selector: FlatSelector<T>): string[] | null {
-  if (selector[field] instanceof RegExp) return null
-  if (selector[field] != null) {
-    if (isFieldExpression(selector[field])) {
-      const is$in = isFieldExpression(selector[field])
-        && Array.isArray(selector[field].$in)
-        && selector[field].$in.length > 0
+  const fieldSelector = (selector as Record<string, any>)[field]
+  if (fieldSelector instanceof RegExp) return null
+  if (fieldSelector != null) {
+    if (isFieldExpression(fieldSelector)) {
+      const is$in = isFieldExpression(fieldSelector)
+        && Array.isArray(fieldSelector.$in)
+        && fieldSelector.$in.length > 0
       if (is$in) {
-        const optimizedSelector = { ...selector, [field]: { ...selector[field] } }
+        const optimizedSelector = {
+          ...selector,
+          [field]: { ...fieldSelector },
+        } as Record<string, any>
         delete optimizedSelector[field].$in
         if (Object.keys(optimizedSelector[field] as object).length === 0) {
           delete optimizedSelector[field]
         }
 
-        return (selector[field].$in as I[]).map(serializeValue)
+        return (fieldSelector.$in as I[]).map(serializeValue)
       }
       return null
     }
-    return [serializeValue(selector[field])]
+    return [serializeValue(fieldSelector)]
   }
 
   return null
