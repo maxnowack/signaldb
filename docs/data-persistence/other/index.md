@@ -26,18 +26,34 @@ head:
 
 While SignalDB comes with a few built-in Persistence Adapters, there may be scenarios where you need to create a custom one to cater to specific requirements.
 
-You can create a custom persistene adapter by calling the `createPersistenceAdapter` function. The function takes the adapter definition as the only argument. The definition is an object with the following keys:
+You can create a custom persistene adapter by calling `createPersistenceAdapter` and supplying a `PersistenceAdapter` compatible object as follows:
 
-* `register` (`onChange: (data?: LoadResponse<T>) => Promise<void> | void`) => `Promise<void>`:
-Called when initializing the collection.  The `onChange` function should be called when data in the adapter was updated externally so the collection can update its internal memory. You can optionally pass a `LoadResponse<T>` object (same as the return value of the `load` function) to make the implementation of your adapter more straightforward.
-* `load` () => `Promise<{ items: T[] } | { changes: { added: T[], modified: T[], removed: T[] } }>`:
-Load data from the adapter and return all its items (simple) or a changeset (more optimized). If it returns an object with an `items` property, the collection will replace all of its items with the ones from the adapter. Otherwise, this a partial load and the collection will apply only the `changes` to its internal memory.
-* `save` ( `items: T[], changes: Changeset<T>` ) => `Promise<void>`:
-Called by collection when data was updated.  Should save the data.
-* `unregister?` ( `() => Promise<void>` ): *(optional)*
-Called when the `dispose` method of the collection is called. Allows you to clean up things.
+```ts
+interface Changeset<T> {
+  added:    T[],
+  modified: T[],
+  removed:  T[],
+}
 
-To make things more clear, here is a short example how the File system persistence adapter is implemented.
+// contains either items or changes (but not both)
+type LoadResponse<T> =
+    { items:  T[],   changes?: never }
+  | { items?: never, changes:  Changeset<T> }
+
+interface PersistenceAdapter<T> {
+  register(onChange: (data?: LoadResponse<T>) => void | Promise<void>): Promise<void>,
+  load(): Promise<LoadResponse<T>>,
+  save(items: T[], changes: Changeset<T>): Promise<void>,
+  unregister?(): Promise<void>,
+}
+```
+
+* **register** is called when initializing the collection.  The `onChange` function should be called when data in the adapter was updated externally so the collection can update its internal memory. You can optionally directly pass a `LoadResponse<T>` object returned from the `load` function to make the implementation of your adapter more straightforward.
+* **load** is called to load data from the adapter and should return a `LoadResponse<T>` which includes either an `items` property containing all of the items, or a `changeset` property containing only the changes.  The collection will update its internal memory by either replacing all of its items, or applying the changeset to make differential changes, respectively.
+* **save** is called when data was updated, and should save the data.  Both `items` and `changes` are provided so you can chose which one you'd like to use.
+* **unregister?** *(optional)* is called when the `dispose` method of the collection is called. Allows you to clean up things.
+
+Here is a short example how the File system persistence adapter is implemented:
 
 ```js
 import fs from 'fs'
