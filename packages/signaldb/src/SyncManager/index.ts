@@ -229,7 +229,7 @@ export default class SyncManager<
             .catch((error: Error) => {
               if (this.options.onError) this.options.onError(options, error)
               this.syncOperations.updateOne({ id: syncId }, {
-                $set: { status: 'error', end: Date.now(), error },
+                $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
               })
               throw error
             })
@@ -380,7 +380,7 @@ export default class SyncManager<
         if (syncId != null) {
           if (this.options.onError) this.options.onError(collectionOptions, error)
           this.syncOperations.updateOne({ id: syncId }, {
-            $set: { status: 'error', end: Date.now(), error },
+            $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
           })
         }
         throw error
