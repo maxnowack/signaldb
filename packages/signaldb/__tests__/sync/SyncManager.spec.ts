@@ -1,6 +1,6 @@
 /* @vitest-environment happy-dom */
 import { it, expect, vi } from 'vitest'
-import { Collection, SyncManager } from '../../src'
+import { Collection, createPersistenceAdapter, SyncManager } from '../../src'
 import type { BaseItem } from '../../src/Collection'
 import type { LoadResponse } from '../../src/types/PersistenceAdapter'
 import memoryPersistenceAdapter from '../helpers/memoryPersistenceAdapter'
@@ -747,4 +747,34 @@ it('should clear all internal data structures on dispose', async () => {
   expect(() => syncManager.snapshots.insert({})).toThrowError('Collection is disposed')
   // @ts-expect-error - private property
   expect(() => syncManager.syncOperations.insert({})).toThrowError('Collection is disposed')
+})
+
+it('should register error handlers for internal persistence adapters', async () => {
+  const errorHandler = vi.fn()
+  const syncManager = new SyncManager<any, any>({
+    persistenceAdapter: (name, registerErrorHandler) => {
+      registerErrorHandler(errorHandler)
+      if (name === 'default-sync-manager-changes') {
+        return createPersistenceAdapter({
+          load: () => Promise.resolve({ items: [] }),
+          register: () => Promise.resolve(),
+          save: () => Promise.reject(new Error('simulated error')),
+        })
+      }
+      return memoryPersistenceAdapter([])
+    },
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  collection.insert({ id: '1', name: 'Test Item' })
+
+  // wait to next tick
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+
+  expect(errorHandler).toHaveBeenCalledWith(new Error('simulated error'))
 })

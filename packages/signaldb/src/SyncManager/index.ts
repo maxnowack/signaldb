@@ -38,7 +38,10 @@ interface Options<
   ) => void,
 
   id?: string,
-  persistenceAdapter?: (id: string) => PersistenceAdapter<any, any>,
+  persistenceAdapter?: (
+    id: string,
+    registerErrorHandler: (handler: (error: Error) => void) => void,
+  ) => PersistenceAdapter<any, any>,
   reactivity?: ReactivityAdapter,
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 }
@@ -104,11 +107,24 @@ export default class SyncManager<
     const id = this.options.id ?? 'default-sync-manager'
     const { reactivity } = this.options
 
+    let changesErrorHandler: (error: Error) => void = () => {}
+    let remoteChangesErrorHandler: (error: Error) => void = () => {}
+    let snapshotsErrorHandler: (error: Error) => void = () => {}
+    let syncOperationsErrorHandler: (error: Error) => void = () => {}
+
     const persistenceAdapter = options.persistenceAdapter ?? createLocalStorageAdapter
-    const changesPersistenceAdapter = persistenceAdapter(`${id}-changes`)
-    const remoteChangesPersistenceAdapter = persistenceAdapter(`${id}-remote-changes`)
-    const snapshotsPersistenceAdapter = persistenceAdapter(`${id}-snapshots`)
-    const syncOperationsPersistenceAdapter = persistenceAdapter(`${id}-sync-operations`)
+    const changesPersistenceAdapter = persistenceAdapter(`${id}-changes`, (handler) => {
+      changesErrorHandler = handler
+    })
+    const remoteChangesPersistenceAdapter = persistenceAdapter(`${id}-remote-changes`, (handler) => {
+      remoteChangesErrorHandler = handler
+    })
+    const snapshotsPersistenceAdapter = persistenceAdapter(`${id}-snapshots`, (handler) => {
+      snapshotsErrorHandler = handler
+    })
+    const syncOperationsPersistenceAdapter = persistenceAdapter(`${id}-sync-operations`, (handler) => {
+      syncOperationsErrorHandler = handler
+    })
 
     this.changes = new Collection({
       persistence: changesPersistenceAdapter,
@@ -126,6 +142,10 @@ export default class SyncManager<
       persistence: syncOperationsPersistenceAdapter,
       reactivity,
     })
+    this.changes.on('persistence.error', error => changesErrorHandler(error))
+    this.remoteChanges.on('persistence.error', error => remoteChangesErrorHandler(error))
+    this.snapshots.on('persistence.error', error => snapshotsErrorHandler(error))
+    this.syncOperations.on('persistence.error', error => syncOperationsErrorHandler(error))
 
     this.persistenceReady = Promise.all([
       new Promise<void>((resolve, reject) => {
