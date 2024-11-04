@@ -395,3 +395,51 @@ it('should keep track which items and which fields were returned by a query', as
   await waitForEvent(collection, 'persistence.received')
   expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([])
 })
+
+it('should refetch query items when onChange was called', async () => {
+  const fetchQueryItems = vi.fn()
+  const reactivity = {
+    create: () => ({
+      depend: vi.fn(),
+      notify: vi.fn(),
+    }),
+  }
+  const remoteChange = vi.fn().mockResolvedValue(null)
+  const collection = new AutoFetchCollection({
+    push: vi.fn(),
+    registerRemoteChange: (onChange) => {
+      remoteChange.mockImplementation(onChange)
+      return Promise.resolve()
+    },
+    fetchQueryItems,
+    reactivity,
+  })
+
+  // Mock fetchQueryItems response
+  const response = {
+    items: [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item 2' }],
+  }
+  fetchQueryItems.mockResolvedValue(response)
+
+  expect(collection.find({}).fetch()).toEqual([])
+  await waitForEvent(collection, 'persistence.received')
+
+  // Wait for fetchQueryItems to be called
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(collection.isLoading({})).toBe(false))
+  await vi.waitFor(() => expect(collection.isLoading()).toBe(false))
+  expect(collection.find({}, { reactive: false }).fetch()).toEqual(response.items)
+
+  const response2 = {
+    items: [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item xxx' }],
+  }
+  fetchQueryItems.mockResolvedValue(response2)
+
+  await remoteChange()
+
+  // Wait for fetchQueryItems to be called
+  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(2))
+  await vi.waitFor(() => expect(collection.isLoading({})).toBe(false))
+  await vi.waitFor(() => expect(collection.isLoading()).toBe(false))
+  expect(collection.find({}, { reactive: false }).fetch()).toEqual(response2.items)
+})

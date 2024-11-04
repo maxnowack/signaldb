@@ -9,12 +9,13 @@ import createSignal from './utils/createSignal'
 interface AutoFetchOptions<T extends { id: I } & Record<string, any>, I> {
   fetchQueryItems: (selector: Selector<T>) => ReturnType<ReplicatedCollectionOptions<T, I>['pull']>,
   purgeDelay?: number,
+  registerRemoteChange?: (onChange: () => Promise<void>) => Promise<void>,
 }
 export type AutoFetchCollectionOptions<
   T extends BaseItem<I>,
   I,
   U = T,
-> = Omit<ReplicatedCollectionOptions<T, I, U>, 'pull'> & AutoFetchOptions<T, I>
+> = Omit<ReplicatedCollectionOptions<T, I, U>, 'pull' | 'registerRemoteChange'> & AutoFetchOptions<T, I>
 
 /**
  * @summary A special collection that automatically fetches items when they are needed.
@@ -24,7 +25,7 @@ export default class AutoFetchCollection<
   I = any,
   U = T,
 > extends ReplicatedCollection<T, I, U> {
-  private activeObservers = new Map<string, number>()
+  private activeObservers = new Map<string, { selector: Selector<T>, count: number }>()
   private observerTimeouts = new Map<string, NodeJS.Timeout>()
   private purgeDelay: number
   private idQueryCache = new Map<I, Selector<T>[]>()
@@ -60,7 +61,7 @@ export default class AutoFetchCollection<
       }),
       registerRemoteChange: async (onChange) => {
         triggerRemoteChange = onChange
-        if (options.registerRemoteChange) await options.registerRemoteChange(onChange)
+        return Promise.resolve()
       },
     })
     this.purgeDelay = options.purgeDelay ?? 10000 // 10 seconds
@@ -72,6 +73,10 @@ export default class AutoFetchCollection<
     this.fetchQueryItems = options.fetchQueryItems
     this.on('observer.created', selector => this.handleObserverCreation(selector ?? {}))
     this.on('observer.disposed', selector => setTimeout(() => this.handleObserverDisposal(selector ?? {}), 100))
+
+    if (options.registerRemoteChange) {
+      void options.registerRemoteChange(() => this.forceRefetch())
+    }
   }
 
   /**
@@ -95,50 +100,64 @@ export default class AutoFetchCollection<
     return JSON.stringify(selector)
   }
 
+  private async forceRefetch() {
+    return Promise.all([...this.activeObservers.values()].map(({ selector }) =>
+      this.fetchSelector(selector))).then(() => { /* noop */ })
+  }
+
+  private fetchSelector(selector: Selector<T>) {
+    this.isFetchingSignal.set(true)
+    return this.fetchQueryItems(selector)
+      .then((response) => {
+        if (!response.items) throw new Error('AutoFetchCollection currently only works with a full item response')
+
+        // merge the response into the cache
+        this.itemsCache.set(this.getKeyForSelector(selector), response.items)
+
+        response.items.forEach((item) => {
+          const queries = this.idQueryCache.get(item.id) ?? []
+          queries.push(selector)
+          this.idQueryCache.set(item.id, queries)
+        })
+
+        this.setLoading(selector, true)
+        this.once('persistence.received', () => {
+          this.setLoading(selector, false)
+        })
+        if (!this.triggerReload) throw new Error('No triggerReload method found. Looks like your persistence adapter was not registered')
+        void this.triggerReload()
+      })
+      .catch((error: Error) => {
+        this.emit('persistence.error', error)
+      })
+      .finally(() => {
+        this.isFetchingSignal.set(false)
+      })
+  }
+
   private handleObserverCreation(selector: Selector<T>) {
-    const activeObservers = this.activeObservers.get(this.getKeyForSelector(selector)) ?? 0
+    const activeObservers = this.activeObservers.get(this.getKeyForSelector(selector))?.count ?? 0
     // increment the count of observers for this query
-    this.activeObservers.set(this.getKeyForSelector(selector), activeObservers + 1)
+    this.activeObservers.set(this.getKeyForSelector(selector), {
+      selector,
+      count: activeObservers + 1,
+    })
     const timeout = this.observerTimeouts.get(this.getKeyForSelector(selector))
     if (timeout) clearTimeout(timeout)
 
     // if this is the first observer for this query, fetch the data
-    if (activeObservers === 0) {
-      this.isFetchingSignal.set(true)
-      this.fetchQueryItems(selector)
-        .then((response) => {
-          if (!response.items) throw new Error('AutoFetchCollection currently only works with a full item response')
-
-          // merge the response into the cache
-          this.itemsCache.set(this.getKeyForSelector(selector), response.items)
-
-          response.items.forEach((item) => {
-            const queries = this.idQueryCache.get(item.id) ?? []
-            queries.push(selector)
-            this.idQueryCache.set(item.id, queries)
-          })
-
-          this.setLoading(selector, true)
-          this.once('persistence.received', () => {
-            this.setLoading(selector, false)
-          })
-          if (!this.triggerReload) throw new Error('No triggerReload method found. Looks like your persistence adapter was not registered')
-          void this.triggerReload()
-        })
-        .catch((error: Error) => {
-          this.emit('persistence.error', error)
-        })
-        .finally(() => {
-          this.isFetchingSignal.set(false)
-        })
-    }
+    if (activeObservers === 0) void this.fetchSelector(selector)
   }
 
   private handleObserverDisposal(selector: Selector<T>) {
     // decrement the count of observers for this query
-    const activeObservers = (this.activeObservers.get(this.getKeyForSelector(selector)) ?? 0) - 1
+    const currentObservers = this.activeObservers.get(this.getKeyForSelector(selector))?.count ?? 0
+    const activeObservers = currentObservers - 1
     if (activeObservers > 0) {
-      this.activeObservers.set(this.getKeyForSelector(selector), activeObservers)
+      this.activeObservers.set(this.getKeyForSelector(selector), {
+        selector,
+        count: activeObservers,
+      })
       return
     }
 
