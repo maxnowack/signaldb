@@ -77,20 +77,20 @@ export default class SyncManager<
   ItemType extends BaseItem<IdType> = BaseItem,
   IdType = any,
 > {
-  private options: Options<CollectionOptions, ItemType, IdType>
-  private collections: Map<string, [
+  protected options: Options<CollectionOptions, ItemType, IdType>
+  protected collections: Map<string, [
     Collection<ItemType, IdType, any>,
     SyncOptions<CollectionOptions>,
   ]> = new Map()
 
-  private changes: Collection<Change<ItemType>, string>
-  private snapshots: Collection<Snapshot<ItemType>, string>
-  private syncOperations: Collection<SyncOperation, string>
-  private remoteChanges: Collection<Change, string>
-  private syncQueues: Map<string, PromiseQueue> = new Map()
-  private persistenceReady: Promise<void>
-  private isDisposed = false
-  private instanceId = randomId()
+  protected changes: Collection<Change<ItemType>, string>
+  protected snapshots: Collection<Snapshot<ItemType>, string>
+  protected syncOperations: Collection<SyncOperation, string>
+  protected remoteChanges: Collection<Change, string>
+  protected syncQueues: Map<string, PromiseQueue> = new Map()
+  protected persistenceReady: Promise<void>
+  protected isDisposed = false
+  protected instanceId = randomId()
 
   /**
    * @param options Collection options
@@ -172,7 +172,7 @@ export default class SyncManager<
     this.syncOperations.setMaxListeners(1000)
   }
 
-  private getSyncQueue(name: string) {
+  protected getSyncQueue(name: string) {
     if (this.syncQueues.get(name) == null) {
       this.syncQueues.set(name, new PromiseQueue())
     }
@@ -303,11 +303,11 @@ export default class SyncManager<
     })
   }
 
-  private deboucedPush = debounce((name: string) => {
+  protected deboucedPush = debounce((name: string) => {
     this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
   }, 100)
 
-  private schedulePush(name: string) {
+  protected schedulePush(name: string) {
     this.deboucedPush(name)
   }
 
@@ -434,7 +434,7 @@ export default class SyncManager<
     })
   }
 
-  private async syncWithData(
+  protected async syncWithData(
     name: string,
     data: LoadResponse<ItemType>,
   ) {
