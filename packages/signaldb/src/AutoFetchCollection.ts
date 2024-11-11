@@ -10,6 +10,7 @@ interface AutoFetchOptions<T extends { id: I } & Record<string, any>, I> {
   fetchQueryItems: (selector: Selector<T>) => ReturnType<ReplicatedCollectionOptions<T, I>['pull']>,
   purgeDelay?: number,
   registerRemoteChange?: (onChange: () => Promise<void>) => Promise<void>,
+  mergeItems?: (itemA: T, itemB: T) => T,
 }
 export type AutoFetchCollectionOptions<
   T extends BaseItem<I>,
@@ -35,6 +36,7 @@ export default class AutoFetchCollection<
   private reactivityAdapter: ReactivityAdapter | null = null
   private loadingSignals = new Map<string, Signal<boolean>>()
   private isFetchingSignal: Signal<boolean>
+  private mergeItems: (itemA: T, itemB: T) => T
 
   /**
    * @param options {Object} - Options for the collection.
@@ -54,7 +56,7 @@ export default class AutoFetchCollection<
               newItems.push(item)
               return
             }
-            newItems[index] = { ...newItems[index], ...item }
+            newItems[index] = this.mergeItems(newItems[index], item)
           })
           return newItems
         }, []),
@@ -64,6 +66,7 @@ export default class AutoFetchCollection<
         return Promise.resolve()
       },
     })
+    this.mergeItems = options.mergeItems ?? ((itemA, itemB) => ({ ...itemA, ...itemB }))
     this.purgeDelay = options.purgeDelay ?? 10000 // 10 seconds
     this.isFetchingSignal = createSignal(options.reactivity?.create(), false)
     if (!triggerRemoteChange) throw new Error('No triggerRemoteChange method found. Looks like your persistence adapter was not registered')
