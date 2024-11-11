@@ -110,6 +110,10 @@ const Todos = new AutoFetchCollection({
   // If a persistence adapter is used, the data is loaded first and will be updated after the server data is fetched
   // If the data will be updated, the data will be saved to the persistence adapter and pushed to the server simultaneously
   persistence: createLocalStorageAdapter('todos'),
+
+  // Optionally you can also specify a mergeItems function to merge items
+  // if they're returned by multiple fetchQueryItems calls.
+  mergeItems: (itemA, itemB) => ({ ...itemA, ...itemB }),
 })
 
 // You can also observe the loading state of the collection.
