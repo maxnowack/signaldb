@@ -16,7 +16,7 @@
     "next": "15.0.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "rxdb": "15.38.0",
+    "rxdb": "15.38.1",
     "rxjs": "7.8.1",
     "signaldb": "*",
     "signaldb-plugin-maverickjs": "*",
