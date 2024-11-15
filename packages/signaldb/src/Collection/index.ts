@@ -367,7 +367,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const item = items.find(doc => match(doc, selector))
     const index = (indexInfo.matched
       && indexInfo.positions.find(itemIndex => this.memoryArray()[itemIndex] === item))
-        || this.memory().findIndex(doc => doc === item)
+        || this.memory().findIndex(doc => doc.id === item.id)
     if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
     return { item, index }
