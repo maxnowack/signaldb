@@ -358,16 +358,17 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   private getItemAndIndex(selector: Selector<T>) {
+    const memory = this.memoryArray()
     const indexInfo = this.indicesOutdated
       ? { matched: false, positions: [], optimizedSelector: selector }
       : getIndexInfo(this.indexProviders, selector)
     const items = indexInfo.matched
-      ? indexInfo.positions.map(index => this.memoryArray()[index])
-      : this.memory()
+      ? indexInfo.positions.map(index => memory[index])
+      : memory
     const item = items.find(doc => match(doc, selector))
     const index = (indexInfo.matched
-      && indexInfo.positions.find(itemIndex => this.memoryArray()[itemIndex] === item))
-        || this.memory().findIndex(doc => doc === item)
+      && indexInfo.positions.find(itemIndex => memory[itemIndex] === item))
+        || memory.findIndex(doc => doc === item)
     if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
     return { item, index }
