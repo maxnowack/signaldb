@@ -34,7 +34,7 @@
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-jsdoc": "^50.2.2",
     "eslint-plugin-prefer-object-spread": "1.2.1",
-    "eslint-plugin-tsdoc": "^0.3.0",
+    "eslint-plugin-tsdoc": "^0.4.0",
     "eslint-plugin-vitest": "0.5.4",
     "fast-glob": "^3.3.2",
     "happy-dom": "15.11.6",
