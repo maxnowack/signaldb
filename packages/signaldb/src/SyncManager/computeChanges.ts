@@ -14,19 +14,23 @@ export default function computeChanges<T extends Record<string, any>>(
   const modified: T[] = []
   const removed: T[] = []
 
-  oldItems.forEach((oldItem) => {
-    const newItem = newItems.find(item => item.id === oldItem.id)
+  const oldItemsMap = new Map(oldItems.map(item => [item.id, item]))
+  const newItemsMap = new Map(newItems.map(item => [item.id, item]))
+
+  for (const [id, oldItem] of oldItemsMap) {
+    const newItem = newItemsMap.get(id)
     if (!newItem) {
       removed.push(oldItem)
-      return
+    } else if (!isEqual(newItem, oldItem)) {
+      modified.push(newItem)
     }
-    if (!isEqual(newItem, oldItem)) modified.push(newItem)
-  })
-  newItems.forEach((newItem) => {
-    const oldItem = oldItems.find(item => item.id === newItem.id)
-    if (oldItem) return
-    added.push(newItem)
-  })
+  }
+
+  for (const [id, newItem] of newItemsMap) {
+    if (!oldItemsMap.has(id)) {
+      added.push(newItem)
+    }
+  }
 
   return { added, modified, removed }
 }
