@@ -486,7 +486,7 @@ describe('Cursor', () => {
           expect(notify).toHaveBeenCalledTimes(0)
         }
       })
-      expect(notify).toHaveBeenCalled()
+      expect(notify).toHaveBeenCalledTimes(1)
     })
   })
 })

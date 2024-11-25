@@ -85,7 +85,29 @@ export default class Cursor<T extends BaseItem, U = T> {
     if (!isInReactiveScope(this.options.reactive)) return
     const signal = this.options.reactive.create()
     signal.depend()
-    const notify = () => signal.notify()
+
+    // ensure notify function runs only once in current tick
+    let alreadyNotified = false
+    let notifyQueuedForNextTick = false
+    const notify = () => {
+      if (!alreadyNotified) {
+        // First call in the current tick: execute immediately
+        signal.notify()
+        alreadyNotified = true
+
+        // Queue a follow-up execution in the next tick (if more calls happen)
+        queueMicrotask(() => {
+          if (notifyQueuedForNextTick) {
+            signal.notify()
+          }
+          alreadyNotified = false
+          notifyQueuedForNextTick = false
+        })
+      } else {
+      // Subsequent calls: schedule for the next tick
+        notifyQueuedForNextTick = true
+      }
+    }
 
     function buildNotifier<Event extends keyof ObserveCallbacks<T>>(
       event: Event,
