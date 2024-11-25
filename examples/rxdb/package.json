@@ -21,7 +21,7 @@
     "signaldb": "*",
     "signaldb-plugin-maverickjs": "*",
     "signaldb-react": "*",
-    "typescript": "5.7.2"
+    "typescript": "5.6.3"
   },
   "devDependencies": {
     "sass": "^1.77.7"
