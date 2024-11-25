@@ -133,6 +133,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   private debugMode
   private batchOperationInProgress = false
   private isDisposed = false
+  private postBatchCallbacks = new Set<() => void>()
 
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
@@ -452,16 +453,24 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       ...options,
       transform: this.transform.bind(this),
       bindEvents: (requery) => {
-        this.addListener('persistence.received', requery)
-        this.addListener('added', requery)
-        this.addListener('changed', requery)
-        this.addListener('removed', requery)
+        const handleRequery = () => {
+          if (this.batchOperationInProgress) {
+            this.postBatchCallbacks.add(requery)
+            return
+          }
+          requery()
+        }
+
+        this.addListener('persistence.received', handleRequery)
+        this.addListener('added', handleRequery)
+        this.addListener('changed', handleRequery)
+        this.addListener('removed', handleRequery)
         this.emit('observer.created', selector, options)
         return () => {
-          this.removeListener('persistence.received', requery)
-          this.removeListener('added', requery)
-          this.removeListener('changed', requery)
-          this.removeListener('removed', requery)
+          this.removeListener('persistence.received', handleRequery)
+          this.removeListener('added', handleRequery)
+          this.removeListener('changed', handleRequery)
+          this.removeListener('removed', handleRequery)
           this.emit('observer.disposed', selector, options)
         }
       },
@@ -488,8 +497,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     callback()
     this.batchOperationInProgress = false
 
-    // do stuff that wasn't executed during the batch operation
+    // rebuild indiices as they are not rebuilt during batch operations
     this.rebuildAllIndices()
+
+    // execute all post batch callbacks
+    this.postBatchCallbacks.forEach(cb => cb())
+    this.postBatchCallbacks.clear()
   }
 
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
