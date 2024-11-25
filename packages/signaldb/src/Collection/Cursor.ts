@@ -87,14 +87,22 @@ export default class Cursor<T extends BaseItem, U = T> {
     signal.depend()
     const notify = () => signal.notify()
 
-    function buildNotifier<
-      Event extends keyof ObserveCallbacks<T>,
-      EventHandler extends NonNullable<ObserveCallbacks<T>[Event]>,
-    >(event: Event) {
+    function buildNotifier<Event extends keyof ObserveCallbacks<T>>(
+      event: Event,
+    ) {
       const eventHandler = changeEvents[event]
-      if (eventHandler === true) return notify
-      return (...args: Parameters<EventHandler>) => {
+
+      return (...args: Parameters<NonNullable<ObserveCallbacks<T>[Event]>>) => {
+        // if the event is just turned on with true, we can notify directly
+        if (eventHandler === true) {
+          notify()
+          return
+        }
+
+        // if the event is something else than true or a function, we don't care about it
         if (typeof eventHandler !== 'function') return
+
+        // if the event is a function, we call it with the notify function
         eventHandler(notify)(...args as [T, T & keyof T, T[keyof T], T[keyof T]])
       }
     }
