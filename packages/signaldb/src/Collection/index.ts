@@ -357,11 +357,32 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.indicesOutdated = false
   }
 
+  private getIndexInfo(selector?: Selector<T>) {
+    if (selector != null
+      && Object.keys(selector).length === 1
+      && 'id' in selector
+      && typeof selector.id !== 'object') {
+      return {
+        matched: true,
+        positions: Array.from(this.idIndex.get(serializeValue(selector.id)) || []),
+        optimizedSelector: {},
+      }
+    }
+
+    if (selector == null || this.indicesOutdated) {
+      return {
+        matched: false,
+        positions: [],
+        optimizedSelector: {},
+      }
+    }
+
+    return getIndexInfo(this.indexProviders, selector)
+  }
+
   private getItemAndIndex(selector: Selector<T>) {
     const memory = this.memoryArray()
-    const indexInfo = this.indicesOutdated
-      ? { matched: false, positions: [], optimizedSelector: selector }
-      : getIndexInfo(this.indexProviders, selector)
+    const indexInfo = this.getIndexInfo(selector)
     const items = indexInfo.matched
       ? indexInfo.positions.map(index => memory[index])
       : memory
@@ -390,9 +411,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   private getItems(selector?: Selector<T>) {
     return this.profile(
       () => {
-        const indexInfo = selector && !this.indicesOutdated
-          ? getIndexInfo(this.indexProviders, selector)
-          : { matched: false, positions: [], optimizedSelector: selector }
+        const indexInfo = this.getIndexInfo(selector)
         const matchItems = (item: T) => {
           if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
           if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
