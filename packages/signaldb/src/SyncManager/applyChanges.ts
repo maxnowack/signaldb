@@ -15,31 +15,33 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
   changes: Change<ItemType, IdType>[],
 ) {
   const collection = new Collection<ItemType, IdType>()
-  items.forEach(item => collection.insert(item))
-  changes.forEach((change) => {
-    if (change.type === 'remove') {
-      collection.removeOne({ id: change.data } as Selector<ItemType>)
-      return
-    }
-
-    const selector = { id: change.data.id } as ItemType
-    const itemExists = collection.findOne(selector)
-
-    if (change.type === 'insert') {
-      if (itemExists) { // update item if it alread exists
-        collection.updateOne(selector, { $set: change.data })
-      } else { // insert item if it does not exist
-        collection.insert(change.data)
+  collection.batch(() => {
+    items.forEach(item => collection.insert(item))
+    changes.forEach((change) => {
+      if (change.type === 'remove') {
+        collection.removeOne({ id: change.data } as Selector<ItemType>)
+        return
       }
-      return
-    }
 
-    // change.type === 'update'
-    if (itemExists) { // update item if it exists
-      collection.updateOne(selector, change.data.modifier)
-    } else { // insert item if it does not exist
-      collection.insert(modify(selector, change.data.modifier))
-    }
+      const selector = { id: change.data.id } as ItemType
+      const itemExists = collection.findOne(selector)
+
+      if (change.type === 'insert') {
+        if (itemExists) { // update item if it alread exists
+          collection.updateOne(selector, { $set: change.data })
+        } else { // insert item if it does not exist
+          collection.insert(change.data)
+        }
+        return
+      }
+
+      // change.type === 'update'
+      if (itemExists) { // update item if it exists
+        collection.updateOne(selector, change.data.modifier)
+      } else { // insert item if it does not exist
+        collection.insert(modify(selector, change.data.modifier))
+      }
+    })
   })
   return collection.find().fetch()
 }
