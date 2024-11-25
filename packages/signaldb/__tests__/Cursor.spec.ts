@@ -446,6 +446,47 @@ describe('Cursor', () => {
       collection.updateOne({ id: 1 }, { $set: { name: 'item1_' } })
       await new Promise((resolve) => { setTimeout(resolve, 10) })
       expect(notify).toHaveBeenCalledTimes(1)
+      cursor.cleanup()
+    })
+
+    it('should requery only once after batch operation', () => {
+      const depCreation = vi.fn()
+      const dep = vi.fn()
+      const notify = vi.fn()
+      const scopeCheck = vi.fn()
+
+      const reactivity = createReactivityAdapter({
+        create() {
+          depCreation()
+          return {
+            depend() {
+              dep()
+            },
+            notify() {
+              notify()
+            },
+          }
+        },
+        isInScope() {
+          scopeCheck()
+          return true
+        },
+      })
+      const collection2 = new Collection<{ id: string, name: string }>({
+        reactivity,
+      })
+      const cursor = collection2.find({})
+      const result = cursor.fetch()
+      expect(result).toHaveLength(0)
+
+      collection2.batch(() => {
+        // create items
+        for (let i = 0; i < 10000; i += 1) {
+          collection2.insert({ id: i.toString(), name: `John ${i}` })
+          expect(notify).toHaveBeenCalledTimes(0)
+        }
+      })
+      expect(notify).toHaveBeenCalled()
     })
   })
 })
