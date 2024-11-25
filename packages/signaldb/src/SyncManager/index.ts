@@ -498,6 +498,13 @@ export default class SyncManager<
         })
         collection.removeOne({ id: itemId } as Record<string, any>)
       },
+      batch: (fn) => {
+        collection.batch(() => {
+          this.remoteChanges.batch(() => {
+            fn()
+          })
+        })
+      },
     })
       .then(async (snapshot) => {
         // clean up old snapshots

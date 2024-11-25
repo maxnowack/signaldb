@@ -34,6 +34,7 @@ it('should apply changes to the last snapshot and push them to the server if the
   const mockInsert = vi.fn<(item: TestItem) => void>()
   const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
   const mockRemove = vi.fn<(id: number) => void>()
+  const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const snapshot = getSnapshot(lastSnapshot, data)
   const newSnapshotWithChanges = applyChanges(snapshot, changes)
@@ -48,8 +49,10 @@ it('should apply changes to the last snapshot and push them to the server if the
     insert: mockInsert,
     update: mockUpdate,
     remove: mockRemove,
+    batch,
   })
 
+  expect(batch).toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledWith(changesToPush)
   expect(mockPull).toHaveBeenCalled()
   expect(mockInsert).not.toHaveBeenCalled()
@@ -69,6 +72,7 @@ it('should not push changes if there is no difference between snapshots', async 
   const mockInsert = vi.fn<(item: TestItem) => void>()
   const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
   const mockRemove = vi.fn<(id: number) => void>()
+  const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const lastSnapshotWithChanges = applyChanges(lastSnapshot, changes)
 
@@ -83,8 +87,10 @@ it('should not push changes if there is no difference between snapshots', async 
     insert: mockInsert,
     update: mockUpdate,
     remove: mockRemove,
+    batch,
   })
 
+  expect(batch).toHaveBeenCalled()
   expect(mockPush).not.toHaveBeenCalled()
   expect(mockPull).not.toHaveBeenCalled()
   expect(mockInsert).not.toHaveBeenCalled()
@@ -104,6 +110,7 @@ it('should apply new data changes if no local changes are provided', async () =>
   const mockInsert = vi.fn<(item: TestItem) => void>()
   const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
   const mockRemove = vi.fn<(id: number) => void>()
+  const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   await sync({
     changes,
@@ -114,8 +121,10 @@ it('should apply new data changes if no local changes are provided', async () =>
     insert: mockInsert,
     update: mockUpdate,
     remove: mockRemove,
+    batch,
   })
 
+  expect(batch).toHaveBeenCalled()
   expect(mockInsert).toHaveBeenCalledWith({ id: 2, name: 'Item 2' })
   expect(mockUpdate).toHaveBeenCalledWith(1, { $set: { id: 1, name: 'Updated Item 1' } })
   expect(mockRemove).not.toHaveBeenCalled()
@@ -139,6 +148,7 @@ it('should pull new data after pushing changes to the server', async () => {
   const mockInsert = vi.fn<(item: TestItem) => void>()
   const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
   const mockRemove = vi.fn<(id: number) => void>()
+  const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const newServerData: LoadResponse<TestItem> = {
     items: [{ id: 1, name: 'Updated Item 1' }],
@@ -154,8 +164,10 @@ it('should pull new data after pushing changes to the server', async () => {
     insert: mockInsert,
     update: mockUpdate,
     remove: mockRemove,
+    batch,
   })
 
+  expect(batch).toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
   expect(mockPull).toHaveBeenCalled()
   expect(mockInsert).not.toHaveBeenCalled()

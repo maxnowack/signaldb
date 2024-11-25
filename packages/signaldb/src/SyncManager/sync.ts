@@ -29,6 +29,7 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
   insert: (item: ItemType) => void,
   update: (id: IdType, modifier: Modifier<ItemType>) => void,
   remove: (id: IdType) => void,
+  batch: (fn: () => void) => void,
 }
 
 /**
@@ -43,6 +44,7 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
  * @param options.insert Method to insert an item
  * @param options.update Method to update an item
  * @param options.remove Method to remove an item
+ * @param options.batch Method to batch multiple operations
  * @returns The new snapshot
  */
 export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
@@ -54,6 +56,7 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   insert,
   update,
   remove,
+  batch,
 }: Options<ItemType, IdType>): Promise<ItemType[]> {
   let newData = data
   let previousSnapshot = lastSnapshot || []
@@ -81,9 +84,11 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   const newChanges = newData.changes == null
     ? computeChanges(previousSnapshot, newData.items)
     : newData.changes
-  newChanges.added.forEach(item => insert(item))
-  newChanges.modified.forEach(item => update(item.id, { $set: item }))
-  newChanges.removed.forEach(item => remove(item.id))
+  batch(() => {
+    newChanges.added.forEach(item => insert(item))
+    newChanges.modified.forEach(item => update(item.id, { $set: item }))
+    newChanges.removed.forEach(item => remove(item.id))
+  })
 
   return newSnapshot
 }
