@@ -742,8 +742,6 @@ it('should clear all internal data structures on dispose', async () => {
   // @ts-expect-error - private property
   expect(() => syncManager.changes.insert({})).toThrowError('Collection is disposed')
   // @ts-expect-error - private property
-  expect(() => syncManager.remoteChanges.insert({})).toThrowError('Collection is disposed')
-  // @ts-expect-error - private property
   expect(() => syncManager.snapshots.insert({})).toThrowError('Collection is disposed')
   // @ts-expect-error - private property
   expect(() => syncManager.syncOperations.insert({})).toThrowError('Collection is disposed')
@@ -777,4 +775,46 @@ it('should register error handlers for internal persistence adapters', async () 
   await new Promise((resolve) => { setTimeout(resolve, 0) })
 
   expect(errorHandler).toHaveBeenCalledWith(new Error('simulated error'))
+})
+
+it('should not leave any remote changes after successful pull', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [
+      { id: '1', name: 'Test Item' },
+      { id: '2', name: 'Test Item 2' },
+      { id: '3', name: 'Test Item 3' },
+      { id: '4', name: 'Test Item 4' },
+      { id: '5', name: 'Test Item 5' },
+    ],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>({
+    memory: [
+      { id: '1', name: 'Test Item' },
+      { id: '2', name: 'Test Item 2' },
+      { id: '3', name: 'Test Item 3' },
+      { id: '4', name: 'Test Item 4' },
+      { id: '5', name: 'Test Item 5' },
+    ],
+  })
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  await syncManager.sync('test')
+
+  expect(onError).not.toHaveBeenCalled()
+  expect(mockPull).toHaveBeenCalled()
+  // @ts-expect-error - private property
+  expect(syncManager.remoteChanges.length).toBe(0)
 })
