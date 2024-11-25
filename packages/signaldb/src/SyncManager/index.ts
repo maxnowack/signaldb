@@ -7,6 +7,7 @@ import createLocalStorageAdapter from '../persistence/createLocalStorageAdapter'
 import type PersistenceAdapter from '../types/PersistenceAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import randomId from '../utils/randomId'
+import isEqual from '../utils/isEqual'
 import sync from './sync'
 import type { Change, Snapshot, SyncOperation } from './types'
 
@@ -86,7 +87,7 @@ export default class SyncManager<
   protected changes: Collection<Change<ItemType>, string>
   protected snapshots: Collection<Snapshot<ItemType>, string>
   protected syncOperations: Collection<SyncOperation, string>
-  protected remoteChanges: Collection<Change, string>
+  protected remoteChanges: Omit<Change, 'id' | 'time'>[] = []
   protected syncQueues: Map<string, PromiseQueue> = new Map()
   protected persistenceReady: Promise<void>
   protected isDisposed = false
@@ -108,16 +109,12 @@ export default class SyncManager<
     const { reactivity } = this.options
 
     let changesErrorHandler: (error: Error) => void = () => {}
-    let remoteChangesErrorHandler: (error: Error) => void = () => {}
     let snapshotsErrorHandler: (error: Error) => void = () => {}
     let syncOperationsErrorHandler: (error: Error) => void = () => {}
 
     const persistenceAdapter = options.persistenceAdapter ?? createLocalStorageAdapter
     const changesPersistenceAdapter = persistenceAdapter(`${id}-changes`, (handler) => {
       changesErrorHandler = handler
-    })
-    const remoteChangesPersistenceAdapter = persistenceAdapter(`${id}-remote-changes`, (handler) => {
-      remoteChangesErrorHandler = handler
     })
     const snapshotsPersistenceAdapter = persistenceAdapter(`${id}-snapshots`, (handler) => {
       snapshotsErrorHandler = handler
@@ -130,10 +127,6 @@ export default class SyncManager<
       persistence: changesPersistenceAdapter,
       reactivity,
     })
-    this.remoteChanges = new Collection({
-      persistence: remoteChangesPersistenceAdapter,
-      reactivity,
-    })
     this.snapshots = new Collection({
       persistence: snapshotsPersistenceAdapter,
       reactivity,
@@ -143,7 +136,6 @@ export default class SyncManager<
       reactivity,
     })
     this.changes.on('persistence.error', error => changesErrorHandler(error))
-    this.remoteChanges.on('persistence.error', error => remoteChangesErrorHandler(error))
     this.snapshots.on('persistence.error', error => snapshotsErrorHandler(error))
     this.syncOperations.on('persistence.error', error => syncOperationsErrorHandler(error))
 
@@ -157,17 +149,12 @@ export default class SyncManager<
         this.changes.once('persistence.init', resolve)
       }),
       new Promise<void>((resolve, reject) => {
-        this.remoteChanges.once('persistence.error', reject)
-        this.remoteChanges.once('persistence.init', resolve)
-      }),
-      new Promise<void>((resolve, reject) => {
         this.snapshots.once('persistence.error', reject)
         this.snapshots.once('persistence.init', resolve)
       }),
     ]).then(() => { /* noop */ })
 
     this.changes.setMaxListeners(1000)
-    this.remoteChanges.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
     this.syncOperations.setMaxListeners(1000)
   }
@@ -185,9 +172,9 @@ export default class SyncManager<
   public async dispose() {
     this.collections.clear()
     this.syncQueues.clear()
+    this.remoteChanges.splice(0, this.remoteChanges.length)
     await Promise.all([
       this.changes.dispose(),
-      this.remoteChanges.dispose(),
       this.snapshots.dispose(),
       this.syncOperations.dispose(),
     ])
@@ -258,10 +245,28 @@ export default class SyncManager<
     }
 
     this.collections.set(options.name, [collection, options])
+
+    const hasRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
+      for (const remoteChange of this.remoteChanges) {
+        if (isEqual(remoteChange, change)) {
+          return true
+        }
+      }
+      return false
+    }
+    const removeRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
+      for (let i = 0; i < this.remoteChanges.length; i += 1) {
+        if (isEqual(this.remoteChanges[i], change)) {
+          this.remoteChanges.splice(i, 1)
+          return
+        }
+      }
+    }
+
     collection.on('added', (item) => {
       // skip the change if it was a remote change
-      if (this.remoteChanges.findOne({ collectionName: options.name, type: 'insert', data: item })) {
-        this.remoteChanges.removeOne({ collectionName: options.name, type: 'insert', data: item })
+      if (hasRemoteChange({ collectionName: options.name, type: 'insert', data: item })) {
+        removeRemoteChange({ collectionName: options.name, type: 'insert', data: item })
         return
       }
       this.changes.insert({
@@ -275,8 +280,8 @@ export default class SyncManager<
     collection.on('changed', ({ id }, modifier) => {
       const data = { id, modifier }
       // skip the change if it was a remote change
-      if (this.remoteChanges.findOne({ collectionName: options.name, type: 'update', data })) {
-        this.remoteChanges.removeOne({ collectionName: options.name, type: 'update', data })
+      if (hasRemoteChange({ collectionName: options.name, type: 'update', data })) {
+        removeRemoteChange({ collectionName: options.name, type: 'update', data })
         return
       }
       this.changes.insert({
@@ -289,8 +294,8 @@ export default class SyncManager<
     })
     collection.on('removed', ({ id }) => {
       // skip the change if it was a remote change
-      if (this.remoteChanges.findOne({ collectionName: options.name, type: 'remove', data: id })) {
-        this.remoteChanges.removeOne({ collectionName: options.name, type: 'remove', data: id })
+      if (hasRemoteChange({ collectionName: options.name, type: 'remove', data: id })) {
+        removeRemoteChange({ collectionName: options.name, type: 'remove', data: id })
         return
       }
       this.changes.insert({
@@ -462,37 +467,47 @@ export default class SyncManager<
       }),
       push: changes => this.options.push(collectionOptions, { changes }),
       insert: (item) => {
-        this.remoteChanges.insert({
-          collectionName: name,
-          time: Date.now(),
-          type: 'insert',
-          data: item,
-        })
         if (item.id && !!collection.findOne({ id: item.id })) {
+          this.remoteChanges.push({
+            collectionName: name,
+            type: 'update',
+            data: { id: item.id, modifier: { $set: item } },
+          })
+
           // update the item if it already exists
           collection.updateOne({ id: item.id }, { $set: item })
           return
         }
+        this.remoteChanges.push({
+          collectionName: name,
+          type: 'insert',
+          data: item,
+        })
         collection.insert(item)
       },
       update: (itemId, modifier) => {
-        this.remoteChanges.insert({
+        if (itemId && !collection.findOne({ id: itemId })) {
+          const item = { ...modifier.$set as ItemType, id: itemId }
+          this.remoteChanges.push({
+            collectionName: name,
+            type: 'insert',
+            data: item,
+          })
+
+          // insert the item if it does not exist
+          collection.insert(item)
+          return
+        }
+        this.remoteChanges.push({
           collectionName: name,
-          time: Date.now(),
           type: 'update',
           data: { id: itemId, modifier },
         })
-        if (itemId && !collection.findOne({ id: itemId })) {
-          // insert the item if it does not exist
-          collection.insert({ ...modifier.$set as ItemType, id: itemId })
-          return
-        }
         collection.updateOne({ id: itemId } as Record<string, any>, modifier)
       },
       remove: (itemId) => {
-        this.remoteChanges.insert({
+        this.remoteChanges.push({
           collectionName: name,
-          time: Date.now(),
           type: 'remove',
           data: itemId,
         })
@@ -500,9 +515,7 @@ export default class SyncManager<
       },
       batch: (fn) => {
         collection.batch(() => {
-          this.remoteChanges.batch(() => {
-            fn()
-          })
+          fn()
         })
       },
     })
