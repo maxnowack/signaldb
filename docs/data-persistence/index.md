@@ -31,3 +31,13 @@ These adapters interact with the underlying storage medium, such as localStorage
 Persistence adapters are responsible for transforming the high-level operations you perform on your data (such as saving a document or loading a collection) into the low-level operations that the specific storage system can understand and perform.
 
 The main benefit of using persistence adapters is the abstraction they provide. They allow SignalDB to remain agnostic to the underlying storage system. This means that you can switch between different systems without changing the rest of your code.
+
+The follwing persistence adapters are currently available:
+
+- [localStorage](/data-persistence/local-storage/)
+- [OPFS](/data-persistence/opfs/)
+- [FileSystem](/data-persistence/file-system/)
+- [RxDB](/data-persistence/rxdb/)
+
+Building your own persistence adapter for your speicific use case is also possible and pretty straight forward.
+See [Custom Persistence Adapter](/data-persistence/other/) for more information.
