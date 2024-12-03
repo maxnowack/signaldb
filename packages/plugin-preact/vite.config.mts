@@ -6,21 +6,12 @@ import typescript from '@rollup/plugin-typescript'
 import { typescriptPaths } from 'rollup-plugin-typescript-paths'
 import dts from 'vite-plugin-dts'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import GithubActionsReporter from 'vitest-github-actions-reporter'
 
 export default defineConfig({
   plugins: [
     dts(),
     tsconfigPaths(),
   ],
-  test: {
-    coverage: {
-      provider: 'istanbul',
-    },
-    reporters: process.env.GITHUB_ACTIONS
-      ? ['default', new GithubActionsReporter()]
-      : 'default',
-  },
   build: {
     manifest: true,
     minify: true,
@@ -30,19 +21,11 @@ export default defineConfig({
       name: 'SignalDB',
       entry: path.resolve(__dirname, 'src/index.ts'),
       fileName: format => (format === 'es' ? 'index.mjs' : `index.${format}.js`),
-      formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      output: {
-        inlineDynamicImports: false,
-        preserveModules: true,
-        format: 'es',
-      },
       external: [
-        'fast-sort',
-        'fs',
-        'mingo',
-        'mingo/updater',
+        'signaldb',
+        '@preact/signals-core',
       ],
       plugins: [
         typescriptPaths({
