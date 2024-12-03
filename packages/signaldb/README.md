@@ -99,9 +99,10 @@ At the heart of SignalDB lies its advanced handling of collections and queries. 
 
 SignalDB also implements a state-of-the-art data sync engine, drawing inspiration from established replication protocols like [RxDB replication](https://rxdb.info/replication.html), [WatermelonDB sync](https://watermelondb.dev/docs/Sync/Frontend) and [replicache](https://replicache.dev). It supports any backend and makes it easy to integrate even RESTful APIs as well, without the need for websockets. This feature is particularly useful for offline-first applications, ensuring data consistency and availability even when the network connection is intermittent or unavailable. Take a look at the documentation page for [Synchronization](https://signaldb.js.org/sync/) for more information.
 
-### Data Persistance
+### Data Persistence
 
 SignalDB's data persistence layer is designed for scalability and flexibility. It offers various strategies for persisting data, from simple `localStorage` implementations to more complex external systems. This versatility allows for customization based on your application's needs, ensuring data is stored efficiently and securely. Our architecture supports the evolution of your application, providing a solid foundation for growth and expansion.
+See the [Persistence Adapters](https://signaldb.js.org/persistence/) page in the documentation to learn more.
 
 ## License
 Licensed under MIT license. Copyright (c) 2024 Max Nowack
