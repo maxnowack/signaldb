@@ -85,25 +85,23 @@ effect(() => { // will be executed everytime the query result changes
 
 ```
 
-Please also take a look at the [documentation](https://signaldb.js.org)
-
 ## Architecture
 
 ### Reactivity
 
-SignalDB harnesses the power of signal-based reactivity to offer a dynamic and responsive user experience. Our architecture integrates seamlessly with various signal libraries, ensuring compatibility and flexibility across different JavaScript frameworks. Whether you're using Angular, React, Vue.js, or others, SignalDB adapts to your preferred environment, enhancing the reactivity of your web applications.
+SignalDB harnesses the power of signal-based reactivity to offer a dynamic and responsive user experience. Our architecture integrates seamlessly with various signal libraries, ensuring compatibility and flexibility across different JavaScript frameworks. Whether you're using Angular, React, Vue.js, or others, SignalDB adapts to your preferred environment, enhancing the reactivity of your web applications. Also see the [Core Concepts](https://signaldb.js.org/core-concepts/) to leaarn more about the reactivity in SignalDB.
 
 ### Collections & Queries
 
-At the heart of SignalDB lies its advanced handling of collections and queries. Our in-memory data storage approach ensures blazing-fast query performance, perfect for applications requiring real-time data manipulation and retrieval. This setup allows for a synchronous API, eliminating the complexity of asynchronous operations and making data handling straightforward and efficient.
+At the heart of SignalDB lies its advanced handling of collections and queries. Our in-memory data storage approach ensures blazing-fast query performance, perfect for applications requiring real-time data manipulation and retrieval. This setup allows for a synchronous API, eliminating the complexity of asynchronous operations and making data handling straightforward and efficient. SignalDB's query system is based on [MongoDB's query syntax](https://www.mongodb.com/docs/manual/reference/operator/query/) using [mingo](https://github.com/kofrasa/mingo) under the hood, providing a familiar and powerful querying experience. Learn more about [Collections](https://signaldb.js.org/collections/) and [Queries](https://signaldb.js.org/queries/) in the documentation.
+
+### Synchronization with external systems
+
+SignalDB also implements a state-of-the-art data sync engine, drawing inspiration from established replication protocols like [RxDB replication](https://rxdb.info/replication.html), [WatermelonDB sync](https://watermelondb.dev/docs/Sync/Frontend) and [replicache](https://replicache.dev). It supports any backend and makes it easy to integrate even RESTful APIs as well, without the need for websockets. This feature is particularly useful for offline-first applications, ensuring data consistency and availability even when the network connection is intermittent or unavailable. Take a look at the documentation page for [Synchronization](https://signaldb.js.org/sync/) for more information.
 
 ### Data Persistance
 
 SignalDB's data persistence layer is designed for scalability and flexibility. It offers various strategies for persisting data, from simple `localStorage` implementations to more complex external systems. This versatility allows for customization based on your application's needs, ensuring data is stored efficiently and securely. Our architecture supports the evolution of your application, providing a solid foundation for growth and expansion.
-
-### Replication
-
-Looking ahead, SignalDB plans to implement a cutting-edge data replication engine, drawing inspiration from established protocols like the [RxDB replication protocol](https://rxdb.info/replication.html) ([more info](https://github.com/pubkey/rxdb/issues/3883)). Initially, we'll offer data replication through a persistence interface for RxDB, with further expansions to follow. Our commitment to extensibility means that we're continually evolving, adding new features and capabilities to meet the ever-changing demands of modern web development.
 
 ## License
 Licensed under MIT license. Copyright (c) 2024 Max Nowack
