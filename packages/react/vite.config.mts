@@ -6,21 +6,12 @@ import typescript from '@rollup/plugin-typescript'
 import { typescriptPaths } from 'rollup-plugin-typescript-paths'
 import dts from 'vite-plugin-dts'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import GithubActionsReporter from 'vitest-github-actions-reporter'
 
 export default defineConfig({
   plugins: [
     dts(),
     tsconfigPaths(),
   ],
-  test: {
-    coverage: {
-      provider: 'istanbul',
-    },
-    reporters: process.env.GITHUB_ACTIONS
-      ? ['default', new GithubActionsReporter()]
-      : 'default',
-  },
   build: {
     manifest: true,
     minify: true,
@@ -34,8 +25,14 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'signaldb',
-        '@maverick-js/signals',
+        'react',
+        'react-dom',
       ],
+      output: {
+        globals: {
+          react: 'React',
+        },
+      },
       plugins: [
         typescriptPaths({
           preserveExtensions: true,

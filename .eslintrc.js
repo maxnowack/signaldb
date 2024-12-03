@@ -45,11 +45,12 @@ module.exports = {
         project: './tsconfig.json',
       },
       node: {
-        extensions: ['.js', '.ts', '.json'],
+        extensions: ['.js', '.ts', '.mjs', '.mts', '.cjs', '.json'],
       },
     },
     'import/extensions': [
       '.ts',
+      '.mts',
     ],
   },
   env: {
@@ -59,7 +60,7 @@ module.exports = {
   overrides: [
     // https://github.com/import-js/eslint-plugin-import/issues/1913#issuecomment-1034025709
     ...projectDirs.map(projectDir => ({
-      files: [`${projectDir}/**/*.{t,j}s`],
+      files: [`${projectDir}/**/*.{t,j}s`, `${projectDir}/**/*.m{t,j}s`],
       rules: {
         'import/no-extraneous-dependencies': ['error', {
           devDependencies: [
@@ -68,8 +69,10 @@ module.exports = {
             '**/*.spec.ts',
             '__tests__/**/*.ts',
             '*.config.ts',
+            '*.config.mts',
             'docs/.vitepress/config.ts',
-            '**/vite.config.ts',
+            '**/vite.config.mts',
+            '**/vitest.config.mts',
           ],
           packageDir: [__dirname, path.join(__dirname, projectDir)],
         }],
@@ -149,7 +152,8 @@ module.exports = {
         '__tests__/**/*.ts',
         '*.config.ts',
         'docs/.vitepress/config.ts',
-        'vite.config.ts',
+        'vite.config.mts',
+        'vitest.config.mts',
       ],
     }],
     'arrow-parens': ['error', 'as-needed', {
