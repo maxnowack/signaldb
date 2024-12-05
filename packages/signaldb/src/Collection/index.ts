@@ -396,6 +396,18 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return { item, index }
   }
 
+  private deleteFromIdIndex(id: I, index: number) {
+    this.idIndex.delete(serializeValue(id))
+
+    // offset all indices after the deleted item -1, but only during batch operations
+    if (!this.batchOperationInProgress) return
+    this.idIndex.forEach(([currenIndex], key) => {
+      if (currenIndex > index) {
+        this.idIndex.set(key, new Set([currenIndex - 1]))
+      }
+    })
+  }
+
   private memory() {
     return this.options.memory as NonNullable<MemoryAdapter<T>>
   }
@@ -584,7 +596,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     const { item, index } = this.getItemAndIndex(selector)
     if (item != null) {
       this.memory().splice(index, 1)
-      this.idIndex.delete(serializeValue(item.id))
+      this.deleteFromIdIndex(item.id, index)
       this.rebuildIndices()
       this.emit('removed', item)
     }
@@ -602,7 +614,7 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
       const index = this.memory().findIndex(doc => doc === item)
       if (index === -1) throw new Error('Cannot resolve index for item')
       this.memory().splice(index, 1)
-      this.idIndex.delete(serializeValue(item.id))
+      this.deleteFromIdIndex(item.id, index)
       this.rebuildIndices()
     })
 
