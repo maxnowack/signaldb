@@ -649,5 +649,16 @@ describe('Collection', () => {
       await col.dispose()
       expect(unregister).toHaveBeenCalledOnce()
     })
+
+    it('should not fail if id index gets modified during batch operation', () => {
+      const col = new Collection<{ id: string, name: string }>()
+      col.insert({ id: '1', name: 'John' })
+      col.insert({ id: '2', name: 'Jane' })
+      col.batch(() => {
+        col.removeOne({ id: '1' })
+
+        expect(col.find({ id: '2' }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
+      })
+    })
   })
 })
