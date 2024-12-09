@@ -58,14 +58,14 @@
     "dist"
   ],
   "peerDependencies": {
-    "react": ">=16 || >=17 || >= 18",
-    "react-dom": ">=16 || >=17 || >= 18",
+    "react": ">=16 || >=17 || >= 18 || >= 19",
+    "react-dom": ">=16 || >=17 || >= 18 || >= 19",
     "signaldb": "0.x.x"
   },
   "devDependencies": {
     "@maverick-js/signals": "^6.0.0",
-    "@testing-library/react": "^16.0.0",
-    "@types/react": "^19.0.0",
-    "happy-dom": "^15.0.0"
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.0.1",
+    "happy-dom": "^15.11.7"
   }
 }
