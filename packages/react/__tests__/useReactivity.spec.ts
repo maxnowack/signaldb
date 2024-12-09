@@ -58,7 +58,7 @@ it('should rerun in strict mode', async () => {
 
   reactive.set(2)
   await waitFor(async () => expect(await result.current).toBe(2))
-  expect(fn).toBeCalledTimes(5)
+  expect(fn).toBeCalledTimes(4)
   expect(dispose).toBeCalledTimes(3)
   unmount()
   expect(dispose).toBeCalledTimes(4)
