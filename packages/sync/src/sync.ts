@@ -1,6 +1,4 @@
-import type { BaseItem } from '../Collection/types'
-import type Modifier from '../types/Modifier'
-import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
+import type { BaseItem, Modifier, Changeset, LoadResponse } from 'signaldb'
 import computeChanges from './computeChanges'
 import type { Change } from './types'
 import getSnapshot from './getSnapshot'

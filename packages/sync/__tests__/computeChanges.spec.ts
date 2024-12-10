@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import computeChanges from '../../src/SyncManager/computeChanges'
+import computeChanges from '../src/computeChanges'
 
 interface TestItem {
   id: number,
