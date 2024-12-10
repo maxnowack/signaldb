@@ -1,4 +1,4 @@
-import createPersistenceAdapter from './createPersistenceAdapter'
+import { createPersistenceAdapter } from 'signaldb'
 
 export default function createLocalStorageAdapter<
   T extends { id: I } & Record<string, any>,

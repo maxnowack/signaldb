@@ -1,6 +1,6 @@
-import createPersistenceAdapter from './createPersistenceAdapter'
+import { createPersistenceAdapter } from 'signaldb'
 
-export default function createOPFSAdapter<
+export default function createFilesystemAdapter<
   T extends { id: I } & Record<string, any>,
   I,
 >(
@@ -15,35 +15,37 @@ export default function createOPFSAdapter<
   let savePromise: Promise<void> | null = null
 
   async function getItems(): Promise<T[]> {
-    const opfsRoot = await navigator.storage.getDirectory()
-    const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
-    const contents = await existingFileHandle.getFile().then(val => val.text())
-    return deserialize(contents || '[]')
+    const fs = await import('fs')
+    const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
+    if (!exists) return []
+    const contents = await fs.promises.readFile(filename, 'utf8').catch((err) => {
+      /* istanbul ignore next -- @preserve */
+      if (err.code === 'ENOENT') return '[]'
+      /* istanbul ignore next -- @preserve */
+      throw err
+    })
+    return deserialize(contents)
   }
 
   return createPersistenceAdapter<T, I>({
     async register(onChange) {
-      const opfsRoot = await navigator.storage.getDirectory()
-      await opfsRoot.getFileHandle(filename, { create: true })
-      void onChange()
+      if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
+      const fs = await import('fs')
+      const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
+      if (!exists) await fs.promises.writeFile(filename, '[]')
+      fs.watch(filename, { encoding: 'utf8' }, () => {
+        void onChange()
+      })
     },
     async load() {
+      if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
       if (savePromise) await savePromise
-
       const items = await getItems()
       return { items }
     },
     async save(_items, { added, modified, removed }) {
+      if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
       if (savePromise) await savePromise
-      const opfsRoot = await navigator.storage.getDirectory()
-      const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
-      if (added.length === 0 && modified.length === 0 && removed.length === 0) {
-        const writeStream = await existingFileHandle.createWritable()
-        await writeStream.write(serialize(_items))
-        await writeStream.close()
-        await savePromise
-        return
-      }
       savePromise = getItems()
         .then((currentItems) => {
           const items = currentItems.slice()
@@ -65,9 +67,8 @@ export default function createOPFSAdapter<
           return items
         })
         .then(async (items) => {
-          const writeStream = await existingFileHandle.createWritable()
-          await writeStream.write(serialize(items))
-          await writeStream.close()
+          const fs = await import('fs')
+          await fs.promises.writeFile(filename, serialize(items))
         })
         .then(() => {
           savePromise = null
