@@ -1,12 +1,13 @@
-import type { BaseItem } from '../Collection/types'
-import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
-import Collection from '../Collection'
-import debounce from '../utils/debounce'
-import PromiseQueue from '../utils/PromiseQueue'
-import type PersistenceAdapter from '../types/PersistenceAdapter'
-import type ReactivityAdapter from '../types/ReactivityAdapter'
-import randomId from '../utils/randomId'
-import isEqual from '../utils/isEqual'
+import type {
+  BaseItem,
+  PersistenceAdapter,
+  ReactivityAdapter,
+  Changeset,
+  LoadResponse,
+} from 'signaldb'
+import { Collection, randomId, isEqual } from 'signaldb'
+import debounce from './utils/debounce'
+import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'
 import type { Change, Snapshot, SyncOperation } from './types'
 
