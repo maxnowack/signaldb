@@ -10,17 +10,16 @@
   },
   "dependencies": {
     "@maverick-js/signals": "^6.0.0",
+    "@signaldb/core": "*",
+    "@signaldb/localstorage": "*",
+    "@signaldb/maverickjs": "*",
+    "@signaldb/react": "*",
+    "@signaldb/sync": "*",
     "@types/node": "22.10.1",
-    "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
     "next": "15.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "signaldb": "*",
-    "signaldb-localstorage": "*",
-    "signaldb-plugin-maverickjs": "*",
-    "signaldb-react": "*",
-    "signaldb-sync": "*",
     "typescript": "5.7.2"
   },
   "devDependencies": {

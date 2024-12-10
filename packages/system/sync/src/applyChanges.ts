@@ -1,5 +1,5 @@
-import type { BaseItem, Selector } from 'signaldb'
-import { Collection, modify } from 'signaldb'
+import type { BaseItem, Selector } from '@signaldb/core'
+import { Collection, modify } from '@signaldb/core'
 import type { Change } from './types'
 
 /**

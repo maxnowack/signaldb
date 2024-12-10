@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import type EventEmitter from 'events'
 import { it, expect } from 'vitest'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import createFilesystemAdapter from '../src'
 
 async function waitForEvent<T>(

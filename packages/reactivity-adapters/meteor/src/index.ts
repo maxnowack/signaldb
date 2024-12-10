@@ -1,5 +1,5 @@
 import type { Tracker } from 'meteor-ts-tracker'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 export default function createMeteorReactivityAdapter(tracker: typeof Tracker) {
   return createReactivityAdapter({

@@ -25,7 +25,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'fs',
-        'signaldb',
+        '@signaldb/core',
       ],
       plugins: [
         typescriptPaths({

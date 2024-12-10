@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@maverick-js/signals": "^6.0.0",
+    "@signaldb/core": "*",
+    "@signaldb/maverickjs": "*",
+    "@signaldb/react": "*",
     "@types/node": "22.10.1",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
@@ -18,9 +21,6 @@
     "react-dom": "19.0.0",
     "rxdb": "15.39.0",
     "rxjs": "7.8.1",
-    "signaldb": "*",
-    "signaldb-plugin-maverickjs": "*",
-    "signaldb-react": "*",
     "typescript": "5.7.2"
   },
   "devDependencies": {

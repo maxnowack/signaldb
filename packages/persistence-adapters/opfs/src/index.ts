@@ -1,4 +1,4 @@
-import { createPersistenceAdapter } from 'signaldb'
+import { createPersistenceAdapter } from '@signaldb/core'
 
 export default function createOPFSAdapter<
   T extends { id: I } & Record<string, any>,

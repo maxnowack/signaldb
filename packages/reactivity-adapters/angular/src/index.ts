@@ -1,5 +1,5 @@
 import { signal, untracked } from '@angular/core'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const angularReactivityAdapter = createReactivityAdapter({
   create: () => {

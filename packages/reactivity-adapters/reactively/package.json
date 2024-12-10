@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-plugin-reactively",
+  "name": "@signaldb/reactively",
   "version": "1.0.3",
   "description": "",
   "scripts": {
@@ -51,6 +51,6 @@
   ],
   "peerDependencies": {
     "@reactively/core": "0.x.x",
-    "signaldb": "0.x || 1.x"
+    "@signaldb/core": "1.x"
   }
 }

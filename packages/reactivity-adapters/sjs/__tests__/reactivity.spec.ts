@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import S from 's-js'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import sReactivityAdapter from '../src'
 
-describe('signaldb-plugin-sjs', () => {
+describe('@signaldb/sjs', () => {
   it('should be reactive with S.js', async () => {
     const reactivity = sReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

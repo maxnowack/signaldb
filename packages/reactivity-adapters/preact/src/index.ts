@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals-core'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const preactReactivityAdapter = createReactivityAdapter({
   create: () => {

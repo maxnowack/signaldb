@@ -1,5 +1,5 @@
 import { reactive, onCleanup } from '@reactively/core'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const maverickjsReactivityAdapter = createReactivityAdapter({
   create: () => {
