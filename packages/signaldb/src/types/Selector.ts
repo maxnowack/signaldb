@@ -1,4 +1,4 @@
-// borrowed from https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/meteor/mongo.d.ts
+// original from https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/meteor/mongo.d.ts
 
 export interface FieldExpression<T> {
   $eq?: T | undefined,
@@ -35,11 +35,45 @@ export interface FieldExpression<T> {
   $bitsAnySet?: any,
 }
 
+// Utility type to check if a type is an array or object.
+type IsObject<T> = T extends object ? (T extends Array<any> ? false : true) : false
+
+// Recursive type to generate dot-notation keys
+type DotNotationKeys<T> = {
+  [K in keyof T & (string | number)]:
+  T[K] extends Array<infer U>
+  // If it's an array, include both the index and the $ wildcard
+    ? `${K}` | `${K}.$` | `${K}.${DotNotationKeys<U>}`
+  // If it's an object, recurse into it
+    : IsObject<T[K]> extends true
+      ? `${K}` | `${K}.${DotNotationKeys<T[K]>}`
+      : `${K}` // Base case: Just return the key
+}[keyof T & (string | number)]
+
+type Split<S extends string, Delimiter extends string> =
+  S extends `${infer Head}${Delimiter}${infer Tail}`
+    ? [Head, ...Split<Tail, Delimiter>]
+    : [S]
+
+type GetTypeByParts<T, Parts extends readonly string[]> =
+  Parts extends [infer Head, ...infer Tail]
+    ? Head extends keyof T
+      ? GetTypeByParts<T[Head], Extract<Tail, string[]>>
+      : Head extends '$'
+        ? T extends Array<infer U>
+          ? GetTypeByParts<U, Extract<Tail, string[]>>
+          : never
+        : never
+    : T
+
+type Get<T, Path extends string> =
+  GetTypeByParts<T, Split<Path, '.'>>
+
 type Flatten<T> = T extends any[] ? T[0] : T
 
 type FlatQuery<T> = {
-  [P in keyof T]?: Flatten<T[P]> | RegExp | FieldExpression<Flatten<T[P]>>
-} & Record<string, any>
+  [P in DotNotationKeys<T>]?: Flatten<Get<T, P>> | RegExp | FieldExpression<Flatten<Get<T, P>>>
+}
 type Query<T> = FlatQuery<T> & {
   $or?: Query<T>[] | undefined,
   $and?: Query<T>[] | undefined,
