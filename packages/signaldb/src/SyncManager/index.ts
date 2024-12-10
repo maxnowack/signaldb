@@ -3,7 +3,6 @@ import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
 import Collection from '../Collection'
 import debounce from '../utils/debounce'
 import PromiseQueue from '../utils/PromiseQueue'
-import createLocalStorageAdapter from '../persistence/createLocalStorageAdapter'
 import type PersistenceAdapter from '../types/PersistenceAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import randomId from '../utils/randomId'
@@ -105,50 +104,50 @@ export default class SyncManager<
    */
   constructor(options: Options<CollectionOptions, ItemType, IdType>) {
     this.options = options
-    const id = this.options.id ?? 'default-sync-manager'
     const { reactivity } = this.options
 
-    let changesErrorHandler: (error: Error) => void = () => {}
-    let snapshotsErrorHandler: (error: Error) => void = () => {}
-    let syncOperationsErrorHandler: (error: Error) => void = () => {}
-
-    const persistenceAdapter = options.persistenceAdapter ?? createLocalStorageAdapter
-    const changesPersistenceAdapter = persistenceAdapter(`${id}-changes`, (handler) => {
-      changesErrorHandler = handler
-    })
-    const snapshotsPersistenceAdapter = persistenceAdapter(`${id}-snapshots`, (handler) => {
-      snapshotsErrorHandler = handler
-    })
-    const syncOperationsPersistenceAdapter = persistenceAdapter(`${id}-sync-operations`, (handler) => {
-      syncOperationsErrorHandler = handler
-    })
+    const changesPersistence = this.createPersistenceAdapter('changes')
+    const snapshotsPersistence = this.createPersistenceAdapter('snapshots')
+    const syncOperationsPersistence = this.createPersistenceAdapter('sync-operations')
 
     this.changes = new Collection({
-      persistence: changesPersistenceAdapter,
+      persistence: changesPersistence?.adapter,
       reactivity,
     })
     this.snapshots = new Collection({
-      persistence: snapshotsPersistenceAdapter,
+      persistence: snapshotsPersistence?.adapter,
       reactivity,
     })
     this.syncOperations = new Collection({
-      persistence: syncOperationsPersistenceAdapter,
+      persistence: syncOperationsPersistence?.adapter,
       reactivity,
     })
-    this.changes.on('persistence.error', error => changesErrorHandler(error))
-    this.snapshots.on('persistence.error', error => snapshotsErrorHandler(error))
-    this.syncOperations.on('persistence.error', error => syncOperationsErrorHandler(error))
+    this.changes.on('persistence.error', error => changesPersistence?.handler(error))
+    this.snapshots.on('persistence.error', error => snapshotsPersistence?.handler(error))
+    this.syncOperations.on('persistence.error', error => syncOperationsPersistence?.handler(error))
 
     this.persistenceReady = Promise.all([
       new Promise<void>((resolve, reject) => {
+        if (!changesPersistence) {
+          resolve()
+          return
+        }
         this.syncOperations.once('persistence.error', reject)
         this.syncOperations.once('persistence.init', resolve)
       }),
       new Promise<void>((resolve, reject) => {
+        if (!snapshotsPersistence) {
+          resolve()
+          return
+        }
         this.changes.once('persistence.error', reject)
         this.changes.once('persistence.init', resolve)
       }),
       new Promise<void>((resolve, reject) => {
+        if (!syncOperationsPersistence) {
+          resolve()
+          return
+        }
         this.snapshots.once('persistence.error', reject)
         this.snapshots.once('persistence.init', resolve)
       }),
@@ -157,6 +156,20 @@ export default class SyncManager<
     this.changes.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
     this.syncOperations.setMaxListeners(1000)
+  }
+
+  protected createPersistenceAdapter(name: string) {
+    if (this.options.persistenceAdapter == null) return undefined
+
+    const id = this.options.id ?? 'default-sync-manager'
+    let errorHandler: (error: Error) => void = () => { /* noop */ }
+    const adapter = this.options.persistenceAdapter(`${id}-${name}`, (handler) => {
+      errorHandler = handler
+    })
+    return {
+      adapter,
+      handler: (error: Error) => errorHandler(error),
+    }
   }
 
   protected getSyncQueue(name: string) {
