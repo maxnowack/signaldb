@@ -1,8 +1,14 @@
 import type EventEmitter from 'events'
 
-export default async function waitForEvent<T>(
-  emitter: EventEmitter,
-  event: string,
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type EventNames<E extends EventEmitter> = E extends {
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  on(event: infer E, listener: (...args: any[]) => void): any,
+} ? E : never;
+
+export default async function waitForEvent<E extends EventEmitter, T>(
+  emitter: E,
+  event: EventNames<E>,
   timeout?: number,
 ): Promise<T> {
   return new Promise((resolve, reject) => {

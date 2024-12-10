@@ -1,4 +1,5 @@
-import { Collection, createLocalStorageAdapter } from 'signaldb'
+import { Collection } from 'signaldb'
+import createLocalStorageAdapter from 'signaldb-localstorage'
 import maverickjsReactivityAdapter from 'signaldb-plugin-maverickjs'
 import syncManager from '../system/syncManager'
 

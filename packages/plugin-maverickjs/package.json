@@ -50,7 +50,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x.x",
+    "signaldb": "0.x || 1.x",
     "@maverick-js/signals": "5.x.x || 6.x"
   }
 }

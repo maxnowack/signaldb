@@ -1,4 +1,5 @@
 import { SyncManager } from 'signaldb'
+import createLocalStorageAdapter from 'signaldb-localstorage'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, remove, update, onChildAdded, onChildChanged, onChildRemoved } from 'firebase/database'
 
@@ -8,6 +9,7 @@ initializeApp({
 const db = getDatabase()
 
 const syncManager = new SyncManager({
+  persistenceAdapter: id => createLocalStorageAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

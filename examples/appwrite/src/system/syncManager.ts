@@ -1,5 +1,6 @@
 import { Client, Databases } from 'appwrite'
 import { SyncManager } from 'signaldb'
+import createLocalStorageAdapter from 'signaldb-localstorage'
 
 const client = new Client()
 client
@@ -10,6 +11,7 @@ const dbId = '65676881edfe6a3e7e2c'
 const db = new Databases(client)
 
 const syncManager = new SyncManager<Record<string, any>, { id: string }>({
+  persistenceAdapter: id => createLocalStorageAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)
