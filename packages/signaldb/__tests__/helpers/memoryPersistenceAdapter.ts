@@ -6,6 +6,7 @@ export default function memoryPersistenceAdapter<
 >(
   initialData: T[] = [],
   transmitChanges = false,
+  delay: number | undefined = undefined,
 ) {
   // not really a "persistence adapter", but it works for testing
   let items = [...initialData]
@@ -24,7 +25,7 @@ export default function memoryPersistenceAdapter<
       onChange = changeCallback
       return Promise.resolve()
     },
-    load: () => {
+    load: async () => {
       const currentChanges = { ...changes }
       changes.added = []
       changes.modified = []
@@ -32,6 +33,7 @@ export default function memoryPersistenceAdapter<
       const hasChanges = currentChanges.added.length > 0
         || currentChanges.modified.length > 0
         || currentChanges.removed.length > 0
+      if (delay != null) await new Promise((resolve) => { setTimeout(resolve, delay) })
       if (transmitChanges && hasChanges) {
         return Promise.resolve({ changes: currentChanges })
       }

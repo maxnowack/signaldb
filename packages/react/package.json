@@ -60,7 +60,7 @@
   "peerDependencies": {
     "react": ">=16 || >=17 || >= 18 || >= 19",
     "react-dom": ">=16 || >=17 || >= 18 || >= 19",
-    "signaldb": "0.x.x"
+    "signaldb": "0.x || 1.x"
   },
   "devDependencies": {
     "@maverick-js/signals": "^6.0.0",

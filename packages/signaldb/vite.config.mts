@@ -29,7 +29,6 @@ export default defineConfig({
       },
       external: [
         'fast-sort',
-        'fs',
         'events',
         'mingo',
         'mingo/updater',

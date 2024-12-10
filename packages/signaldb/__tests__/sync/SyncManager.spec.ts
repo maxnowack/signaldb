@@ -21,7 +21,6 @@ it('should add a collection and register sync events', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
