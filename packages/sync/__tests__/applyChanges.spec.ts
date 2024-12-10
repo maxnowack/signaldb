@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest'
-import type { BaseItem } from '../../src/Collection'
-import type { Change } from '../../src/SyncManager/types'
-import applyChanges from '../../src/SyncManager/applyChanges'
+import type { BaseItem } from 'signaldb'
+import type { Change } from '../src/types'
+import applyChanges from '../src/applyChanges'
 
 // Example BaseItem Type
 interface TestItem extends BaseItem<number> {

@@ -1,4 +1,4 @@
-import { SyncManager } from 'signaldb'
+import { SyncManager } from 'signaldb-sync'
 import createLocalStorageAdapter from 'signaldb-localstorage'
 
 function authenticatedFetch(path: string, options?: RequestInit) {

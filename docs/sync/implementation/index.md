@@ -33,7 +33,7 @@ The `SyncManager` is the main class that handles synchronization. To get started
 Additionally a `reactivityAdapter` can be passed to the options object. This adapter is used to make some of the functions provided by the `SyncManager` reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the `SyncManager` about remote changes.
 
 ```ts
-import { SyncManager } from 'signaldb'
+import { SyncManager } from 'signaldb-sync'
 
 const syncManager = new SyncManager({
   reactivityAdapter: someReactivityAdapter,
