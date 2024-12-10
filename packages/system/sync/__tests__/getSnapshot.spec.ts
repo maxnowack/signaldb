@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import type { BaseItem, LoadResponse } from 'signaldb'
+import type { BaseItem, LoadResponse } from '@signaldb/core'
 import getSnapshot from '../src/getSnapshot'
 
 interface TestItem extends BaseItem<number> {

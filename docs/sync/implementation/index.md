@@ -33,7 +33,7 @@ The `SyncManager` is the main class that handles synchronization. To get started
 Additionally a `reactivityAdapter` can be passed to the options object. This adapter is used to make some of the functions provided by the `SyncManager` reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the `SyncManager` about remote changes.
 
 ```ts
-import { SyncManager } from 'signaldb-sync'
+import { SyncManager } from '@signaldb/sync'
 
 const syncManager = new SyncManager({
   reactivityAdapter: someReactivityAdapter,
@@ -54,7 +54,7 @@ const syncManager = new SyncManager({
 Before we go in the details of the `pull` and `push` methods, we need to understand how we add collection to our `syncManager`. The `addCollection` method takes two parameters. The first one is the collection itself and the second one is an option object. This object must contain at least a `name` property that will be used to identify the collection in the `syncManager`. You can also pass other informations to the options object. These properties will be passed to your `push` & `pull` methods and can be used to access additionally informations about the collection that are needed for the synchronization (e.g. api endpoint url). This concept also allows you to do things like passing `canRead`/`canWrite` methods to the options that are later on used to check if the user has the necessary permissions to `pull`/`push`.
 
 ```ts
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 
 const someCollection = new Collection()
 
@@ -138,7 +138,7 @@ Below is an example implementation of a simple REST API.
 
 ```js
 import { EventEmitter } from 'node:events'
-import { Collection, SyncManager } from 'signaldb'
+import { Collection, SyncManager } from '@signaldb/core'
 
 const Authors = new Collection()
 const Posts = new Collection()

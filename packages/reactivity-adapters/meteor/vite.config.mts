@@ -24,7 +24,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
-        'signaldb',
+        '@signaldb/core',
         'meteor-ts-tracker',
       ],
       plugins: [

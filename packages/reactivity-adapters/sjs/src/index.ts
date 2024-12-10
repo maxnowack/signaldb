@@ -1,5 +1,5 @@
 import S from 's-js'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const sReactivityAdapter = createReactivityAdapter({
   create: () => {

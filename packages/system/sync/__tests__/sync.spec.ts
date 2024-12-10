@@ -1,5 +1,5 @@
 import { it, expect, vi } from 'vitest'
-import type { BaseItem, Changeset, LoadResponse, Modifier } from 'signaldb'
+import type { BaseItem, Changeset, LoadResponse, Modifier } from '@signaldb/core'
 import sync from '../src/sync'
 import computeChanges from '../src/computeChanges'
 import getSnapshot from '../src/getSnapshot'

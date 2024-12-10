@@ -3,7 +3,7 @@ import $oby, {
   cleanup,
   owner,
 } from 'oby'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const obyReactivityAdapter = createReactivityAdapter({
   create: () => {

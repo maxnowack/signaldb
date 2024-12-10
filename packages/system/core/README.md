@@ -30,13 +30,13 @@ Designed for efficiency in applications requiring quick data handling and real-t
 ## Installation
 
 ````
-  $ npm install signaldb
+  $ npm install @signaldb/core
 ````
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 
 const posts = new Collection()
 const postId = posts.insert({ title: 'Foo', text: 'Lorem ipsum …' })

@@ -1,7 +1,7 @@
 /* @vitest-environment happy-dom */
 import { it, expect, vi } from 'vitest'
-import { Collection, createPersistenceAdapter } from 'signaldb'
-import type { BaseItem, LoadResponse, PersistenceAdapter } from 'signaldb'
+import { Collection, createPersistenceAdapter } from '@signaldb/core'
+import type { BaseItem, LoadResponse, PersistenceAdapter } from '@signaldb/core'
 import { SyncManager } from '../src'
 
 function memoryPersistenceAdapter<

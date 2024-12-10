@@ -3,10 +3,10 @@ import {
   tick,
   effect,
 } from '@maverick-js/signals'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import maverickjsReactivityAdapter from '../src'
 
-describe('signaldb-plugin-maverickjs', () => {
+describe('@signaldb/maverickjs', () => {
   it('should be reactive with @maverick-js/signals', async () => {
     const reactivity = maverickjsReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
