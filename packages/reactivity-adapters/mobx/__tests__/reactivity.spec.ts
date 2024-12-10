@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import { autorun } from 'mobx'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import mobxReactivityAdapter from '../src'
 
-describe('signaldb-plugin-mobx', () => {
+describe('@signaldb/mobx', () => {
   it('should be reactive with MobX', async () => {
     const reactivity = mobxReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

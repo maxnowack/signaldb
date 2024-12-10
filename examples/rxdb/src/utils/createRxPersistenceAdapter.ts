@@ -1,5 +1,5 @@
 import type { RxCollection } from 'rxdb'
-import { createPersistenceAdapter } from 'signaldb'
+import { createPersistenceAdapter } from '@signaldb/core'
 
 export default function createRxPersistenceAdapter<T extends { id: U }, U>(
   getCollection: () => Promise<RxCollection<T>>,

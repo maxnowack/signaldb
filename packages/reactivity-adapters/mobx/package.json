@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-plugin-mobx",
+  "name": "@signaldb/mobx",
   "version": "1.0.3",
   "description": "",
   "scripts": {
@@ -50,7 +50,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x || 1.x",
+    "@signaldb/core": "1.x",
     "mobx": "6.x.x"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-plugin-maverickjs",
+  "name": "@signaldb/maverickjs",
   "version": "1.0.5",
   "description": "",
   "scripts": {
@@ -50,7 +50,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x || 1.x",
+    "@signaldb/core": "1.x",
     "@maverick-js/signals": "5.x.x || 6.x"
   }
 }

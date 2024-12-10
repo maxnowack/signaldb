@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import { effect, tick } from 'oby'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import obyReactivityAdapter from '../src'
 
-describe('signaldb-plugin-oby', () => {
+describe('@signaldb/oby', () => {
   it('should be reactive with oby', async () => {
     const reactivity = obyReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

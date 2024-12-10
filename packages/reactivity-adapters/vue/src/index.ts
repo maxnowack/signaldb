@@ -3,7 +3,7 @@ import {
   triggerRef,
   onScopeDispose,
 } from 'vue'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const vueReactivityAdapter = createReactivityAdapter({
   create: () => {

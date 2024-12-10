@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import { Tracker } from 'meteor-ts-tracker'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import createMeteorReactivityAdapter from '../src'
 
-describe('signaldb-plugin-meteor', () => {
+describe('@signaldb/meteor', () => {
   const reactivity = createMeteorReactivityAdapter(Tracker)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
   reactivity.onDispose = vi.fn(reactivity.onDispose!)
