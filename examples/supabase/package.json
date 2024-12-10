@@ -18,6 +18,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "signaldb": "*",
+    "signaldb-localstorage": "*",
     "signaldb-plugin-maverickjs": "*",
     "signaldb-react": "*",
     "typescript": "5.7.2"

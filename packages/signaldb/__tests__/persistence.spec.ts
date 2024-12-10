@@ -1,6 +1,5 @@
-import fs from 'fs/promises'
 import { describe, it, expect, vi } from 'vitest'
-import { Collection, createFilesystemAdapter } from '../src'
+import { Collection } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
 
@@ -121,39 +120,6 @@ describe('Persistence', () => {
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
     expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
   })
-
-  it('should persist changes to filesystem', async () => {
-    const file = `/tmp/${Math.floor(Math.random() * 1e17).toString(16)}.json`
-    const persistence = createFilesystemAdapter(file)
-    const collection = new Collection({ persistence })
-    collection.on('persistence.error', (error) => {
-      expect(error).toBeUndefined()
-    })
-    await waitForEvent(collection, 'persistence.init')
-
-    collection.insert({ id: '1', name: 'John' })
-    await waitForEvent(collection, 'persistence.transmitted')
-
-    const contents = await fs.readFile(file, 'utf-8')
-    expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
-  }, { retry: 5 })
-
-  it('should persist data that was modified before persistence.init', async () => {
-    const file = `/tmp/${Math.floor(Math.random() * 1e17).toString(16)}.json`
-    const persistence = createFilesystemAdapter(file)
-    await persistence.save([], { added: [], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    collection.insert({ id: '1', name: 'John' })
-    collection.insert({ id: '2', name: 'Jane' })
-    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-    collection.removeOne({ id: '2' })
-    await waitForEvent(collection, 'persistence.init')
-
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    const contents = await fs.readFile(file, 'utf-8')
-    expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'Johnny' }])
-  }, { retry: 5 })
 
   it('should emit persistence.error if the adapter throws an error on registering', async () => {
     const collection = new Collection({
@@ -356,6 +322,24 @@ describe('Persistence', () => {
     await waitForEvent(collection, 'persistence.received')
     expect(collection.find().fetch()).toEqual([
       { id: '1', name: 'Jane' },
+    ])
+  })
+
+  it('should modify items when persistence adapter is async', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }], true, 100)
+    const collection = new Collection({ persistence, memory: [{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }] })
+    const items = collection.find().fetch()
+    expect(items).toEqual([{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }])
+
+    collection.insert({ id: '2', name: 'Jane' })
+    collection.updateOne({ id: '1' }, { $set: { name: 'Jack' } })
+    collection.removeOne({ id: 'x' })
+
+    await waitForEvent(collection, 'persistence.transmitted')
+    await waitForEvent(collection, 'persistence.init')
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'Jack' },
+      { id: '2', name: 'Jane' },
     ])
   })
 })
