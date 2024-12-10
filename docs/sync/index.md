@@ -113,7 +113,7 @@ Additionally to this two functions, you can also register a function that can be
 
 Here’s how SignalDB can be integrated with different backend systems:
 
-- **REST APIs**: SignalDB can interact with RESTful endpoints for both pulling and pushing data. For example, a `pull` function might fetch data from `/api/collections/todos`, while the `push` function sends updates to the same endpoint.
+- **REST APIs**: SignalDB can interact with RESTful endpoints for both pulling and pushing data. For example, a `pull` function might fetch data from `/api/reference/core/collection/todos`, while the `push` function sends updates to the same endpoint.
 
 - **GraphQL**: For applications using GraphQL, SignalDB can perform queries and mutations. The `pull` function might execute a GraphQL query to retrieve collection data, and the `push` function could execute a mutation to submit changes.
 
