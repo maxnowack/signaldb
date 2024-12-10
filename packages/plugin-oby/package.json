@@ -50,7 +50,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x.x",
+    "signaldb": "0.x || 1.x",
     "oby": "15.x.x"
   }
 }
