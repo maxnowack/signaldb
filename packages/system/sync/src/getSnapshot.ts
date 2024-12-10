@@ -1,4 +1,4 @@
-import type { BaseItem, LoadResponse } from 'signaldb'
+import type { BaseItem, LoadResponse } from '@signaldb/core'
 
 /**
  * Gets the snapshot of items from the last snapshot and the changes.

@@ -4,10 +4,10 @@ import {
   nextTick,
   effectScope,
 } from 'vue'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import vueReactivityAdapter from '../src'
 
-describe('signaldb-plugin-vue', () => {
+describe('@signaldb/vue', () => {
   it('should be reactive with Vue.js', async () => {
     const reactivity = vueReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import type EventEmitter from 'events'
 import { describe, it, expect } from 'vitest'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import createOPFSAdapter from '../src'
 
 async function waitForEvent<T>(

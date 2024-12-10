@@ -37,14 +37,14 @@ You must manually disable reactivity when making calls outside a reactive scope 
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-mobx
+  $ npm install @signaldb/mobx
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-mobx'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/mobx'
 import { autorun } from 'mobx'
 
 const posts = new Collection({

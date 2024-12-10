@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-plugin-sjs",
+  "name": "@signaldb/sjs",
   "version": "1.0.3",
   "description": "",
   "scripts": {
@@ -50,7 +50,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x || 1.x",
+    "@signaldb/core": "1.x",
     "s-js": "0.x.x"
   }
 }

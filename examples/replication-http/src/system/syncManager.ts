@@ -1,5 +1,5 @@
-import { SyncManager } from 'signaldb-sync'
-import createLocalStorageAdapter from 'signaldb-localstorage'
+import { SyncManager } from '@signaldb/sync'
+import createLocalStorageAdapter from '@signaldb/localstorage'
 
 function authenticatedFetch(path: string, options?: RequestInit) {
   const databaseId = '65676881edfe6a3e7e2c'

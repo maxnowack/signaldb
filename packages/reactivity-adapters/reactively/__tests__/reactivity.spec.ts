@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import { reactive } from '@reactively/core'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import reactivelyReactivityAdapter from '../src'
 
-describe('signaldb-plugin-reactively', () => {
+describe('@signaldb/reactively', () => {
   it('should be reactive with reactively', async () => {
     const reactivity = reactivelyReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

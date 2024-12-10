@@ -14,30 +14,30 @@ head:
     content: SignalDB React Integration
 - - meta
   - name: og:description
-    content: Learn how to integrate SignalDB with React using the `signaldb-react` package and how to add signal-based reactivity to your React components.
+    content: Learn how to integrate SignalDB with React using the `@signaldb/react` package and how to add signal-based reactivity to your React components.
 - - meta
   - name: description
-    content: Learn how to integrate SignalDB with React using the `signaldb-react` package and how to add signal-based reactivity to your React components.
+    content: Learn how to integrate SignalDB with React using the `@signaldb/react` package and how to add signal-based reactivity to your React components.
 - - meta
   - name: keywords
-    content: SignalDB, React integration, signaldb-react, reactivity, signals, JavaScript, TypeScript, React components, createUseReactivityHook, installation guide
+    content: SignalDB, React integration, @signaldb/react, reactivity, signals, JavaScript, TypeScript, React components, createUseReactivityHook, installation guide
 ---
 # SignalDB React Integration
 
-SignalDB can be integrated with React using the `signaldb-react` package. This package provides the necessary bindings to use SignalDB with React components.
+SignalDB can be integrated with React using the `@signaldb/react` package. This package provides the necessary bindings to use SignalDB with React components.
 Also check out our guide on [how to use SignalDB with React](/guides/react/).
 
 ## Installation
 
-You can install the `signaldb-react` package using npm. Open your terminal and enter the following command:
+You can install the `@signaldb/react` package using npm. Open your terminal and enter the following command:
 
 ```bash
-  npm install signaldb-react
+  npm install @signaldb/react
 ```
 
 ## Exports
 
-The `signaldb-react` package exports the following components and hooks:
+The `@signaldb/react` package exports the following components and hooks:
 
 ### `createUseReactivityHook`
 

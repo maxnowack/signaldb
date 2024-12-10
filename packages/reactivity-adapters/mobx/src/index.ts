@@ -3,7 +3,7 @@ import {
   runInAction,
   onBecomeUnobserved,
 } from 'mobx'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const mobxReactivityAdapter = createReactivityAdapter({
   create: () => {
