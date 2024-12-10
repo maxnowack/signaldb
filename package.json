@@ -11,7 +11,8 @@
     "build": "(cd packages/system/core && npm run build) && npm run build -w packages/system && npm run build -w packages/integrations && npm run build -w packages/persistence-adapters && npm run build -w packages/reactivity-adapters",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "npm run build && npm run build -w examples && npm run copy -w examples && npm run typedoc && vitepress build docs",
+    "docs:build": "npm run build && npm run build -w examples && npm run copy -w examples && npm run typedoc && npm run docs:build-vitepress",
+    "docs:build-vitepress": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "author": "Max Nowack <max.nowack@gmail.com>",
