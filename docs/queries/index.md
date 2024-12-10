@@ -32,7 +32,7 @@ A unique feature of SignalDB is that all queries are reactive by default. This m
 
 ## Queries
 
-You can query you data by calling the [`.find()`](/collections/#find-selector-selector-t-options-options) or [`.findOne()`](/collections/#findone-selector-selector-t-options-options) method of your collection.
+You can query you data by calling the [`.find()`](/reference/core/collection/#find-selector-selector-t-options-options) or [`.findOne()`](/reference/core/collection/#findone-selector-selector-t-options-options) method of your collection.
 `.findOne()` returns the first found document while `.find()` returns a [cursor](#cursors).
 
 ### Selectors

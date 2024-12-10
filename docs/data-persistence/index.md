@@ -34,10 +34,9 @@ The main benefit of using persistence adapters is the abstraction they provide. 
 
 The follwing persistence adapters are currently available:
 
-- [localStorage](/data-persistence/local-storage/)
-- [OPFS](/data-persistence/opfs/)
-- [FileSystem](/data-persistence/file-system/)
-- [RxDB](/data-persistence/rxdb/)
+- [localStorage](/reference/localstorage/)
+- [OPFS](/reference/opfs/)
+- [FileSystem](/reference/fs/)
 
 Building your own persistence adapter for your speicific use case is also possible and pretty straight forward.
-See [Custom Persistence Adapter](/data-persistence/other/) for more information.
+See [`createPersistenceAdapter`](/reference/core/createpersistenceadapter/) for more information.
