@@ -1,1 +1,1 @@
-packages/signaldb/README.md
+packages/system/core/README.md
