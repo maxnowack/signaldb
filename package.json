@@ -8,7 +8,7 @@
     "test": "vitest",
     "typedoc": "typedoc",
     "coverage": "vitest run --coverage",
-    "build": "(cd packages/signaldb && npm run build) && npm run build -w packages",
+    "build": "(cd packages/system/core && npm run build) && npm run build -w packages/system && npm run build -w packages/integrations && npm run build -w packages/persistence-adapters && npm run build -w packages/reactivity-adapters",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "npm run build && npm run build -w examples && npm run copy -w examples && npm run typedoc && vitepress build docs",
@@ -17,8 +17,11 @@
   "author": "Max Nowack <max.nowack@gmail.com>",
   "license": "MIT",
   "workspaces": [
-    "packages/*",
-    "examples/*"
+    "examples/*",
+    "packages/integrations/*",
+    "packages/persistence-adapters/*",
+    "packages/reactivity-adapters/*",
+    "packages/system/*"
   ],
   "devDependencies": {
     "@commitlint/cli": "19.6.0",
