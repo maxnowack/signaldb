@@ -38,7 +38,7 @@
       "default": "./dist/index.cjs.js"
     }
   },
-  "main": "./dist/index.umd.js",
+  "main": "./dist/index.cjs.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "typesVersions": {
