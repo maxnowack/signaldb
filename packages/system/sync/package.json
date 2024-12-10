@@ -11,7 +11,8 @@
   },
   "homepage": "https://signaldb.js.org",
   "keywords": [
-    "filesystem",
+    "sync",
+    "replication",
     "client-database",
     "client",
     "database",
