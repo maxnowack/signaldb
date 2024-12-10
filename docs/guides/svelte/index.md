@@ -37,7 +37,7 @@ A basic understanding of signal-based reactivity will also be helpful. You can r
 First, you need to install SignalDB in your project. Open your terminal and run:
 
 ```bash
-npm install signaldb
+npm install @signaldb/core
 ```
 
 As Svelte runes have to be used inline, there isn't an easy way to provide a prebuilt adapter. Therefore you have to add a few lines in your code to specify the adapter during collection initialization.
@@ -48,7 +48,7 @@ Once you’ve installed SignalDB, the next step is to set up your collections. H
 
 ```js
 <script>
-  import { Collection } from "signaldb";
+  import { Collection } from "@signaldb/core";
 
   const Posts = new Collection({
     reactivity: {
@@ -87,7 +87,7 @@ Now let's create a component that lists posts and allows the user to add new one
 
 ```svelte
 <script>
-  import { Collection } from "signaldb";
+  import { Collection } from "@signaldb/core";
 
   const Posts = new Collection({
     reactivity: {

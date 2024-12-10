@@ -20,7 +20,7 @@ head:
     content: Discover how to integrate µsignal with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
-    content: SignalDB, usignal, reactivity adapter, integration guide, JavaScript, TypeScript, manual cleanup, reactivity scope, signaldb-plugin-usignal
+    content: SignalDB, usignal, reactivity adapter, integration guide, JavaScript, TypeScript, manual cleanup, reactivity scope, @signaldb/usignal
 ---
 # Reactivity adapter for [`µsignal`](https://github.com/WebReflection/usignal)
 
@@ -36,14 +36,14 @@ You also must manually disable reactivity when making calls outside a reactive s
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-usignal
+  $ npm install @signaldb/usignal
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-usignal'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/usignal'
 import { effect } from 'usignal'
 
 const posts = new Collection({

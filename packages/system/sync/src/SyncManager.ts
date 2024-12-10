@@ -4,8 +4,8 @@ import type {
   ReactivityAdapter,
   Changeset,
   LoadResponse,
-} from 'signaldb'
-import { Collection, randomId, isEqual } from 'signaldb'
+} from '@signaldb/core'
+import { Collection, randomId, isEqual } from '@signaldb/core'
 import debounce from './utils/debounce'
 import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'

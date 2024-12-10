@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import type { BaseItem } from 'signaldb'
+import type { BaseItem } from '@signaldb/core'
 import type { Change } from '../src/types'
 import applyChanges from '../src/applyChanges'
 
