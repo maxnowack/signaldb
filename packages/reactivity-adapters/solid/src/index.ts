@@ -1,4 +1,4 @@
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 import { createSignal, getOwner, onCleanup } from 'solid-js'
 
 const solidReactivityAdapter = createReactivityAdapter({

@@ -35,14 +35,14 @@ You must manually disable reactivity when making calls outside a reactive scope 
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-sjs
+  $ npm install @signaldb/sjs
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-sjs'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/sjs'
 import S from 's-js'
 
 const posts = new Collection({

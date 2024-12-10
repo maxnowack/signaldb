@@ -37,13 +37,13 @@ It’s also helpful to be familiar with signal-based reactivity. You can learn m
 To begin, install SignalDB by running this command in your terminal:
 
 ```bash
-npm install signaldb
+npm install @signaldb/core
 ```
 
 Next, install the Angular-specific reactivity adapter for SignalDB:
 
 ```bash
-npm install signaldb-plugin-angular
+npm install @signaldb/angular
 ```
 
 ## Setting Up SignalDB
@@ -51,8 +51,8 @@ npm install signaldb-plugin-angular
 With SignalDB installed, you’ll now set up a collection and configure the reactivity adapter for Angular:
 
 ```js
-import { Collection } from 'signaldb';
-import angularReactivityAdapter from 'signaldb-plugin-angular';
+import { Collection } from '@signaldb/core';
+import angularReactivityAdapter from '@signaldb/angular';
 
 const Posts = new Collection<{ id: string, title: string, author: string }>({
   reactivity: angularReactivityAdapter,
@@ -68,8 +68,8 @@ Let’s now create an Angular component that uses SignalDB to display and manage
 ```typescript
 import { Component, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Collection } from 'signaldb';
-import angularReactivityAdapter from 'signaldb-plugin-angular';
+import { Collection } from '@signaldb/core';
+import angularReactivityAdapter from '@signaldb/angular';
 
 const Posts = new Collection<{ id: string, title: string, author: string }>({
   reactivity: angularReactivityAdapter,
@@ -108,7 +108,7 @@ export class AppComponent {
 ```
 
 ### Key Concepts:
-1. **Collection Setup**: We create a `Posts` collection with `signaldb-plugin-angular` to enable reactivity.
+1. **Collection Setup**: We create a `Posts` collection with `@signaldb/angular` to enable reactivity.
 2. **Component Overview**: The `AppComponent` uses Angular’s `effect()` to automatically update the `items` array whenever the `Posts` collection changes.
 3. **Rendering in Template**: The template renders a list of posts using an `@for` loop, and the `insertPost()` method adds a new post when the "Add Post" button is clicked.
 4. **Effect Hook**: The `effect()` function handles reactivity, ensuring the component stays in sync with changes in the `Posts` collection. The cleanup function removes the cursor when the component is destroyed.

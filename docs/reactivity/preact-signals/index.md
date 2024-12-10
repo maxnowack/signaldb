@@ -38,14 +38,14 @@ You also must manually disable reactivity when making calls outside a reactive s
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-preact
+  $ npm install @signaldb/preact
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-preact'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/preact'
 import { effect } from '@preact/signals-core'
 
 const posts = new Collection({

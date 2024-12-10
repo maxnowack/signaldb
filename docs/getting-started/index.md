@@ -33,7 +33,7 @@ SignalDB is designed for blazing fast query performance and data persistence, wh
 Installing SignalDB is simple and easy. It can be installed using npm. Open your terminal and enter the following command:
 
 ```bash
-  $ npm install signaldb
+  $ npm install @signaldb/core
 ```
 
 ## Creating Collections
@@ -41,7 +41,7 @@ Installing SignalDB is simple and easy. It can be installed using npm. Open your
 Creating collections is straight forward.
 
 ```js
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 
 const posts = new Collection()
 ```
@@ -49,7 +49,7 @@ const posts = new Collection()
 but normally you want to persist your data. Persistence in SignalDB is achieved by using [persistence adapters](/data-persistence/) but to make thing easier for you, there is a helper class called `PersistentCollection` that configures that for you. The `PersistentCollection` chooses automatically where to store the data and uses `localStorage` in the browser and a JSON file on the serverside.
 
 ```js
-import { PersistentCollection } from 'signaldb'
+import { PersistentCollection } from '@signaldb/core'
 
 const posts = new PersistentCollection('posts')
 ```

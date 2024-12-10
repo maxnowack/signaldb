@@ -20,7 +20,7 @@ head:
     content: Discover how to integrate @maverick-js/signals with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
-    content: SignalDB, @maverick-js/signals, reactivity adapter, reactive programming, JavaScript, real-time updates, integration guide, signaldb-plugin-maverickjs, collection setup, automatic cleanup, scope check
+    content: SignalDB, @maverick-js/signals, reactivity adapter, reactive programming, JavaScript, real-time updates, integration guide, @signaldb/maverickjs, collection setup, automatic cleanup, scope check
 ---
 # Reactivity adapter for [`@maverick-js/signals`](https://github.com/maverick-js/signals)
 
@@ -34,15 +34,15 @@ Maverick.js's signals provide a powerful foundation for reactive programming, an
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-maverickjs
+  $ npm install @signaldb/maverickjs
 ```
 
 ## Usage
 
 ```js
 import { effect } from '@maverick-js/signals'
-import reactivityAdapter from 'signaldb-plugin-maverickjs'
-import { Collection } from 'signaldb'
+import reactivityAdapter from '@signaldb/maverickjs'
+import { Collection } from '@signaldb/core'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,

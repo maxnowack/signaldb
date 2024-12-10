@@ -1,4 +1,4 @@
-import type { BaseItem, Modifier } from 'signaldb'
+import type { BaseItem, Modifier } from '@signaldb/core'
 
 interface Insert<T extends BaseItem<I> = BaseItem, I = any> {
   type: 'insert',
