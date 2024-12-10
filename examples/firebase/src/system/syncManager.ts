@@ -1,4 +1,4 @@
-import { SyncManager } from 'signaldb'
+import { SyncManager } from 'signaldb-sync'
 import createLocalStorageAdapter from 'signaldb-localstorage'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, remove, update, onChildAdded, onChildChanged, onChildRemoved } from 'firebase/database'

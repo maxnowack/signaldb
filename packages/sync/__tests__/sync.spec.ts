@@ -1,12 +1,10 @@
 import { it, expect, vi } from 'vitest'
-import type { BaseItem } from '../../src/Collection'
-import type { Changeset, LoadResponse } from '../../src/types/PersistenceAdapter'
-import type Modifier from '../../src/types/Modifier'
-import sync from '../../src/SyncManager/sync'
-import computeChanges from '../../src/SyncManager/computeChanges'
-import getSnapshot from '../../src/SyncManager/getSnapshot'
-import applyChanges from '../../src/SyncManager/applyChanges'
-import type { Change } from '../../src/SyncManager/types'
+import type { BaseItem, Changeset, LoadResponse, Modifier } from 'signaldb'
+import sync from '../src/sync'
+import computeChanges from '../src/computeChanges'
+import getSnapshot from '../src/getSnapshot'
+import applyChanges from '../src/applyChanges'
+import type { Change } from '../src/types'
 
 // Example item type
 interface TestItem extends BaseItem<number> {
