@@ -54,7 +54,7 @@ import { PersistentCollection } from '@signaldb/core'
 const posts = new PersistentCollection('posts')
 ```
 
-That's all you have to do. There a also some optional configuration options you find here: [collections reference](/collections/)
+That's all you have to do. There a also some optional configuration options you find here: [collections reference](/reference/core/collection/)
 
 
 ## Adding data

@@ -73,6 +73,6 @@ features:
     details: Vue.js's powerful reactivity system, which allows for effortless binding and updating of the UI based on data changes, pairs well with SignalDB's reactivity adapters, creating a fusion of two reactivity paradigms and ensuring real-time data accuracy.
   - icon: 🥳
     title: and many more!
-    link: /reactivity/other/
+    link: /reference/core/createreactivityadapter/
     details: SignalDB is designed to be framework-agnostic, offering integration through reactivity adapters which allow it to seamlessly interface with various signal libraries, ensuring auto-updates to reactive queries when data changes; this flexibility makes it a great choice for integration with a wide range of frameworks
 ---
