@@ -54,6 +54,6 @@
     "meteor-ts-tracker": "2.0.2"
   },
   "peerDependencies": {
-    "signaldb": "0.x.x"
+    "signaldb": "0.x || 1.x"
   }
 }
