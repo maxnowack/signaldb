@@ -93,7 +93,7 @@ SignalDB harnesses the power of signal-based reactivity to offer a dynamic and r
 
 ### Collections & Queries
 
-At the heart of SignalDB lies its advanced handling of collections and queries. Our in-memory data storage approach ensures blazing-fast query performance, perfect for applications requiring real-time data manipulation and retrieval. This setup allows for a synchronous API, eliminating the complexity of asynchronous operations and making data handling straightforward and efficient. SignalDB's query system is based on [MongoDB's query syntax](https://www.mongodb.com/docs/manual/reference/operator/query/) using [mingo](https://github.com/kofrasa/mingo) under the hood, providing a familiar and powerful querying experience. Learn more about [Collections](https://signaldb.js.org/collections/) and [Queries](https://signaldb.js.org/queries/) in the documentation.
+At the heart of SignalDB lies its advanced handling of collections and queries. Our in-memory data storage approach ensures blazing-fast query performance, perfect for applications requiring real-time data manipulation and retrieval. This setup allows for a synchronous API, eliminating the complexity of asynchronous operations and making data handling straightforward and efficient. SignalDB's query system is based on [MongoDB's query syntax](https://www.mongodb.com/docs/manual/reference/operator/query/) using [mingo](https://github.com/kofrasa/mingo) under the hood, providing a familiar and powerful querying experience. Learn more about [Collections](https://signaldb.js.org/reference/core/collection/) and [Queries](https://signaldb.js.org/queries/) in the documentation.
 
 ### Synchronization with external systems
 
