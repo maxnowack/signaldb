@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import { api } from 'sinuous'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import sinuousReactivityAdapter from '../src'
 
-describe('signaldb-plugin-sinuous', () => {
+describe('@signaldb/sinuous', () => {
   it('should be reactive with sinuous', async () => {
     const reactivity = sinuousReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

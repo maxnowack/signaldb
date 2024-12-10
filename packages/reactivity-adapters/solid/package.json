@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-plugin-solid",
+  "name": "@signaldb/solid",
   "version": "1.1.0",
   "description": "",
   "scripts": {
@@ -51,7 +51,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x || 1.x",
+    "@signaldb/core": "1.x",
     "solid-js": "1.x.x"
   }
 }

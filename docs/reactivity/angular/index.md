@@ -38,15 +38,15 @@ You also must manually disable reactivity when making calls outside a reactive s
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-angular
+  $ npm install @signaldb/angular
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import { effect } from '@angular/core'
-import reactivityAdapter from 'signaldb-plugin-angular'
+import reactivityAdapter from '@signaldb/angular'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,

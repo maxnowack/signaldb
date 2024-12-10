@@ -1,5 +1,5 @@
 import { signal } from 'usignal'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const usignalReactivityAdapter = createReactivityAdapter({
   create: () => {

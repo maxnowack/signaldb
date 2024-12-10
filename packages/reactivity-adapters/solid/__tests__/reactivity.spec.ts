@@ -3,7 +3,7 @@ import {
   createEffect,
   createRoot,
 } from 'solid-js'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import solidReactivityAdapter from '../src'
 
 vi.mock('solid-js', async () => {
@@ -13,7 +13,7 @@ vi.mock('solid-js', async () => {
   return solidBrowser
 })
 
-describe('signaldb-plugin-solid', () => {
+describe('@signaldb/solid', () => {
   it('should be reactive with solid', async () => {
     const reactivity = solidReactivityAdapter
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion

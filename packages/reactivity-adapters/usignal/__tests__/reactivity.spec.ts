@@ -1,9 +1,9 @@
 import { vi, describe, it, expect } from 'vitest'
 import { effect } from 'usignal'
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 import usignalReactivityAdapter from '../src'
 
-describe('signaldb-plugin-usignal', () => {
+describe('@signaldb/usignal', () => {
   it('should be reactive with usignal', async () => {
     const collection = new Collection({ reactivity: usignalReactivityAdapter })
     const callback = vi.fn()

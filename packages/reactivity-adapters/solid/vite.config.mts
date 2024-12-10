@@ -24,7 +24,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
-        'signaldb',
+        '@signaldb/core',
         'solid-js',
         'solid-js/dist/solid',
       ],

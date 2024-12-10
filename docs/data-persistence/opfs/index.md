@@ -32,7 +32,7 @@ The OPFS Adapter is an alternative to the [Filesystem Adapter](https://signaldb.
 *Credits to [jamesgibson14](https://github.com/jamesgibson14)*
 
 ```js
-import { createOPFSAdapter, Collection } from 'signaldb'
+import { createOPFSAdapter, Collection } from '@signaldb/core'
 
 const posts = new Collection({
   persistence: createOPFSAdapter('posts.json'),

@@ -1,6 +1,6 @@
 import { Client, Databases } from 'appwrite'
-import { SyncManager } from 'signaldb-sync'
-import createLocalStorageAdapter from 'signaldb-localstorage'
+import { SyncManager } from '@signaldb/sync'
+import createLocalStorageAdapter from '@signaldb/localstorage'
 
 const client = new Client()
 client

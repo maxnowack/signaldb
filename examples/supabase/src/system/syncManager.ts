@@ -1,5 +1,5 @@
-import { SyncManager } from 'signaldb-sync'
-import createLocalStorageAdapter from 'signaldb-localstorage'
+import { SyncManager } from '@signaldb/sync'
+import createLocalStorageAdapter from '@signaldb/localstorage'
 import { createClient } from '@supabase/supabase-js'
 
 interface Database {

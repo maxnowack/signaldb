@@ -1,5 +1,5 @@
 import { observable, api } from 'sinuous'
-import { createReactivityAdapter } from 'signaldb'
+import { createReactivityAdapter } from '@signaldb/core'
 
 const sinuousReactivityAdapter = createReactivityAdapter({
   create: () => {

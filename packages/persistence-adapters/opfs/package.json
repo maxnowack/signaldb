@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-opfs",
+  "name": "@signaldb/opfs",
   "version": "1.0.0",
   "description": "",
   "scripts": {
@@ -51,6 +51,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "signaldb": "0.x || 1.x"
+    "@signaldb/core": "1.x"
   }
 }

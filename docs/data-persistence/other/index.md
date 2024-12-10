@@ -57,7 +57,7 @@ Here is a short example how the File system persistence adapter is implemented:
 
 ```js
 import fs from 'fs'
-import { createPersistenceAdapter } from 'signaldb'
+import { createPersistenceAdapter } from '@signaldb/core'
 
 export default function createFilesystemAdapter(filename: string) {
   return createPersistenceAdapter({

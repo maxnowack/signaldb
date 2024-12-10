@@ -34,14 +34,14 @@ Meteor Tracker is an integral component of the Meteor framework, offering a seam
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-meteor
+  $ npm install @signaldb/meteor
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-meteor'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/meteor'
 
 const posts = new Collection({
   reactivity: reactivityAdapter(Tracker),

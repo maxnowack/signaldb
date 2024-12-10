@@ -1,5 +1,5 @@
 {
-  "name": "signaldb-plugin-meteor",
+  "name": "@signaldb/meteor",
   "version": "1.0.3",
   "description": "",
   "scripts": {
@@ -54,6 +54,6 @@
     "meteor-ts-tracker": "2.0.2"
   },
   "peerDependencies": {
-    "signaldb": "0.x || 1.x"
+    "@signaldb/core": "1.x"
   }
 }

@@ -1,4 +1,4 @@
-import { isEqual } from 'signaldb'
+import { isEqual } from '@signaldb/core'
 
 /**
  * Compute changes between two arrays of items.
