@@ -55,7 +55,7 @@ Also check out the [core concepts about reactivity](/core-concepts/#signals-and-
 
 ## Reactivity Libraries
 
-We provide prebuilt reactivity adapters for existing reactivity libraries. If an adapter is missing, feel free to request it by [opening an issue](https://github.com/maxnowack/signaldb/issues/new) at Github.
+We provide prebuilt reactivity adapters for existing reactivity libraries. If an adapter is missing, feel free to request it by [opening an issue at Github](https://github.com/maxnowack/signaldb/issues/new) or write one at your own. See [createReactivityAdapter](/reference/createreactivityadapter/) for more information.
 
 For some libraries, it wasn't possible to implement a [`onDispose`](/reactivity/other/#ondispose-callback-void-dependency-dependency) method in the adapter. That means that you have to cleanup the cursor manually after the reactive context was closed. There are examples on the specific adapter documentation pages. Make sure that you implement it properly, since not doing this can lead to memory leaks.
 
