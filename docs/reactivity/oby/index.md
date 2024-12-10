@@ -32,14 +32,14 @@ head:
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-oby
+  $ npm install @signaldb/oby
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-oby'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/oby'
 import { effect } from 'oby'
 
 const posts = new Collection({

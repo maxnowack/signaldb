@@ -74,7 +74,7 @@ You can also create a MemoryAdapter on your own. Simply use the `createMemoryAda
 * `findIndex(predicate: (value: T, index: number, obj: T[]) => boolean): number`
 
 ```js
-import { createMemoryAdapter } from 'signaldb'
+import { createMemoryAdapter } from '@signaldb/core'
 
 const memoryAdapter = createMemoryAdapter(/* ... */)
 ```

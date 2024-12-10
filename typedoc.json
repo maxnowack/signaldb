@@ -1,9 +1,11 @@
 {
    "plugin": [],
    "entryPoints": [
-     "packages/signaldb",
-     "packages/react",
-     "packages/plugin-*",
+     "packages/system/core",
+     "packages/integrations/*",
+     "packages/reactivity-adapters/*",
+     "packages/persistence-adapters/*",
+     "packages/system/*",
    ],
    "entryPointStrategy": "packages",
    "readme": "none",

@@ -37,13 +37,13 @@ Familiarity with signal-based reactivity is also useful. For more information, y
 First, you need to add SignalDB to your project. Run the following command in your terminal:
 
 ```bash
-npm install signaldb
+npm install @signaldb/core
 ```
 
 Additionally, you will need the Vue-specific reactivity adapter for SignalDB:
 
 ```bash
-npm install signaldb-plugin-vue
+npm install @signaldb/vue
 ```
 
 ## Setting Up SignalDB
@@ -53,8 +53,8 @@ After installing SignalDB, set up your collections and configure the reactivity 
 ```vue
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
-import { Collection } from 'signaldb'
-import vueReactivityAdapter from 'signaldb-plugin-vue'
+import { Collection } from '@signaldb/core'
+import vueReactivityAdapter from '@signaldb/vue'
 
 const Posts = new Collection({
   reactivity: vueReactivityAdapter,

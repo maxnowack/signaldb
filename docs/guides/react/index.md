@@ -37,26 +37,26 @@ Also a basic understanding of signal-based reactivity is helpful. If you are not
 First of all, you need to install SignalDB. You can do this by running the following command in your terminal:
 
 ```bash
-  npm install signaldb
+  npm install @signaldb/core
 ```
 
 We also need to install a signals library that provides the reactivity for SignalDB. We going to use [Maverick Signals](https://github.com/maverick-js/signals). The following command installs Maverick Signals and the corresponding reactivity adapter for SignalDB:
 
 ```bash
   npm install @maverick-js/signals
-  npm install signaldb-plugin-maverickjs
+  npm install @signaldb/maverickjs
 ```
 
-Additionally we need to install the `signaldb-react` package that provides the React bindings for SignalDB:
+Additionally we need to install the `@signaldb/react` package that provides the React bindings for SignalDB:
 
 ```bash
-  npm install signaldb-react
+  npm install @signaldb/react
 ```
 
 **You can also install all packages at once by running the following command:**
 
 ```bash
-  npm install signaldb @maverick-js/signals signaldb-plugin-maverickjs signaldb-react
+  npm install @signaldb/core @maverick-js/signals @signaldb/maverickjs @signaldb/react
 ```
 
 ## Basic Setup
@@ -65,8 +65,8 @@ To use SignalDB in your React project, you need to set up your collections and t
 
 ```js
 // Posts.js
-import { Collection } from 'signaldb'
-import maverickReactivityAdapter from 'signaldb-plugin-maverickjs'
+import { Collection } from '@signaldb/core'
+import maverickReactivityAdapter from '@signaldb/maverickjs'
 
 const Posts = new Collection({
   reactivity: maverickReactivityAdapter,
@@ -75,10 +75,10 @@ const Posts = new Collection({
 export default Posts
 ```
 
-In another file, you have to setup a react hook that provides the reactivity to your components. We have a helper function for that in the `signaldb-react` package, so that it is just a one liner for you:
+In another file, you have to setup a react hook that provides the reactivity to your components. We have a helper function for that in the `@signaldb/react` package, so that it is just a one liner for you:
 ```js
 // useReactivity.js
-import { createUseReactivityHook } from 'signaldb-react'
+import { createUseReactivityHook } from '@signaldb/react'
 import { effect } from '@maverick-js/signals'
 
 const useReactivity = createUseReactivityHook(effect)

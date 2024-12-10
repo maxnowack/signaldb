@@ -29,7 +29,7 @@ The Collection class is designed to manage and manipulate collections of data in
 ## Importing
 
 ```js
-import { Collection } from 'signaldb'
+import { Collection } from '@signaldb/core'
 ```
 
 ## Constructor
@@ -146,7 +146,7 @@ An IndexProvider is an object that specifies how to create an index on a collect
 Take a look at the [`createIndex`](https://github.com/maxnowack/signaldb/blob/main/src/Collection/createIndex.ts) function for an example.
 
 ```js
-import { createIndexProvider } from 'signaldb'
+import { createIndexProvider } from '@signaldb/core'
 
 const indexProvider = createIndexProvider({
   query(selector: FlatSelector<T>) {
@@ -172,7 +172,7 @@ The `createIndex()` function can be used to create a single field index on a col
 
 ```js
 
-import { createIndex, Collection } from 'signaldb'
+import { createIndex, Collection } from '@signaldb/core'
 
 interface User {
   id: string

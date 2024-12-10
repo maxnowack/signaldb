@@ -20,7 +20,7 @@ head:
     content: Discover how to integrate Vue.js with SignalDB using the reactivity adapter for seamless reactive database integration.
 - - meta
   - name: keywords
-    content: SignalDB, Vue.js, reactivity adapter, integration guide, JavaScript, TypeScript, real-time updates, signaldb-plugin-vue, watchEffect, component state, dynamic UI
+    content: SignalDB, Vue.js, reactivity adapter, integration guide, JavaScript, TypeScript, real-time updates, @signaldb/vue, watchEffect, component state, dynamic UI
 ---
 # Reactivity adapter for [`Vue.js`](https://vuejs.org/guide/essentials/reactivity-fundamentals.html)
 
@@ -34,14 +34,14 @@ Vue.js is renowned for its powerful reactivity system, enabling developers to ef
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-vue
+  $ npm install @signaldb/vue
 ```
 
 ## Usage
 
 ```js
-import { Collection } from 'signaldb'
-import reactivityAdapter from 'signaldb-plugin-vue'
+import { Collection } from '@signaldb/core'
+import reactivityAdapter from '@signaldb/vue'
 import { watchEffect } from 'vue'
 
 const posts = new Collection({

@@ -37,13 +37,13 @@ An understanding of signal-based reactivity will also be useful. If you're not f
 Begin by installing SignalDB. Run the following command in your terminal:
 
 ```bash
-npm install signaldb
+npm install @signaldb/core
 ```
 
 Next, install the Solid reactivity adapter to integrate Solid signals with SignalDB:
 
 ```bash
-npm install signaldb-plugin-solid
+npm install @signaldb/solid
 ```
 
 ## Setting Up
@@ -52,8 +52,8 @@ To integrate SignalDB into your Solid project, define your collections and confi
 
 ```js
 // Posts.js
-import { Collection } from 'signaldb'
-import solidReactivityAdapter from 'signaldb-plugin-solid'
+import { Collection } from '@signaldb/core'
+import solidReactivityAdapter from '@signaldb/solid'
 
 const Posts = new Collection({
   reactivity: solidReactivityAdapter,

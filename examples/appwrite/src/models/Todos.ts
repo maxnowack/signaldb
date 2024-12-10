@@ -1,5 +1,6 @@
-import { Collection, createLocalStorageAdapter } from 'signaldb'
-import maverickjsReactivityAdapter from 'signaldb-plugin-maverickjs'
+import { Collection } from '@signaldb/core'
+import createLocalStorageAdapter from '@signaldb/localstorage'
+import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 import syncManager from '../system/syncManager'
 
 const Todos = new Collection<{ id: string, text: string, completed: boolean }>({

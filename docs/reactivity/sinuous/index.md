@@ -35,15 +35,15 @@ You must manually disable reactivity when making calls outside a reactive scope 
 ## Installation
 
 ```bash
-  $ npm install signaldb-plugin-sinuous
+  $ npm install @signaldb/sinuous
 ```
 
 ## Usage
 
 ```js
 import { api } from 'sinuous'
-import reactivityAdapter from 'signaldb-plugin-sinuous'
-import { Collection } from 'signaldb'
+import reactivityAdapter from '@signaldb/sinuous'
+import { Collection } from '@signaldb/core'
 
 const posts = new Collection({
   reactivity: reactivityAdapter,
