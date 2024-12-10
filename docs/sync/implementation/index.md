@@ -27,9 +27,9 @@ head:
 
 This page describes how remote synchronization could be implemented on the frontend side.
 
-## Creating a [`SyncManager`](/sync/reference/)
+## Creating a [`SyncManager`](/reference/sync/)
 
-The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a `SyncManager` instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic and also a method to create a `persistenceAdapter` that will be used internally to store snapshot, changes and sync operations. This is needed in case you need to cache those data offline (defaults to [`createLocalStorageAdapter`](/data-persistence/local-storage/)).
+The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a `SyncManager` instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic and also a method to create a `persistenceAdapter` that will be used internally to store snapshot, changes and sync operations. This is needed in case you need to cache those data offline (defaults to [`createLocalStorageAdapter`](/reference/localstorage/)).
 Additionally a `reactivityAdapter` can be passed to the options object. This adapter is used to make some of the functions provided by the `SyncManager` reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the `SyncManager` about remote changes.
 
 ```ts
