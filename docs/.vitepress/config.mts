@@ -24,50 +24,19 @@ export default withMermaid({
         text: 'Quickstart',
         collapsed: false,
         items: [
-          { text: 'Core Concepts', link: '/core-concepts/' },
           { text: 'Getting Started', link: '/getting-started/' },
+          { text: 'Core Concepts', link: '/core-concepts/' },
           { text: 'Installation', link: '/installation/' },
-        ],
-      },
-      {
-        text: 'Guides',
-        collapsed: false,
-        items: [
-          { text: 'Angular', link: '/guides/angular/' },
-          { text: 'React', link: '/guides/react/' },
-          { text: 'Solid', link: '/guides/solid-js/' },
-          { text: 'Svelte', link: '/guides/svelte/' },
-          { text: 'Vue', link: '/guides/vue/' },
-        ],
-      },
-      {
-        text: 'Documentation',
-        collapsed: false,
-        items: [
-          { text: 'Collections', link: '/collections/' },
           { text: 'Querying Data', link: '/queries/' },
           { text: 'Data manipulation', link: '/data-manipulation/' },
-        ],
-      },
-      {
-        text: 'Integrations',
-        collapsed: false,
-        items: [
-          { text: 'React', link: '/integrations/react/' },
-        ],
-      },
-      {
-        text: 'Synchronization',
-        collapsed: false,
-        items: [
-          { text: 'Overview', link: '/sync/' },
-          { text: 'Implementation', link: '/sync/implementation/' },
-          { text: 'Reference', link: '/sync/reference/' },
+          { text: 'Data Persistence', link: '/data-persistence/' },
+          { text: 'Sync', link: '/sync/' },
+          { text: 'Implementing Sync', link: '/sync/implementation/' },
         ],
       },
       {
         text: 'Reactivity Adapters',
-        collapsed: false,
+        collapsed: true,
         items: [
           { text: 'Overview', link: '/reactivity/' },
           { text: '@preact/signals-core', link: '/reactivity/preact-signals/' },
@@ -82,31 +51,76 @@ export default withMermaid({
           { text: 'Solid.js', link: '/reactivity/solidjs/' },
           { text: 'usignal', link: '/reactivity/usignal/' },
           { text: 'Vue.js', link: '/reactivity/vue/' },
-          { text: 'Other libraries', link: '/reactivity/other/' },
         ],
       },
       {
-        text: 'Data Persistence',
+        text: 'Guides',
         collapsed: false,
         items: [
-          { text: 'Overview', link: '/data-persistence/' },
-          { text: 'localStorage', link: '/data-persistence/local-storage/' },
-          { text: 'OPFS', link: '/data-persistence/opfs/' },
-          { text: 'Filesystem', link: '/data-persistence/file-system/' },
-          { text: 'RxDB', link: '/data-persistence/rxdb/' },
+          { text: 'Angular', link: '/guides/angular/' },
+          { text: 'React', link: '/guides/react/' },
+          { text: 'Solid', link: '/guides/solid-js/' },
+          { text: 'Svelte', link: '/guides/svelte/' },
+          { text: 'Vue', link: '/guides/vue/' },
+        ],
+      },
+      {
+        text: 'Reference',
+        link: '/reference/',
+        collapsed: true,
+        items: [
           {
-            text: 'External Sources',
-            collapsed: true,
+            text: 'Base',
             items: [
-              { text: 'Overview', link: '/replication/' },
-              { text: 'HTTP', link: '/replication/http/' },
-              { text: 'Appwrite', link: '/replication/appwrite/' },
-              { text: 'Firebase', link: '/replication/firebase/' },
-              { text: 'Supabase', link: '/replication/supabase/' },
-              { text: 'Other Replication Options', link: '/replication/other/' },
+              {
+                text: '@signaldb/core',
+                link: '/reference/core/',
+                collapsed: true,
+                items: [
+                  { text: 'Collection', link: '/reference/core/collection/' },
+                  { text: 'AutoFetchCollection', link: '/reference/core/autofetchcollection/' },
+                  { text: 'createIndex', link: '/reference/core/createindex/' },
+                  { text: 'createIndexProvider', link: '/reference/core/createindexprovider/' },
+                  { text: 'createMemoryAdapter', link: '/reference/core/creatememoryadapter/' },
+                  { text: 'createPersistenceAdapter', link: '/reference/core/createpersistenceadapter/' },
+                  { text: 'createReactivityAdapter', link: '/reference/core/createreactivityadapter/' },
+                  { text: 'combinePersistenceAdapters', link: '/reference/core/combinepersistenceadapters/' },
+                ],
+              },
+              { text: '@signaldb/sync', link: '/reference/sync/' },
             ],
           },
-          { text: 'Other Persistence Options', link: '/data-persistence/other/' },
+          {
+            text: 'Integrations',
+            items: [
+              { text: '@signaldb/react', link: '/reference/react/' },
+            ],
+          },
+          {
+            text: 'Persistence Adapters',
+            items: [
+              { text: '@signaldb/fs', link: '/reference/fs/' },
+              { text: '@signaldb/localstorage', link: '/reference/localstorage/' },
+              { text: '@signaldb/opfs', link: '/reference/opfs/' },
+            ],
+          },
+          {
+            text: 'Reactivity Adapters',
+            items: [
+              { text: '@signaldb/angular', link: '/reference/angular/' },
+              { text: '@signaldb/maverickjs', link: '/reference/maverickjs/' },
+              { text: '@signaldb/meteor', link: '/reference/meteor/' },
+              { text: '@signaldb/mobx', link: '/reference/mobx/' },
+              { text: '@signaldb/oby', link: '/reference/oby/' },
+              { text: '@signaldb/preact', link: '/reference/preact/' },
+              { text: '@signaldb/reactively', link: '/reference/reactively/' },
+              { text: '@signaldb/sinuous', link: '/reference/sinuous/' },
+              { text: '@signaldb/sjs', link: '/reference/sjs/' },
+              { text: '@signaldb/solid', link: '/reference/solid/' },
+              { text: '@signaldb/usignal', link: '/reference/usignal/' },
+              { text: '@signaldb/vue', link: '/reference/vue/' },
+            ],
+          },
         ],
       },
       {
@@ -209,20 +223,26 @@ export default withMermaid({
     }
 
     const redirects = {
-      '/collections.html': '/collections/',
+      '/collections.html': '/reference/core/collection/',
+      '/collections/index.html': '/reference/core/collection/',
       '/core-concepts.html': '/core-concepts/',
       '/cursors.html': '/queries/',
       '/cursors/index.html': '/queries/',
       '/data-manipulation.html': '/data-manipulation/',
       '/data-persistence.html': '/data-persistence/',
-      '/data-persistence/file-system.html': '/data-persistence/file-system/',
-      '/data-persistence/local-storage.html': '/data-persistence/local-storage/',
+      '/data-persistence/appwrite/index.html': '/sync/',
+      '/data-persistence/file-system.html': '/reference/fs/',
+      '/data-persistence/file-system/index.html': '/reference/fs/',
+      '/data-persistence/firebase/index.html': '/sync/',
+      '/data-persistence/local-storage.html': '/reference/localstorage/',
+      '/data-persistence/local-storage/index.html': '/reference/localstorage/',
+      '/data-persistence/opfs/index.html': '/reference/opfs/',
       '/data-persistence/other.html': '/data-persistence/other/',
-      '/data-persistence/appwrite/index.html': '/replication/appwrite/',
-      '/data-persistence/firebase/index.html': '/replication/firebase/',
-      '/data-persistence/supabase/index.html': '/replication/supabase/',
+      '/data-persistence/supabase/index.html': '/sync/',
       '/getting-started.html': '/getting-started/',
       '/installation.html': '/installation/',
+      '/integrations/index.html': '/guides/',
+      '/integrations/react/index.html': '/guides/react/',
       '/queries.html': '/queries/',
       '/reactivity.html': '/reactivity/',
       '/reactivity/angular.html': '/reactivity/angular/',
@@ -230,7 +250,7 @@ export default withMermaid({
       '/reactivity/meteor-tracker.html': '/reactivity/meteor-tracker/',
       '/reactivity/mobx.html': '/reactivity/mobx/',
       '/reactivity/oby.html': '/reactivity/oby/',
-      '/reactivity/other.html': '/reactivity/other/',
+      '/reactivity/other.html': '/reference/core/createreactivityadapter/',
       '/reactivity/preact-signals.html': '/reactivity/preact-signals/',
       '/reactivity/reactively.html': '/reactivity/reactively/',
       '/reactivity/S.html': '/reactivity/S/',
@@ -238,16 +258,22 @@ export default withMermaid({
       '/reactivity/solidjs.html': '/reactivity/solidjs/',
       '/reactivity/usignal.html': '/reactivity/usignal/',
       '/reactivity/vue.html': '/reactivity/vue/',
-      '/replication.html': '/replication/',
-      '/replication/rxdb.html': '/data-persistence/rxdb/',
-      '/replication/rxdb/index.html': '/data-persistence/rxdb/',
+      '/replication.html': '/sync/',
+      '/replication/index.html': '/sync/',
+      '/replication/appwrite/index.html': '/sync/',
+      '/replication/firebase/index.html': '/sync/',
+      '/replication/http/index.html': '/sync/',
+      '/replication/other/index.html': '/sync/',
+      '/replication/rxdb.html': '/sync/',
+      '/replication/rxdb/index.html': '/sync/',
+      '/replication/supabase/index.html': '/sync/',
+      '/sync/reference/index.html': '/reference/sync/',
       '/troubleshooting.html': '/troubleshooting/',
     }
 
     await Object.entries(redirects).reduce(async (promise, [from, to]) => {
       await promise
-      const dir = path.dirname(`./docs/.vitepress/dist${from}`)
-      await fs.mkdir(dir, { recursive: true })
+      await fs.mkdir(path.dirname(`./docs/.vitepress/dist${from}`), { recursive: true })
       await fs.writeFile(`./docs/.vitepress/dist${from}`, buildRedirectHtml(to))
     }, Promise.resolve())
   },

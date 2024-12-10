@@ -35,7 +35,7 @@ In SignalDB, all data is stored in memory, making query performance exceptionall
 SignalDB is schema-less, which means you don't need to define a schema for your data before you start using it. This allows you to store any data you want without worrying about defining a schema first.
 
 More information on how to define collections and perform queries will be found in the dedicated sections:
-* [Collections](/collections/)
+* [Collections](/reference/core/collection/)
 * [Queries](/queries/)
 
 ### Optimistic UI
@@ -64,20 +64,7 @@ Simply put, a memory adapter is a piece of code that dictates how your data is s
 
 Normally, you don't need to worry about memory adapters because SignalDB comes with a default one. Since a memory adapter is a subset of the `Array` class, the most basic memory adapter is an emtpty array (`[]`).
 
-You can also create a MemoryAdapter on your own. Simply use the `createMemoryAdapter` helper function to do that. You have to the following methods from with the same signature as in the `Array` class:
-* `push(item: T): void`
-* `pop(): T | undefined`
-* `splice(start: number, deleteCount?: number, ...items: T[]): T[]`
-* `map<U>(callbackfn: (value: T, index: number, array: T[]) => U): U[]`
-* `find(predicate: (value: T, index: number, obj: T[]) => boolean): T | undefined`
-* `filter(predicate: (value: T, index: number, array: T[]) => unknown): T[]`
-* `findIndex(predicate: (value: T, index: number, obj: T[]) => boolean): number`
-
-```js
-import { createMemoryAdapter } from '@signaldb/core'
-
-const memoryAdapter = createMemoryAdapter(/* ... */)
-```
+You can also create a MemoryAdapter on your own. See the [createMemoryAdapter reference](/reference/core/creatememoryadapter/) for more information.
 
 ## Data Persistence
 
