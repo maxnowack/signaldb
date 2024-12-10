@@ -20,6 +20,7 @@
     "signaldb-localstorage": "*",
     "signaldb-plugin-maverickjs": "*",
     "signaldb-react": "*",
+    "signaldb-sync": "*",
     "typescript": "5.7.2"
   },
   "devDependencies": {
