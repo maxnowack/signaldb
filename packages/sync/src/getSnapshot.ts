@@ -1,5 +1,4 @@
-import type { BaseItem } from '../Collection'
-import type { LoadResponse } from '../types/PersistenceAdapter'
+import type { BaseItem, LoadResponse } from 'signaldb'
 
 /**
  * Gets the snapshot of items from the last snapshot and the changes.

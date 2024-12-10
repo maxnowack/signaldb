@@ -1,7 +1,6 @@
 import { it, expect } from 'vitest'
-import type { BaseItem } from '../../src/Collection'
-import type { LoadResponse } from '../../src/types/PersistenceAdapter'
-import getSnapshot from '../../src/SyncManager/getSnapshot'
+import type { BaseItem, LoadResponse } from 'signaldb'
+import getSnapshot from '../src/getSnapshot'
 
 interface TestItem extends BaseItem<number> {
   id: number,
