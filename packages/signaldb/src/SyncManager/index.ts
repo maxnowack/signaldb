@@ -538,12 +538,49 @@ export default class SyncManager<
 
         // delay sync operation update to next tick to allow other tasks to run first
         await new Promise((resolve) => { setTimeout(resolve, 0) })
+
+        const hasChanges = this.changes.find({
+          collectionName: name,
+        }).count() > 0
+
+        if (hasChanges) {
+          // check if there are unsynced changes to push
+          // and sync again if there are any
+          await this.sync(name, {
+            force: true,
+            onlyWithChanges: true,
+          })
+        } else {
+          // if there are no unsynced changes apply the last snapshot
+          // to make sure that collection and snapshot are in sync
+
+          // find all items that are not in the snapshot
+          const nonExistingItemIds = collection.find({
+            id: { $nin: snapshot.map(item => item.id) } as any,
+          }).map(item => item.id) as IdType[]
+
+          // find all items that are in the snapshot but not in the collection
+          const existingItemIds = new Set(snapshot
+            .filter(item => collection.find({ id: item.id as any }).count() > 0)
+            .map(item => item.id))
+
+          collection.batch(() => {
+            // update all items that are in the snapshot
+            snapshot.forEach((item) => {
+              const itemExists = existingItemIds.has(item.id)
+              if (itemExists) {
+                collection.updateOne({ id: item.id as any }, { $set: item })
+              } else {
+                collection.insert(item)
+              }
+            })
+
+            // remove all items that are not in the snapshot
+            nonExistingItemIds.forEach((id) => {
+              collection.removeOne({ id: id as any })
+            })
+          })
+        }
       })
-      // check if there are unsynced changes to push
-      // after the sync was finished successfully
-      .then(() => this.sync(name, {
-        force: true,
-        onlyWithChanges: true,
-      }))
   }
 }
