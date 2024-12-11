@@ -100,3 +100,17 @@ it('should handle undefined lastSnapshot and apply changes', () => {
   const result = getSnapshot(lastSnapshot, data)
   expect(result).toEqual([{ id: 3, name: 'Item 3' }])
 })
+
+it('should upsert changes', () => {
+  const lastSnapshot: TestItem[] = [{ id: 2, name: 'Item 2' }]
+  const data: LoadResponse<TestItem> = {
+    changes: {
+      added: [{ id: 2, name: 'Item 23' }],
+      modified: [{ id: 3, name: 'Item 3' }],
+      removed: [],
+    },
+  }
+
+  const result = getSnapshot(lastSnapshot, data)
+  expect(result).toEqual([{ id: 2, name: 'Item 23' }, { id: 3, name: 'Item 3' }])
+})

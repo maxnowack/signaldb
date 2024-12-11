@@ -510,6 +510,42 @@ it('should handle error in remote changes with data', async () => {
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
 })
 
+it('should sync second time if there were changes during sync', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [{ id: '1', name: 'Test Item' }],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const onRemoteChangeHandler = vi.fn<(data?: LoadResponse<TestItem>) => void | Promise<void>>()
+  const onError = vi.fn()
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+    registerRemoteChange: (_options, onRemoteChange) => {
+      onRemoteChangeHandler.mockImplementation(onRemoteChange)
+    },
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>()
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  // Simulate a remote change
+  const promise = onRemoteChangeHandler({ items: [{ id: '2', name: 'Remote Item' }] })
+  mockCollection.insert({ id: '1', name: 'Test Item' })
+  await expect(promise).resolves.not.toThrow()
+  expect(onError).toHaveBeenCalledTimes(0)
+
+  // wait to next tick
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+
+  expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
+})
+
 it('should sync after a empty remote change was received', async () => {
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -815,6 +851,65 @@ it('should not leave any remote changes after successful pull', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPull).toHaveBeenCalled()
+  // @ts-expect-error - private property
+  expect(syncManager.remoteChanges.length).toBe(0)
+})
+
+it('should reset if syncmanager snapshot and collection are not in sync', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [
+      { id: '1', name: 'Test Item' },
+      { id: '2', name: 'Test Item 2' },
+    ],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParams: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>({
+    memory: [
+      { id: '1', name: 'Test Item' },
+      { id: 'x', name: 'Test Item 3' },
+    ],
+  })
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  await syncManager.sync('test')
+  expect(mockCollection.find().fetch()).toEqual([
+    { id: '1', name: 'Test Item' },
+    { id: '2', name: 'Test Item 2' },
+  ])
+
+  // @ts-expect-error - private property
+  syncManager.snapshots.updateOne({ collectionName: 'test' }, {
+    // monkey patch the snapshot and add one item
+    $set: {
+      items: [
+        { id: '1', name: 'Test Item' },
+        { id: '2', name: 'Test Item 2' },
+        { id: 'xxx', name: 'Test Item xxx' },
+      ],
+    },
+  })
+
+  await syncManager.sync('test')
+  expect(mockCollection.find().fetch()).toEqual([
+    { id: '1', name: 'Test Item' },
+    { id: '2', name: 'Test Item 2' },
+  ])
+
+  expect(onError).not.toHaveBeenCalled()
+  expect(mockPull).toHaveBeenCalled()
+
   // @ts-expect-error - private property
   expect(syncManager.remoteChanges.length).toBe(0)
 })
