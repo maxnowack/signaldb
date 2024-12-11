@@ -22,7 +22,6 @@
     "optimistic-ui",
     "reactive",
     "replication",
-    "rxdb",
     "synchronization",
     "tracker",
     "typescript"
