@@ -44,24 +44,18 @@ export default function combinePersistenceAdapters<
   T extends { id: I } & Record<string, any>,
   I,
 >(
-  primary: PersistenceAdapter<T, I>,
-  secondary: PersistenceAdapter<T, I>,
-  options?: {
-    readPreference?: 'primary' | 'secondary',
-  },
+  slowAdapter: PersistenceAdapter<T, I>,
+  fastAdapter: PersistenceAdapter<T, I>,
 ) {
-  const readPreference = options?.readPreference ?? 'secondary'
-  const primaryAdapter = readPreference === 'primary' ? primary : secondary
-  const secondaryAdapter = readPreference === 'primary' ? secondary : primary
   let handleChange: (() => void | Promise<void>) | null = null
   const readExecutor = createTemporaryFallbackExecutor(
-    () => primaryAdapter.load(),
-    () => secondaryAdapter.load(),
+    () => fastAdapter.load(),
+    () => slowAdapter.load(),
     {
       cacheTimeout: 100,
       onResolve: (result) => {
         if (handleChange) void handleChange()
-        void primaryAdapter.save(result.items || [], {
+        void fastAdapter.save(result.items || [], {
           added: result.changes?.added || [],
           modified: result.changes?.modified || [],
           removed: result.changes?.removed || [],
@@ -72,7 +66,7 @@ export default function combinePersistenceAdapters<
   return createPersistenceAdapter<T, I>({
     async register(onChange) {
       handleChange = onChange
-      await Promise.all([primary.register(onChange), secondary.register(onChange)])
+      await Promise.all([slowAdapter.register(onChange), fastAdapter.register(onChange)])
     },
     async load() {
       const promise = readExecutor()
@@ -80,8 +74,8 @@ export default function combinePersistenceAdapters<
     },
     async save(items, changes) {
       await Promise.all([
-        primaryAdapter.save(items, changes),
-        secondaryAdapter.save(items, changes),
+        fastAdapter.save(items, changes),
+        slowAdapter.save(items, changes),
       ])
     },
   })
