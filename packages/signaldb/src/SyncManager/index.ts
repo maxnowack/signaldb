@@ -562,19 +562,24 @@ export default class SyncManager<
           id: { $nin: snapshot.map(item => item.id) } as any,
         }).map(item => item.id) as IdType[]
 
-        // find all items that are in the snapshot but not in the collection
-        const existingItemIds = new Set(collection.find({
-          id: { $in: snapshot.map(item => item.id) } as any,
-        }).map(item => item.id) as IdType[])
-
         collection.batch(() => {
           // update all items that are in the snapshot
           snapshot.forEach((item) => {
-            const itemExists = existingItemIds.has(item.id)
+            const itemExists = !!collection.findOne({ id: item.id as any })
             /* istanbul ignore else -- @preserve */
             if (itemExists) {
+              this.remoteChanges.push({
+                collectionName: name,
+                type: 'update',
+                data: { id: item.id, modifier: { $set: item } },
+              })
               collection.updateOne({ id: item.id as any }, { $set: item })
             } else { // this case should never happen
+              this.remoteChanges.push({
+                collectionName: name,
+                type: 'insert',
+                data: item,
+              })
               collection.insert(item)
             }
           })
