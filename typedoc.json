@@ -1,11 +1,11 @@
 {
    "plugin": [],
    "entryPoints": [
-     "packages/system/core",
+     "packages/base/core",
      "packages/integrations/*",
      "packages/reactivity-adapters/*",
      "packages/persistence-adapters/*",
-     "packages/system/*",
+     "packages/base/*",
    ],
    "entryPointStrategy": "packages",
    "readme": "none",
