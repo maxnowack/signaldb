@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@maverick-js/signals": "^6.0.0",
-    "@types/node": "22.10.1",
+    "@types/node": "22.10.2",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
     "appwrite": "^16.0.2",
