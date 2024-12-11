@@ -18,7 +18,6 @@ export type {
 } from './Collection'
 
 export { default as Collection, createIndex } from './Collection'
-export { default as ReplicatedCollection } from './ReplicatedCollection'
 export { default as AutoFetchCollection } from './AutoFetchCollection'
 export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
 export { default as combinePersistenceAdapters } from './persistence/combinePersistenceAdapters'
