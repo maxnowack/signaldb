@@ -15,3 +15,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * BREAKING: `PersistentCollection` was removed entirely
 * BREAKING: `SyncManager` was moved to `@signaldb/sync`
 * BREAKING: `ReplicatedCollection` was removed entirely
+* BREAKING: `options` parameter was removed from `combinePersistenceAdapters`

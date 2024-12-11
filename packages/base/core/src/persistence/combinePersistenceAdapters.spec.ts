@@ -145,7 +145,7 @@ describe('combinePersistenceAdapters', () => {
       save: vi.fn(),
     }
 
-    const adapter = combinePersistenceAdapters(primary, secondary, { readPreference: 'secondary' })
+    const adapter = combinePersistenceAdapters(primary, secondary)
     await adapter.register(vi.fn())
 
     expect(primary.register).toHaveBeenCalledTimes(1)
@@ -190,7 +190,7 @@ describe('combinePersistenceAdapters', () => {
       save: vi.fn(),
     }
 
-    const adapter = combinePersistenceAdapters(primary, secondary, { readPreference: 'secondary' })
+    const adapter = combinePersistenceAdapters(primary, secondary)
     await adapter.register(onChange)
     const result = adapter.load()
     expect(primary.load).toHaveBeenCalledTimes(1)
@@ -235,7 +235,7 @@ describe('combinePersistenceAdapters', () => {
       save: vi.fn(),
     }
 
-    const adapter = combinePersistenceAdapters(primary, secondary, { readPreference: 'primary' })
+    const adapter = combinePersistenceAdapters(secondary, primary)
     await adapter.register(onChange)
     const result = adapter.load()
     expect(primary.load).toHaveBeenCalledTimes(1)
