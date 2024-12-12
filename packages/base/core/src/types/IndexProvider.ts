@@ -11,22 +11,10 @@ type IndexResult = {
   matched: false,
 }
 
-interface OldIndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
-  /**
-  * @deprecated Use `query` instead
-  */
-  getItemPositions(selector: FlatSelector<T>): null | number[],
-  rebuild(items: T[]): void,
-}
-
-interface NewIndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
-  getItemPositions?: never,
+interface IndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
   query(selector: FlatSelector<T>): IndexResult,
   rebuild(items: T[]): void,
 }
-
-type IndexProvider<T extends BaseItem<I> = BaseItem, I = any> = OldIndexProvider<T, I>
-| NewIndexProvider<T, I>
 
 export type LowLevelIndexProvider<
   T extends BaseItem<I> = BaseItem,
