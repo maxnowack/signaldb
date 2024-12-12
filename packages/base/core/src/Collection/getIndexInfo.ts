@@ -13,19 +13,6 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
     positions: number[],
     optimizedSelector: FlatSelector<T>,
   }>((memo, indexProvider) => {
-    /* istanbul ignore if -- @preserve */ // ignored because it's deprecated
-    if (indexProvider.getItemPositions) {
-      const result = indexProvider.getItemPositions(selector)
-      if (result == null) return memo
-      return {
-        matched: true,
-        positions: memo.matched
-          ? intersection(memo.positions, result)
-          : result,
-        optimizedSelector: memo.optimizedSelector,
-      }
-    }
-
     const info = indexProvider.query(selector)
     if (!info.matched) return memo
 
