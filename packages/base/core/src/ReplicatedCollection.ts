@@ -13,6 +13,18 @@ interface ReplicationOptions<T extends { id: I } & Record<string, any>, I> {
     onChange: (data?: LoadResponse<T>) => void | Promise<void>
   ) => Promise<void>,
 }
+
+/**
+ * Creates a persistence adapter for replicating a collection, enabling pull and push
+ * operations for synchronizing with a remote source. Supports optional remote change registration.
+ * @template T - The type of the items being replicated.
+ * @template I - The type of the unique identifier for the items.
+ * @param options - The options for configuring the replication adapter.
+ * @param options.pull - A function to fetch data from the remote source.
+ * @param options.push - An optional function to send changes and items to the remote source.
+ * @param options.registerRemoteChange - An optional function to register a listener for remote changes.
+ * @returns A persistence adapter configured for replication.
+ */
 export function createReplicationAdapter<T extends { id: I } & Record<string, any>, I>(
   options: ReplicationOptions<T, I>,
 ) {
@@ -35,6 +47,13 @@ export type ReplicatedCollectionOptions<
   U = T,
 > = CollectionOptions<T, I, U> & ReplicationOptions<T, I>
 
+/**
+ * Extends the `Collection` class to support replication with remote sources.
+ * Handles pull and push operations, remote change registration, and enhanced loading states.
+ * @template T - The type of the items in the collection.
+ * @template I - The type of the unique identifier for the items.
+ * @template U - The transformed item type after applying transformations (default is T).
+ */
 export default class ReplicatedCollection<
   T extends BaseItem<I> = BaseItem,
   I = any,
@@ -43,6 +62,20 @@ export default class ReplicatedCollection<
   private isPullingRemoteSignal: Signal<boolean>
   private isPushingRemoteSignal: Signal<boolean>
 
+  /**
+   * Creates a new instance of the `ReplicatedCollection` class.
+   * Sets up the replication adapter, combining it with an optional persistence adapter, and
+   * initializes signals for tracking remote pull and push operations.
+   * @param options - The configuration options for the replicated collection.
+   * @param options.pull - A function to fetch data from the remote source.
+   * @param options.push - An optional function to send changes and items to the remote source.
+   * @param options.registerRemoteChange - An optional function to register a listener for remote changes.
+   * @param options.persistence - An optional persistence adapter to combine with replication.
+   * @param options.reactivity - A reactivity adapter for observing changes in the collection.
+   * @param options.transform - A transformation function to apply to items when retrieving them.
+   * @param options.indices - An array of index providers for optimized querying.
+   * @param options.enableDebugMode - A boolean to enable or disable debug mode.
+   */
   constructor(options: ReplicatedCollectionOptions<T, I, U>) {
     const replicationAdapter = createReplicationAdapter({
       registerRemoteChange: options.registerRemoteChange,
@@ -76,6 +109,13 @@ export default class ReplicatedCollection<
     this.isPushingRemoteSignal = createSignal(options.reactivity?.create(), false)
   }
 
+  /**
+   * Checks whether the collection is currently performing any loading operation,
+   * including pulling or pushing data from/to the remote source, or standard
+   * persistence adapter operations.
+   * ⚡️ this function is reactive!
+   * @returns A boolean indicating if the collection is currently loading or synchronizing.
+   */
   public isLoading() {
     const isPullingRemote = this.isPullingRemoteSignal.get()
     const isPushingRemote = this.isPushingRemoteSignal.get()

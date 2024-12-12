@@ -19,7 +19,7 @@ export type AutoFetchCollectionOptions<
 > = Omit<ReplicatedCollectionOptions<T, I, U>, 'pull' | 'registerRemoteChange'> & AutoFetchOptions<T, I>
 
 /**
- * @summary A special collection that automatically fetches items when they are needed.
+ * A special collection that automatically fetches items when they are needed.
  */
 export default class AutoFetchCollection<
   T extends BaseItem<I> = BaseItem,
@@ -83,7 +83,7 @@ export default class AutoFetchCollection<
   }
 
   /**
-   * @summary Registers a query manually that items should be fetched for it
+   * Registers a query manually that items should be fetched for it
    * @param selector {Object} Selector of the query
    */
   public registerQuery(selector: Selector<T>) {
@@ -91,7 +91,7 @@ export default class AutoFetchCollection<
   }
 
   /**
-   * @summary Unregisters a query manually that items are not fetched anymore for it
+   * Unregisters a query manually that items are not fetched anymore for it
    * @param selector {Object} Selector of the query
    */
   public unregisterQuery(selector: Selector<T>) {
@@ -204,7 +204,8 @@ export default class AutoFetchCollection<
   }
 
   /**
-   * @summary Indicates wether a query is currently been loaded
+   * Indicates wether a query is currently been loaded
+   * ⚡️ this function is reactive!
    * @param selector {Object} Selector of the query
    * @returns The loading state
    */

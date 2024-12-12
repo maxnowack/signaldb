@@ -1,3 +1,4 @@
+/* eslint-disable import/prefer-default-export */
 import type { DependencyList } from 'react'
 import { useRef, useReducer, useMemo, useEffect } from 'react'
 
@@ -11,7 +12,35 @@ interface ReactiveEffect {
   (reactiveFunction: () => void): StopComputation,
 }
 
-// eslint-disable-next-line import/prefer-default-export
+/**
+ * Creates a custom React hook for managing reactive computations with a given reactive effect.
+ * This hook allows for automatic tracking and re-rendering of React components when reactive dependencies change.
+ * @param effect - A function that runs a reactive computation and provides a way to stop the computation.
+ * @returns A React hook (`useReactivity`) for managing reactive computations.
+ * @example
+ * import { createUseReactivityHook } from './createUseReactivityHook';
+ *
+ * example with @maverick-js/signals effect function
+ * import { effect } from @maverick-js/signals
+ *
+ * // Create the custom hook
+ * const useReactivity = createUseReactivityHook(effect);
+ *
+ * // Use the custom hook in a component
+ * function MyComponent() {
+ *   const reactiveData = useReactivity(() => {
+ *     return myReactiveCollection.find().fetch();
+ *   }, []);
+ *
+ *   return (
+ *     <div>
+ *       {reactiveData.map(item => (
+ *         <div key={item.id}>{item.name}</div>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ */
 export function createUseReactivityHook(effect: ReactiveEffect) {
   function useReactivity<T>(
     reactiveFn: () => T,

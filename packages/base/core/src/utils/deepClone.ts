@@ -1,3 +1,11 @@
+/**
+ * Performs a deep clone of a value, supporting various types including arrays, objects,
+ * Maps, Sets, Dates, and RegExps. Functions are not supported and will throw an error.
+ * @template T - The type of the value to clone.
+ * @param value - The value to deep clone.
+ * @returns A deep copy of the provided value.
+ * @throws An error if the value is a function, as cloning functions is not supported.
+ */
 export function clone<T>(value: T): T {
   // Functions
   if (typeof value === 'function') throw new Error('Cloning functions is not supported')
@@ -42,6 +50,13 @@ export function clone<T>(value: T): T {
   return result
 }
 
+/**
+ * Creates a deep clone of an object. Uses the `structuredClone` function if available,
+ * otherwise falls back to a manual deep clone implementation.
+ * @template T - The type of the object to clone.
+ * @param obj - The object to deep clone.
+ * @returns A deep copy of the provided object.
+ */
 export default function deepClone<T>(obj: T): T {
   // If structuredClone is available, use it
   if (typeof structuredClone === 'function') return structuredClone(obj)

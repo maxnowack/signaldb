@@ -30,6 +30,11 @@ interface CallbackWithOptions<T> {
   },
 }
 
+/**
+ * Represents an observer that tracks changes in a collection of items and triggers
+ * callbacks for various events such as addition, removal, and modification of items.
+ * @template T - The type of the items being observed, which must include an `id` field.
+ */
 export default class Observer<T extends { id: any }> {
   private previousItems: T[] = []
   private callbacks: {
@@ -43,6 +48,11 @@ export default class Observer<T extends { id: any }> {
 
   private unbindEvents: () => void
 
+  /**
+   * Creates a new instance of the `Observer` class.
+   * Sets up event bindings and initializes the callbacks for tracking changes in a collection.
+   * @param bindEvents - A function to bind external events to the observer. Must return a cleanup function to unbind those events.
+   */
   constructor(bindEvents: () => () => void) {
     this.callbacks = {
       added: [],
@@ -75,6 +85,10 @@ export default class Observer<T extends { id: any }> {
     return events.some(event => this.callbacks[event].length > 0)
   }
 
+  /**
+   * Determines if the observer has no active callbacks registered for any events.
+   * @returns A boolean indicating whether the observer is empty (i.e., no callbacks are registered).
+   */
   public isEmpty() {
     return !this.hasCallbacks([
       'added',
@@ -86,6 +100,11 @@ export default class Observer<T extends { id: any }> {
     ])
   }
 
+  /**
+   * Compares the previous state of items with the new state and triggers the appropriate callbacks
+   * for events such as added, removed, changed, or moved items.
+   * @param newItems - The new list of items to compare against the previous state.
+   */
   public runChecks(newItems: T[]) {
     const oldItemsMap = new Map(this.previousItems.map((item, index) => [
       item.id,
@@ -157,10 +176,18 @@ export default class Observer<T extends { id: any }> {
     })
   }
 
+  /**
+   * Stops the observer by unbinding all events and cleaning up resources.
+   */
   public stop() {
     this.unbindEvents()
   }
 
+  /**
+   * Registers callbacks for specific events to observe changes in the collection.
+   * @param callbacks - An object containing the callbacks for various events (e.g., 'added', 'removed').
+   * @param skipInitial - A boolean indicating whether to skip invoking the callbacks for the initial state of the collection.
+   */
   public addCallbacks(callbacks: ObserveCallbacks<T>, skipInitial = false) {
     Object.keys(callbacks).forEach((key) => {
       const typedKey = key as keyof ObserveCallbacks<T>
@@ -171,6 +198,10 @@ export default class Observer<T extends { id: any }> {
     })
   }
 
+  /**
+   * Removes the specified callbacks for specific events, unregistering them from the observer.
+   * @param callbacks - An object containing the callbacks to be removed for various events.
+   */
   public removeCallbacks(callbacks: ObserveCallbacks<T>) {
     Object.keys(callbacks).forEach((key) => {
       const typedKey = key as keyof ObserveCallbacks<T>
