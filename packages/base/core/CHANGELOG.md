@@ -16,3 +16,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * BREAKING: `SyncManager` was moved to `@signaldb/sync`
 * BREAKING: `ReplicatedCollection` was removed entirely
 * BREAKING: `options` parameter was removed from `combinePersistenceAdapters`
+* BREAKING: support for old `IndexProviders` was removed
