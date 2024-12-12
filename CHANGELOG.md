@@ -1,1 +1,1 @@
-packages/system/core/CHANGELOG.md
+packages/base/core/CHANGELOG.md
