@@ -5,6 +5,11 @@ import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
+/**
+ * Checks if the current scope is reactive, considering the provided reactivity adapter.
+ * @param reactivity - The reactivity adapter or a boolean indicating whether reactivity is enabled.
+ * @returns A boolean indicating if the current scope is reactive.
+ */
 export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | false) {
   if (!reactivity) return false // if reactivity is disabled we don't need to check
   if (!reactivity.isInScope) return true // if reactivity is enabled and no isInScope method is provided we assume it is in scope
@@ -16,12 +21,34 @@ export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T>
   bindEvents?: (requery: () => void) => () => void,
 }
 
+/**
+ * Represents a cursor for querying and observing a filtered, sorted, and transformed
+ * subset of items from a collection. Supports reactivity and field tracking.
+ * @template T - The type of the items in the collection.
+ * @template U - The transformed item type after applying transformations (default is T).
+ */
 export default class Cursor<T extends BaseItem, U = T> {
   private observer: Observer<T> | undefined
   private getFilteredItems: () => T[]
   private options: CursorOptions<T, U>
   private onCleanupCallbacks: (() => void)[] = []
 
+  /**
+   * Creates a new instance of the `Cursor` class.
+   * Provides utilities for querying, observing, and transforming items from a collection.
+   * @template T - The type of the items in the collection.
+   * @template U - The transformed item type after applying transformations (default is T).
+   * @param getItems - A function that retrieves the filtered list of items.
+   * @param options - Optional configuration for the cursor.
+   * @param options.transform - A transformation function to apply to each item when retrieving them.
+   * @param options.bindEvents - A function to bind reactivity events for the cursor, which should return a cleanup function.
+   * @param options.fields - A projection object defining which fields of the item should be included or excluded.
+   * @param options.sort - A sort specifier to determine the order of the items.
+   * @param options.skip - The number of items to skip from the beginning of the result set.
+   * @param options.limit - The maximum number of items to return in the result set.
+   * @param options.reactive - A reactivity adapter to enable observing changes in the cursor's result set.
+   * @param options.fieldTracking - A boolean to enable fine-grained field tracking for reactivity.
+   */
   constructor(
     getItems: () => T[],
     options?: CursorOptions<T, U>,
@@ -152,6 +179,11 @@ export default class Cursor<T extends BaseItem, U = T> {
     }
   }
 
+  /**
+   * Cleans up all resources associated with the cursor, such as reactive bindings
+   * and event listeners. This method should be called when the cursor is no longer needed
+   * to prevent memory leaks.
+   */
   public cleanup() {
     this.onCleanupCallbacks.forEach((callback) => {
       callback()
@@ -159,10 +191,22 @@ export default class Cursor<T extends BaseItem, U = T> {
     this.onCleanupCallbacks = []
   }
 
+  /**
+   * Registers a cleanup callback to be executed when the `cleanup` method is called.
+   * Useful for managing resources and ensuring proper cleanup of bindings or listeners.
+   * @param callback - A function to be executed during cleanup.
+   */
   public onCleanup(callback: () => void) {
     this.onCleanupCallbacks.push(callback)
   }
 
+  /**
+   * Iterates over each item in the cursor's result set, applying the provided callback
+   * function to each transformed item.
+   * ⚡️ this function is reactive!
+   * @param callback - A function to execute for each item in the result set.
+   * @param callback.item - The transformed item.
+   */
   public forEach(callback: (item: U) => void) {
     const items = this.getItems()
     this.depend({
@@ -176,6 +220,15 @@ export default class Cursor<T extends BaseItem, U = T> {
     })
   }
 
+  /**
+   * Creates a new array populated with the results of applying the provided callback
+   * function to each transformed item in the cursor's result set.
+   * ⚡️ this function is reactive!
+   * @template V - The type of the items in the resulting array.
+   * @param callback - A function to execute for each item in the result set.
+   * @param callback.item - The transformed item.
+   * @returns An array of results after applying the callback to each item.
+   */
   public map<V>(callback: (item: U) => V) {
     const results: V[] = []
     this.forEach((item) => {
@@ -184,10 +237,22 @@ export default class Cursor<T extends BaseItem, U = T> {
     return results
   }
 
+  /**
+   * Fetches all transformed items from the cursor's result set as an array.
+   * Automatically applies filtering, sorting, and limiting as per the cursor's options.
+   * ⚡️ this function is reactive!
+   * @returns An array of transformed items in the result set.
+   */
   public fetch(): U[] {
     return this.map(item => item)
   }
 
+  /**
+   * Counts the total number of items in the cursor's result set after applying
+   * filtering and other criteria.
+   * ⚡️ this function is reactive!
+   * @returns The total number of items in the result set.
+   */
   public count() {
     const items = this.getItems()
     this.depend({
@@ -197,6 +262,19 @@ export default class Cursor<T extends BaseItem, U = T> {
     return items.length
   }
 
+  /**
+   * Observes changes to the cursor's result set and triggers the specified callbacks
+   * when items are added, removed, or updated. Supports reactivity and transformation.
+   * @param callbacks - An object containing the callback functions to handle different change events.
+   * @param callbacks.added - Triggered when an item is added to the result set.
+   * @param callbacks.removed - Triggered when an item is removed from the result set.
+   * @param callbacks.changed - Triggered when an item in the result set is modified.
+   * @param callbacks.addedBefore - Triggered when an item is added before another item in the result set.
+   * @param callbacks.movedBefore - Triggered when an item is moved before another item in the result set.
+   * @param callbacks.changedField - Triggered when a specific field of an item changes.
+   * @param skipInitial - A boolean indicating whether to skip the initial notification of the current result set.
+   * @returns A function to stop observing changes.
+   */
   public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false) {
     return this.observeRawChanges(Object
       .entries(callbacks)
@@ -219,6 +297,11 @@ export default class Cursor<T extends BaseItem, U = T> {
       }, {}), skipInitial)
   }
 
+  /**
+   * Forces the cursor to re-evaluate its result set by re-fetching items
+   * from the collection. This is useful when the underlying data or query
+   * criteria have changed, and you want to ensure the cursor reflects the latest state.
+   */
   public requery() {
     if (!this.observer) return
     this.observer.runChecks(this.getItems())

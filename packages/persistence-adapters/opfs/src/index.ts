@@ -1,5 +1,32 @@
 import { createPersistenceAdapter } from '@signaldb/core'
 
+/**
+ * Creates a persistence adapter for managing a SignalDB collection using the
+ * Origin Private File System (OPFS). This adapter allows data to be stored and managed
+ * directly in the browser's file system with support for customizable serialization
+ * and deserialization.
+ * @template T - The type of the items in the collection.
+ * @template I - The type of the unique identifier for the items.
+ * @param filename - The name of the file in OPFS where data will be stored.
+ * @param options - Optional configuration for serialization and deserialization.
+ * @param options.serialize - A function to serialize items to a string (default: `JSON.stringify`).
+ * @param options.deserialize - A function to deserialize a string into items (default: `JSON.parse`).
+ * @returns A SignalDB persistence adapter for managing data in OPFS.
+ * @example
+ * import createOPFSAdapter from './createOPFSAdapter';
+ * import { Collection } from '@signaldb/core';
+ *
+ * const adapter = createOPFSAdapter('myCollection.json', {
+ *   serialize: (items) => JSON.stringify(items, null, 2), // Pretty-print JSON
+ *   deserialize: (itemsString) => JSON.parse(itemsString), // Default JSON parse
+ * });
+ *
+ * const collection = new Collection({
+ *   persistence: adapter,
+ * });
+ *
+ * // Perform operations on the collection, and changes will be reflected in the OPFS file.
+ */
 export default function createOPFSAdapter<
   T extends { id: I } & Record<string, any>,
   I,

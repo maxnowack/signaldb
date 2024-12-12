@@ -1,5 +1,33 @@
 import type { PersistenceAdapter } from '../../src'
 
+/**
+ * Creates a memory-based persistence adapter for testing purposes. This adapter
+ * mimics the behavior of a SignalDB persistence adapter, allowing in-memory storage
+ * and change tracking with optional transmission of changes and delays.
+ * @template T - The type of the items in the collection.
+ * @template I - The type of the unique identifier for the items.
+ * @param initialData - An array of initial data items to populate the memory store.
+ * @param transmitChanges - A boolean indicating whether to transmit changes instead of the full dataset (default: `false`).
+ * @param delay - An optional delay (in milliseconds) for load operations to simulate asynchronous behavior.
+ * @returns A memory persistence adapter with additional methods for adding, changing, and removing items.
+ * @example
+ * import memoryPersistenceAdapter from './memoryPersistenceAdapter';
+ *
+ * const adapter = memoryPersistenceAdapter([{ id: 1, name: 'Test' }], true, 100);
+ *
+ * // Add a new item
+ * adapter.addNewItem({ id: 2, name: 'New Item' });
+ *
+ * // Change an item
+ * adapter.changeItem({ id: 1, name: 'Updated Test' });
+ *
+ * // Remove an item
+ * adapter.removeItem({ id: 2, name: 'New Item' });
+ *
+ * // Load items or changes
+ * const { items } = await adapter.load();
+ * console.log(items); // Logs the updated items in memory.
+ */
 export default function memoryPersistenceAdapter<
   T extends { id: I } & Record<string, any>,
   I = any,
