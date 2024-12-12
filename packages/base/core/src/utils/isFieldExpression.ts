@@ -27,6 +27,15 @@ const expressionKeys = [
   '$bitsAnySet',
 ]
 
+/**
+ * Determines whether a given object is a valid field expression.
+ * A field expression is an object containing query operators supported by MongoDB-style queries.
+ * @template T - The type of the field expression.
+ * @param expression - The object to test.
+ * @returns A boolean indicating whether the object is a valid field expression.
+ *   - `true` if the object contains only recognized query operators.
+ *   - `false` otherwise.
+ */
 export default function isFieldExpression<T>(expression: any): expression is FieldExpression<T> {
   if (typeof expression !== 'object' || expression == null) {
     return false

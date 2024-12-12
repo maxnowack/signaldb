@@ -1,6 +1,9 @@
-/* eslint-disable lines-between-class-members */
-
-// implements methods from the array class used for data manipulation
+/**
+ * Abstract class representing a memory adapter that implements methods
+ * from the JavaScript `Array` class for data manipulation.
+ * Designed to be extended and customized for specific use cases.
+ * @template T - The type of the items stored in the memory adapter (default is a record of key-value pairs).
+ */
 export default abstract class MemoryAdapter<T = Record<string, any>> {
   abstract push(item: T): void
   abstract pop(): T | undefined

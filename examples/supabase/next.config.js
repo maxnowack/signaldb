@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+/* eslint-disable jsdoc/require-jsdoc */
 const nextConfig = {
   basePath: '/examples/supabase',
   output: 'export',

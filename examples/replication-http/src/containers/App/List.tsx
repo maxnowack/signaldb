@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 import Todos from '../../models/Todos'
 import useReactivity from '../../utils/useReactivity'
 
