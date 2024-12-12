@@ -78,11 +78,29 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   '_debug.removeMany': (callstack: string, selector: Selector<T>) => void,
 }
 
+/**
+ * Checks if there are any pending updates in the given changeset.
+ * @template T - The type of the items in the changeset.
+ * @param pendingUpdates - The changeset to check for pending updates.
+ * @returns `true` if there are pending updates, otherwise `false`.
+ */
 function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
   return pendingUpdates.added.length > 0
     || pendingUpdates.modified.length > 0
     || pendingUpdates.removed.length > 0
 }
+
+/**
+ * Applies updates (add, modify, remove) to a collection of current items.
+ * @template T - The type of the items being updated.
+ * @template I - The type of the unique identifier for the items.
+ * @param currentItems - The current list of items.
+ * @param changeset - The changeset containing added, modified, and removed items.
+ * @param changeset.added An array of items to be added to the collection.
+ * @param changeset.modified An array of items to replace existing items in the collection. Matching is based on item `id`.
+ * @param changeset.removed An array of items to be removed from the collection. Matching is based on item `id`.
+ * @returns A new array with the updates applied.
+ */
 function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
   currentItems: T[],
   { added, modified, removed }: Changeset<T>,
@@ -104,8 +122,19 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
   return items
 }
 
-// eslint-disable-next-line max-len
-export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T> extends EventEmitter<CollectionEvents<T, U>> {
+/**
+ * Represents a collection of data items with support for in-memory operations,
+ * persistence, reactivity, and event-based notifications. The collection provides
+ * CRUD operations, observer patterns, and batch operations.
+ * @template T - The type of the items stored in the collection.
+ * @template I - The type of the unique identifier for the items.
+ * @template U - The transformed item type after applying transformations (default is T).
+ */
+export default class Collection<
+  T extends BaseItem<I> = BaseItem,
+  I = any,
+  U = T,
+> extends EventEmitter<CollectionEvents<T, U>> {
   static collections: Collection<any, any>[] = []
   static debugMode = false
   static batchOperationInProgress = false
@@ -116,6 +145,13 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     })
   }
 
+  /**
+   * Executes a batch operation, allowing multiple modifications to the collection
+   * while deferring index rebuilding until all operations in the batch are completed.
+   * This improves performance by avoiding repetitive index recalculations and
+   * provides atomicity for the batch of operations.
+   * @param callback - The batch operation to execute.
+   */
   static batch(callback: () => void) {
     Collection.batchOperationInProgress = true
     Collection.collections.reduce((memo, collection) => () =>
@@ -135,6 +171,20 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   private isDisposed = false
   private postBatchCallbacks = new Set<() => void>()
 
+  /**
+   * Initializes a new instance of the `Collection` class with optional configuration.
+   * Sets up memory, persistence, reactivity, and indices as specified in the options.
+   * @template T - The type of the items stored in the collection.
+   * @template I - The type of the unique identifier for the items.
+   * @template U - The transformed item type after applying transformations (default is T).
+   * @param options - Optional configuration for the collection.
+   * @param options.memory - The in-memory adapter for storing items.
+   * @param options.reactivity - The reactivity adapter for observing changes in the collection.
+   * @param options.transform - A transformation function to apply to items when retrieving them.
+   * @param options.persistence - The persistence adapter for saving and loading items.
+   * @param options.indices - An array of index providers for optimized querying.
+   * @param options.enableDebugMode - A boolean to enable or disable debug mode.
+   */
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
     Collection.collections.push(this)
@@ -302,24 +352,51 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     }
   }
 
+  /**
+   * Checks whether the collection is currently performing a pull operation
+   * ⚡️ this function is reactive!
+   * (loading data from the persistence adapter).
+   * @returns A boolean indicating if the collection is in the process of pulling data.
+   */
   public isPulling() {
     return this.isPullingSignal.get() ?? false
   }
 
+  /**
+   * Checks whether the collection is currently performing a push operation
+   * ⚡️ this function is reactive!
+   * (saving data to the persistence adapter).
+   * @returns A boolean indicating if the collection is in the process of pushing data.
+   */
   public isPushing() {
     return this.isPushingSignal.get() ?? false
   }
 
+  /**
+   * Checks whether the collection is currently performing either a pull or push operation,
+   * ⚡️ this function is reactive!
+   * indicating that it is loading or saving data.
+   * @returns A boolean indicating if the collection is in the process of loading or saving data.
+   */
   public isLoading() {
     const isPulling = this.isPulling()
     const isPushing = this.isPushing()
     return isPulling || isPushing
   }
 
+  /**
+   * Retrieves the current debug mode status of the collection.
+   * @returns A boolean indicating whether debug mode is enabled for the collection.
+   */
   public getDebugMode() {
     return this.debugMode
   }
 
+  /**
+   * Enables or disables debug mode for the collection.
+   * When debug mode is enabled, additional debugging information and events are emitted.
+   * @param enable - A boolean indicating whether to enable (`true`) or disable (`false`) debug mode.
+   */
   public setDebugMode(enable: boolean) {
     this.debugMode = enable
   }
@@ -445,8 +522,9 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
   }
 
   /**
-   * Disposes the collection, runs the dispose method of the persistence adapter
-   * and clears all internal data structures.
+   * Disposes the collection, unregisters persistence adapters, clears memory, and
+   * cleans up all resources used by the collection.
+   * @returns A promise that resolves when the collection is disposed.
    */
   public async dispose() {
     if (this.persistenceAdapter?.unregister) await this.persistenceAdapter.unregister()
@@ -457,6 +535,14 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.isDisposed = true
   }
 
+  /**
+   * Finds multiple items in the collection based on a selector and optional options.
+   * Returns a cursor for reactive data queries.
+   * @template O - The options type for the find operation.
+   * @param [selector] - The criteria to select items.
+   * @param [options] - Options for the find operation, such as limit and sort.
+   * @returns A cursor to fetch and observe the matching items.
+   */
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
@@ -492,6 +578,15 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return cursor
   }
 
+  /**
+   * Finds a single item in the collection based on a selector and optional options.
+   * ⚡️ this function is reactive!
+   * Returns the found item or undefined if no item matches.
+   * @template O - The options type for the find operation.
+   * @param selector - The criteria to select the item.
+   * @param [options] - Options for the find operation, such as projection.
+   * @returns The found item or `undefined`.
+   */
   public findOne<O extends Omit<FindOptions<T>, 'limit'>>(selector: Selector<T>, options?: O) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     const cursor = this.find(selector, {
@@ -504,6 +599,11 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return returnValue
   }
 
+  /**
+   * Performs a batch operation, deferring index rebuilds and allowing multiple
+   * modifications to be made atomically. Executes any post-batch callbacks afterwards.
+   * @param callback - The batch operation to execute.
+   */
   public batch(callback: () => void) {
     this.batchOperationInProgress = true
     callback()
@@ -517,6 +617,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     this.postBatchCallbacks.clear()
   }
 
+  /**
+   * Inserts a single item into the collection. Generates a unique ID if not provided.
+   * @param item - The item to insert.
+   * @returns The ID of the inserted item.
+   * @throws {Error} If the collection is disposed or the item has an invalid ID.
+   */
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
@@ -532,6 +638,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return newItem.id
   }
 
+  /**
+   * Inserts multiple items into the collection. Generates unique IDs for items if not provided.
+   * @param items - The items to insert.
+   * @returns An array of IDs of the inserted items.
+   * @throws {Error} If the collection is disposed or the items are invalid.
+   */
   public insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!items) throw new Error('Invalid items')
@@ -548,6 +660,13 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return ids
   }
 
+  /**
+   * Updates a single item in the collection that matches the given selector.
+   * @param selector - The criteria to select the item to update.
+   * @param modifier - The modifications to apply to the item.
+   * @returns The number of items updated (0 or 1).
+   * @throws {Error} If the collection is disposed or invalid arguments are provided.
+   */
   public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
@@ -567,6 +686,13 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return 1
   }
 
+  /**
+   * Updates multiple items in the collection that match the given selector.
+   * @param selector - The criteria to select the items to update.
+   * @param modifier - The modifications to apply to the items.
+   * @returns The number of items updated.
+   * @throws {Error} If the collection is disposed or invalid arguments are provided.
+   */
   public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
@@ -590,6 +716,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return modifiedItems.length
   }
 
+  /**
+   * Removes a single item from the collection that matches the given selector.
+   * @param selector - The criteria to select the item to remove.
+   * @returns The number of items removed (0 or 1).
+   * @throws {Error} If the collection is disposed or invalid arguments are provided.
+   */
   public removeOne(selector: Selector<T>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
@@ -605,6 +737,12 @@ export default class Collection<T extends BaseItem<I> = BaseItem, I = any, U = T
     return item == null ? 0 : 1
   }
 
+  /**
+   * Removes multiple items from the collection that match the given selector.
+   * @param selector - The criteria to select the items to remove.
+   * @returns The number of items removed.
+   * @throws {Error} If the collection is disposed or invalid arguments are provided.
+   */
   public removeMany(selector: Selector<T>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')

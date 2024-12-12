@@ -5,6 +5,12 @@ import getMatchingKeys from '../utils/getMatchingKeys'
 import serializeValue from '../utils/serializeValue'
 import type { BaseItem } from './types'
 
+/**
+ * creates an index for a specific field but uses an external map to store the index
+ * @param field name of the field
+ * @param index the external map to use for the index
+ * @returns an index provider to pass to the `indices` option of the collection constructor
+ */
 export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
   field: string,
   index: Map<string, Set<number>>,
@@ -27,6 +33,11 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
   })
 }
 
+/**
+ * creates an index for a specific field
+ * @param field name of the field
+ * @returns an index provider to pass to the `indices` option of the collection constructor
+ */
 export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(field: string) {
   const index = new Map<string, Set<number>>()
   return {

@@ -80,7 +80,7 @@ module.exports = {
     })),
   ],
   rules: {
-    'jsdoc/require-jsdoc': ['warn', {
+    'jsdoc/require-jsdoc': ['error', {
       publicOnly: true,
       require: {
         ArrowFunctionExpression: true,

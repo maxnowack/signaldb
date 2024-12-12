@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added JSDoc comments to all public APIs
+
 ### Removed
 
 * BREAKING: `createLocalStorageAdapter` was moved to `@signaldb/localstorage`
