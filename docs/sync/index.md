@@ -30,25 +30,25 @@ SignalDB is designed to handle synchronization efficiently and flexibly, making 
 
 ### High-Level Overview
 
-In SignalDB, synchronization is managed by the `SyncManager` class, which is central to the framework's ability to maintain data consistency. The `SyncManager` is responsible for coordinating the synchronization process for multiple collections, pulling and pushing data as needed. This centralization provides several key benefits:
+In SignalDB, synchronization is managed by the [`SyncManager`](/reference/sync/#syncmanager-default) class, which is central to the framework's ability to maintain data consistency. The [`SyncManager`](/reference/sync/#syncmanager-default) is responsible for coordinating the synchronization process for multiple collections, pulling and pushing data as needed. This centralization provides several key benefits:
 
 - **Flexibility**: SignalDB's sync mechanism is designed to work with any backend system, from REST APIs to GraphQL and beyond. This flexibility means you can integrate SignalDB with virtually any data source without worrying about compatibility issues.
 
-- **Efficiency**: Instead of handling synchronization for each collection separately, the `SyncManager` allows you to manage sync operations for all collections from a single instance. This streamlined approach simplifies the development process, reducing the need for repetitive code and minimizing potential synchronization errors.
+- **Efficiency**: Instead of handling synchronization for each collection separately, the [`SyncManager`](/reference/sync/#syncmanager-default) allows you to manage sync operations for all collections from a single instance. This streamlined approach simplifies the development process, reducing the need for repetitive code and minimizing potential synchronization errors.
 
 ### Role of the SyncManager
 
 The `SyncManager` class plays a pivotal role in SignalDB by:
 
-- **Managing Multiple Collections**: A single `SyncManager` instance can oversee the sync operations for multiple collections simultaneously. This centralized management ensures that changes in one collection can be synchronized with others effectively and efficiently.
+- **Managing Multiple Collections**: A single [`SyncManager`](/reference/sync/#syncmanager-default) instance can oversee the sync operations for multiple collections simultaneously. This centralized management ensures that changes in one collection can be synchronized with others effectively and efficiently.
 
-- **Improving Developer Experience**: By handling synchronization through one class instance, SignalDB enhances developer experience. You no longer need to call sync functions for each collection individually. Instead, you can manage all sync operations through the `SyncManager`, which takes care of coordinating and executing these tasks behind the scenes.
+- **Improving Developer Experience**: By handling synchronization through one class instance, SignalDB enhances developer experience. You no longer need to call sync functions for each collection individually. Instead, you can manage all sync operations through the [`SyncManager`](/reference/sync/#syncmanager-default), which takes care of coordinating and executing these tasks behind the scenes.
 
 - **Conflict Resolution**: SignalDB provides built-in conflict resolution mechanisms to handle situations where data conflicts occur during synchronization. Conflict resolution ensures that the most recent changes are preserved, while maintaining data consistency across all collections.
 
-- **Queueing Sync Operations**: The `SyncManager` queues sync operations to ensure that they are executed in the correct order. This is particularly important when dealing with interdependent collections or when sync operations have dependencies on each other.
+- **Queueing Sync Operations**: The [`SyncManager`](/reference/sync/#syncmanager-default) queues sync operations to ensure that they are executed in the correct order. This is particularly important when dealing with interdependent collections or when sync operations have dependencies on each other.
 
-- **Debouncing Pushes**: To optimize network usage and minimize unnecessary data transfers, the `SyncManager` debounces push operations. This means that multiple push operations for the same collection are merged into a single operation, reducing the number of network requests and improving performance.
+- **Debouncing Pushes**: To optimize network usage and minimize unnecessary data transfers, the [`SyncManager`](/reference/sync/#syncmanager-default) debounces push operations. This means that multiple push operations for the same collection are merged into a single operation, reducing the number of network requests and improving performance.
 
 This approach not only simplifies your codebase but also helps maintain consistency and reliability across your application's data.
 
@@ -101,7 +101,7 @@ SignalDB's synchronization mechanism is inherently backend-agnostic. This means 
 
 ### Abstracting Server Interaction
 
-Central to this flexibility are the `pull` and `push` functions within the `SyncManager`. These functions act as intermediaries between your application and the backend, abstracting the details of data retrieval and submission. This design ensures that:
+Central to this flexibility are the `pull` and `push` functions within the [`SyncManager`](/reference/sync/#syncmanager-default). These functions act as intermediaries between your application and the backend, abstracting the details of data retrieval and submission. This design ensures that:
 
 - **Pull Function**: Retrieves data from the server. You can define how data is fetched, whether it’s through a REST API call, a GraphQL query, or another method. This flexibility allows you to adapt to various server architectures with minimal effort.
 
@@ -194,3 +194,184 @@ sequenceDiagram
     Client 2->>-Server: pushes data
     Server->>Client 2: pulls latest data
 ````
+
+## Implementing Synchronization
+
+This page describes how remote synchronization could be implemented on the frontend side.
+
+### Creating a [`SyncManager`](/reference/sync/)
+
+The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a [`SyncManager`](/reference/sync/#syncmanager-default) instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic and also a method to create a `persistenceAdapter` that will be used internally to store snapshot, changes and sync operations. This is needed in case you need to cache those data offline (defaults to [`createLocalStorageAdapter`](/reference/localstorage/)).
+Additionally a `reactivityAdapter` can be passed to the options object. This adapter is used to make some of the functions provided by the [`SyncManager`](/reference/sync/#syncmanager-default) reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the [`SyncManager`](/reference/sync/#syncmanager-default) about remote changes.
+
+```ts
+import { SyncManager } from '@signaldb/sync'
+
+const syncManager = new SyncManager({
+  reactivityAdapter: someReactivityAdapter,
+  persistenceAdapter: name => createLocalPersistenceAdapter(name),
+  pull: async () => {
+    // your pull logic
+  },
+  push: async () => {
+    // your push logic
+  },
+  registerRemoteChange: (collectionOptions, onChange) => {
+    // …
+  }
+})
+```
+### Adding Collections
+
+Before we go in the details of the `pull` and `push` methods, we need to understand how we add collection to our `syncManager`. The `addCollection` method takes two parameters. The first one is the collection itself and the second one is an option object. This object must contain at least a `name` property that will be used to identify the collection in the `syncManager`. You can also pass other informations to the options object. These properties will be passed to your `push` & `pull` methods and can be used to access additionally informations about the collection that are needed for the synchronization (e.g. api endpoint url). This concept also allows you to do things like passing `canRead`/`canWrite` methods to the options that are later on used to check if the user has the necessary permissions to `pull`/`push`.
+
+```ts
+import { Collection } from '@signaldb/core'
+
+const someCollection = new Collection()
+
+syncManager.addCollection(someCollection, {
+  name: 'someCollection',
+  apiPath: '/api/someCollection',
+})
+```
+
+### Implementing the `pull` method
+
+After we've added our collection to the `syncManager`, we can start implementing the `pull` method. The `pull` method is responsible for fetching the latest data from the server and applying it to the collection. The `pull` method is called whenever the `syncAll` or the `sync(name)` method are called. During sync, the `pull` method will be called for each collection that was added to the `syncManager`. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and an object with additional information, like the `lastFinishedSyncStart` and `lastFinishedSyncEnd` timestamps, as the second parameter. The `pull` method must return a promise that resolves to an object with either an `items` property containing all items that should be applied to the collection or a `changes` property containing all changes `{ added: T[], modified: T[], removed: T[] }`.
+
+```ts
+const syncManager = new SyncManager({
+  // …
+  pull: async ({ apiPath }, { lastFinishedSyncStart }) => {
+    const data = await fetch(`${apiPath}?since=${lastFinishedSyncStart}`).then(res => res.json())
+
+    return { items: data }
+  },
+  // …
+})
+```
+
+### Implementing the `push` method
+
+The `push` method is responsible for sending the changes to the server. The `push` method is called during sync for each collection that was added to the `syncManager` if changes are present. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and an object including the changes that should be sent to the server as the second parameter. The `push` method returns a promise without a resolved value.
+
+If an error occurs during the `push`, the sync for the collection will be aborted and the error will be thrown.
+**There are some errors that need to be handled by yourself. These are normally validation errors (e.g. `4xx` status codes) were the sync shouldn't fail, but the local data should be overwritten with the latest server data.**
+If you throw these errors in your `push` method, the `syncManager` will keep the changes passed to the `push` method and will try to `push` them again on the next sync. This can lead to a loop where the changes are never pushed successfully to the server. To prevent this, handle those errors in the `push` method and just return afterwards.
+
+```ts
+const syncManager = new SyncManager({
+  // …
+  push: async ({ apiPath }, { changes }) => {
+    await Promise.all(changes.added.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(item) })
+      if (response.status >= 400 && response.status <= 499) return
+      await response.text()
+    }))
+
+    await Promise.all(changes.modified.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'PUT', body: JSON.stringify(item) })
+      if (response.status >= 400 && response.status <= 499) return
+      await response.text()
+    }))
+
+    await Promise.all(changes.removed.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'DELETE', body: JSON.stringify(item) })
+      if (response.status >= 400 && response.status <= 499) return
+      await response.text()
+    }))
+  },
+  // …
+})
+```
+
+### Handle Remote Changes
+
+To handle remote changes for a specific collection, you have to get the event handler to call on remote changes through the `registerRemoteChange` method. This method gets the `collectionOptions` as the first parameter and an `onChange` handler a the second parameter. The `onChange` handler can be called after changes were received from the server for the collection that matches the provided `collectionOptions`. The `onChange` handler takes optionally the changes as the first parameter. If the changes are not provided, the `pull` method will be called for the collection.
+
+```ts
+const syncManager = new SyncManager({
+  // …
+  registerRemoteChanges: (collectionOptions, onChange) => {
+    someRemoteEventSource.addEventListener('change', (collection) => {
+      if (collectionOptions.name === collection) onChange()
+    })
+  },
+  // …
+})
+```
+
+### Example Implementations
+
+#### Simple RESTful API
+
+Below is an example implementation of a simple REST API.
+
+```js
+import { EventEmitter } from 'node:events'
+import { Collection, SyncManager } from '@signaldb/core'
+
+const Authors = new Collection()
+const Posts = new Collection()
+const Comments = new Collection()
+
+const errorEmitter = new EventEmitter()
+errorEmitter.on('error', (message) => {
+  // display validation errors to the user
+})
+
+const apiBaseUrl = 'https://example.com/api'
+const syncManager = new SyncManager({
+  pull: async ({ apiPath }) => {
+    const data = await fetch(`${apiBaseUrl}${apiPath}`).then(res => res.json())
+    return { items: data }
+  },
+  push: async ({ apiPath }, { changes }) => {
+    await Promise.all(changes.added.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(item) })
+      const responseText = await response.text()
+      if (response.status >= 400 && response.status <= 499) {
+        errorEmitter.emit('error', responseText)
+        return
+      }
+    }))
+
+    await Promise.all(changes.modified.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'PUT', body: JSON.stringify(item) })
+      const responseText = await response.text()
+      if (response.status >= 400 && response.status <= 499) {
+        errorEmitter.emit('error', responseText)
+        return
+      }
+    }))
+
+    await Promise.all(changes.removed.map(async (item) => {
+      const response = await fetch(apiPath, { method: 'DELETE', body: JSON.stringify(item) })
+      const responseText = await response.text()
+      if (response.status >= 400 && response.status <= 499) {
+        errorEmitter.emit('error', responseText)
+        return
+      }
+    }))
+  },
+})
+
+syncManager.addCollection(Posts, {
+  name: 'posts',
+  apiPath: '/posts',
+})
+syncManager.addCollection(Authors, {
+  name: 'authors',
+  apiPath: '/authors',
+})
+syncManager.addCollection(Comments, {
+  name: 'comments',
+  apiPath: '/comments',
+})
+```
+
+#### More Examples
+
+If you think that an example is definitely missing here, feel free to create a pull request.
+Also don't hesitate to create a [discussion](https://github.com/maxnowack/signaldb/discussions/new/choose) if you have any questions or need help with your implementation.
