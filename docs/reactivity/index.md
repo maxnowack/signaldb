@@ -2,13 +2,13 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reactivity/
+    href: https://signaldb.js.org/reference/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/reactivity/
+    content: https://signaldb.js.org/reference/
 - - meta
   - name: og:title
     content: Reactivity & Optimistic UI | SignalDB
@@ -63,22 +63,22 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reference/c
 
 | Library | Reactivity adapter | Automatic Cleanup | Scope check |
 |---|---|---|---|
-| [`@preact/signals-core`](/reactivity/preact-signals/) | ✅ | ❌ | ❌ |
-| [`@reactively/core`](/reactivity/reactively/) | ✅ | ✅ | ❌ |
+| [`@preact/signals-core`](/reference/preact/) | ✅ | ❌ | ❌ |
+| [`@reactively/core`](/reference/reactively/) | ✅ | ✅ | ❌ |
 | [`@webreflection/signal`](https://github.com/WebReflection/signal) | ❌ | - | - |
-| [`Angular Signals`](/reactivity/angular/) | ✅ | ❌ | ❌ |
-| [`Maverick-js Signals`](/reactivity/maverickjs/) | ✅ | ✅ | ✅ |
-| [`Meteor Tracker`](/reactivity/meteor-tracker/) | ✅ | ✅ | ✅ |
-| [`MobX`](/reactivity/mobx/) | ✅ | ✅ | ❌ |
-| [`oby`](/reactivity/oby/) | ✅ | ✅ | ✅ |
+| [`Angular Signals`](/reference/angular/) | ✅ | ❌ | ❌ |
+| [`Maverick-js Signals`](/reference/maverickjs/) | ✅ | ✅ | ✅ |
+| [`Meteor Tracker`](/reference/meteor/) | ✅ | ✅ | ✅ |
+| [`MobX`](/reference/mobx/) | ✅ | ✅ | ❌ |
+| [`oby`](/reference/oby/) | ✅ | ✅ | ✅ |
 | [`Qwik`](https://qwik.dev/docs/components/state/) | ❌ | - | - |
-| [`S.js`](/reactivity/S/) | ✅ | ✅ | ❌ |
+| [`S.js`](/reference/sjs/) | ✅ | ✅ | ❌ |
 | [`signal-polyfill`](https://github.com/proposal-signals/signal-polyfill) | ❌ | - | - |
 | [`signia`](https://signia.tldraw.dev/) | ❌ | - | - |
-| [`sinuous`](/reactivity/sinuous/) | ✅ | ✅ | ❌ |
-| [`Solid Signals`](/reactivity/solidjs/) | ✅ | ✅ | ❌ |
+| [`sinuous`](/reference/sinuous/) | ✅ | ✅ | ❌ |
+| [`Solid Signals`](/reference/solid/) | ✅ | ✅ | ❌ |
 | [`sprae`](https://github.com/dy/sprae) (see [#858](https://github.com/maxnowack/signaldb/issues/858)) | ✅ | ❌ | ❌ |
 | [`Svelte Runes`](/guides/svelte/) | ❌ | - | - |
 | [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |
-| [`usignal`](/reactivity/usignal/) | ✅ | ❌ | ❌ |
-| [`Vue.js refs`](/reactivity/vue/) | ✅ | ✅ | ✅ |
+| [`usignal`](/reference/usignal/) | ✅ | ❌ | ❌ |
+| [`Vue.js refs`](/reference/vue/) | ✅ | ✅ | ✅ |

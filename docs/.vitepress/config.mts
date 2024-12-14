@@ -1,6 +1,11 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const pkg = require('../../packages/base/core/package.json')
+console.log(pkg);
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
@@ -11,153 +16,143 @@ export default withMermaid({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Home', link: '/' },
       { text: 'Get Started', link: '/getting-started/' },
+      { text: 'Reference', link: '/reference/' },
+      {
+        text: pkg.version,
+        items: [
+          {
+            text: 'Changelog',
+            link: 'https://github.com/maxnowack/signaldb/blob/main/CHANGELOG.md'
+          },
+          {
+            text: 'Contributing',
+            link: 'https://github.com/maxnowack/signaldb/blob/main/.github/contributing.md'
+          },
+        ],
+      },
     ],
 
     outline: {
       level: [2, 3],
     },
 
-    sidebar: [
-      {
-        text: 'Quickstart',
-        collapsed: false,
-        items: [
-          { text: 'Getting Started', link: '/getting-started/' },
-          { text: 'Core Concepts', link: '/core-concepts/' },
-          { text: 'Installation', link: '/installation/' },
-          { text: 'Querying Data', link: '/queries/' },
-          { text: 'Data manipulation', link: '/data-manipulation/' },
-          { text: 'Data Persistence', link: '/data-persistence/' },
-          { text: 'Sync', link: '/sync/' },
-          { text: 'Implementing Sync', link: '/sync/implementation/' },
-        ],
-      },
-      {
-        text: 'Reactivity Adapters',
-        collapsed: true,
-        items: [
-          { text: 'Overview', link: '/reactivity/' },
-          { text: '@preact/signals-core', link: '/reactivity/preact-signals/' },
-          { text: '@reactively/core', link: '/reactivity/reactively/' },
-          { text: 'Angular', link: '/reactivity/angular/' },
-          { text: 'Maverick-js Signals', link: '/reactivity/maverickjs/' },
-          { text: 'Meteor Tracker', link: '/reactivity/meteor-tracker/' },
-          { text: 'MobX', link: '/reactivity/mobx/' },
-          { text: 'oby', link: '/reactivity/oby/' },
-          { text: 'S.js', link: '/reactivity/S/' },
-          { text: 'sinuous', link: '/reactivity/sinuous/' },
-          { text: 'Solid.js', link: '/reactivity/solidjs/' },
-          { text: 'usignal', link: '/reactivity/usignal/' },
-          { text: 'Vue.js', link: '/reactivity/vue/' },
-        ],
-      },
-      {
-        text: 'Guides',
-        collapsed: false,
-        items: [
-          { text: 'Angular', link: '/guides/angular/' },
-          { text: 'React', link: '/guides/react/' },
-          { text: 'Solid', link: '/guides/solid-js/' },
-          { text: 'Svelte', link: '/guides/svelte/' },
-          { text: 'Vue', link: '/guides/vue/' },
-        ],
-      },
-      {
-        text: 'Reference',
-        link: '/reference/',
-        collapsed: true,
-        items: [
-          {
-            text: 'Base',
-            items: [
-              {
-                text: '@signaldb/core',
-                link: '/reference/core/',
-                collapsed: true,
-                items: [
-                  { text: 'Collection', link: '/reference/core/collection/' },
-                  { text: 'AutoFetchCollection', link: '/reference/core/autofetchcollection/' },
-                  { text: 'createIndex', link: '/reference/core/createindex/' },
-                  { text: 'createIndexProvider', link: '/reference/core/createindexprovider/' },
-                  { text: 'createMemoryAdapter', link: '/reference/core/creatememoryadapter/' },
-                  { text: 'createPersistenceAdapter', link: '/reference/core/createpersistenceadapter/' },
-                  { text: 'createReactivityAdapter', link: '/reference/core/createreactivityadapter/' },
-                  { text: 'combinePersistenceAdapters', link: '/reference/core/combinepersistenceadapters/' },
-                ],
-              },
-              { text: '@signaldb/sync', link: '/reference/sync/' },
-            ],
-          },
-          {
-            text: 'Integrations',
-            items: [
-              { text: '@signaldb/react', link: '/reference/react/' },
-            ],
-          },
-          {
-            text: 'Persistence Adapters',
-            items: [
-              { text: '@signaldb/fs', link: '/reference/fs/' },
-              { text: '@signaldb/localstorage', link: '/reference/localstorage/' },
-              { text: '@signaldb/opfs', link: '/reference/opfs/' },
-            ],
-          },
-          {
-            text: 'Reactivity Adapters',
-            items: [
-              { text: '@signaldb/angular', link: '/reference/angular/' },
-              { text: '@signaldb/maverickjs', link: '/reference/maverickjs/' },
-              { text: '@signaldb/meteor', link: '/reference/meteor/' },
-              { text: '@signaldb/mobx', link: '/reference/mobx/' },
-              { text: '@signaldb/oby', link: '/reference/oby/' },
-              { text: '@signaldb/preact', link: '/reference/preact/' },
-              { text: '@signaldb/reactively', link: '/reference/reactively/' },
-              { text: '@signaldb/sinuous', link: '/reference/sinuous/' },
-              { text: '@signaldb/sjs', link: '/reference/sjs/' },
-              { text: '@signaldb/solid', link: '/reference/solid/' },
-              { text: '@signaldb/usignal', link: '/reference/usignal/' },
-              { text: '@signaldb/vue', link: '/reference/vue/' },
-            ],
-          },
-        ],
-      },
-      {
-        text: 'Examples',
-        collapsed: false,
-        items: [
-          { text: 'HTTP Replication', link: 'https://signaldb.js.org/examples/replication-http/' },
-          { text: 'Appwrite', link: 'https://signaldb.js.org/examples/appwrite/' },
-          { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
-          { text: 'Supabase', link: 'https://signaldb.js.org/examples/supabase/' },
-        ],
-      },
-      {
-        text: 'Help',
-        collapsed: false,
-        items: [
-          { text: 'Troubleshooting', link: '/troubleshooting/' },
-          { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
-          { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
-        ],
-      },
-      {
-        text: 'Articles',
-        collapsed: true,
-        items: [
-          { text: 'Signals', link: '/signals/' },
-          { text: 'Live Updates', link: '/live-updates/' },
-          { text: 'Optimistic UI', link: '/optimistic-ui/' },
-          { text: 'Real-Time Web Apps', link: '/real-time/' },
-          { text: 'Offline-First', link: '/offline-first/' },
-          { text: 'Reactive Databases', link: '/reactive-databases/' },
-          { text: 'AWS Amplify', link: '/aws-amplify/' },
-          { text: 'Firebase', link: '/firebase/' },
-          { text: 'Supabase', link: '/supabase/' },
-        ],
-      },
-    ],
+    sidebar: {
+      '/': [
+        {
+          text: 'Quickstart',
+          collapsed: false,
+          items: [
+            { text: 'Getting Started', link: '/getting-started/' },
+            { text: 'Core Concepts', link: '/core-concepts/' },
+            { text: 'Querying Data', link: '/queries/' },
+            { text: 'Data manipulation', link: '/data-manipulation/' },
+            { text: 'Data Persistence', link: '/data-persistence/' },
+            { text: 'Reactivity', link: '/reactivity/' },
+            { text: 'Synchronization', link: '/sync/' },
+          ],
+        },
+        {
+          text: 'Guides',
+          collapsed: false,
+          items: [
+            { text: 'Angular', link: '/guides/angular/' },
+            { text: 'React', link: '/guides/react/' },
+            { text: 'Solid', link: '/guides/solid-js/' },
+            { text: 'Svelte', link: '/guides/svelte/' },
+            { text: 'Vue', link: '/guides/vue/' },
+          ],
+        },
+        {
+          text: 'Examples',
+          collapsed: false,
+          items: [
+            { text: 'HTTP Replication', link: 'https://signaldb.js.org/examples/replication-http/' },
+            { text: 'Appwrite', link: 'https://signaldb.js.org/examples/appwrite/' },
+            { text: 'Firebase', link: 'https://signaldb.js.org/examples/firebase/' },
+            { text: 'Supabase', link: 'https://signaldb.js.org/examples/supabase/' },
+          ],
+        },
+        {
+          text: 'Help',
+          collapsed: false,
+          items: [
+            { text: 'Troubleshooting', link: '/troubleshooting/' },
+            { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
+            { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
+          ],
+        },
+        {
+          text: 'Articles',
+          collapsed: true,
+          items: [
+            { text: 'Signals', link: '/signals/' },
+            { text: 'Live Updates', link: '/live-updates/' },
+            { text: 'Optimistic UI', link: '/optimistic-ui/' },
+            { text: 'Real-Time Web Apps', link: '/real-time/' },
+            { text: 'Offline-First', link: '/offline-first/' },
+            { text: 'Reactive Databases', link: '/reactive-databases/' },
+            { text: 'AWS Amplify', link: '/aws-amplify/' },
+            { text: 'Firebase', link: '/firebase/' },
+            { text: 'Supabase', link: '/supabase/' },
+          ],
+        },
+      ],
+      '/reference/': [
+        {
+          text: 'Base',
+          items: [
+            {
+              text: '@signaldb/core',
+              link: '/reference/core/',
+              collapsed: true,
+              items: [
+                { text: 'Collection', link: '/reference/core/collection/' },
+                { text: 'AutoFetchCollection', link: '/reference/core/autofetchcollection/' },
+                { text: 'createIndex', link: '/reference/core/createindex/' },
+                { text: 'createIndexProvider', link: '/reference/core/createindexprovider/' },
+                { text: 'createMemoryAdapter', link: '/reference/core/creatememoryadapter/' },
+                { text: 'createPersistenceAdapter', link: '/reference/core/createpersistenceadapter/' },
+                { text: 'createReactivityAdapter', link: '/reference/core/createreactivityadapter/' },
+                { text: 'combinePersistenceAdapters', link: '/reference/core/combinepersistenceadapters/' },
+              ],
+            },
+            { text: '@signaldb/sync', link: '/reference/sync/' },
+          ],
+        },
+        {
+          text: 'Integrations',
+          items: [
+            { text: '@signaldb/react', link: '/reference/react/' },
+          ],
+        },
+        {
+          text: 'Persistence Adapters',
+          items: [
+            { text: '@signaldb/fs', link: '/reference/fs/' },
+            { text: '@signaldb/localstorage', link: '/reference/localstorage/' },
+            { text: '@signaldb/opfs', link: '/reference/opfs/' },
+          ],
+        },
+        {
+          text: 'Reactivity Adapters',
+          items: [
+            { text: '@signaldb/angular', link: '/reference/angular/' },
+            { text: '@signaldb/maverickjs', link: '/reference/maverickjs/' },
+            { text: '@signaldb/meteor', link: '/reference/meteor/' },
+            { text: '@signaldb/mobx', link: '/reference/mobx/' },
+            { text: '@signaldb/oby', link: '/reference/oby/' },
+            { text: '@signaldb/preact', link: '/reference/preact/' },
+            { text: '@signaldb/reactively', link: '/reference/reactively/' },
+            { text: '@signaldb/sinuous', link: '/reference/sinuous/' },
+            { text: '@signaldb/sjs', link: '/reference/sjs/' },
+            { text: '@signaldb/solid', link: '/reference/solid/' },
+            { text: '@signaldb/usignal', link: '/reference/usignal/' },
+            { text: '@signaldb/vue', link: '/reference/vue/' },
+          ],
+        },
+      ],
+    },
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/maxnowack/signaldb' },
@@ -243,19 +238,31 @@ export default withMermaid({
       '/integrations/react/index.html': '/guides/react/',
       '/queries.html': '/queries/',
       '/reactivity.html': '/reactivity/',
-      '/reactivity/angular.html': '/reactivity/angular/',
-      '/reactivity/maverickjs.html': '/reactivity/maverickjs/',
-      '/reactivity/meteor-tracker.html': '/reactivity/meteor-tracker/',
-      '/reactivity/mobx.html': '/reactivity/mobx/',
-      '/reactivity/oby.html': '/reactivity/oby/',
+      '/reactivity/angular.html': '/reference/angular/',
+      '/reactivity/angular/index.html': '/reference/angular/',
+      '/reactivity/maverickjs.html': '/reference/maverickjs/',
+      '/reactivity/maverickjs/index.html': '/reference/maverickjs/',
+      '/reactivity/meteor-tracker.html': '/reference/meteor/',
+      '/reactivity/meteor-tracker/index.html': '/reference/meteor/',
+      '/reactivity/mobx.html': '/reference/mobx/',
+      '/reactivity/mobx/index.html': '/reference/mobx/',
+      '/reactivity/oby.html': '/reference/oby/',
+      '/reactivity/oby/index.html': '/reference/oby/',
       '/reactivity/other.html': '/reference/core/createreactivityadapter/',
-      '/reactivity/preact-signals.html': '/reactivity/preact-signals/',
-      '/reactivity/reactively.html': '/reactivity/reactively/',
-      '/reactivity/S.html': '/reactivity/S/',
-      '/reactivity/sinuous.html': '/reactivity/sinuous/',
-      '/reactivity/solidjs.html': '/reactivity/solidjs/',
-      '/reactivity/usignal.html': '/reactivity/usignal/',
-      '/reactivity/vue.html': '/reactivity/vue/',
+      '/reactivity/preact-signals.html': '/reference/preact/',
+      '/reactivity/preact-signals/index.html': '/reference/preact/',
+      '/reactivity/reactively.html': '/reference/reactively/',
+      '/reactivity/reactively/index.html': '/reference/reactively/',
+      '/reactivity/S.html': '/reference/sjs/',
+      '/reactivity/S/index.html': '/reference/sjs/',
+      '/reactivity/sinuous.html': '/reference/sinuous/',
+      '/reactivity/sinuous/index.html': '/reference/sinuous/',
+      '/reactivity/solidjs.html': '/reference/solid/',
+      '/reactivity/solidjs/index.html': '/reference/solid/',
+      '/reactivity/usignal.html': '/reference/usignal/',
+      '/reactivity/usignal/index.html': '/reference/usignal/',
+      '/reactivity/vue.html': '/reference/vue/',
+      '/reactivity/vue/index.html': '/reference/vue/',
       '/replication.html': '/sync/',
       '/replication/appwrite/index.html': '/sync/',
       '/replication/firebase/index.html': '/sync/',
@@ -265,6 +272,7 @@ export default withMermaid({
       '/replication/rxdb.html': '/sync/',
       '/replication/rxdb/index.html': '/sync/',
       '/replication/supabase/index.html': '/sync/',
+      '/sync/implementation': '/sync/',
       '/sync/reference/index.html': '/reference/sync/',
       '/troubleshooting.html': '/troubleshooting/',
     }
