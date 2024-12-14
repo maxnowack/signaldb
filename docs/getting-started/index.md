@@ -24,7 +24,7 @@ head:
 ---
 # Getting Started
 
-Welcome to the Getting Started Guide for SignalDB, a client-side database with a seamless MongoDB-like interface and top-notch TypeScript support.
+Welcome to the Getting Started Guide for SignalDB, a local-first database with signal-based reactivity and real-time synchronization. This guide will help you understand the basics of SignalDB and get you up and running quickly.
 
 SignalDB is designed for blazing fast query performance and data persistence, while remaining framework-agnostic.
 
@@ -46,12 +46,15 @@ import { Collection } from '@signaldb/core'
 const posts = new Collection()
 ```
 
-but normally you want to persist your data. Persistence in SignalDB is achieved by using [persistence adapters](/data-persistence/) but to make thing easier for you, there is a helper class called `PersistentCollection` that configures that for you. The `PersistentCollection` chooses automatically where to store the data and uses `localStorage` in the browser and a JSON file on the serverside.
+but normally you want to persist your data. Persistence in SignalDB is achieved by using [persistence adapters](/data-persistence/). Choose one that fits your needs and pass it to the collection constructor. Here is an example using [`@signaldb/localstorage`](/reference/localstorage/):
 
 ```js
-import { PersistentCollection } from '@signaldb/core'
+import { Collection } from '@signaldb/core'
+import createLocalStorageAdapter from '@signaldb/localstorage'
 
-const posts = new PersistentCollection('posts')
+const posts = new Collection({
+  persistence: createLocalStorageAdapter('posts'),
+})
 ```
 
 That's all you have to do. There a also some optional configuration options you find here: [collections reference](/reference/core/collection/)
@@ -91,3 +94,6 @@ Take a look at our guides:
 - [Solid](/guides/solid-js/)
 - [Svelte](/guides/svelte/)
 - [Vue](/guides/vue/)
+
+
+After that you might want to learn more about the [core concepts of SignalDB](/core-concepts/), how you can [query your data](/queries/) or how to [connect it to your backend](/sync/).
