@@ -50,6 +50,7 @@ export default withMermaid({
             { text: 'Data Persistence', link: '/data-persistence/' },
             { text: 'Reactivity', link: '/reactivity/' },
             { text: 'Synchronization', link: '/sync/' },
+            { text: 'Upgrade to v1', link: '/upgrade/v1/' },
           ],
         },
         {
