@@ -22,10 +22,10 @@ head:
   - name: keywords
     content: SyncManager, SignalDB, data synchronization, local storage, remote source, JavaScript, error handling, debouncing, collection management, sync process, reactivity adapter
 ---
-# SyncManager `default`
+# SyncManager
 
 ```ts
-import SyncManager from '@signaldb/sync'
+import { SyncManager } from '@signaldb/sync'
 
 const syncManager = new SyncManager({
   pull: async () => {
