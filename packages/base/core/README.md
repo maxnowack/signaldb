@@ -109,6 +109,7 @@ Licensed under MIT license. Copyright (c) 2024 Max Nowack
 
 ## Contributions
 Contributions are welcome. Please open issues and/or file Pull Requests.
+See [Contributing.md](https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md) to get started.
 
 ## Maintainers
 - Max Nowack ([maxnowack](https://github.com/maxnowack))
