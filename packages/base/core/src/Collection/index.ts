@@ -32,6 +32,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   persistence?: PersistenceAdapter<T, I>,
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
+  fieldTracking?: boolean,
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {
@@ -138,10 +139,26 @@ export default class Collection<
   static collections: Collection<any, any>[] = []
   static debugMode = false
   static batchOperationInProgress = false
+  static fieldTracking = false
+
+  /**
+   * Enables debug mode for all collections.
+   */
   static enableDebugMode = () => {
     Collection.debugMode = true
     Collection.collections.forEach((collection) => {
       collection.setDebugMode(true)
+    })
+  }
+
+  /**
+   * Enables field tracking for all collections.
+   * @param enable - A boolean indicating whether to enable field tracking.
+   */
+  static setFieldTracking = (enable: boolean) => {
+    Collection.fieldTracking = enable
+    Collection.collections.forEach((collection) => {
+      collection.setFieldTracking(enable)
     })
   }
 
@@ -170,6 +187,7 @@ export default class Collection<
   private batchOperationInProgress = false
   private isDisposed = false
   private postBatchCallbacks = new Set<() => void>()
+  private fieldTracking = false
 
   /**
    * Initializes a new instance of the `Collection` class with optional configuration.
@@ -184,11 +202,16 @@ export default class Collection<
    * @param options.persistence - The persistence adapter for saving and loading items.
    * @param options.indices - An array of index providers for optimized querying.
    * @param options.enableDebugMode - A boolean to enable or disable debug mode.
+   * @param options.fieldTracking - A boolean to enable or disable field tracking by default.
    */
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
     Collection.collections.push(this)
-    this.options = { memory: [], ...options }
+    this.options = {
+      memory: [],
+      ...options,
+    }
+    this.fieldTracking = this.options.fieldTracking ?? Collection.fieldTracking
     this.debugMode = this.options.enableDebugMode ?? Collection.debugMode
     this.indexProviders = [
       createExternalIndex('id', this.idIndex),
@@ -401,6 +424,14 @@ export default class Collection<
     this.debugMode = enable
   }
 
+  /**
+   * Enables or disables field tracking for the collection.
+   * @param enable - A boolean indicating whether to enable (`true`) or disable (`false`) field tracking.
+   */
+  public setFieldTracking(enable: boolean) {
+    this.fieldTracking = enable
+  }
+
   private profile<ReturnValue>(
     fn: () => ReturnValue,
     measureFunction: (measuredTime: number) => void,
@@ -548,6 +579,7 @@ export default class Collection<
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
     const cursor = new Cursor<T, U>(() => this.getItems(selector), {
       reactive: this.options.reactivity,
+      fieldTracking: this.fieldTracking,
       ...options,
       transform: this.transform.bind(this),
       bindEvents: (requery) => {

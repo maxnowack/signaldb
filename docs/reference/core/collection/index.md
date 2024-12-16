@@ -6,6 +6,12 @@ import { Collection } from '@signaldb/core'
 
 The Collection class is designed to manage and manipulate collections of data in memory, with options for reactivity, transformations and persistence adapters. Collections are schemaless, meaning that you don't need to define a schema for your data before you start using it. This allows you to store any data you want without worrying about defining a schema first. However, it's recommended that you define a typescript interface for the documents in the collection, so that you can benefit from type safety when working with the data.
 
+## Static Methods
+
+### `setFieldTracking(enable: boolean)`
+
+Enables or disables field tracking for all collections. See [Field-Level Reactivity](/queries/#field-level-reactivity) for more information.
+
 ## Constructor
 
 ```js
@@ -86,6 +92,10 @@ collection.batch(() => {
 ### `dispose()`
 
 Disposes the collection and all its resources. This will unregister the persistence adapter and clean up all internal data structures.
+
+### `setFieldTracking(enabled: boolean)`
+
+Enables or disables field tracking for the collection. See [Field-Level Reactivity](/queries/#field-level-reactivity) for more information.
 
 ## Events
 
