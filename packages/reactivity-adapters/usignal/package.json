@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/usignal",
-  "version": "1.0.3",
+  "version": "1.0.0",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build"
