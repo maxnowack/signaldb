@@ -522,6 +522,37 @@ describe('Collection', () => {
     })
   })
 
+  describe('Field Tracking', () => {
+    it('should enable field tracking globally', () => {
+      const col1 = new Collection<any>()
+      // @ts-expect-error private property
+      expect(col1.fieldTracking).toBe(false)
+
+      Collection.setFieldTracking(true)
+
+      const col2 = new Collection<any>()
+      // @ts-expect-error private property
+      expect(col1.fieldTracking).toBe(true)
+      // @ts-expect-error private property
+      expect(col2.fieldTracking).toBe(true)
+    })
+
+    it('should toggle field tracking', () => {
+      Collection.setFieldTracking(false)
+      const col = new Collection<any>()
+      // @ts-expect-error private property
+      expect(col.fieldTracking).toBe(false)
+
+      col.setFieldTracking(true)
+      // @ts-expect-error private property
+      expect(col.fieldTracking).toBe(true)
+
+      col.setFieldTracking(false)
+      // @ts-expect-error private property
+      expect(col.fieldTracking).toBe(false)
+    })
+  })
+
   describe('Collection Debug Mode', () => {
     it('should enable debug mode globally', () => {
       const col1 = new Collection<any>()

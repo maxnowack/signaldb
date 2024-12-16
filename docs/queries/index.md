@@ -59,7 +59,7 @@ You can also control which fields should be returned in the query. To do this, s
 
 > With the `fields` option you can also control when you query will rerun. If you only query for a field that is not changing, the query will not rerun.
 >
-> Also see [⚡ Field-Level Reactitivity](#⚡%EF%B8%8F-field-level-reactivity-beta)
+> Also see [Field-Level Reactitivity](#field-level-reactivity)
 
 ```js
 collection.find({}, {
@@ -141,7 +141,7 @@ Re-queries the cursor to fetch items and check observers for any changes.
 ### `cleanup()`
 The cleanup method is used to invoke all the cleanup callbacks. This helps in managing resources and ensuring efficient garbage collection. You have to call this method, if you're using a reactivity adapter, that doesn't support automatic cleanup.
 
-## ⚡️ Field-Level Reactivity (beta)
+## Field-Level Reactivity
 
 SignalDB introduces a powerful enhancement to its reactivity system called **Field-Level Reactivity**, which ensures that reactive functions (such as `effect` or `autorun`) only rerun when specific fields accessed in your code are changed. Previously, the reactive system would rerun the query if any field in any item of the result set was modified, regardless of whether those fields were actually used in the code. This led to unnecessary reactivity and potential performance bottlenecks, especially with large datasets.
 
@@ -153,7 +153,27 @@ SignalDB introduces a powerful enhancement to its reactivity system called **Fie
 
 ### Opt-In to Field-Level Tracking
 
-To leverage this feature, you must explicitly enable field-level reactivity by passing the `fieldTracking: true` option in the `.find()` method. When this option is enabled, the system will only track and respond to changes in the fields you access:
+To enable field-level reactivity, there are three ways to configure field tracking: globally, per collection, or through the options parameter of the `.find()` method.
+
+#### 1. Global Configuration
+
+To enable field tracking globally for all collections in your application, use the static method `Collection.setFieldTracking`. This ensures that field tracking is active by default across all collections unless overridden.
+
+```js
+Collection.setFieldTracking(true) // Enables field tracking globally
+```
+
+#### 2. Per Collection Configuration
+
+To configure field tracking for a specific collection, use the setFieldTracking method on that collection.
+
+```js
+someCollection.setFieldTracking(true) // Enables field tracking for this collection only
+```
+
+#### 3. Enable Field Tracking in `.find()` Options
+
+You can enable field tracking on a per-query basis by passing the fieldTracking: true option to the .find() method. When this option is set, reactivity is scoped to the fields you access.
 
 ```js
 effect(() => {
@@ -170,7 +190,3 @@ This behavior optimizes your app’s performance by reducing the number of unnec
 1. Improved Performance: By reducing the scope of reactive reruns to only relevant data, SignalDB minimizes computational overhead and maximizes efficiency, particularly in scenarios where queries return large datasets or where irrelevant fields change frequently.
 2. Simplified Code: Developers no longer need to manually specify fields to track. With automatic field tracking, the system handles this for you, allowing you to focus on business logic rather than managing reactivity manually.
 3. Reduced Developer Error: Manually tracking fields can be error-prone, especially as queries evolve. Automatic field-level reactivity ensures that your queries remain optimal even as your code changes, making it easier to maintain over time.
-
-Transition and Future Plans
-
-This feature is currently in beta and must be explicitly enabled using `{ fieldTracking: true }` in the query options. Feel free to [open an issue](https://github.com/maxnowack/signaldb/issues/new) if you encounter any bugs. In future versions (such as v1.0.0), SignalDB plans to make field-level reactivity the default behavior. This will remove the need to explicitly enable the option, making the system more intuitive and efficient out-of-the-box.
