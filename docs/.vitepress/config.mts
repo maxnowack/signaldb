@@ -5,7 +5,6 @@ import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
 const pkg = require('../../packages/base/core/package.json')
-console.log(pkg);
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
@@ -27,7 +26,7 @@ export default withMermaid({
           },
           {
             text: 'Contributing',
-            link: 'https://github.com/maxnowack/signaldb/blob/main/.github/contributing.md'
+            link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md'
           },
         ],
       },
