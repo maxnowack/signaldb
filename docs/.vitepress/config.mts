@@ -40,7 +40,7 @@ export default withMermaid({
     sidebar: {
       '/': [
         {
-          text: 'Quickstart',
+          text: 'Documentation',
           collapsed: false,
           items: [
             { text: 'Getting Started', link: '/getting-started/' },
