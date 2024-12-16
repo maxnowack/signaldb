@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added JSDoc comments to all public APIs
+* Added method to globally configure field tracking
+* Added method for configuring field tracking on a collection
+* Allow configuring field tracking in collection options
 
 ### Removed
 
