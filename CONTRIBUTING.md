@@ -60,4 +60,4 @@ npm run docs:dev
 
 ## ❓ Questions
 
-If you have any questions, feel free to [open a disscussion on GitHub](https://github.com/maxnowack/signaldb/discussions/new/choose) or join our [Discord server](https://discord.gg/MB4ZGJX7).
+If you have any questions, feel free to [open a disscussion on GitHub](https://github.com/maxnowack/signaldb/discussions/new/choose) or join our [Discord server](https://discord.gg/qMvXKXxBTp).

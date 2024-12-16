@@ -2,6 +2,7 @@ import fs from 'fs/promises'
 import path from 'path'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import { createRequire } from 'module'
+import { text } from 'stream/consumers'
 
 const require = createRequire(import.meta.url)
 const pkg = require('../../packages/base/core/package.json')
@@ -80,6 +81,7 @@ export default withMermaid({
             { text: 'Troubleshooting', link: '/troubleshooting/' },
             { text: 'Github Issues', link: 'https://github.com/maxnowack/signaldb/issues' },
             { text: 'Community', link: 'https://github.com/maxnowack/signaldb/discussions' },
+            { text: 'Discord', link: 'https://discord.gg/qMvXKXxBTp' },
           ],
         },
         {

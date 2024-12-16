@@ -63,6 +63,6 @@ See [Contributing.md](https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTI
 ## Troubleshooting
 
 If you encounter any issues, there are several ways to get support.
-- Join our [Discord server](https://discord.gg/MB4ZGJX7).
+- Join our [Discord server](https://discord.gg/qMvXKXxBTp).
 - [Start a discussion](https://github.com/maxnowack/signaldb/discussions/new/choose)
 - [Open an issue](https://github.com/maxnowack/signaldb/issues/new)
