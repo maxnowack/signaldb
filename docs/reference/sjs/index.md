@@ -2,13 +2,13 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/refrence/sjs/
+    href: https://signaldb.js.org/reference/sjs/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/refrence/sjs/
+    content: https://signaldb.js.org/reference/sjs/
 - - meta
   - name: og:title
     content: '@signaldb/sjs - SignalDB Reactivity Adapter for S.js'

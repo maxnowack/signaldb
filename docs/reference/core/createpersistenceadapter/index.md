@@ -2,13 +2,13 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reference/createpersistenceadapter/
+    href: https://signaldb.js.org/reference/core/createpersistenceadapter/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/reference/createpersistenceadapter/
+    content: https://signaldb.js.org/reference/core/createpersistenceadapter/
 - - meta
   - name: og:title
     content: createPersistenceAdapter | SignalDB

@@ -2,13 +2,13 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reference/
+    href: https://signaldb.js.org/reactivity/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/reference/
+    content: https://signaldb.js.org/reactivity/
 - - meta
   - name: og:title
     content: Reactivity & Optimistic UI | SignalDB
