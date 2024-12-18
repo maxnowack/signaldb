@@ -1,6 +1,6 @@
 <p align="center">
   <a href="#">
-    <img src="/docs/public/logo.svg" width="150px" alt="SignalDB Logo" />
+    <img src="https://raw.githubusercontent.com/maxnowack/signaldb/refs/heads/main/docs/public/logo.svg" width="150px" alt="SignalDB Logo" />
   </a>
 </p>
 
