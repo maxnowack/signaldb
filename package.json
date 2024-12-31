@@ -41,7 +41,7 @@
     "eslint-plugin-tsdoc": "^0.4.0",
     "eslint-plugin-vitest": "0.5.4",
     "fast-glob": "^3.3.2",
-    "happy-dom": "16.2.6",
+    "happy-dom": "16.2.8",
     "husky": "9.1.7",
     "mermaid": "^10.9.1",
     "rimraf": "6.0.1",
