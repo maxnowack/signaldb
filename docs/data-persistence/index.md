@@ -34,6 +34,7 @@ The main benefit of using persistence adapters is the abstraction they provide. 
 
 The follwing persistence adapters are currently available:
 
+- [IndexedDB](/reference/indexeddb/)
 - [localStorage](/reference/localstorage/)
 - [OPFS](/reference/opfs/)
 - [FileSystem](/reference/fs/)
