@@ -1,5 +1,5 @@
 import { SyncManager } from '@signaldb/sync'
-import createLocalStorageAdapter from '@signaldb/localstorage'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
 import { createClient } from '@supabase/supabase-js'
 
 interface Database {
@@ -48,7 +48,7 @@ const supabase = createClient<Database>(
 )
 
 const syncManager = new SyncManager({
-  persistenceAdapter: id => createLocalStorageAdapter(id),
+  persistenceAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

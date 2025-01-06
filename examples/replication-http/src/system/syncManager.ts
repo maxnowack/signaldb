@@ -1,5 +1,5 @@
 import { SyncManager } from '@signaldb/sync'
-import createLocalStorageAdapter from '@signaldb/localstorage'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
 
 function authenticatedFetch(path: string, options?: RequestInit) {
   const databaseId = '65676881edfe6a3e7e2c'
@@ -16,7 +16,7 @@ function authenticatedFetch(path: string, options?: RequestInit) {
 }
 
 const syncManager = new SyncManager({
-  persistenceAdapter: id => createLocalStorageAdapter(id),
+  persistenceAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)
