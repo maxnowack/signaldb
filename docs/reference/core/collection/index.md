@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/core/collection/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/core/collection/
+- - meta
+  - name: og:title
+    content: Collection | SignalDB
+- - meta
+  - name: og:description
+    content: Learn about the SignalDB Collection class, a flexible and reactive way to manage and manipulate schemaless data with support for persistence adapters and transformations.
+- - meta
+  - name: description
+    content: Learn about the SignalDB Collection class, a flexible and reactive way to manage and manipulate schemaless data with support for persistence adapters and transformations.
+- - meta
+  - name: keywords
+    content: SignalDB, Collection, data management, reactive collections, persistence adapters, TypeScript, JavaScript, schemaless data, field-level reactivity, batch operations
+---
 # Collection
 
 ```ts

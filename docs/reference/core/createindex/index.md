@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/core/createindex/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/core/createindex/
+- - meta
+  - name: og:title
+    content: createIndex | SignalDB
+- - meta
+  - name: og:description
+    content: Learn how to use the createIndex function in SignalDB to add single-field indices to collections for faster query performance.
+- - meta
+  - name: description
+    content: Learn how to use the createIndex function in SignalDB to add single-field indices to collections for faster query performance.
+- - meta
+  - name: keywords
+    content: SignalDB, createIndex, collection indices, single-field index, performance optimization, data management, TypeScript, JavaScript, indexing, query optimization
+---
 # createIndex
 
 ```ts

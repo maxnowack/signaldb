@@ -269,6 +269,7 @@ export default withMermaid({
       '/reactivity/usignal/index.html': '/reference/usignal/',
       '/reactivity/vue.html': '/reference/vue/',
       '/reactivity/vue/index.html': '/reference/vue/',
+      '/reference/core/index.html': '/reference/',
       '/replication.html': '/sync/',
       '/replication/appwrite/index.html': '/sync/',
       '/replication/firebase/index.html': '/sync/',

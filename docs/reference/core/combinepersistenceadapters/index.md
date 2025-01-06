@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/core/combinepersistenceadapters/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/core/combinepersistenceadapters/
+- - meta
+  - name: og:title
+    content: combinePersistenceAdapters | SignalDB
+- - meta
+  - name: og:description
+    content: Learn how to use combinePersistenceAdapters in SignalDB to merge multiple persistence adapters for enhanced flexibility and performance.
+- - meta
+  - name: description
+    content: Learn how to use combinePersistenceAdapters in SignalDB to merge multiple persistence adapters for enhanced flexibility and performance.
+- - meta
+  - name: keywords
+    content: SignalDB, combinePersistenceAdapters, persistence adapters, data management, primary adapter, secondary adapter, TypeScript, JavaScript, data storage
+---
 # combinePersistenceAdapters
 
 ```ts

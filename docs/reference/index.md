@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/
+- - meta
+  - name: og:title
+    content: Reference | SignalDB
+- - meta
+  - name: og:description
+    content: Explore the comprehensive reference for SignalDB, including core components, integrations, persistence adapters, and reactivity adapters to enhance your projects.
+- - meta
+  - name: description
+    content: Explore the comprehensive reference for SignalDB, including core components, integrations, persistence adapters, and reactivity adapters to enhance your projects.
+- - meta
+  - name: keywords
+    content: SignalDB, API reference, core components, integrations, persistence adapters, reactivity adapters, data management, JavaScript, TypeScript, SyncManager, collections, reactivity
+---
 # Reference
 
 SignalDB consists of several packages of which each has indiviudal exports.

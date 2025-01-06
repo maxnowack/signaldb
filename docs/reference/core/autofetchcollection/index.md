@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/core/autofetchcollection/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/core/autofetchcollection/
+- - meta
+  - name: og:title
+    content: AutoFetchCollection | SignalDB
+- - meta
+  - name: og:description
+    content: Learn about the AutoFetchCollection in SignalDB, enabling reactive and on-demand data fetching with customizable options like purge delay and persistence adapters.
+- - meta
+  - name: description
+    content: Learn about the AutoFetchCollection in SignalDB, enabling reactive and on-demand data fetching with customizable options like purge delay and persistence adapters.
+- - meta
+  - name: keywords
+    content: SignalDB, AutoFetchCollection, reactive data fetching, query-based fetching, data persistence, JavaScript, TypeScript, local-first database, loading state management, on-demand data loading, persistence adapters
+---
 # AutoFetchCollection
 
 ```ts

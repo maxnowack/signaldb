@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/core/creatememoryadapter/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/core/creatememoryadapter/
+- - meta
+  - name: og:title
+    content: createMemoryAdapter | SignalDB
+- - meta
+  - name: og:description
+    content: Learn how to use createMemoryAdapter in SignalDB to implement custom memory-based data storage for collections with array-like methods.
+- - meta
+  - name: description
+    content: Learn how to use createMemoryAdapter in SignalDB to implement custom memory-based data storage for collections with array-like methods.
+- - meta
+  - name: keywords
+    content: SignalDB, createMemoryAdapter, memory adapter, data storage, custom adapters, JavaScript, TypeScript, in-memory collections, collection management, array methods
+---
 # createMemoryAdapter
 
 ```js

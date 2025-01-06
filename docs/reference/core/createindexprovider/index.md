@@ -1,3 +1,27 @@
+---
+head:
+- - link
+  - rel: canonical
+    href: https://signaldb.js.org/reference/core/createindexprovider/
+- - meta
+  - name: og:type
+    content: article
+- - meta
+  - name: og:url
+    content: https://signaldb.js.org/reference/core/createindexprovider/
+- - meta
+  - name: og:title
+    content: createIndexProvider | SignalDB
+- - meta
+  - name: og:description
+    content: Discover how to use the createIndexProvider function in SignalDB to build custom index providers for advanced query optimizations in collections.
+- - meta
+  - name: description
+    content: Discover how to use the createIndexProvider function in SignalDB to build custom index providers for advanced query optimizations in collections.
+- - meta
+  - name: keywords
+    content: SignalDB, createIndexProvider, custom index providers, query optimization, collection indices, data management, TypeScript, JavaScript, performance enhancement, advanced indexing
+---
 # createIndexProvider
 
 ```ts
