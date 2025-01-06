@@ -1,5 +1,5 @@
 import { SyncManager } from '@signaldb/sync'
-import createLocalStorageAdapter from '@signaldb/localstorage'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, remove, update, onChildAdded, onChildChanged, onChildRemoved } from 'firebase/database'
 
@@ -9,7 +9,7 @@ initializeApp({
 const db = getDatabase()
 
 const syncManager = new SyncManager({
-  persistenceAdapter: id => createLocalStorageAdapter(id),
+  persistenceAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

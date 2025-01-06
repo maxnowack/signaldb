@@ -1,11 +1,11 @@
 import { Collection } from '@signaldb/core'
-import createLocalStorageAdapter from '@signaldb/localstorage'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
 import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 import syncManager from '../system/syncManager'
 
 const Todos = new Collection<{ id: string, text: string, completed: boolean }>({
   reactivity: maverickjsReactivityAdapter,
-  persistence: createLocalStorageAdapter('todos-appwrite'),
+  persistence: createIndexedDBAdapter('todos-appwrite'),
 })
 Todos.on('persistence.error', (error) => {
   // eslint-disable-next-line no-console
