@@ -131,6 +131,7 @@ export default withMermaid({
           text: 'Persistence Adapters',
           items: [
             { text: '@signaldb/fs', link: '/reference/fs/' },
+            { text: '@signaldb/indexeddb', link: '/reference/indexeddb/' },
             { text: '@signaldb/localstorage', link: '/reference/localstorage/' },
             { text: '@signaldb/opfs', link: '/reference/opfs/' },
           ],
