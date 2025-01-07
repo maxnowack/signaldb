@@ -72,6 +72,8 @@ export default tseslint.config(
           args: true,
           props: true,
           refs: true,
+          DevTools: true,
+          Props: true,
         },
       }],
       'unicorn/no-null': 'off',

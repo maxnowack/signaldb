@@ -566,6 +566,8 @@ describe('Collection', () => {
     })
 
     it('should toggle debug mode', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       Collection.debugMode = false
       const col = new Collection<any>()
 
@@ -623,6 +625,21 @@ describe('Collection', () => {
   })
 
   describe('misc', () => {
+    it('should get all collections with Collection.getCollections()', () => {
+      const col1 = new Collection<any>()
+      const col2 = new Collection<any>()
+
+      expect(Collection.getCollections()).toEqual(expect.arrayContaining([col1, col2]))
+    })
+
+    it('should call the onCreation hook', () => {
+      const onCreation = vi.fn()
+      Collection.onCreation(onCreation)
+      const col = new Collection<any>()
+
+      expect(onCreation).toHaveBeenCalledWith(col)
+    })
+
     it('should seed the collection with initial data from the memory adapter', () => {
       const col = new Collection<{ id: string, name: string }>({
         memory: createMemoryAdapter([{ id: '1', name: 'John' }]),

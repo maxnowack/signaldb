@@ -107,6 +107,7 @@ jobs:
       - name: unit testing
         run: |
           npm run build -w packages/base/core
+          npm run build -w packages/devtools/devtools
           npm test -- --coverage run
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

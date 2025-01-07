@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import path from 'path'
 import { defineConfig } from 'vite'
 import typescript from '@rollup/plugin-typescript'
@@ -12,27 +13,23 @@ export default defineConfig({
   ],
   build: {
     manifest: true,
-    minify: false,
-    sourcemap: false,
+    minify: true,
+    sourcemap: true,
     reportCompressedSize: true,
     lib: {
-      name: 'SignalDB',
-      entry: path.resolve(__dirname, 'src/index.ts'),
+      name: 'SignalDBDevTools',
+      entry: path.resolve(__dirname, 'src/index.tsx'),
       fileName: format => (format === 'es' ? 'index.mjs' : `index.${format}.js`),
-      formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      output: {
-        inlineDynamicImports: false,
-        preserveModules: true,
-        format: 'es',
-      },
       external: [
-        '@signaldb/devtools',
-        'fast-sort',
-        'mingo',
-        'mingo/updater',
+        '@signaldb/core',
       ],
+      output: {
+        globals: {
+          react: 'React',
+        },
+      },
       plugins: [
         typescriptPaths({
           preserveExtensions: true,
