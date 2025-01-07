@@ -26,6 +26,7 @@ export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from './createIndex'
 
 export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
+  name?: string,
   memory?: MemoryAdapter,
   reactivity?: ReactivityAdapter,
   transform?: Transform<T, U>,
@@ -136,10 +137,19 @@ export default class Collection<
   I = any,
   U = T,
 > extends EventEmitter<CollectionEvents<T, U>> {
-  static collections: Collection<any, any>[] = []
-  static debugMode = false
-  static batchOperationInProgress = false
-  static fieldTracking = false
+  private static collections: Collection<any, any>[] = []
+  private static debugMode = false
+  private static batchOperationInProgress = false
+  private static fieldTracking = false
+  private static onCreationCallbacks: ((collection: Collection<any>) => void)[] = []
+
+  static getCollections() {
+    return Collection.collections
+  }
+
+  static onCreation(callback: (collection: Collection<any>) => void) {
+    Collection.onCreationCallbacks.push(callback)
+  }
 
   /**
    * Enables debug mode for all collections.
@@ -176,6 +186,7 @@ export default class Collection<
     Collection.batchOperationInProgress = false
   }
 
+  public readonly name: string
   private options: CollectionOptions<T, I, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
   private isPullingSignal: Signal<boolean>
@@ -196,6 +207,7 @@ export default class Collection<
    * @template I - The type of the unique identifier for the items.
    * @template U - The transformed item type after applying transformations (default is T).
    * @param options - Optional configuration for the collection.
+   * @param options.name - An optional name for the collection.
    * @param options.memory - The in-memory adapter for storing items.
    * @param options.reactivity - The reactivity adapter for observing changes in the collection.
    * @param options.transform - A transformation function to apply to items when retrieving them.
@@ -207,6 +219,7 @@ export default class Collection<
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
     Collection.collections.push(this)
+    this.name = options?.name ?? `${this.constructor.name}-${randomId()}`
     this.options = {
       memory: [],
       ...options,
@@ -373,6 +386,7 @@ export default class Collection<
           this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
         })
     }
+    Collection.onCreationCallbacks.forEach(callback => callback(this))
   }
 
   /**

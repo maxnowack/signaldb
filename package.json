@@ -8,7 +8,7 @@
     "test": "vitest",
     "typedoc": "typedoc",
     "coverage": "vitest run --coverage",
-    "build": "(cd packages/base/core && npm run build) && npm run build -w packages/base && npm run build -w packages/integrations && npm run build -w packages/persistence-adapters && npm run build -w packages/reactivity-adapters",
+    "build": "(cd packages/base/core && npm run build) && npm run build -w packages/base && npm run build -w packages/devtools && npm run build -w packages/integrations && npm run build -w packages/persistence-adapters && npm run build -w packages/reactivity-adapters",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
     "docs:build": "npm run build && npm run build -w examples && npm run copy -w examples && npm run typedoc && npm run docs:build-vitepress",
@@ -22,6 +22,7 @@
     "packages/integrations/*",
     "packages/persistence-adapters/*",
     "packages/reactivity-adapters/*",
+    "packages/devtools/*",
     "packages/base/*"
   ],
   "devDependencies": {

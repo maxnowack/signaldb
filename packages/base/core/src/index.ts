@@ -1,3 +1,4 @@
+import loadDeveloperTools from './devtools'
 export type { default as ReactivityAdapter } from './types/ReactivityAdapter'
 export type { default as MemoryAdapter } from './types/MemoryAdapter'
 export type {
@@ -29,3 +30,7 @@ export { default as isEqual } from './utils/isEqual'
 export { default as modify } from './utils/modify'
 export { default as randomId } from './utils/randomId'
 export { default as EventEmitter } from './utils/EventEmitter'
+
+export { default as loadDeveloperTools } from './devtools'
+
+loadDeveloperTools()

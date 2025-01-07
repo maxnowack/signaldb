@@ -15,6 +15,7 @@ export default defineConfig({
         '**/vitest.config.mts',
         'commitlint.config.js',
         'eslint.config.mjs',
+        'packages/devtools/devtools',
       ],
     },
     reporters: process.env.GITHUB_ACTIONS

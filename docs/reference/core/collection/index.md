@@ -36,6 +36,22 @@ The Collection class is designed to manage and manipulate collections of data in
 
 Enables or disables field tracking for all collections. See [Field-Level Reactivity](/queries/#field-level-reactivity) for more information.
 
+### `batch(callback: () => void)`
+
+If you need to execute many operations at once in multiple collections, you can use the global `Collection.batch()` method. This method will execute all operations inside the callback without rebuilding the index on every change.
+
+### `getCollections()`
+
+Returns an array of all collections that have been created.
+
+### `onCreation(callback: (collection: Collection) => void)`
+
+Registers a callback that will be called whenever a new collection is created. The callback will receive the newly created collection as an argument.
+
+### `enableDebugMode()`
+
+Enables debug mode for all collections. This will enable measurements for query timings and other debug information.
+
 ## Constructor
 
 ```js
@@ -46,6 +62,7 @@ Constructs a new Collection object.
 
 Parameters
 * options (Optional): An object specifying various options for the collection. Options include:
+  * name: An optional name for the collection to make it easier to identify. This name will also be used in the developer tools.
   * memory: A [MemoryAdapter](/core-concepts/#memory-adapters) for storing items in memory.
   * reactivity: A [ReactivityAdapter](/reactivity/) for enabling reactivity.
   * persistence: A [PersistenceAdapter](/data-persistence/) for enabling persistent storage.

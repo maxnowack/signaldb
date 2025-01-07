@@ -92,6 +92,7 @@ export default class SyncManager<
   protected persistenceReady: Promise<void>
   protected isDisposed = false
   protected instanceId = randomId()
+  protected id: string
 
   /**
    * @param options Collection options
@@ -105,6 +106,7 @@ export default class SyncManager<
    */
   constructor(options: Options<CollectionOptions, ItemType, IdType>) {
     this.options = options
+    this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
 
     const changesPersistence = this.createPersistenceAdapter('changes')
@@ -112,14 +114,17 @@ export default class SyncManager<
     const syncOperationsPersistence = this.createPersistenceAdapter('sync-operations')
 
     this.changes = new Collection({
+      name: `${this.options.id}-changes`,
       persistence: changesPersistence?.adapter,
       reactivity,
     })
     this.snapshots = new Collection({
+      name: `${this.options.id}-snapshots`,
       persistence: snapshotsPersistence?.adapter,
       reactivity,
     })
     this.syncOperations = new Collection({
+      name: `${this.options.id}-sync-operations`,
       persistence: syncOperationsPersistence?.adapter,
       reactivity,
     })
@@ -162,9 +167,8 @@ export default class SyncManager<
   protected createPersistenceAdapter(name: string) {
     if (this.options.persistenceAdapter == null) return
 
-    const id = this.options.id ?? 'default-sync-manager'
     let errorHandler: (error: Error) => void = () => { /* noop */ }
-    const adapter = this.options.persistenceAdapter(`${id}-${name}`, (handler) => {
+    const adapter = this.options.persistenceAdapter(`${this.id}-${name}`, (handler) => {
       errorHandler = handler
     })
     return {

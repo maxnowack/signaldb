@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Support for @signaldb/devtools
+* Allow specifying a name for a collection
+* Added `Collections.onCreation` method to listen for collection creation
+* Added `Collections.getCollections` method to get all collections
+
 ### Changed
 * Switched from native EventEmitter to custom class that is based on EventTarget
 
