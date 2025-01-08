@@ -18,7 +18,9 @@ describe('@signaldb/preact', () => {
       }
     })
     collection.insert({ id: '1', name: 'John' })
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     expect(cleanup).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

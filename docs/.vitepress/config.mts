@@ -22,11 +22,11 @@ export default withMermaid({
         items: [
           {
             text: 'Changelog',
-            link: 'https://github.com/maxnowack/signaldb/blob/main/CHANGELOG.md'
+            link: 'https://github.com/maxnowack/signaldb/blob/main/CHANGELOG.md',
           },
           {
             text: 'Contributing',
-            link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md'
+            link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md',
           },
         ],
       },
@@ -187,8 +187,8 @@ export default withMermaid({
     ['link', { rel: 'mask-icon', href: '/safari-pinned-tab.svg', color: '#0367e9' }],
     ['meta', { name: 'msapplication-TileColor', content: '#0367e9' }],
     ['meta', { name: 'theme-color', content: '#ffffff' }],
-    ['script', { defer: '', 'data-domain': 'signaldb.js.org', src: 'https://plausible.unsou.de/js/script.js' }],
-    ['script', { async: '', 'data-uid': 'fc19a2cffc', src: 'https://maxnowack.ck.page/fc19a2cffc/index.js' }],
+    ['script', { 'defer': '', 'data-domain': 'signaldb.js.org', 'src': 'https://plausible.unsou.de/js/script.js' }],
+    ['script', { 'async': '', 'data-uid': 'fc19a2cffc', 'src': 'https://maxnowack.ck.page/fc19a2cffc/index.js' }],
   ],
 
   sitemap: {
@@ -205,9 +205,9 @@ export default withMermaid({
         '/examples/supabase',
         '/examples/supabase/404',
         'guides/',
-        'integrations/'
+        'integrations/',
       ]
-      return items.filter((item) => !exclude.includes(item.url))
+      return items.filter(item => !exclude.includes(item.url))
     },
   },
 

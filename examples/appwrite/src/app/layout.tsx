@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 import './globals.scss'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -10,11 +9,11 @@ export const metadata: Metadata = {
   description: 'Todo Example app for SignalDB using Next.js and Appwrite',
 }
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: {
   children: React.ReactNode,
-}) {
+}) => {
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -30,3 +29,5 @@ export default function RootLayout({
     </html>
   )
 }
+
+export default RootLayout

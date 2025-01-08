@@ -67,7 +67,9 @@ it('should remove query when observer is disposed', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -133,7 +135,9 @@ it('should handle multiple observers for the same query', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -181,7 +185,9 @@ it('should handle multiple queries', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -228,7 +234,9 @@ it('should update items with result of new fetch', async () => {
 
   disposeAll()
   await waitForEvent(collection, 'persistence.received')
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -266,10 +274,14 @@ it('should purge items after specified delay', async () => {
   expect(collection.find({}).fetch()).toEqual(response.items)
 
   disposeAll()
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(response.items)
 
-  await new Promise((resolve) => { setTimeout(resolve, 500) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 500)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
@@ -308,7 +320,9 @@ it('should register and unregister queries', async () => {
 
   collection.unregisterQuery({})
   await waitForEvent(collection, 'persistence.received')
-  await new Promise((resolve) => { setTimeout(resolve, 100) }) // wait a bit to ensure the observer disposal was executed
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  }) // wait a bit to ensure the observer disposal was executed
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 

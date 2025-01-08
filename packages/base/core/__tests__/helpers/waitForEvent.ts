@@ -4,7 +4,7 @@ import type EventEmitter from 'events'
 
 type EventNames<E extends EventEmitter> = E extends {
   on(event: infer E, listener: (...args: any[]) => void): any,
-} ? E : never;
+} ? E : never
 
 /**
  * Waits for a specific event to be emitted by an EventEmitter, optionally with a timeout.

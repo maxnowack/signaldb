@@ -16,7 +16,9 @@ describe('@signaldb/sjs', () => {
       callback(cursor.count())
     })
     collection.insert({ id: '1', name: 'John' })
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

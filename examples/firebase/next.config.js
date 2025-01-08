@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 const nextConfig = {
   basePath: '/examples/firebase',
   output: 'export',

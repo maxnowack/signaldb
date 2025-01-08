@@ -18,9 +18,15 @@ const syncManager = new SyncManager({
     const handleChange = () => {
       void onChange()
     }
-    onChildAdded(ref(db, name), () => { void handleChange() })
-    onChildChanged(ref(db, name), () => { void handleChange() })
-    onChildRemoved(ref(db, name), () => { void handleChange() })
+    onChildAdded(ref(db, name), () => {
+      void handleChange()
+    })
+    onChildChanged(ref(db, name), () => {
+      void handleChange()
+    })
+    onChildRemoved(ref(db, name), () => {
+      void handleChange()
+    })
   },
   async pull({ name }) {
     const snapshot = await get(ref(db, name))

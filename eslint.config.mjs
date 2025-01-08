@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import eslint from '@eslint/js'
 import globals from 'globals'
 import tseslint, { configs as tseslintConfigs } from 'typescript-eslint'
@@ -132,6 +133,7 @@ export default tseslint.config(
     ],
   },
   { files: ['commitlint.config.js'], languageOptions: { globals: globals.node } },
+  { files: ['**/next.config.js'], languageOptions: { globals: globals.commonjs } },
   // https://github.com/import-js/eslint-plugin-import/issues/1913#issuecomment-1034025709
   ...projectDirs.map(projectDir => ({
     files: [`${projectDir}/**/*.{t,j}s`, `${projectDir}/**/*.m{t,j}s`],
@@ -148,7 +150,7 @@ export default tseslint.config(
           '**/vite.config.mts',
           '**/vitest.config.mts',
         ],
-        packageDir: [__dirname, path.join(__dirname, projectDir)],
+        packageDir: [import.meta.url, path.join(import.meta.url, projectDir)],
       }],
     },
   })),

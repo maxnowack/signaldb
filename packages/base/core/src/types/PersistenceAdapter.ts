@@ -12,7 +12,6 @@ export type LoadResponse<T> = {
   items?: never,
 }
 
-// eslint-disable-next-line max-len
 export default interface PersistenceAdapter<T extends { id: I } & Record<string, any>, I> {
   load(): Promise<LoadResponse<T>>,
   save(items: T[], changes: Changeset<T>): Promise<void>,

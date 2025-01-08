@@ -149,14 +149,18 @@ describe('ReplicatedCollection', () => {
     expect(pull).toHaveBeenCalledTimes(1)
     expect(push).toHaveBeenCalledTimes(0)
 
-    await new Promise((resolve) => { setTimeout(resolve, 20) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20)
+    })
     expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
     expect(collection.isLoading()).toBe(false)
 
     collection.insert({ id: '2', name: 'Item 2' })
     expect(collection.isLoading()).toBe(true)
 
-    await new Promise((resolve) => { setTimeout(resolve, 20) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20)
+    })
     expect(collection.isLoading()).toBe(false)
   })
 })

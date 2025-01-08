@@ -26,7 +26,7 @@ export interface FieldExpression<T> {
   | undefined,
   $where?: string | ((item: T) => boolean) | undefined,
   $all?: T[] | undefined,
-  // eslint-disable-next-line no-use-before-define
+
   $elemMatch?: T extends object ? Query<T> : FieldExpression<T> | undefined,
   $size?: number | undefined,
   $bitsAllClear?: any,

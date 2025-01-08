@@ -14,11 +14,11 @@ describe('project', () => {
 
   it('should limit fields of the object', () => {
     const result = project(obj, {
-      name: 1,
-      age: 0,
+      'name': 1,
+      'age': 0,
       'address.city': 1,
       'address.zipCode': 0,
-      hobbies: 1,
+      'hobbies': 1,
     })
 
     expect(result).toEqual({

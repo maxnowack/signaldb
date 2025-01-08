@@ -1,7 +1,7 @@
 type DebounceOptions = {
   leading?: boolean,
   trailing?: boolean,
-};
+}
 
 /**
  * Debounces a function.

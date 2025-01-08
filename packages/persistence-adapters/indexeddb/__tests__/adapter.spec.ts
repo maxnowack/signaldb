@@ -104,7 +104,7 @@ describe('Persistence', () => {
       expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
     })
 
-    it('should persist data that was modified before persistence.init on client side', async () => {
+    it('should persist data that was modified before persistence.init on client side', { retry: 5 }, async () => {
       const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
       await persistence.save([], { added: [], removed: [], modified: [] })
       const collection = new Collection({ persistence })
@@ -117,7 +117,7 @@ describe('Persistence', () => {
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '1', name: 'Johnny' }])
       expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
-    }, { retry: 5 })
+    })
 
     it('should not overwrite persisted data if items is undefined and changeSet is empty.', async () => {
       const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)

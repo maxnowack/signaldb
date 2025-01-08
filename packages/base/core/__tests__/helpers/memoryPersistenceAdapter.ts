@@ -61,7 +61,9 @@ export default function memoryPersistenceAdapter<
       const hasChanges = currentChanges.added.length > 0
         || currentChanges.modified.length > 0
         || currentChanges.removed.length > 0
-      if (delay != null) await new Promise((resolve) => { setTimeout(resolve, delay) })
+      if (delay != null) await new Promise((resolve) => {
+        setTimeout(resolve, delay)
+      })
       if (transmitChanges && hasChanges) {
         return Promise.resolve({ changes: currentChanges })
       }

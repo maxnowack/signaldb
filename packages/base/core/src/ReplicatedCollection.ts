@@ -87,16 +87,18 @@ export default class ReplicatedCollection<
           this.isPullingRemoteSignal.set(false)
         }
       },
-      push: options.push ? (async (changes, items) => {
-        if (!options.push) throw new Error('Pushing is not configured for this collection. Try to pass a `push` function to the collection options.')
+      push: options.push
+        ? async (changes, items) => {
+          if (!options.push) throw new Error('Pushing is not configured for this collection. Try to pass a `push` function to the collection options.')
 
-        this.isPushingRemoteSignal.set(true)
-        try {
-          await options.push(changes, items)
-        } finally {
-          this.isPushingRemoteSignal.set(false)
+          this.isPushingRemoteSignal.set(true)
+          try {
+            await options.push(changes, items)
+          } finally {
+            this.isPushingRemoteSignal.set(false)
+          }
         }
-      }) : undefined,
+        : undefined,
     })
     const persistenceAdapter = options?.persistence
       ? combinePersistenceAdapters(replicationAdapter, options.persistence)

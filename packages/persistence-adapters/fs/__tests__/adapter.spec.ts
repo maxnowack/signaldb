@@ -21,7 +21,7 @@ async function waitForEvent<T>(
   })
 }
 
-it('should persist changes to filesystem', async () => {
+it('should persist changes to filesystem', { retry: 5 }, async () => {
   const file = `/tmp/${Math.floor(Math.random() * 1e17).toString(16)}.json`
   const persistence = createFilesystemAdapter(file)
   const collection = new Collection({ persistence })
@@ -35,9 +35,9 @@ it('should persist changes to filesystem', async () => {
 
   const contents = await fs.readFile(file, 'utf-8')
   expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
-}, { retry: 5 })
+})
 
-it('should persist data that was modified before persistence.init', async () => {
+it('should persist data that was modified before persistence.init', { retry: 5 }, async () => {
   const file = `/tmp/${Math.floor(Math.random() * 1e17).toString(16)}.json`
   const persistence = createFilesystemAdapter(file)
   await persistence.save([], { added: [], removed: [], modified: [] })
@@ -52,4 +52,4 @@ it('should persist data that was modified before persistence.init', async () => 
   expect(items).toEqual([{ id: '1', name: 'Johnny' }])
   const contents = await fs.readFile(file, 'utf-8')
   expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'Johnny' }])
-}, { retry: 5 })
+})

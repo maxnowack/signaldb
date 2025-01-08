@@ -2,7 +2,7 @@ import type ReactivityAdapter from '../types/ReactivityAdapter'
 
 export type BaseItem<I = any> = { id: I } & Record<string, any>
 
-export type Transform<T, U = T> = ((doc: T) => U) | null | undefined;
+export type Transform<T, U = T> = ((doc: T) => U) | null | undefined
 
 export type SortSpecifier<T> = { [P in keyof T]?: -1 | 1 } & Record<string, -1 | 1>
 

@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 import { useState } from 'react'
 import Todos from '../../models/Todos'
 import List from './List'

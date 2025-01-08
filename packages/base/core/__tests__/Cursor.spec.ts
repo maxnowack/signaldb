@@ -3,7 +3,9 @@ import type { ObserveCallbacks, Transform } from '../src'
 import { Collection, createReactivityAdapter } from '../src'
 
 // Helper function to wait for async operations
-const wait = () => new Promise((resolve) => { setImmediate(resolve) })
+const wait = () => new Promise((resolve) => {
+  setImmediate(resolve)
+})
 
 describe('Cursor', () => {
   interface TestItem {
@@ -342,7 +344,9 @@ describe('Cursor', () => {
 
       // Change data
       col.insert({ id: 4, name: 'item4', count: 99 }) // Add new item
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
       expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }))
       expect(callbacks.addedBefore).toHaveBeenCalledWith(
         expect.objectContaining({ id: 4, name: 'item4' }),
@@ -350,25 +354,33 @@ describe('Cursor', () => {
       )
 
       col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
       expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
 
       col.updateOne({ id: 1 }, { $set: { count: 42 } }) // Move existing item
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
       expect(callbacks.movedBefore).toHaveBeenCalledWith(
         expect.objectContaining({ id: 1 }),
         expect.objectContaining({ id: 4 }),
       )
 
       col.updateOne({ id: 2 }, { $set: { count: 999 } }) // Move existing item
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
       expect(callbacks.movedBefore).toHaveBeenCalledWith(
         expect.objectContaining({ id: 2 }),
         null,
       )
 
       col.removeOne({ id: 2 }) // Remove item
-      await new Promise((resolve) => { setTimeout(resolve, 0) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
       expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
     })
 
@@ -438,13 +450,17 @@ describe('Cursor', () => {
       expect(notify).not.toHaveBeenCalled()
 
       collection.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } })
-      await new Promise((resolve) => { setTimeout(resolve, 10) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 10)
+      })
 
       expect(notify).toHaveBeenCalled()
       disposal()
       expect(disposal).toHaveBeenCalled()
       collection.updateOne({ id: 1 }, { $set: { name: 'item1_' } })
-      await new Promise((resolve) => { setTimeout(resolve, 10) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 10)
+      })
       expect(notify).toHaveBeenCalledTimes(1)
       cursor.cleanup()
     })

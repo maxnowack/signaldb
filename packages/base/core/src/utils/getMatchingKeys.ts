@@ -15,7 +15,7 @@ import serializeValue from './serializeValue'
  *   cannot be optimized (e.g., if it's a `RegExp` or non-optimizable field expression).
  */
 export default function getMatchingKeys<
-  T extends BaseItem<I> = BaseItem, I = any
+  T extends BaseItem<I> = BaseItem, I = any,
 >(field: string, selector: FlatSelector<T>): string[] | null {
   if (selector[field] instanceof RegExp) return null
   if (selector[field] != null) {
