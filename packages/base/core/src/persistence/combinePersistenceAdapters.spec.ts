@@ -8,11 +8,15 @@ describe('createTemporaryFallbackExecutor', () => {
 
   it('should resolve with the result of the first promise function', async () => {
     const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 100) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
       return 'First Promise Result'
     })
     const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 200) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 200)
+      })
       return 'Second Promise Result'
     })
 
@@ -31,11 +35,15 @@ describe('createTemporaryFallbackExecutor', () => {
 
   it('should call onResolve', async () => {
     const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 100) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
       return 'First Promise Result'
     })
     const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 200) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 200)
+      })
       return 'Second Promise Result'
     })
     const onResolve = vi.fn()
@@ -60,11 +68,15 @@ describe('createTemporaryFallbackExecutor', () => {
 
   it('should resolve with the result of the second promise function after it finished', async () => {
     const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 100) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
       return 'First Promise Result'
     })
     const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 200) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 200)
+      })
       return 'Second Promise Result'
     })
 
@@ -90,11 +102,15 @@ describe('createTemporaryFallbackExecutor', () => {
 
   it('should clear the result after the specified timeout', async () => {
     const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 100) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
       return 'First Promise Result'
     })
     const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
-      await new Promise((resolve) => { setTimeout(resolve, 200) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 200)
+      })
       return 'Second Promise Result'
     })
 
@@ -176,7 +192,9 @@ describe('combinePersistenceAdapters', () => {
     const primary = {
       register: vi.fn(),
       load: vi.fn().mockImplementation(async () => {
-        await new Promise((resolve) => { setTimeout(resolve, 200) })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 200)
+        })
         return 'Primary Load Result'
       }),
       save: vi.fn(),
@@ -184,7 +202,9 @@ describe('combinePersistenceAdapters', () => {
     const secondary = {
       register: vi.fn(),
       load: vi.fn().mockImplementation(async () => {
-        await new Promise((resolve) => { setTimeout(resolve, 100) })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 100)
+        })
         return 'Secondary Load Result'
       }),
       save: vi.fn(),
@@ -221,7 +241,9 @@ describe('combinePersistenceAdapters', () => {
     const primary = {
       register: vi.fn(),
       load: vi.fn().mockImplementation(async () => {
-        await new Promise((resolve) => { setTimeout(resolve, 100) })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 100)
+        })
         return 'Primary Load Result'
       }),
       save: vi.fn(),
@@ -229,7 +251,9 @@ describe('combinePersistenceAdapters', () => {
     const secondary = {
       register: vi.fn(),
       load: vi.fn().mockImplementation(async () => {
-        await new Promise((resolve) => { setTimeout(resolve, 200) })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 200)
+        })
         return 'Secondary Load Result'
       }),
       save: vi.fn(),

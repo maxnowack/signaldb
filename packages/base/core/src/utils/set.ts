@@ -1,5 +1,3 @@
-/* eslint-disable no-param-reassign */
-
 /**
  * Sets a value at a specified path within an object. Creates nested structures
  * (arrays or objects) as needed to set the value at the correct location. Supports

@@ -98,7 +98,6 @@ export default class AutoFetchCollection<
     this.handleObserverDisposal(selector)
   }
 
-  // eslint-disable-next-line class-methods-use-this
   private getKeyForSelector(selector: Selector<T>) {
     return JSON.stringify(selector)
   }

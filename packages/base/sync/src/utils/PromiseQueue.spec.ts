@@ -80,7 +80,9 @@ it('should handle tasks added after some delay', async () => {
   await queue.add(() => new Promise((resolve) => {
     setTimeout(() => resolve(results.push('Task 1')), 5)
   }))
-  await new Promise((resolve) => { setTimeout(resolve, 10) }) // Wait before adding the next task
+  await new Promise((resolve) => {
+    setTimeout(resolve, 10)
+  }) // Wait before adding the next task
   await queue.add(() => Promise.resolve(results.push('Task 2')))
 
   expect(results).toEqual(['Task 1', 'Task 2'])

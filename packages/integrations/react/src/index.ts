@@ -1,4 +1,3 @@
-/* eslint-disable import/prefer-default-export */
 import type { DependencyList } from 'react'
 import { useRef, useReducer, useMemo, useEffect } from 'react'
 

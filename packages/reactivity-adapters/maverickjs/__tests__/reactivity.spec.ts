@@ -21,7 +21,9 @@ describe('@signaldb/maverickjs', () => {
     tick()
     collection.insert({ id: '1', name: 'John' })
     tick()
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)

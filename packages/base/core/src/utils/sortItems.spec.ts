@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import sortItems from './sortItems'
 
 describe('sortItems', () => {
-  type Item = { id: number, name: string, age: number };
+  type Item = { id: number, name: string, age: number }
 
   it('should sort items in ascending order based on id', () => {
     const items: Item[] = [

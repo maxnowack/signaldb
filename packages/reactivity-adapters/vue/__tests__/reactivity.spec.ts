@@ -25,7 +25,9 @@ describe('@signaldb/vue', () => {
     await nextTick()
     collection.insert({ id: '1', name: 'John' })
     await nextTick()
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     expect(callback).toHaveBeenLastCalledWith(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)

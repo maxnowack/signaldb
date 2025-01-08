@@ -27,10 +27,14 @@ describe('@signaldb/solid', () => {
         callback(c)
       })
     })
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     collection.insert({ id: '1', name: 'John' })
 
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })

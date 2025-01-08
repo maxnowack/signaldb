@@ -77,7 +77,9 @@ const primitiveReactivityAdapter = createReactivityAdapter({
   isInScope: () => !!primitiveReactivity.getCurrentComputation(),
 })
 
-const tick = () => new Promise((resolve) => { setTimeout(resolve, 0) })
+const tick = () => new Promise((resolve) => {
+  setTimeout(resolve, 0)
+})
 
 describe('reactivity primitives', () => {
   it('should be reactive with primitive adapter', async () => {

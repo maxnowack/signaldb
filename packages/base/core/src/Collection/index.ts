@@ -36,9 +36,9 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {
-  added: (item: T) => void,
-  changed: (item: T, modifier: Modifier<T>) => void,
-  removed: (item: T) => void,
+  'added': (item: T) => void,
+  'changed': (item: T, modifier: Modifier<T>) => void,
+  'removed': (item: T) => void,
 
   'persistence.init': () => void,
   'persistence.error': (error: Error) => void,
@@ -52,22 +52,22 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'observer.created': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
   'observer.disposed': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
-  getItems: (selector: Selector<T> | undefined) => void,
-  find: <O extends FindOptions<T>>(
+  'getItems': (selector: Selector<T> | undefined) => void,
+  'find': <O extends FindOptions<T>>(
     selector: Selector<T> | undefined,
     options: O | undefined,
     cursor: Cursor<T, U>,
   ) => void,
-  findOne: <O extends FindOptions<T>>(
+  'findOne': <O extends FindOptions<T>>(
     selector: Selector<T>,
     options: O | undefined,
     item: U | undefined,
   ) => void,
-  insert: (item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
-  updateOne: (selector: Selector<T>, modifier: Modifier<T>) => void,
-  updateMany: (selector: Selector<T>, modifier: Modifier<T>) => void,
-  removeOne: (selector: Selector<T>) => void,
-  removeMany: (selector: Selector<T>) => void,
+  'insert': (item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
+  'updateOne': (selector: Selector<T>, modifier: Modifier<T>) => void,
+  'updateMany': (selector: Selector<T>, modifier: Modifier<T>) => void,
+  'removeOne': (selector: Selector<T>) => void,
+  'removeMany': (selector: Selector<T>) => void,
 
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
   '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, U>) => void,
@@ -253,7 +253,7 @@ export default class Collection<
           // push new items to this.memory() and delete old ones
           this.memory().splice(0, this.memoryArray().length, ...items)
           this.idIndex.clear()
-          // eslint-disable-next-line array-callback-return
+
           this.memory().map((item, index) => {
             this.idIndex.set(serializeValue(item.id), new Set([index]))
           })
@@ -356,7 +356,7 @@ export default class Collection<
             const modified = pendingUpdates.modified.splice(0)
             const removed = pendingUpdates.removed.splice(0)
             currentItems = applyUpdates(this.memoryArray(), { added, modified, removed })
-            // eslint-disable-next-line no-await-in-loop
+
             await this.persistenceAdapter.save(currentItems, { added, modified, removed })
               .then(() => {
                 this.emit('persistence.transmitted')
@@ -458,7 +458,7 @@ export default class Collection<
 
   private rebuildAllIndices() {
     this.idIndex.clear()
-    // eslint-disable-next-line array-callback-return
+
     this.memory().map((item, index) => {
       this.idIndex.set(serializeValue(item.id), new Set([index]))
     })

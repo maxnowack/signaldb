@@ -335,7 +335,7 @@ export default class SyncManager<
    */
   public async syncAll() {
     if (this.isDisposed) throw new Error('SyncManager is disposed')
-    const errors: {id: string, error: Error}[] = []
+    const errors: { id: string, error: Error }[] = []
     await Promise.all([...this.collections.keys()].map(id =>
       this.sync(id).catch((error: Error) => {
         errors.push({ id, error })
@@ -385,7 +385,9 @@ export default class SyncManager<
     let syncId: string | null = null
 
     // schedule for next tick to allow other tasks to run first
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     const doSync = async () => {
       const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { end: -1 } })
       if (options?.onlyWithChanges) {
@@ -552,7 +554,9 @@ export default class SyncManager<
         })
 
         // delay sync operation update to next tick to allow other tasks to run first
-        await new Promise((resolve) => { setTimeout(resolve, 0) })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0)
+        })
 
         const hasChanges = this.changes.find({
           collectionName: name,

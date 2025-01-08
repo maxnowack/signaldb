@@ -1,4 +1,4 @@
-import { updateObject } from 'mingo/updater'
+import { update } from 'mingo'
 import type Modifier from '../types/Modifier'
 
 /**
@@ -19,6 +19,6 @@ export default function modify<T extends Record<string, any>>(
 ) {
   const clonedItem = { ...item }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  updateObject(clonedItem, modifier as any)
+  update(clonedItem, modifier as any)
   return clonedItem
 }

@@ -17,9 +17,13 @@ describe('@signaldb/reactively', () => {
     })
     exec.get()
     collection.insert({ id: '1', name: 'John' })
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
     exec.get()
-    await new Promise((resolve) => { setTimeout(resolve, 0) })
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
 
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenCalledTimes(2)

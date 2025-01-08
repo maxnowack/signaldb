@@ -37,7 +37,9 @@ function memoryPersistenceAdapter<
       const hasChanges = currentChanges.added.length > 0
         || currentChanges.modified.length > 0
         || currentChanges.removed.length > 0
-      if (delay != null) await new Promise((resolve) => { setTimeout(resolve, delay) })
+      if (delay != null) await new Promise((resolve) => {
+        setTimeout(resolve, delay)
+      })
       if (transmitChanges && hasChanges) {
         return Promise.resolve({ changes: currentChanges })
       }
@@ -94,7 +96,9 @@ it('should add a collection and register sync events', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  await new Promise((resolve) => { setTimeout(resolve, 110) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -187,7 +191,9 @@ it('should push changes when items are added locally', async () => {
 
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  await new Promise((resolve) => { setTimeout(resolve, 110) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -224,7 +230,9 @@ it('should push changes when items are updated locally', async () => {
   await syncManager.sync('test')
 
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
-  await new Promise((resolve) => { setTimeout(resolve, 110) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -262,7 +270,9 @@ it('should push changes when items are removed locally', async () => {
   await syncManager.sync('test')
 
   mockCollection.removeOne({ id: '1' })
-  await new Promise((resolve) => { setTimeout(resolve, 110) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -292,7 +302,9 @@ it('should debounce push requests', async () => {
   mockCollection.insert({ id: '2', name: 'First Item' })
   mockCollection.insert({ id: '3', name: 'Second Item' })
 
-  await new Promise((resolve) => { setTimeout(resolve, 110) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(1)
@@ -468,7 +480,9 @@ it('should register and apply remote changes with items', async () => {
   onRemoteChangeHandler({ items: [{ id: '2', name: 'Remote Item' }] })
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -508,7 +522,9 @@ it('should register and apply remote changes with changes', async () => {
   onRemoteChangeHandler({ changes: { added: [{ id: '2', name: 'Remote Item' }], modified: [], removed: [] } })
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -604,7 +620,9 @@ it('should sync second time if there were changes during sync', async () => {
   expect(onError).toHaveBeenCalledTimes(0)
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(mockCollection.find().fetch()).toEqual([{ id: '1', name: 'Test Item' }])
 })
@@ -638,7 +656,9 @@ it('should sync after a empty remote change was received', async () => {
   onRemoteChangeHandler()
 
   // wait until sync finished
-  await new Promise((resolve) => { setTimeout(resolve, 100) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -676,7 +696,9 @@ it('should call onError handler if an async error occurs', async () => {
   await syncManager.sync('test')
 
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
-  await new Promise((resolve) => { setTimeout(resolve, 110) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
 
   expect(mockPush).toHaveBeenCalled()
   expect(onError).toHaveBeenCalledTimes(1)
@@ -754,7 +776,9 @@ it('should update items that already exist on insert', async () => {
   await expect(syncManager.sync('test')).resolves.toBeUndefined()
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -783,7 +807,9 @@ it('should insert items that not exist on update', async () => {
   await expect(syncManager.sync('test')).resolves.toBeUndefined()
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -812,7 +838,9 @@ it('should not fail while removing non existing items', async () => {
   await expect(syncManager.sync('test')).resolves.toBeUndefined()
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -871,7 +899,9 @@ it('should register error handlers for internal persistence adapters', async () 
   collection.insert({ id: '1', name: 'Test Item' })
 
   // wait to next tick
-  await new Promise((resolve) => { setTimeout(resolve, 0) })
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0)
+  })
 
   expect(errorHandler).toHaveBeenCalledWith(new Error('simulated error'))
 })

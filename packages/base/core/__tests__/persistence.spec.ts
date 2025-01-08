@@ -182,7 +182,6 @@ describe('Persistence', () => {
     const collection = new Collection({
       persistence: {
         register: () => new Promise((_resolve, reject) => {
-          // eslint-disable-next-line prefer-promise-reject-errors
           setTimeout(() => reject(new Error('test')), 100)
         }),
         load: () => Promise.resolve({ items: [] }),
@@ -200,7 +199,6 @@ describe('Persistence', () => {
       persistence: {
         register: () => Promise.resolve(),
         load: () => new Promise((_resolve, reject) => {
-          // eslint-disable-next-line prefer-promise-reject-errors
           setTimeout(() => reject(new Error('test')), 100)
         }),
         save: () => Promise.resolve(),
@@ -218,7 +216,6 @@ describe('Persistence', () => {
         register: () => Promise.resolve(),
         load: () => Promise.resolve({ items: [] }),
         save: () => new Promise((_resolve, reject) => {
-          // eslint-disable-next-line prefer-promise-reject-errors
           setTimeout(() => reject(new Error('test')), 100)
         }),
       },
