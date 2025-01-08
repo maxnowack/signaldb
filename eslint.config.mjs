@@ -1,4 +1,3 @@
-/* istanbul ignore file -- @preserve */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import eslint from '@eslint/js'
 import globals from 'globals'

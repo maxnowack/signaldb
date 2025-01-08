@@ -6,7 +6,6 @@ export default defineConfig({
     coverage: {
       provider: 'istanbul',
       exclude: [
-        '.eslintrc.js',
         '**/*.spec.ts',
         '**/dist/**',
         '**/docs/**',
@@ -15,6 +14,7 @@ export default defineConfig({
         '**/vite.config.mts',
         '**/vitest.config.mts',
         'commitlint.config.js',
+        'eslint.config.mjs',
       ],
     },
     reporters: process.env.GITHUB_ACTIONS
