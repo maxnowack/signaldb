@@ -3,38 +3,38 @@ import set from './set'
 
 describe('set', () => {
   it('should set the value at the specified path in the object', () => {
-    const obj = { foo: { bar: { baz: 'initial' } } }
-    const result = set(obj, 'foo.bar.baz', 'updated')
+    const object = { foo: { bar: { baz: 'initial' } } }
+    const result = set(object, 'foo.bar.baz', 'updated')
     expect(result).toEqual({ foo: { bar: { baz: 'updated' } } })
   })
 
   it('should create nested objects if they do not exist', () => {
-    const obj = { foo: {} }
-    const result = set(obj, 'foo.bar.baz', 'value')
+    const object = { foo: {} }
+    const result = set(object, 'foo.bar.baz', 'value')
     expect(result).toEqual({ foo: { bar: { baz: 'value' } } })
   })
 
   it('should create nested arrays if they do not exist', () => {
-    const obj = { foo: {} }
-    const result = set(obj, 'foo.bar[0]', 'value')
+    const object = { foo: {} }
+    const result = set(object, 'foo.bar[0]', 'value')
     expect(result).toEqual({ foo: { bar: ['value'] } })
   })
 
   it('should handle array indices in path', () => {
-    const obj = { arr: [] }
-    const result = set(obj, 'arr[2]', 'value')
+    const object = { arr: [] }
+    const result = set(object, 'arr[2]', 'value')
     expect(result).toEqual({ arr: [undefined, undefined, 'value'] })
   })
 
   it('should return the same object reference', () => {
-    const obj = { foo: 'bar' }
-    const result = set(obj, 'foo', 'baz')
-    expect(result).toBe(obj)
+    const object = { foo: 'bar' }
+    const result = set(object, 'foo', 'baz')
+    expect(result).toBe(object)
   })
 
   it('should delete the property if the value is undefined', () => {
-    const obj = { foo: 'bar', bar: 'baz' }
-    const result = set(obj, 'foo', undefined, true)
+    const object = { foo: 'bar', bar: 'baz' }
+    const result = set(object, 'foo', undefined, true)
     expect(result).toEqual({ bar: 'baz' })
   })
 })

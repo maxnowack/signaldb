@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import project from './project'
 
 describe('project', () => {
-  const obj = {
+  const object = {
     name: 'John Doe',
     age: 25,
     address: {
@@ -13,7 +13,7 @@ describe('project', () => {
   }
 
   it('should limit fields of the object', () => {
-    const result = project(obj, {
+    const result = project(object, {
       'name': 1,
       'age': 0,
       'address.city': 1,
@@ -31,7 +31,7 @@ describe('project', () => {
   })
 
   it('should limit fields by disabling fields', () => {
-    const result = project(obj, {
+    const result = project(object, {
       age: 0,
       address: 0,
     })
@@ -48,7 +48,7 @@ describe('project', () => {
   })
 
   it('should handle nested fields that do not exist in the object', () => {
-    const result = project(obj, {
+    const result = project(object, {
       'address.zipCode': 1,
     })
 

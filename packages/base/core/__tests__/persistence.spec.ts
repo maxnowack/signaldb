@@ -20,7 +20,8 @@ describe('Persistence', () => {
     await waitForEvent(collection, 'persistence.transmitted')
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'John' }])
-    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'John' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
   })
 
   it('should get items from persistence adapter', async () => {
@@ -76,7 +77,8 @@ describe('Persistence', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
-    expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
   })
 
   it('should update item in persistence adapter', async () => {
@@ -89,7 +91,8 @@ describe('Persistence', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
   })
 
   it('should not modify original items in persistence adapter', async () => {
@@ -118,7 +121,8 @@ describe('Persistence', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
-    expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
   })
 
   it('should emit persistence.error if the adapter throws an error on registering', async () => {
@@ -254,7 +258,8 @@ describe('Persistence', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
   })
 
   it('should return correct values from isPulling, isPushing and isLoading', async () => {
@@ -289,7 +294,7 @@ describe('Persistence', () => {
       persistence: {
         register: async (onChangeCallback) => {
           onChange.mockImplementation(onChangeCallback)
-          return Promise.resolve()
+          return
         },
         load: () => Promise.resolve({
           items: [{ id: '1', name: 'John' }],

@@ -22,7 +22,7 @@ export default function getMatchingKeys<
     if (isFieldExpression(selector[field])) {
       const is$in = isFieldExpression(selector[field])
         && Array.isArray(selector[field].$in)
-        && selector[field].$in.length
+        && selector[field].$in.length > 0
       if (is$in) {
         const optimizedSelector = { ...selector, [field]: { ...selector[field] } }
         delete optimizedSelector[field].$in

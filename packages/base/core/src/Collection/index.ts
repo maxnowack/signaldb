@@ -106,7 +106,7 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
   currentItems: T[],
   { added, modified, removed }: Changeset<T>,
 ) {
-  const items = currentItems.slice()
+  const items = [...currentItems]
   added.forEach((item) => {
     items.push(item)
   })
@@ -259,24 +259,24 @@ export default class Collection<
           })
         } else if (changes) {
           changes.added.forEach((item) => {
-            const index = this.memory().findIndex(doc => doc.id === item.id)
-            if (index >= 0) { // item already exists; doing upsert
+            const index = this.memory().findIndex(document => document.id === item.id)
+            if (index !== -1) { // item already exists; doing upsert
               this.memory().splice(index, 1, item)
               return
             }
 
             // item does not exists yet; normal insert
             this.memory().push(item)
-            const itemIndex = this.memory().findIndex(doc => doc === item)
+            const itemIndex = this.memory().findIndex(document => document === item)
             this.idIndex.set(serializeValue(item.id), new Set([itemIndex]))
           })
           changes.modified.forEach((item) => {
-            const index = this.memory().findIndex(doc => doc.id === item.id)
+            const index = this.memory().findIndex(document => document.id === item.id)
             if (index === -1) throw new Error('Cannot resolve index for item')
             this.memory().splice(index, 1, item)
           })
           changes.removed.forEach((item) => {
-            const index = this.memory().findIndex(doc => doc.id === item.id)
+            const index = this.memory().findIndex(document => document.id === item.id)
             if (index === -1) throw new Error('Cannot resolve index for item')
             this.memory().splice(index, 1)
           })
@@ -446,6 +446,7 @@ export default class Collection<
 
   private executeInDebugMode(fn: (callstack: string) => void) {
     if (!this.debugMode) return
+    // eslint-disable-next-line unicorn/error-message
     const callstack = new Error().stack || ''
     fn(callstack)
   }
@@ -473,7 +474,7 @@ export default class Collection<
       && typeof selector.id !== 'object') {
       return {
         matched: true,
-        positions: Array.from(this.idIndex.get(serializeValue(selector.id)) || []),
+        positions: [...this.idIndex.get(serializeValue(selector.id)) || []],
         optimizedSelector: {},
       }
     }
@@ -495,10 +496,10 @@ export default class Collection<
     const items = indexInfo.matched
       ? indexInfo.positions.map(index => memory[index])
       : memory
-    const item = items.find(doc => match(doc, selector))
+    const item = items.find(document => match(document, selector))
     const index = (indexInfo.matched
       && indexInfo.positions.find(itemIndex => memory[itemIndex] === item))
-        || memory.findIndex(doc => doc === item)
+        || memory.findIndex(document => document === item)
     if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
     return { item, index }
@@ -645,7 +646,7 @@ export default class Collection<
     this.rebuildAllIndices()
 
     // execute all post batch callbacks
-    this.postBatchCallbacks.forEach(cb => cb())
+    this.postBatchCallbacks.forEach(callback_ => callback_())
     this.postBatchCallbacks.clear()
   }
 
@@ -661,7 +662,7 @@ export default class Collection<
     const newItem = { id: randomId(), ...item } as T
     if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
-    const itemIndex = this.memory().findIndex(doc => doc === newItem)
+    const itemIndex = this.memory().findIndex(document => document === newItem)
     this.idIndex.set(serializeValue(newItem.id), new Set([itemIndex]))
     this.rebuildIndices()
     this.emit('added', newItem)
@@ -781,7 +782,7 @@ export default class Collection<
     const items = this.getItems(selector)
 
     items.forEach((item) => {
-      const index = this.memory().findIndex(doc => doc === item)
+      const index = this.memory().findIndex(document => document === item)
       if (index === -1) throw new Error('Cannot resolve index for item')
       this.memory().splice(index, 1)
       this.deleteFromIdIndex(item.id, index)

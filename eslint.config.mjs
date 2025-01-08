@@ -1,3 +1,4 @@
+/* istanbul ignore file -- @preserve */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import eslint from '@eslint/js'
 import globals from 'globals'
@@ -9,12 +10,13 @@ import testingLibraryPlugin from 'eslint-plugin-testing-library'
 import jsdocPlugin from 'eslint-plugin-jsdoc'
 import vitestPlugin from 'eslint-plugin-vitest'
 import stylisticPlugin from '@stylistic/eslint-plugin'
+import unicornPlugin from 'eslint-plugin-unicorn'
 import FastGlob from 'fast-glob'
 import fs from 'fs'
 import path from 'path'
 
-const { workspaces } = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
-const projectDirs = workspaces
+const { workspaces } = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf8'))
+const projectDirectories = workspaces
   .flatMap(pattern => FastGlob.sync(pattern, { onlyDirectories: true }))
   .filter(projectPath => fs.existsSync(path.join(import.meta.url, projectPath, 'package.json')))
 
@@ -23,13 +25,15 @@ export default tseslint.config(
   tseslintConfigs.recommendedTypeChecked,
   importPlugin.recommended,
   stylisticPlugin.configs['recommended-flat'],
-  jsdocPlugin.configs['flat/recommended-typescript'],
+  // jsdocPlugin.configs['flat/recommended-typescript'],
   vitestPlugin.configs.recommended,
+  unicornPlugin.configs['flat/recommended'],
   {
     plugins: {
       'react': reactPlugin,
       'jsx-a11y': jsxA11yPlugin,
       '@stylistic': stylisticPlugin,
+      'jsdoc': jsdocPlugin,
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
@@ -57,6 +61,36 @@ export default tseslint.config(
       'import/extensions': ['.js', '.cjs', '.mjs', '.ts', '.mts', '.tsx'],
     },
     rules: {
+      'unicorn/consistent-function-scoping': ['error', { checkArrowFunctions: false }],
+      'unicorn/no-useless-undefined': ['error', {
+        checkArguments: false,
+      }],
+      'unicorn/prevent-abbreviations': ['error', {
+        checkFilenames: false,
+        allowList: {
+          i: true,
+          fn: true,
+          args: true,
+          props: true,
+          refs: true,
+        },
+      }],
+      'unicorn/no-null': 'off',
+      'unicorn/prefer-event-target': 'off',
+      'unicorn/filename-case': ['error', {
+        cases: { camelCase: true, pascalCase: true },
+        ignore: [
+          String.raw`next-env\.d\.ts$`,
+        ],
+      }],
+      'unicorn/prefer-module': 'off',
+      'unicorn/no-array-reduce': 'off',
+      'unicorn/no-array-method-this-argument': 'off',
+      'unicorn/no-array-callback-reference': 'off',
+      'unicorn/prefer-array-index-of': 'off',
+      'unicorn/prefer-node-protocol': 'off',
+      'unicorn/no-array-for-each': 'off', // disabled until this issue was resolved: https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1788
+      '@typescript-eslint/require-await': 'off',
       'no-console': 'error',
       '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
       '@stylistic/indent-binary-ops': ['off'], // disabled until this issue was resolved: https://github.com/eslint-stylistic/eslint-stylistic/issues/546
@@ -135,8 +169,8 @@ export default tseslint.config(
   { files: ['commitlint.config.js'], languageOptions: { globals: globals.node } },
   { files: ['**/next.config.js'], languageOptions: { globals: globals.commonjs } },
   // https://github.com/import-js/eslint-plugin-import/issues/1913#issuecomment-1034025709
-  ...projectDirs.map(projectDir => ({
-    files: [`${projectDir}/**/*.{t,j}s`, `${projectDir}/**/*.m{t,j}s`],
+  ...projectDirectories.map(projectDirectory => ({
+    files: [`${projectDirectory}/**/*.{t,j}s`, `${projectDirectory}/**/*.m{t,j}s`],
     rules: {
       'import/no-extraneous-dependencies': ['error', {
         devDependencies: [
@@ -150,7 +184,7 @@ export default tseslint.config(
           '**/vite.config.mts',
           '**/vitest.config.mts',
         ],
-        packageDir: [import.meta.url, path.join(import.meta.url, projectDir)],
+        packageDir: [import.meta.url, path.join(import.meta.url, projectDirectory)],
       }],
     },
   })),

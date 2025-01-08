@@ -7,8 +7,8 @@ client
   .setEndpoint('https://cloud.appwrite.io/v1')
   .setProject('6567685ea287ba49be81')
 
-const dbId = '65676881edfe6a3e7e2c'
-const db = new Databases(client)
+const databaseId = '65676881edfe6a3e7e2c'
+const database = new Databases(client)
 
 const syncManager = new SyncManager<Record<string, any>, { id: string }>({
   persistenceAdapter: id => createIndexedDBAdapter(id),
@@ -20,10 +20,10 @@ const syncManager = new SyncManager<Record<string, any>, { id: string }>({
     const handleChange = () => {
       void onChange()
     }
-    client.subscribe(`databases.${dbId}.collections.${name}.documents`, handleChange)
+    client.subscribe(`databases.${databaseId}.collections.${name}.documents`, handleChange)
   },
   async pull({ name }) {
-    const { documents } = await db.listDocuments(dbId, name)
+    const { documents } = await database.listDocuments(databaseId, name)
     return {
       items: documents.map(({
         $collectionId,
@@ -41,13 +41,13 @@ const syncManager = new SyncManager<Record<string, any>, { id: string }>({
   async push({ name }, { changes }) {
     await Promise.all([
       ...changes.added.map(async ({ id, ...item }) => {
-        await db.createDocument(dbId, name, id, item)
+        await database.createDocument(databaseId, name, id, item)
       }),
       ...changes.modified.map(async ({ id, ...item }) => {
-        await db.updateDocument(dbId, name, id, item)
+        await database.updateDocument(databaseId, name, id, item)
       }),
       ...changes.removed.map(async (item) => {
-        await db.deleteDocument(dbId, name, item.id)
+        await database.deleteDocument(databaseId, name, item.id)
       }),
     ])
   },

@@ -7,9 +7,9 @@ import angularReactivityAdapter from '../src'
 // borrowed from https://github.com/angular/angular/blob/80f472f9f4c09af33f41f7e8dd656eff0b74d03f/packages/core/test/signals/effect_util.ts
 const queue = new Set<Watch>()
 function testingEffect(
-  effectFn: (onCleanup: (cleanupFn: WatchCleanupFn) => void) => void,
+  effectFunction: (onCleanup: (cleanupFunction: WatchCleanupFn) => void) => void,
 ): void {
-  const w = createWatch(effectFn, queue.add.bind(queue), true)
+  const w = createWatch(effectFunction, queue.add.bind(queue), true)
 
   // Effects start dirty.
   w.notify()

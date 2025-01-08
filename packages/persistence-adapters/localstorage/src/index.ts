@@ -43,7 +43,7 @@ export default function createLocalStorageAdapter<
   return createPersistenceAdapter<T, I>({
     async load() {
       const items = getItems()
-      return Promise.resolve({ items })
+      return { items }
     },
     async save(items, { added, modified, removed }) {
       const currentItems = getItems()
@@ -63,10 +63,10 @@ export default function createLocalStorageAdapter<
         currentItems.splice(index, 1)
       })
       localStorage.setItem(collectionId, serialize(currentItems))
-      return Promise.resolve()
+      return
     },
     async register() {
-      return Promise.resolve()
+      return
     },
   })
 }

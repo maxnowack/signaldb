@@ -3,9 +3,9 @@ import deepClone, { clone } from './deepClone'
 
 describe('deepClone', () => {
   it('should use the polyfill when structuredClone is not available', () => {
-    const obj = { a: 1, b: { c: 2 } }
-    expect(deepClone(obj)).not.toBe(obj)
-    expect(deepClone(obj)).toEqual({ a: 1, b: { c: 2 } })
+    const object = { a: 1, b: { c: 2 } }
+    expect(deepClone(object)).not.toBe(object)
+    expect(deepClone(object)).toEqual({ a: 1, b: { c: 2 } })
   })
 })
 
@@ -19,11 +19,11 @@ describe('clone', () => {
   })
 
   it('should clone arrays correctly', () => {
-    const arr = [1, 2, 3, [4, 5]]
-    const clonedArr = clone(arr)
-    expect(clonedArr).toEqual(arr)
-    expect(clonedArr).not.toBe(arr)
-    expect(clonedArr[3]).not.toBe(arr[3])
+    const array = [1, 2, 3, [4, 5]]
+    const clonedArray = clone(array)
+    expect(clonedArray).toEqual(array)
+    expect(clonedArray).not.toBe(array)
+    expect(clonedArray[3]).not.toBe(array[3])
   })
 
   it('should clone maps correctly', () => {
@@ -48,15 +48,15 @@ describe('clone', () => {
   })
 
   it('should clone plain objects correctly', () => {
-    const obj = { a: 1, b: { c: 2 } }
-    const clonedObj = clone(obj)
-    expect(clonedObj).toEqual(obj)
-    expect(clonedObj).not.toBe(obj)
-    expect(clonedObj.b).not.toBe(obj.b)
+    const object = { a: 1, b: { c: 2 } }
+    const clonedObject = clone(object)
+    expect(clonedObject).toEqual(object)
+    expect(clonedObject).not.toBe(object)
+    expect(clonedObject.b).not.toBe(object.b)
   })
 
   it('should clone complex objects correctly', () => {
-    const complexObj = {
+    const complexObject = {
       a: 1,
       b: [2, 3],
       c: new Map([['key', 'value']]),
@@ -65,15 +65,15 @@ describe('clone', () => {
       f: { g: 6 },
       g: /asdf/gi,
     }
-    const clonedComplexObj = clone(complexObj)
-    expect(clonedComplexObj).toEqual(complexObj)
-    expect(clonedComplexObj).not.toBe(complexObj)
-    expect(clonedComplexObj.b).not.toBe(complexObj.b)
-    expect(clonedComplexObj.c).not.toBe(complexObj.c)
-    expect(clonedComplexObj.d).not.toBe(complexObj.d)
-    expect(clonedComplexObj.e).not.toBe(complexObj.e)
-    expect(clonedComplexObj.f).not.toBe(complexObj.f)
-    expect(clonedComplexObj.g).not.toBe(complexObj.g)
+    const clonedComplexObject = clone(complexObject)
+    expect(clonedComplexObject).toEqual(complexObject)
+    expect(clonedComplexObject).not.toBe(complexObject)
+    expect(clonedComplexObject.b).not.toBe(complexObject.b)
+    expect(clonedComplexObject.c).not.toBe(complexObject.c)
+    expect(clonedComplexObject.d).not.toBe(complexObject.d)
+    expect(clonedComplexObject.e).not.toBe(complexObject.e)
+    expect(clonedComplexObject.f).not.toBe(complexObject.f)
+    expect(clonedComplexObject.g).not.toBe(complexObject.g)
   })
 
   it('should fail on functions', () => {

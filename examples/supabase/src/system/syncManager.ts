@@ -62,8 +62,8 @@ const syncManager = new SyncManager({
       .subscribe()
   },
   async pull({ name }) {
-    const docs = await supabase.from(name as any).select().returns<{ id: string }[]>()
-    const items = docs.data ?? []
+    const documents = await supabase.from(name as any).select().returns<{ id: string }[]>()
+    const items = documents.data ?? []
     return { items }
   },
   async push({ name }, { changes }) {

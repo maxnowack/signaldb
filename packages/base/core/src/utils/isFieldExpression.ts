@@ -1,6 +1,6 @@
 import type { FieldExpression } from '../types/Selector'
 
-const expressionKeys = [
+const expressionKeys = new Set([
   '$eq',
   '$gt',
   '$gte',
@@ -25,7 +25,7 @@ const expressionKeys = [
   '$bitsAllSet',
   '$bitsAnyClear',
   '$bitsAnySet',
-]
+])
 
 /**
  * Determines whether a given object is a valid field expression.
@@ -46,9 +46,9 @@ export default function isFieldExpression<T>(expression: any): expression is Fie
     return false
   }
 
-  const hasInvalidKeys = keys.some(key => !expressionKeys.includes(key))
+  const hasInvalidKeys = keys.some(key => !expressionKeys.has(key))
   if (hasInvalidKeys) return false
 
-  const hasValidKeys = keys.every(key => expressionKeys.includes(key))
+  const hasValidKeys = keys.every(key => expressionKeys.has(key))
   return hasValidKeys
 }

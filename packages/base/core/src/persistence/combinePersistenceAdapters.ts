@@ -6,35 +6,35 @@ import createPersistenceAdapter from './createPersistenceAdapter'
  * The first function is tried first, and if it resolves, its value is used.
  * If the first function fails or a fallback is required, the second function is executed.
  * An optional cache mechanism can store the result temporarily to improve performance.
- * @template Args - The argument types for the promise functions.
- * @template ReturnVal - The return value type of the promise functions.
- * @param firstResolvingPromiseFn - The primary promise-based function to execute.
- * @param secondResolvingPromiseFn - The secondary fallback promise-based function to execute.
+ * @template Arguments - The argument types for the promise functions.
+ * @template ReturnValue - The return value type of the promise functions.
+ * @param firstResolvingPromiseFunction - The primary promise-based function to execute.
+ * @param secondResolvingPromiseFunction - The secondary fallback promise-based function to execute.
  * @param [options] - Optional configuration.
  * @param [options.onResolve] - Callback executed when a promise resolves.
  * @param [options.cacheTimeout] - Time (in ms) to cache the resolved result.
  * @returns A function that executes the two promises as described.
  */
-export function createTemporaryFallbackExecutor<Args extends Array<any>, ReturnVal>(
-  firstResolvingPromiseFn: (...args: Args) => Promise<ReturnVal>,
-  secondResolvingPromiseFn: (...args: Args) => Promise<ReturnVal>,
+export function createTemporaryFallbackExecutor<Arguments extends Array<any>, ReturnValue>(
+  firstResolvingPromiseFunction: (...args: Arguments) => Promise<ReturnValue>,
+  secondResolvingPromiseFunction: (...args: Arguments) => Promise<ReturnValue>,
   options?: {
-    onResolve?: (returnValue: ReturnVal) => void,
+    onResolve?: (returnValue: ReturnValue) => void,
     cacheTimeout?: number,
   },
-): (...args: Args) => Promise<ReturnVal> {
+): (...args: Arguments) => Promise<ReturnValue> {
   const cacheTimeout = options?.cacheTimeout ?? 0
   let isResolved = false
-  let resolvedValue: ReturnVal | null = null
+  let resolvedValue: ReturnValue | null = null
   let timeout: NodeJS.Timeout | null = null
-  let secondaryPromise: Promise<ReturnVal> | null = null
-  return (...args: Args) => {
+  let secondaryPromise: Promise<ReturnValue> | null = null
+  return (...args: Arguments) => {
     if (secondaryPromise == null) {
       if (timeout) {
         clearTimeout(timeout)
         timeout = null
       }
-      secondaryPromise = secondResolvingPromiseFn(...args).then((result) => {
+      secondaryPromise = secondResolvingPromiseFunction(...args).then((result) => {
         if (cacheTimeout > 0) {
           timeout = setTimeout(() => {
             isResolved = false
@@ -50,7 +50,7 @@ export function createTemporaryFallbackExecutor<Args extends Array<any>, ReturnV
     } else if (isResolved) {
       return secondaryPromise
     }
-    return firstResolvingPromiseFn(...args)
+    return firstResolvingPromiseFunction(...args)
   }
 }
 

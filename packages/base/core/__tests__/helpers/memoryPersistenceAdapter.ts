@@ -34,7 +34,7 @@ export default function memoryPersistenceAdapter<
 >(
   initialData: T[] = [],
   transmitChanges = false,
-  delay: number | undefined = undefined,
+  delay?: number,
 ) {
   // not really a "persistence adapter", but it works for testing
   let items = [...initialData]
@@ -65,9 +65,9 @@ export default function memoryPersistenceAdapter<
         setTimeout(resolve, delay)
       })
       if (transmitChanges && hasChanges) {
-        return Promise.resolve({ changes: currentChanges })
+        return { changes: currentChanges }
       }
-      return Promise.resolve({ items })
+      return { items }
     },
     save: (newSnapshot: T[]) => {
       items = [...newSnapshot]

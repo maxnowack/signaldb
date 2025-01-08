@@ -21,9 +21,9 @@ describe('isEqual', () => {
   })
 
   it('should return true for equal objects', () => {
-    const obj1 = { a: 1, b: 2 }
-    const obj2 = { a: 1, b: 2 }
-    expect(isEqual(obj1, obj2)).toBe(true)
+    const object1 = { a: 1, b: 2 }
+    const object2 = { a: 1, b: 2 }
+    expect(isEqual(object1, object2)).toBe(true)
   })
 
   it('should return false for non-equal values', () => {

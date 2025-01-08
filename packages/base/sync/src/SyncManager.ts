@@ -160,7 +160,7 @@ export default class SyncManager<
   }
 
   protected createPersistenceAdapter(name: string) {
-    if (this.options.persistenceAdapter == null) return undefined
+    if (this.options.persistenceAdapter == null) return
 
     const id = this.options.id ?? 'default-sync-manager'
     let errorHandler: (error: Error) => void = () => { /* noop */ }
@@ -340,7 +340,7 @@ export default class SyncManager<
       this.sync(id).catch((error: Error) => {
         errors.push({ id, error })
       })))
-    if (errors.length > 0) throw new Error(`Error while syncing collections:\n${errors.map(e => `${e.id}: ${e.error.message}`).join('\n\n')}`)
+    if (errors.length > 0) throw new Error(`Error while syncing collections:\n${errors.map(error => `${error.id}: ${error.error.message}`).join('\n\n')}`)
   }
 
   /**

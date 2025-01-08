@@ -23,9 +23,9 @@ describe('intersection', () => {
   })
 
   it('should return the intersection of arrays with non-unique objects', () => {
-    const obj1 = { id: 1, name: 'Alice' }
-    const obj2 = { id: 2, name: 'Bob' }
-    const obj3 = { id: 3, name: 'Charlie' }
-    expect(intersection([obj1, obj2], [obj2, obj3])).toEqual([obj2])
+    const object1 = { id: 1, name: 'Alice' }
+    const object2 = { id: 2, name: 'Bob' }
+    const object3 = { id: 3, name: 'Charlie' }
+    expect(intersection([object1, object2], [object2, object3])).toEqual([object2])
   })
 })
