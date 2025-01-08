@@ -42,7 +42,8 @@ describe('Persistence', () => {
       await waitForEvent(collection, 'persistence.transmitted')
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '1', name: 'John' }])
-      expect((await persistence.load()).items).toEqual([{ id: '1', name: 'John' }])
+      const loadResult = await persistence.load()
+      expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
     })
 
     it('should remove item from IndexedDB persistence adapter', async () => {
@@ -56,7 +57,8 @@ describe('Persistence', () => {
 
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '2', name: 'Jane' }])
-      expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+      const loadResult = await persistence.load()
+      expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
     })
 
     it('should update item in IndexedDB persistence adapter', async () => {
@@ -70,7 +72,8 @@ describe('Persistence', () => {
 
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-      expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+      const loadResult = await persistence.load()
+      expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
     })
 
     it('should not modify original items in IndexedDB persistence adapter', async () => {
@@ -101,7 +104,8 @@ describe('Persistence', () => {
 
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '2', name: 'Jane' }])
-      expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+      const loadResult = await persistence.load()
+      expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
     })
 
     it('should persist data that was modified before persistence.init on client side', { retry: 5 }, async () => {
@@ -116,7 +120,8 @@ describe('Persistence', () => {
 
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-      expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+      const loadResult = await persistence.load()
+      expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
     })
 
     it('should not overwrite persisted data if items is undefined and changeSet is empty.', async () => {
@@ -127,7 +132,8 @@ describe('Persistence', () => {
       await persistence.save([], { added: [], removed: [], modified: [] })
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '1', name: 'John' }])
-      expect((await persistence.load()).items).toEqual([{ id: '1', name: 'John' }])
+      const loadResult = await persistence.load()
+      expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
     })
   })
 })

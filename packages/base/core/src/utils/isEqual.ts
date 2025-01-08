@@ -22,8 +22,7 @@ export default function isEqual<T, K>(a: T, b: K): boolean {
   const aKeys = Object.keys(a)
   const bKeys = Object.keys(b)
   if (aKeys.length !== bKeys.length) return false
-  for (let i = 0; i < aKeys.length; i += 1) {
-    const key = aKeys[i]
+  for (const key of aKeys) {
     if (!bKeys.includes(key)) return false
     if (!isEqual(a[key as keyof T], b[key as keyof K])) return false
   }

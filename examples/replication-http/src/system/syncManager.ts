@@ -29,7 +29,8 @@ const syncManager = new SyncManager({
         text: string,
         completed: boolean,
       }[],
-    } = await authenticatedFetch(`/collections/${name}/documents`).then(res => res.json())
+    } = await authenticatedFetch(`/collections/${name}/documents`)
+      .then(fetchResult => fetchResult.json())
     return {
       items: result.documents.map(item => ({
         id: item.$id,

@@ -12,34 +12,31 @@ export default function createIndexedDBAdapter<
   T extends { id: I } & Record<string, any>,
   I extends IDBValidKey,
 >(name: string) {
-  const dbName = `signaldb-${name}`
+  const databaseName = `signaldb-${name}`
   const storeName = 'items'
 
   function openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(dbName, 1)
-      request.onupgradeneeded = () => {
-        const db = request.result
-        if (!db.objectStoreNames.contains(storeName)) {
-          db.createObjectStore(storeName, { keyPath: 'id' })
+      const request = indexedDB.open(databaseName, 1)
+      request.addEventListener('upgradeneeded', () => {
+        const database = request.result
+        if (!database.objectStoreNames.contains(storeName)) {
+          database.createObjectStore(storeName, { keyPath: 'id' })
         }
-      }
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(new Error(request.error?.message || 'Database error'))
+      })
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () => reject(new Error(request.error?.message || 'Database error')))
     })
   }
 
   async function getAllItems(): Promise<T[]> {
-    const db = await openDatabase()
+    const database = await openDatabase()
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, 'readonly')
+      const transaction = database.transaction(storeName, 'readonly')
       const store = transaction.objectStore(storeName)
       const request = store.getAll()
-      request.onsuccess = () => {
-        const { result } = request
-        resolve(result as T[]) // Ensure proper typing
-      }
-      request.onerror = () => reject(new Error(request.error?.message || 'Error fetching items'))
+      request.addEventListener('success', () => resolve(request.result as T[]))
+      request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
     })
   }
 
@@ -49,8 +46,8 @@ export default function createIndexedDBAdapter<
       return { items }
     },
     async save(items, { added, modified, removed }) {
-      const db = await openDatabase()
-      const transaction = db.transaction(storeName, 'readwrite')
+      const database = await openDatabase()
+      const transaction = database.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
 
       added.forEach(item => store.add(item))
@@ -58,12 +55,12 @@ export default function createIndexedDBAdapter<
       removed.forEach(item => store.delete(item.id))
 
       return new Promise((resolve, reject) => {
-        transaction.oncomplete = () => resolve()
-        transaction.onerror = () => reject(new Error(transaction.error?.message || 'Transaction error'))
+        transaction.addEventListener('complete', () => resolve())
+        transaction.addEventListener('error', () => reject(new Error(transaction.error?.message || 'Transaction error')))
       })
     },
     async register() {
-      return Promise.resolve()
+      return
     },
   })
 }

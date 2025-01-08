@@ -284,13 +284,13 @@ export default class Cursor<T extends BaseItem, U = T> {
           ...memo,
           [callbackName]: (item: T, before: T | undefined) => {
             const transformedValue = this.transform(item)
-            const hasBeforeParam = before !== undefined
-            const transformedBeforeValue = hasBeforeParam && before
+            const hasBeforeParameter = before !== undefined
+            const transformedBeforeValue = hasBeforeParameter && before
               ? this.transform(before)
               : null
             return callback(
               transformedValue,
-              ...hasBeforeParam ? [transformedBeforeValue] : [],
+              ...hasBeforeParameter ? [transformedBeforeValue] : [],
             )
           },
         }

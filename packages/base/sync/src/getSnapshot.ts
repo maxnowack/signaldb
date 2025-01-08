@@ -15,18 +15,18 @@ export default function getSnapshot<ItemType extends BaseItem<IdType>, IdType>(
   const items = lastSnapshot || []
   data.changes.added.forEach((item) => {
     const index = items.findIndex(i => i.id === item.id)
-    if (index !== -1) {
-      items[index] = item
-    } else {
+    if (index === -1) {
       items.push(item)
+    } else {
+      items[index] = item
     }
   })
   data.changes.modified.forEach((item) => {
     const index = items.findIndex(i => i.id === item.id)
-    if (index !== -1) {
-      items[index] = item
-    } else {
+    if (index === -1) {
       items.push(item)
+    } else {
+      items[index] = item
     }
   })
   data.changes.removed.forEach((item) => {

@@ -84,7 +84,8 @@ describe('OPFS', () => {
     await waitForEvent(collection, 'persistence.transmitted')
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'John' }])
-    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'John' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
   })
 
   it('should remove item from OPFS persistence adapter', async () => {
@@ -98,7 +99,8 @@ describe('OPFS', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
-    expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
   })
 
   it('should update item in OPFS persistence adapter', async () => {
@@ -112,7 +114,8 @@ describe('OPFS', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
   })
 
   it('should not modify original items in OPFS persistence adapter', async () => {
@@ -143,7 +146,8 @@ describe('OPFS', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
-    expect((await persistence.load()).items).toEqual([{ id: '2', name: 'Jane' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
   })
 
   it('should persist data that was modified before persistence.init on client side', { retry: 5 }, async () => {
@@ -158,6 +162,7 @@ describe('OPFS', () => {
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    expect((await persistence.load()).items).toEqual([{ id: '1', name: 'Johnny' }])
+    const loadResult = await persistence.load()
+    expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
   })
 })

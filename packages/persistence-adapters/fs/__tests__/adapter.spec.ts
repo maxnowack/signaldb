@@ -33,7 +33,7 @@ it('should persist changes to filesystem', { retry: 5 }, async () => {
   collection.insert({ id: '1', name: 'John' })
   await waitForEvent(collection, 'persistence.transmitted')
 
-  const contents = await fs.readFile(file, 'utf-8')
+  const contents = await fs.readFile(file, 'utf8')
   expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'John' }])
 })
 
@@ -50,6 +50,6 @@ it('should persist data that was modified before persistence.init', { retry: 5 }
 
   const items = collection.find().fetch()
   expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-  const contents = await fs.readFile(file, 'utf-8')
+  const contents = await fs.readFile(file, 'utf8')
   expect(JSON.parse(contents)).toEqual([{ id: '1', name: 'Johnny' }])
 })

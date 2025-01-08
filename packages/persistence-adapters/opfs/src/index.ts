@@ -44,7 +44,7 @@ export default function createOPFSAdapter<
   async function getItems(): Promise<T[]> {
     const opfsRoot = await navigator.storage.getDirectory()
     const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
-    const contents = await existingFileHandle.getFile().then(val => val.text())
+    const contents = await existingFileHandle.getFile().then(value => value.text())
     return deserialize(contents || '[]')
   }
 
@@ -73,7 +73,7 @@ export default function createOPFSAdapter<
       }
       savePromise = getItems()
         .then((currentItems) => {
-          const items = currentItems.slice()
+          const items = [...currentItems]
           added.forEach((item) => {
             items.push(item)
           })

@@ -42,7 +42,7 @@ interface ReactiveEffect {
  */
 export function createUseReactivityHook(effect: ReactiveEffect) {
   function useReactivity<T>(
-    reactiveFn: () => T,
+    reactiveFunction: () => T,
     deps?: DependencyList,
   ): T {
     const forceUpdate = useForceUpdate()
@@ -60,7 +60,7 @@ export function createUseReactivityHook(effect: ReactiveEffect) {
       }
       refs.current.stopComputation = effect(() => {
         if (!refs.current.isMounted) return
-        refs.current.data = reactiveFn()
+        refs.current.data = reactiveFunction()
         forceUpdate()
       })
     }

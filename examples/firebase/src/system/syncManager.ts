@@ -6,7 +6,7 @@ import { getDatabase, ref, get, set, remove, update, onChildAdded, onChildChange
 initializeApp({
   databaseURL: 'https://signaldb-d7e71-default-rtdb.firebaseio.com',
 })
-const db = getDatabase()
+const database = getDatabase()
 
 const syncManager = new SyncManager({
   persistenceAdapter: id => createIndexedDBAdapter(id),
@@ -18,31 +18,31 @@ const syncManager = new SyncManager({
     const handleChange = () => {
       void onChange()
     }
-    onChildAdded(ref(db, name), () => {
+    onChildAdded(ref(database, name), () => {
       void handleChange()
     })
-    onChildChanged(ref(db, name), () => {
+    onChildChanged(ref(database, name), () => {
       void handleChange()
     })
-    onChildRemoved(ref(db, name), () => {
+    onChildRemoved(ref(database, name), () => {
       void handleChange()
     })
   },
   async pull({ name }) {
-    const snapshot = await get(ref(db, name))
+    const snapshot = await get(ref(database, name))
     const items = await snapshot.val() as Record<string, any> | null
     return { items: Object.values(items ?? {}) }
   },
   async push({ name }, { changes }) {
     await Promise.all([
       ...changes.added.map(async (item) => {
-        await set(ref(db, `${name}/${item.id}`), item)
+        await set(ref(database, `${name}/${item.id}`), item)
       }),
       ...changes.modified.map(async (item) => {
-        await update(ref(db, `${name}/${item.id}`), item)
+        await update(ref(database, `${name}/${item.id}`), item)
       }),
       ...changes.removed.map(async (item) => {
-        await remove(ref(db, `${name}/${item.id}`))
+        await remove(ref(database, `${name}/${item.id}`))
       }),
     ])
   },

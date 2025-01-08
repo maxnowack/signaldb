@@ -2,6 +2,12 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 
+const measureTime = (fn: () => void) => {
+  const start = performance.now()
+  fn()
+  return performance.now() - start
+}
+
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
 
@@ -455,12 +461,6 @@ describe('Collection', () => {
 
   // eslint-disable-next-line vitest/valid-describe-callback
   describe('performance', { retry: 5 }, () => {
-    const measureTime = (fn: () => void) => {
-      const start = performance.now()
-      fn()
-      return performance.now() - start
-    }
-
     it('should be faster with id only queries', () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
@@ -483,7 +483,7 @@ describe('Collection', () => {
 
       const percentage = (100 / nonIdQueryTime) * idQueryTime
       // eslint-disable-next-line no-console
-      console.log('id index performance: ', { idQueryTime, nonIdQueryTime, percentage })
+      console.log('id index performance:', { idQueryTime, nonIdQueryTime, percentage })
 
       // id query should use less than 10% of the time of a non-id query
       expect(percentage).toBeLessThan(10)
@@ -497,7 +497,7 @@ describe('Collection', () => {
 
       Collection.batch(() => {
         // create items
-        for (let i = 0; i < 10000; i += 1) {
+        for (let i = 0; i < 10_000; i += 1) {
           col1.insert({ id: i.toString(), name: 'John', num: i })
           col2.insert({ id: i.toString(), name: 'John', num: i })
         }
@@ -515,7 +515,7 @@ describe('Collection', () => {
 
       const percentage = (100 / nonIndexQueryTime) * indexQueryTime
       // eslint-disable-next-line no-console
-      console.log('field index performance: ', { indexQueryTime, nonIndexQueryTime, percentage })
+      console.log('field index performance:', { indexQueryTime, nonIndexQueryTime, percentage })
 
       // index query should use less than 10% of the time of a non-index query
       expect(percentage).toBeLessThan(10)

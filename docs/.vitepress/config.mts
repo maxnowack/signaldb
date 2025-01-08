@@ -4,7 +4,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
-const pkg = require('../../packages/base/core/package.json')
+const package_ = require('../../packages/base/core/package.json')
+
+function buildRedirectHtml(to: string) {
+  return `<!DOCTYPE html><html><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><body><a href="${to}">Redirecting...</a></body></html>`
+}
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
@@ -18,7 +22,7 @@ export default withMermaid({
       { text: 'Get Started', link: '/getting-started/' },
       { text: 'Reference', link: '/reference/' },
       {
-        text: pkg.version,
+        text: package_.version,
         items: [
           {
             text: 'Changelog',
@@ -195,7 +199,7 @@ export default withMermaid({
     hostname: 'https://signaldb.js.org',
     lastmodDateOnly: true,
     transformItems(items) {
-      const exclude = [
+      const exclude = new Set([
         '/googlef8c159020eb311c9',
         '/404',
         '/examples/firebase',
@@ -206,16 +210,12 @@ export default withMermaid({
         '/examples/supabase/404',
         'guides/',
         'integrations/',
-      ]
-      return items.filter(item => !exclude.includes(item.url))
+      ])
+      return items.filter(item => !exclude.has(item.url))
     },
   },
 
   buildEnd: async () => {
-    function buildRedirectHtml(to: string) {
-      return `<!DOCTYPE html><html><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><body><a href="${to}">Redirecting...</a></body></html>`
-    }
-
     const redirects = {
       '/collections.html': '/reference/core/collection/',
       '/collections/index.html': '/reference/core/collection/',
@@ -285,10 +285,9 @@ export default withMermaid({
       '/troubleshooting.html': '/troubleshooting/',
     }
 
-    await Object.entries(redirects).reduce(async (promise, [from, to]) => {
-      await promise
+    for (const [from, to] of Object.entries(redirects)) {
       await fs.mkdir(path.dirname(`./docs/.vitepress/dist${from}`), { recursive: true })
       await fs.writeFile(`./docs/.vitepress/dist${from}`, buildRedirectHtml(to))
-    }, Promise.resolve())
+    }
   },
 })

@@ -42,17 +42,18 @@ export default function createFilesystemAdapter<
     const fs = await import('fs')
     const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
     if (!exists) return []
-    const contents = await fs.promises.readFile(filename, 'utf8').catch((err) => {
+    const contents = await fs.promises.readFile(filename, 'utf8').catch((error) => {
       /* istanbul ignore next -- @preserve */
-      if (err.code === 'ENOENT') return '[]'
+      if (error.code === 'ENOENT') return '[]'
       /* istanbul ignore next -- @preserve */
-      throw err
+      throw error
     })
     return deserialize(contents)
   }
 
   return createPersistenceAdapter<T, I>({
     async register(onChange) {
+      // eslint-disable-next-line unicorn/prefer-global-this
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
       const fs = await import('fs')
       const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
@@ -62,17 +63,19 @@ export default function createFilesystemAdapter<
       })
     },
     async load() {
+      // eslint-disable-next-line unicorn/prefer-global-this
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
       if (savePromise) await savePromise
       const items = await getItems()
       return { items }
     },
     async save(_items, { added, modified, removed }) {
+      // eslint-disable-next-line unicorn/prefer-global-this
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
       if (savePromise) await savePromise
       savePromise = getItems()
         .then((currentItems) => {
-          const items = currentItems.slice()
+          const items = [...currentItems]
           added.forEach((item) => {
             items.push(item)
           })

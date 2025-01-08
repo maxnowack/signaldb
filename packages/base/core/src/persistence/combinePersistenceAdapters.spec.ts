@@ -7,13 +7,13 @@ describe('createTemporaryFallbackExecutor', () => {
   })
 
   it('should resolve with the result of the first promise function', async () => {
-    const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const firstResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 100)
       })
       return 'First Promise Result'
     })
-    const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const secondResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 200)
       })
@@ -21,26 +21,26 @@ describe('createTemporaryFallbackExecutor', () => {
     })
 
     const executor = createTemporaryFallbackExecutor(
-      firstResolvingPromiseFn,
-      secondResolvingPromiseFn,
+      firstResolvingPromiseFunction,
+      secondResolvingPromiseFunction,
     )
     const resultPromise = executor()
 
     await vi.advanceTimersByTimeAsync(100)
 
     await expect(resultPromise).resolves.toBe('First Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(1)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(1)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(1)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(1)
   })
 
   it('should call onResolve', async () => {
-    const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const firstResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 100)
       })
       return 'First Promise Result'
     })
-    const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const secondResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 200)
       })
@@ -49,8 +49,8 @@ describe('createTemporaryFallbackExecutor', () => {
     const onResolve = vi.fn()
 
     const executor = createTemporaryFallbackExecutor(
-      firstResolvingPromiseFn,
-      secondResolvingPromiseFn,
+      firstResolvingPromiseFunction,
+      secondResolvingPromiseFunction,
       { onResolve },
     )
     const resultPromise = executor()
@@ -58,8 +58,8 @@ describe('createTemporaryFallbackExecutor', () => {
     await vi.advanceTimersByTimeAsync(100)
 
     await expect(resultPromise).resolves.toBe('First Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(1)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(1)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(1)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(1)
     expect(onResolve).toHaveBeenCalledTimes(0)
 
     await vi.advanceTimersByTimeAsync(100)
@@ -67,13 +67,13 @@ describe('createTemporaryFallbackExecutor', () => {
   })
 
   it('should resolve with the result of the second promise function after it finished', async () => {
-    const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const firstResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 100)
       })
       return 'First Promise Result'
     })
-    const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const secondResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 200)
       })
@@ -81,33 +81,33 @@ describe('createTemporaryFallbackExecutor', () => {
     })
 
     const executor = createTemporaryFallbackExecutor(
-      firstResolvingPromiseFn,
-      secondResolvingPromiseFn,
+      firstResolvingPromiseFunction,
+      secondResolvingPromiseFunction,
     )
     const resultPromise1 = executor()
 
     await vi.advanceTimersByTimeAsync(100)
 
     await expect(resultPromise1).resolves.toBe('First Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(1)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(1)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(1)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(1)
 
     await vi.advanceTimersByTimeAsync(100)
     const resultPromise2 = executor()
 
     await expect(resultPromise2).resolves.toBe('Second Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(1)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(1)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(1)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(1)
   })
 
   it('should clear the result after the specified timeout', async () => {
-    const firstResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const firstResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 100)
       })
       return 'First Promise Result'
     })
-    const secondResolvingPromiseFn = vi.fn().mockImplementation(async () => {
+    const secondResolvingPromiseFunction = vi.fn().mockImplementation(async () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 200)
       })
@@ -115,8 +115,8 @@ describe('createTemporaryFallbackExecutor', () => {
     })
 
     const executor = createTemporaryFallbackExecutor(
-      firstResolvingPromiseFn,
-      secondResolvingPromiseFn,
+      firstResolvingPromiseFunction,
+      secondResolvingPromiseFunction,
       { cacheTimeout: 100 },
     )
     const resultPromise1 = executor()
@@ -124,23 +124,23 @@ describe('createTemporaryFallbackExecutor', () => {
     await vi.advanceTimersByTimeAsync(100)
 
     await expect(resultPromise1).resolves.toBe('First Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(1)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(1)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(1)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(1)
 
     await vi.advanceTimersByTimeAsync(100)
     const resultPromise2 = executor()
 
     await expect(resultPromise2).resolves.toBe('Second Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(1)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(1)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(1)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(1)
 
     await vi.advanceTimersByTimeAsync(100)
     const resultPromise3 = executor()
     await vi.advanceTimersByTimeAsync(100)
 
     await expect(resultPromise3).resolves.toBe('First Promise Result')
-    expect(firstResolvingPromiseFn).toHaveBeenCalledTimes(2)
-    expect(secondResolvingPromiseFn).toHaveBeenCalledTimes(2)
+    expect(firstResolvingPromiseFunction).toHaveBeenCalledTimes(2)
+    expect(secondResolvingPromiseFunction).toHaveBeenCalledTimes(2)
   })
 })
 

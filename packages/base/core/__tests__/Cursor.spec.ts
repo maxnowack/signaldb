@@ -7,13 +7,15 @@ const wait = () => new Promise((resolve) => {
   setImmediate(resolve)
 })
 
-describe('Cursor', () => {
-  interface TestItem {
-    id: number,
-    name: string,
-    test?: boolean,
-  }
+interface TestItem {
+  id: number,
+  name: string,
+  test?: boolean,
+}
 
+const transform: Transform<TestItem, { id: number }> = item => ({ id: item.id })
+
+describe('Cursor', () => {
   const items: TestItem[] = [
     { id: 1, name: 'Item 1', test: true },
     { id: 2, name: 'Item 2', test: false },
@@ -22,8 +24,6 @@ describe('Cursor', () => {
 
   const collection = new Collection<TestItem>()
   items.forEach(item => collection.insert(item))
-
-  const transform: Transform<TestItem, { id: number }> = item => ({ id: item.id })
 
   describe('fetch', () => {
     it('should return transformed items when transform function is provided', () => {
@@ -497,7 +497,7 @@ describe('Cursor', () => {
 
       collection2.batch(() => {
         // create items
-        for (let i = 0; i < 10000; i += 1) {
+        for (let i = 0; i < 10_000; i += 1) {
           collection2.insert({ id: i.toString(), name: `John ${i}` })
           expect(notify).toHaveBeenCalledTimes(0)
         }

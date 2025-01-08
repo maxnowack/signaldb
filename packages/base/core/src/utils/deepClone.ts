@@ -22,8 +22,8 @@ export function clone<T>(value: T): T {
   // Maps
   if (value instanceof Map) {
     const result = new Map()
-    value.forEach((val, key) => {
-      result.set(key, clone(val))
+    value.forEach((currentValue, key) => {
+      result.set(key, clone(currentValue))
     })
     return result as T
   }
@@ -31,8 +31,8 @@ export function clone<T>(value: T): T {
   // Sets
   if (value instanceof Set) {
     const result = new Set()
-    value.forEach((val) => {
-      result.add(clone(val))
+    value.forEach((currentValue) => {
+      result.add(clone(currentValue))
     })
     return result as T
   }
@@ -54,14 +54,14 @@ export function clone<T>(value: T): T {
  * Creates a deep clone of an object. Uses the `structuredClone` function if available,
  * otherwise falls back to a manual deep clone implementation.
  * @template T - The type of the object to clone.
- * @param obj - The object to deep clone.
+ * @param object - The object to deep clone.
  * @returns A deep copy of the provided object.
  */
-export default function deepClone<T>(obj: T): T {
+export default function deepClone<T>(object: T): T {
   // If structuredClone is available, use it
-  if (typeof structuredClone === 'function') return structuredClone(obj)
+  if (typeof structuredClone === 'function') return structuredClone(object)
 
   // Otherwise, perform a manual deep clone
   /* istanbul ignore next -- @preserve */
-  return clone(obj)
+  return clone(object)
 }

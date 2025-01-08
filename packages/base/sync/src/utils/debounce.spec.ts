@@ -5,66 +5,66 @@ describe('debounce', () => {
   it('should debounce the function call', () => {
     vi.useFakeTimers()
 
-    const mockFn = vi.fn()
-    const debouncedFn = debounce(mockFn, 100)
+    const mockFunction = vi.fn()
+    const debouncedFunction = debounce(mockFunction, 100)
 
-    debouncedFn()
-    debouncedFn()
-    debouncedFn()
+    debouncedFunction()
+    debouncedFunction()
+    debouncedFunction()
 
-    expect(mockFn).not.toBeCalled()
+    expect(mockFunction).not.toBeCalled()
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFn).toBeCalledTimes(1)
+    expect(mockFunction).toBeCalledTimes(1)
   })
 
   it('should call the function immediately if leading option is true', () => {
     vi.useFakeTimers()
 
-    const mockFn = vi.fn()
-    const debouncedFn = debounce(mockFn, 100, { leading: true })
+    const mockFunction = vi.fn()
+    const debouncedFunction = debounce(mockFunction, 100, { leading: true })
 
-    debouncedFn()
+    debouncedFunction()
 
-    expect(mockFn).toBeCalledTimes(1)
+    expect(mockFunction).toBeCalledTimes(1)
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFn).toBeCalledTimes(1)
+    expect(mockFunction).toBeCalledTimes(1)
   })
 
   it('should call the function after the wait time if trailing option is true', () => {
     vi.useFakeTimers()
 
-    const mockFn = vi.fn()
-    const debouncedFn = debounce(mockFn, 100, { trailing: true })
+    const mockFunction = vi.fn()
+    const debouncedFunction = debounce(mockFunction, 100, { trailing: true })
 
-    debouncedFn()
-    debouncedFn()
-    debouncedFn()
+    debouncedFunction()
+    debouncedFunction()
+    debouncedFunction()
 
-    expect(mockFn).not.toBeCalled()
+    expect(mockFunction).not.toBeCalled()
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFn).toBeCalledTimes(1)
+    expect(mockFunction).toBeCalledTimes(1)
   })
 
   it('should call the function immediately and after the wait time if both leading and trailing options are true', () => {
     vi.useFakeTimers()
 
-    const mockFn = vi.fn()
-    const debouncedFn = debounce(mockFn, 100, { leading: true, trailing: true })
+    const mockFunction = vi.fn()
+    const debouncedFunction = debounce(mockFunction, 100, { leading: true, trailing: true })
 
-    debouncedFn()
-    debouncedFn()
-    debouncedFn()
+    debouncedFunction()
+    debouncedFunction()
+    debouncedFunction()
 
-    expect(mockFn).toBeCalledTimes(1)
+    expect(mockFunction).toBeCalledTimes(1)
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFn).toBeCalledTimes(2)
+    expect(mockFunction).toBeCalledTimes(2)
   })
 })

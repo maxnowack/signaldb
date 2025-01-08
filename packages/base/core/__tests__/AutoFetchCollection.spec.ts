@@ -35,7 +35,9 @@ it('should fetch query items when observer is created', async () => {
 it('should remove query when observer is disposed', async () => {
   const fetchQueryItems = vi.fn()
   const disposalCallbacks: (() => void)[] = []
-  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const disposeAll = () => {
+    for (const callback of disposalCallbacks) callback()
+  }
   const reactivity = createReactivityAdapter({
     create: () => ({
       depend: vi.fn(),
@@ -99,7 +101,9 @@ it('should trigger persistence.error event when fetchQueryItems fails', async ()
 it('should handle multiple observers for the same query', async () => {
   const fetchQueryItems = vi.fn()
   const disposalCallbacks: (() => void)[] = []
-  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const disposeAll = () => {
+    for (const callback of disposalCallbacks) callback()
+  }
   const reactivity = createReactivityAdapter({
     create: () => ({
       depend: vi.fn(),
@@ -144,7 +148,9 @@ it('should handle multiple observers for the same query', async () => {
 it('should handle multiple queries', async () => {
   const fetchQueryItems = vi.fn()
   const disposalCallbacks: (() => void)[] = []
-  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const disposeAll = () => {
+    for (const callback of disposalCallbacks) callback()
+  }
   const reactivity = createReactivityAdapter({
     create: () => ({
       depend: vi.fn(),
@@ -194,7 +200,9 @@ it('should handle multiple queries', async () => {
 it('should update items with result of new fetch', async () => {
   const fetchQueryItems = vi.fn()
   const disposalCallbacks: (() => void)[] = []
-  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const disposeAll = () => {
+    for (const callback of disposalCallbacks) callback()
+  }
   const reactivity = createReactivityAdapter({
     create: () => ({
       depend: vi.fn(),
@@ -216,7 +224,7 @@ it('should update items with result of new fetch', async () => {
   fetchQueryItems.mockImplementation((selector) => {
     if (selector.id) {
       return Promise.resolve({
-        items: [...responseItems.filter(i => i.id !== 1), { id: 1, name: 'Item 1 updated' }],
+        items: [...responseItems.filter(index => index.id !== 1), { id: 1, name: 'Item 1 updated' }],
       })
     }
     return Promise.resolve({ items: responseItems })
@@ -243,7 +251,9 @@ it('should update items with result of new fetch', async () => {
 it('should purge items after specified delay', async () => {
   const fetchQueryItems = vi.fn()
   const disposalCallbacks: (() => void)[] = []
-  const disposeAll = () => disposalCallbacks.forEach(callback => callback())
+  const disposeAll = () => {
+    for (const callback of disposalCallbacks) callback()
+  }
   const reactivity = createReactivityAdapter({
     create: () => ({
       depend: vi.fn(),
@@ -418,7 +428,7 @@ it('should refetch query items when onChange was called', async () => {
       notify: vi.fn(),
     }),
   }
-  const remoteChange = vi.fn().mockResolvedValue(null)
+  const remoteChange = vi.fn().mockResolvedValue(undefined)
   const collection = new AutoFetchCollection({
     push: vi.fn(),
     registerRemoteChange: (onChange) => {

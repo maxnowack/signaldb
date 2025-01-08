@@ -120,22 +120,20 @@ export default class Observer<T extends { id: any }> {
       oldItemsMap.forEach(({ item: oldItem, index, beforeItem: oldBeforeItem }) => {
         const newItem = newItemsMap.get(oldItem.id)
         if (newItem) {
-          if (this.hasCallbacks(['changed', 'changedField'])) {
-            // If the item exists but has changed, call 'changed' callback
-            if (!isEqual(newItem.item, oldItem)) {
-              this.call('changed', newItem.item)
+          if (this.hasCallbacks(['changed', 'changedField']) // If the item exists but has changed, call 'changed' callback
+            && !isEqual(newItem.item, oldItem)) {
+            this.call('changed', newItem.item)
 
-              if (this.hasCallbacks(['changedField'])) {
-                // check for changed fields and call 'changedField' callback
-                const keys = uniqueBy([
-                  ...Object.keys(newItem.item) as (keyof T)[],
-                  ...Object.keys(oldItem) as (keyof T)[],
-                ], value => value)
-                keys.forEach((key) => {
-                  if (isEqual(newItem.item[key], oldItem[key])) return
-                  this.call('changedField', newItem.item, key, oldItem[key], newItem.item[key])
-                })
-              }
+            if (this.hasCallbacks(['changedField'])) {
+              // check for changed fields and call 'changedField' callback
+              const keys = uniqueBy([
+                ...Object.keys(newItem.item) as (keyof T)[],
+                ...Object.keys(oldItem) as (keyof T)[],
+              ], value => value)
+              keys.forEach((key) => {
+                if (isEqual(newItem.item[key], oldItem[key])) return
+                this.call('changedField', newItem.item, key, oldItem[key], newItem.item[key])
+              })
             }
           }
           // If the item's beforeItem has changed, call 'movedBefore' callback
