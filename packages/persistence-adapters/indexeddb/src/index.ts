@@ -15,6 +15,10 @@ export default function createIndexedDBAdapter<
   const databaseName = `signaldb-${name}`
   const storeName = 'items'
 
+  /**
+   * Opens the IndexedDB database and creates the object store if it doesn't exist.
+   * @returns A promise that resolves with the opened database.
+   */
   function openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(databaseName, 1)
@@ -29,6 +33,10 @@ export default function createIndexedDBAdapter<
     })
   }
 
+  /**
+   * Retrieves all items from the IndexedDB object store.
+   * @returns A promise that resolves with an array of items.
+   */
   async function getAllItems(): Promise<T[]> {
     const database = await openDatabase()
     return new Promise((resolve, reject) => {

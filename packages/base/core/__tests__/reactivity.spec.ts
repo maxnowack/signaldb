@@ -22,6 +22,12 @@ const primitiveReactivity = (() => {
   let currentComputation: Computation | null = null
   let lastComputation: Computation | null = null
 
+  /**
+   * Creates a reactive signal with an initial value.
+   * @template T
+   * @param initialValue - The initial value of the signal.
+   * @returns The reactive signal.
+   */
   function signal<T>(initialValue: T) {
     let value = initialValue
     const computationDeps = new Set<Computation>()
@@ -45,6 +51,11 @@ const primitiveReactivity = (() => {
     }
     effectCallback()
   }
+  /**
+   * Temporarily suspends reactivity tracking for the duration of the callback.
+   * @param callback - The callback function to execute without reactivity tracking.
+   * @returns The result of the callback function.
+   */
   function peek<T>(callback: () => T) {
     const previousComputation = currentComputation
     currentComputation = null

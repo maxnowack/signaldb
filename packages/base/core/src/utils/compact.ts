@@ -1,5 +1,11 @@
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T // from lodash
 
+/**
+ * Checks if a value is truthy.
+ * @template T - The type of the value.
+ * @param value - The value to check.
+ * @returns A boolean indicating if the value is truthy.
+ */
 function truthy<T>(value: T): value is Truthy<T> {
   return !!value
 }

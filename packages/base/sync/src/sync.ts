@@ -4,6 +4,11 @@ import type { Change } from './types'
 import getSnapshot from './getSnapshot'
 import applyChanges from './applyChanges'
 
+/**
+ * Checks if there are any changes in the given changeset.
+ * @param changes The changeset to check.
+ * @returns True if there are changes, false otherwise.
+ */
 function hasChanges<T>(
   changes: Changeset<T>,
 ) {
@@ -11,6 +16,12 @@ function hasChanges<T>(
     || changes.modified.length > 0
     || changes.removed.length > 0
 }
+/**
+ * Checks if there is a difference between the old items and the new items.
+ * @param oldItems The old items.
+ * @param newItems The new items.
+ * @returns True if there is a difference, false otherwise.
+ */
 function hasDifference<ItemType extends BaseItem<IdType>, IdType>(
   oldItems: ItemType[],
   newItems: ItemType[],

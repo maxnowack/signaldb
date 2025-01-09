@@ -1,6 +1,12 @@
 import { SyncManager } from '@signaldb/sync'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 
+/**
+ * Fetches data from the authenticated API.
+ * @param path - The API endpoint path.
+ * @param [options] - Optional fetch options.
+ * @returns The fetch response.
+ */
 function authenticatedFetch(path: string, options?: RequestInit) {
   const databaseId = '65676881edfe6a3e7e2c'
   const projectId = '6567685ea287ba49be81'

@@ -38,6 +38,10 @@ export default function createFilesystemAdapter<
 
   let savePromise: Promise<void> | null = null
 
+  /**
+   * Retrieves the items from the file.
+   * @returns A promise that resolves to an array of items.
+   */
   async function getItems(): Promise<T[]> {
     const fs = await import('fs')
     const exists = await fs.promises.access(filename).then(() => true).catch(() => false)

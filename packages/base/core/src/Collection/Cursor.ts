@@ -114,6 +114,12 @@ export default class Cursor<T extends BaseItem, U = T> {
     signal.depend()
     const notify = () => signal.notify()
 
+    /**
+     * Builds a notifier function for the specified event.
+     * @template Event - The type of the event.
+     * @param event - The event for which to build the notifier.
+     * @returns A function that handles the event and triggers the appropriate notifications.
+     */
     function buildNotifier<Event extends keyof ObserveCallbacks<T>>(
       event: Event,
     ) {

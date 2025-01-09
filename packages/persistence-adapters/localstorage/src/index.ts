@@ -37,6 +37,10 @@ export default function createLocalStorageAdapter<
   const { serialize = JSON.stringify, deserialize = JSON.parse } = options || {}
 
   const collectionId = `signaldb-collection-${name}`
+  /**
+   * Retrieves items from localStorage and deserializes them.
+   * @returns The deserialized items from localStorage.
+   */
   function getItems(): T[] {
     return deserialize(localStorage.getItem(collectionId) || '[]')
   }

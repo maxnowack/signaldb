@@ -41,6 +41,10 @@ export default function createOPFSAdapter<
 
   let savePromise: Promise<void> | null = null
 
+  /**
+   * Retrieves the items from the OPFS file.
+   * @returns A promise that resolves to an array of items.
+   */
   async function getItems(): Promise<T[]> {
     const opfsRoot = await navigator.storage.getDirectory()
     const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })

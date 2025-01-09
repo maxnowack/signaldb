@@ -4,6 +4,13 @@ import { Collection, createPersistenceAdapter } from '@signaldb/core'
 import type { BaseItem, LoadResponse, PersistenceAdapter } from '@signaldb/core'
 import { SyncManager } from '../src'
 
+/**
+ * Creates a memory persistence adapter for testing purposes.
+ * @param initialData - Initial data to populate the adapter.
+ * @param transmitChanges - Whether to transmit changes.
+ * @param [delay] - Optional delay for simulating async operations.
+ * @returns The memory persistence adapter.
+ */
 function memoryPersistenceAdapter<
   T extends { id: I } & Record<string, any>,
   I = any,

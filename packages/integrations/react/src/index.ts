@@ -41,6 +41,12 @@ interface ReactiveEffect {
  * }
  */
 export function createUseReactivityHook(effect: ReactiveEffect) {
+  /**
+   * Custom hook for managing reactive computations.
+   * @param reactiveFunction - A function that returns the reactive data.
+   * @param deps - Dependency list for the effect.
+   * @returns The reactive data.
+   */
   function useReactivity<T>(
     reactiveFunction: () => T,
     deps?: DependencyList,
