@@ -4,6 +4,14 @@ import { it, expect } from 'vitest'
 import { Collection } from '@signaldb/core'
 import createFilesystemAdapter from '../src'
 
+/**
+ * Waits for a specific event to be emitted.
+ * @template T
+ * @param emitter - The event emitter instance.
+ * @param event - The name of the event to wait for.
+ * @param [timeout] - Optional timeout in milliseconds.
+ * @returns A promise that resolves with the event value.
+ */
 async function waitForEvent<T>(
   emitter: EventEmitter<any>,
   event: string,

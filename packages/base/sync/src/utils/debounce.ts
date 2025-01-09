@@ -22,6 +22,12 @@ export default function debounce<Arguments extends any[], T, ThisType>(
 
   const { leading = false, trailing = true } = options
 
+  /**
+   * The debounced function that will be returned.
+   * @param this The context to bind the function to.
+   * @param args The arguments to pass to the function.
+   * @returns The result of the debounced function.
+   */
   function debounced(this: ThisType, ...args: Arguments) {
     const shouldCallImmediately = leading && !timeout
     const shouldCallTrailing = trailing && !timeout

@@ -4,6 +4,13 @@ import { describe, it, expect } from 'vitest'
 import { Collection } from '@signaldb/core'
 import createLocalStorageAdapter from '../src'
 
+/**
+ * Waits for a specific event to be emitted.
+ * @param emitter - The event emitter instance.
+ * @param event - The event name to wait for.
+ * @param [timeout] - Optional timeout in milliseconds.
+ * @returns A promise that resolves with the event value.
+ */
 async function waitForEvent<T>(
   emitter: EventEmitter,
   event: string,

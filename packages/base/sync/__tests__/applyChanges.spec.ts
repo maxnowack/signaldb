@@ -9,6 +9,11 @@ interface TestItem extends BaseItem<number> {
   name: string,
 }
 
+/**
+ * Returns a default change item with the given id.
+ * @param id - The id of the change item.
+ * @returns The default change item.
+ */
 function getDefaultChangeItem(id = '1') {
   return { id, time: Date.now(), collectionName: 'test' }
 }

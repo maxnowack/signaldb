@@ -59,6 +59,7 @@ export default tseslint.config(
       'import/extensions': ['.js', '.cjs', '.mjs', '.ts', '.mts', '.tsx'],
     },
     rules: {
+      'jsdoc/require-jsdoc': 'error',
       'unicorn/consistent-function-scoping': ['error', { checkArrowFunctions: false }],
       'unicorn/no-useless-undefined': ['error', {
         checkArguments: false,

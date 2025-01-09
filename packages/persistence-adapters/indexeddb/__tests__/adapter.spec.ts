@@ -5,6 +5,13 @@ import { Collection } from '@signaldb/core'
 import 'fake-indexeddb/auto'
 import createIndexedDBAdapter from '../src'
 
+/**
+ * Waits for a specific event to be emitted.
+ * @param emitter - The event emitter.
+ * @param event - The event to wait for.
+ * @param [timeout] - Optional timeout in milliseconds.
+ * @returns A promise that resolves with the event value.
+ */
 async function waitForEvent<T>(
   emitter: EventEmitter,
   event: string,

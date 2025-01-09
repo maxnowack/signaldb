@@ -5,6 +5,11 @@ import { signal, onDispose, effect } from '@maverick-js/signals'
 import { StrictMode } from 'react'
 import { createUseReactivityHook } from '../src'
 
+/**
+ * Helper function to create a reactive signal.
+ * @param initialValue - The initial value of the signal.
+ * @returns An object with get and set methods to interact with the signal.
+ */
 function reactiveHelper<T>(initialValue: T) {
   const dep = signal(initialValue)
   return {

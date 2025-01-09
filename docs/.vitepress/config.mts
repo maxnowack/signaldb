@@ -6,6 +6,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 const require = createRequire(import.meta.url)
 const package_ = require('../../packages/base/core/package.json')
 
+/**
+ * Builds an HTML string for redirecting to a specified URL.
+ * @param to - The URL to redirect to.
+ * @returns The HTML string for the redirect.
+ */
 function buildRedirectHtml(to: string) {
   return `<!DOCTYPE html><html><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><body><a href="${to}">Redirecting...</a></body></html>`
 }
