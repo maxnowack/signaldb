@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
+import fs from 'fs'
+import path from 'path'
 import eslint from '@eslint/js'
 import globals from 'globals'
 import tseslint, { configs as tseslintConfigs } from 'typescript-eslint'
@@ -11,8 +13,6 @@ import vitestPlugin from 'eslint-plugin-vitest'
 import stylisticPlugin from '@stylistic/eslint-plugin'
 import unicornPlugin from 'eslint-plugin-unicorn'
 import FastGlob from 'fast-glob'
-import fs from 'fs'
-import path from 'path'
 
 const { workspaces } = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf8'))
 const projectDirectories = workspaces
@@ -90,9 +90,18 @@ export default tseslint.config(
       'unicorn/no-array-for-each': 'off', // disabled until this issue was resolved: https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1788
       '@typescript-eslint/require-await': 'off',
       'no-console': 'error',
+      '@stylistic/max-len': ['error', {
+        code: 100,
+        ignoreUrls: true,
+        ignoreComments: true,
+        ignoreStrings: true,
+        ignoreTemplateLiterals: true,
+        ignoreRegExpLiterals: true,
+      }],
       '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
       '@stylistic/indent-binary-ops': ['off'], // disabled until this issue was resolved: https://github.com/eslint-stylistic/eslint-stylistic/issues/546
       '@stylistic/brace-style': ['error', '1tbs'],
+      'import/order': ['error', { groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'] }],
       'import/no-named-as-default-member': 'off',
       'semi': ['error', 'never'],
       'quotes': ['error', 'single', { avoidEscape: true }],
