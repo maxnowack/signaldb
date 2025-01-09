@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { withMermaid } from 'vitepress-plugin-mermaid'
 import { createRequire } from 'module'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const require = createRequire(import.meta.url)
 const package_ = require('../../packages/base/core/package.json')
