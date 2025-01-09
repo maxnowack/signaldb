@@ -24,7 +24,7 @@ export default tseslint.config(
   tseslintConfigs.recommendedTypeChecked,
   importPlugin.recommended,
   stylisticPlugin.configs['recommended-flat'],
-  // jsdocPlugin.configs['flat/recommended-typescript'],
+  jsdocPlugin.configs['flat/recommended-typescript'],
   vitestPlugin.configs.recommended,
   unicornPlugin.configs['flat/recommended'],
   {
@@ -32,7 +32,6 @@ export default tseslint.config(
       'react': reactPlugin,
       'jsx-a11y': jsxA11yPlugin,
       '@stylistic': stylisticPlugin,
-      'jsdoc': jsdocPlugin,
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
