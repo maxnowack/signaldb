@@ -48,6 +48,10 @@ Returns an array of all collections that have been created.
 
 Registers a callback that will be called whenever a new collection is created. The callback will receive the newly created collection as an argument.
 
+### `onDispose(callback: (collection: Collection) => void)`
+
+Registers a callback that will be called whenever a collection is disposed. The callback will receive the disposed collection as an argument.
+
 ### `enableDebugMode()`
 
 Enables debug mode for all collections. This will enable measurements for query timings and other debug information.

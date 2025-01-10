@@ -640,6 +640,15 @@ describe('Collection', () => {
       expect(onCreation).toHaveBeenCalledWith(col)
     })
 
+    it('should call the onDispose hook', async () => {
+      const onDispose = vi.fn()
+      Collection.onDispose(onDispose)
+      const col = new Collection<any>()
+      await col.dispose()
+
+      expect(onDispose).toHaveBeenCalledWith(col)
+    })
+
     it('should seed the collection with initial data from the memory adapter', () => {
       const col = new Collection<{ id: string, name: string }>({
         memory: createMemoryAdapter([{ id: '1', name: 'John' }]),
