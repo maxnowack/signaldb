@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 * Switched from native EventEmitter to custom class that is based on EventTarget
+* Remove all listeners when disposing a collection
 
 ## [1.0.0] - 2024-12-16
 

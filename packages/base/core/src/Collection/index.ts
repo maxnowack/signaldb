@@ -584,6 +584,7 @@ export default class Collection<
     this.idIndex.clear()
     this.indexProviders = []
     this.isDisposed = true
+    this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
   }
 
