@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { loadDeveloperTools } from '@signaldb/core'
 import Todos from '../../models/Todos'
 import List from './List'
+
+loadDeveloperTools()
 
 const App: React.FC = () => {
   const [text, setText] = useState('')

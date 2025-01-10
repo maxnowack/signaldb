@@ -4,8 +4,9 @@ import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 import syncManager from '../system/syncManager'
 
 const Todos = new Collection<{ id: string, text: string, completed: boolean }>({
+  name: 'todos-supabase',
   reactivity: maverickjsReactivityAdapter,
-  persistence: createIndexedDBAdapter('todos-appwrite'),
+  persistence: createIndexedDBAdapter('todos-supabase'),
 })
 Todos.on('persistence.error', (error) => {
   // eslint-disable-next-line no-console

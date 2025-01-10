@@ -11,6 +11,7 @@
   "dependencies": {
     "@maverick-js/signals": "^6.0.0",
     "@signaldb/core": "*",
+    "@signaldb/devtools": "*",
     "@signaldb/indexeddb": "*",
     "@signaldb/maverickjs": "*",
     "@signaldb/react": "*",

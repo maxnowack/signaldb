@@ -11,6 +11,7 @@ const databaseId = '65676881edfe6a3e7e2c'
 const database = new Databases(client)
 
 const syncManager = new SyncManager<Record<string, any>, { id: string }>({
+  id: 'appwrite-sync-manager',
   persistenceAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console

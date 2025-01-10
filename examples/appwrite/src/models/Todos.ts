@@ -4,6 +4,7 @@ import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 import syncManager from '../system/syncManager'
 
 const Todos = new Collection<{ id: string, text: string, completed: boolean }>({
+  name: 'todos-appwrite',
   reactivity: maverickjsReactivityAdapter,
   persistence: createIndexedDBAdapter('todos-appwrite'),
 })
