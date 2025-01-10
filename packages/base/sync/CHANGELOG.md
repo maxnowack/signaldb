@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Define names for internal collections
+* Dispose temporary collections in applyChanges function
 
 ## [1.0.0] - 2024-12-16
 
