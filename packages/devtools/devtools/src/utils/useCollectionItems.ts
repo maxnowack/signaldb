@@ -13,13 +13,17 @@ export default function useCollectionItems(collectionName: string) {
   return useSyncExternalStore(
     (onChange) => {
       if (!collection) return () => {}
-      collection.on('added', onChange)
-      collection.on('changed', onChange)
-      collection.on('removed', onChange)
+      collection.on('insert', onChange)
+      collection.on('updateOne', onChange)
+      collection.on('updateMany', onChange)
+      collection.on('removeOne', onChange)
+      collection.on('removeMany', onChange)
       return () => {
-        collection.off('added', onChange)
-        collection.off('changed', onChange)
-        collection.off('removed', onChange)
+        collection.off('insert', onChange)
+        collection.off('updateOne', onChange)
+        collection.off('updateMany', onChange)
+        collection.off('removeOne', onChange)
+        collection.off('removeMany', onChange)
       }
     },
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
