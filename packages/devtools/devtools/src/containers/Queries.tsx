@@ -31,7 +31,15 @@ const Queries: React.FC = () => {
     () => collectionsItem?.items.find(c => c.name === collectionName) as Collection<any>,
     [collectionsItem, collectionName],
   )
-  const queries = useCollectionQueries(collectionName || '')
+  const items = useCollectionQueries(collectionName || '')
+  const queries = useMemo(() => items.map(item => ({
+    id: item.id,
+    count: item.count.toString(),
+    selector: JSON.stringify(item.selector, null, 2),
+    options: JSON.stringify(item.options, null, 2),
+    lastTime: item.lastTime.toLocaleString(),
+  })), [items])
+
   return (
     <Wrapper>
       <CollectionList
@@ -41,13 +49,26 @@ const Queries: React.FC = () => {
       {collection
         ? (
           <Items
-            itemColumn={`${collectionName} (${queries.length} queries)`}
             items={queries}
+            columns={[{
+              name: 'lastTime',
+              label: 'Last Exec',
+            }, {
+              name: 'count',
+              label: 'Count',
+            }, {
+              name: 'selector',
+              label: 'Selector',
+            }, {
+              name: 'options',
+              label: 'Options',
+            }]}
           />
         )
         : (
           <Items
             items={[]}
+            columns={[]}
             placeholder="Select a collection on the left"
           />
         )}

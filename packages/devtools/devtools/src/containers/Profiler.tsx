@@ -5,6 +5,7 @@ import UnstyledCollectionList from '../components/CollectionList'
 import Table from '../components/Table'
 import dataStore from '../models/dataStore'
 import useCollectionMeasuredTimes from '../utils/useCollectionMeasuredTimes'
+import clearCallstack from '../utils/clearCallstack'
 
 const Wrapper = styled.div`
   display: grid;
@@ -31,7 +32,14 @@ const Profiler: React.FC = () => {
     () => collectionsItem?.items.find(c => c.name === collectionName) as Collection<any>,
     [collectionsItem, collectionName],
   )
-  const measuredTimes = useCollectionMeasuredTimes(collectionName || '')
+  const items = useCollectionMeasuredTimes(collectionName || '')
+  const measuredTimes = useMemo(() => items.map(item => ({
+    id: item.id,
+    time: item.time.toLocaleString(),
+    measuredTime: `${item.measuredTime < 1 ? '< 1' : item.measuredTime.toFixed(0)} ms`,
+    selector: JSON.stringify(item.selector, null, 2),
+    callstack: clearCallstack(item.callstack as string),
+  })), [items])
   return (
     <Wrapper>
       <CollectionList
@@ -41,13 +49,26 @@ const Profiler: React.FC = () => {
       {collection
         ? (
           <Items
-            itemColumn={`${collectionName} (${measuredTimes.length} measurements)`}
             items={measuredTimes}
+            columns={[{
+              name: 'time',
+              label: 'Time',
+            }, {
+              name: 'measuredTime',
+              label: 'Measured Time',
+            }, {
+              name: 'selector',
+              label: 'Selector',
+            }, {
+              name: 'callstack',
+              label: 'Callstack',
+            }]}
           />
         )
         : (
           <Items
             items={[]}
+            columns={[]}
             placeholder="Select a collection on the left"
           />
         )}

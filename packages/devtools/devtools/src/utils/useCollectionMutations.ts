@@ -14,6 +14,13 @@ export default function useCollectionMutations(collectionName: string) {
       .filter(q => q.collectionName === collectionName)
       .sort((a, b) => a.time - b.time)
       .reverse()
-      .map(({ collectionName: _, time, ...item }) => ({ ...item, time: new Date(time as number) }))
+      .map(({ collectionName: _, time, ...item }) => ({
+        id: item.id,
+        time: new Date(time as number),
+        type: item.type,
+        selector: item.selector,
+        modifier: item.modifier,
+        callstack: item.callstack,
+      }))
   }, [mutations?.items, collectionName])
 }
