@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Support for @signaldb/devtools
 * Allow specifying a name for a collection
 * Added `Collections.onCreation` method to listen for collection creation
+* Added `Collections.onDispose` method to listen for collection disposal
 * Added `Collections.getCollections` method to get all collections
 
 ### Changed

@@ -142,6 +142,7 @@ export default class Collection<
   private static batchOperationInProgress = false
   private static fieldTracking = false
   private static onCreationCallbacks: ((collection: Collection<any>) => void)[] = []
+  private static onDisposeCallbacks: ((collection: Collection<any>) => void)[] = []
 
   static getCollections() {
     return Collection.collections
@@ -149,6 +150,10 @@ export default class Collection<
 
   static onCreation(callback: (collection: Collection<any>) => void) {
     Collection.onCreationCallbacks.push(callback)
+  }
+
+  static onDispose(callback: (collection: Collection<any>) => void) {
+    Collection.onDisposeCallbacks.push(callback)
   }
 
   /**
@@ -579,6 +584,7 @@ export default class Collection<
     this.idIndex.clear()
     this.indexProviders = []
     this.isDisposed = true
+    Collection.collections = Collection.collections.filter(collection => collection !== this)
   }
 
   /**
