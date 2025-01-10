@@ -67,6 +67,8 @@ async function checkDevtoolsAvailability(): Promise<boolean> {
 
   // 2. If we are in a pure ESM environment, try dynamic import
   try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     await import('@signaldb/devtools')
     return true
   } catch (error) {
@@ -120,6 +122,8 @@ async function checkAndImportDevtools(): Promise<boolean> {
 
   // 2. Dynamic import in ESM
   try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     await import('@signaldb/devtools')
     return true
   } catch (error) {
