@@ -31,7 +31,6 @@ export default defineConfig({
         'fast-sort',
         'mingo',
         'mingo/updater',
-        'events',
       ],
       plugins: [
         typescriptPaths({

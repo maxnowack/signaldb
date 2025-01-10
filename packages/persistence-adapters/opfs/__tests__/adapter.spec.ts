@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import type EventEmitter from 'events'
+import type { EventEmitter } from '@signaldb/core'
 import { describe, it, expect } from 'vitest'
 import { Collection } from '@signaldb/core'
 import createOPFSAdapter from '../src'
@@ -12,7 +12,7 @@ import createOPFSAdapter from '../src'
  * @returns A promise that resolves with the event value.
  */
 async function waitForEvent<T>(
-  emitter: EventEmitter,
+  emitter: EventEmitter<any>,
   event: string,
   timeout?: number,
 ): Promise<T> {

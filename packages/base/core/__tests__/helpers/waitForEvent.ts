@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import type EventEmitter from 'events'
+import type { EventEmitter } from '../../src'
 
-type EventNames<E extends EventEmitter> = E extends {
+type EventNames<E extends EventEmitter<any>> = E extends {
   on(event: infer E, listener: (...args: any[]) => void): any,
 } ? E : never
 
@@ -16,7 +16,7 @@ type EventNames<E extends EventEmitter> = E extends {
  * @param timeout - An optional timeout in milliseconds. If specified, the promise will reject if the event is not emitted within the timeout period.
  * @returns A promise that resolves with the event data when the event is emitted.
  */
-export default async function waitForEvent<E extends EventEmitter, T>(
+export default async function waitForEvent<E extends EventEmitter<any>, T>(
   emitter: E,
   event: EventNames<E>,
   timeout?: number,

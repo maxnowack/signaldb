@@ -1,5 +1,5 @@
-import EventEmitter from 'events'
 import { it, expect, describe } from 'vitest'
+import { EventEmitter } from '../../src'
 import waitForEvent from './waitForEvent'
 
 describe('waitForEvent', () => {
