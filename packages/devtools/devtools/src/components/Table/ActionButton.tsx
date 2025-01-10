@@ -7,6 +7,7 @@ const ActionButton = styled.button`
   background-color: ${colors.black};
   font-size: 14px;
   padding: 2px 8px;
+  cursor: pointer;
 `
 
 export default ActionButton

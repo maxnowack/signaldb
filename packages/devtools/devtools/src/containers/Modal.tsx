@@ -67,6 +67,7 @@ const CloseButton = styled.button`
   color: ${colors.white};
   font-size: 28px;
   line-height: 1;
+  cursor: pointer;
 `
 const TabBar = styled.nav`
   grid-area: tabs;
@@ -84,6 +85,7 @@ const Tab = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   input {
     margin-right: 6px;
   }
@@ -139,6 +141,7 @@ const Modal: React.FC<{ visible: boolean, onClose: () => void }> = ({ visible, o
               type="checkbox"
               title="Enable tracking of queries"
               checked={settings.trackQueries}
+              onClick={event => event.stopPropagation()}
               onChange={event => settingsStore.patch({ trackQueries: event.target.checked })}
             />
             Queries
@@ -148,6 +151,7 @@ const Modal: React.FC<{ visible: boolean, onClose: () => void }> = ({ visible, o
               type="checkbox"
               title="Enable tracking of mutations"
               checked={settings.trackMutations}
+              onClick={event => event.stopPropagation()}
               onChange={event => settingsStore.patch({ trackMutations: event.target.checked })}
             />
             Mutations
@@ -157,6 +161,7 @@ const Modal: React.FC<{ visible: boolean, onClose: () => void }> = ({ visible, o
               type="checkbox"
               title="Enable tracking of measurements"
               checked={settings.trackMeasurements}
+              onClick={event => event.stopPropagation()}
               onChange={event => settingsStore.patch({ trackMeasurements: event.target.checked })}
             />
             Performance

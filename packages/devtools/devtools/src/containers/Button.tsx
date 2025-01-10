@@ -16,6 +16,7 @@ const Wrapper = styled.button.attrs({ type: 'button' })`
   height: 48px;
   z-index: 10;
   transition-duration: 0.3s;
+  cursor: pointer;
   svg {
     transition-duration: 0.3s;
     width: 100%;
