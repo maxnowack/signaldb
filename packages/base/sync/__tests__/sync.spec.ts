@@ -35,7 +35,7 @@ it('should apply changes to the last snapshot and push them to the server if the
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const snapshot = getSnapshot(lastSnapshot, data)
-  const newSnapshotWithChanges = applyChanges(snapshot, changes)
+  const newSnapshotWithChanges = await applyChanges(snapshot, changes)
   const changesToPush = computeChanges(snapshot, newSnapshotWithChanges)
 
   await sync({
@@ -72,7 +72,7 @@ it('should not push changes if there is no difference between snapshots', async 
   const mockRemove = vi.fn<(id: number) => void>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
-  const lastSnapshotWithChanges = applyChanges(lastSnapshot, changes)
+  const lastSnapshotWithChanges = await applyChanges(lastSnapshot, changes)
 
   expect(lastSnapshotWithChanges).toEqual(lastSnapshot)
 

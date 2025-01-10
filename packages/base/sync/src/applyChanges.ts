@@ -8,7 +8,7 @@ import type { Change } from './types'
  * @param changes The changes to apply to the items
  * @returns The new items after applying the changes
  */
-export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
+export default async function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
   items: ItemType[],
   changes: Change<ItemType, IdType>[],
 ) {
@@ -41,5 +41,7 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
       }
     })
   })
-  return collection.find().fetch()
+  const result = collection.find().fetch()
+  await collection.dispose()
+  return result
 }
