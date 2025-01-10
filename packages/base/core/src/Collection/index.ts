@@ -586,6 +586,7 @@ export default class Collection<
     this.isDisposed = true
     this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
+    Collection.onDisposeCallbacks.forEach(callback => callback(this))
   }
 
   /**
