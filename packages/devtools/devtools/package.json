@@ -59,7 +59,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "1.x"
+    "@signaldb/core": "1.1.x"
   },
   "dependencies": {
     "react": "^19.0.0",
