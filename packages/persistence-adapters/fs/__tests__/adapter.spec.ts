@@ -1,5 +1,5 @@
 import fs from 'fs/promises'
-import type EventEmitter from 'events'
+import type { EventEmitter } from '@signaldb/core'
 import { it, expect } from 'vitest'
 import { Collection } from '@signaldb/core'
 import createFilesystemAdapter from '../src'

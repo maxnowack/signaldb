@@ -1,7 +1,7 @@
 import type MemoryAdapter from '../types/MemoryAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type PersistenceAdapter from '../types/PersistenceAdapter'
-import EventEmitter from '../types/EventEmitter'
+import EventEmitter from '../utils/EventEmitter'
 import type Selector from '../types/Selector'
 import type Modifier from '../types/Modifier'
 import type IndexProvider from '../types/IndexProvider'

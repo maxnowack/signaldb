@@ -309,8 +309,7 @@ const syncManager = new SyncManager({
 Below is an example implementation of a simple REST API.
 
 ```js
-import { EventEmitter } from 'events'
-import { Collection, SyncManager } from '@signaldb/core'
+import { Collection, SyncManager, EventEmitter } from '@signaldb/core'
 
 const Authors = new Collection()
 const Posts = new Collection()
