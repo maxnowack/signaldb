@@ -17,7 +17,8 @@ const Wrapper = styled.div`
     th {
       background-color: ${colors.black};
       color: ${colors.white};
-      &:nth-child(2) {
+      white-space: nowrap;
+      &.small {
         width: 100px;
         text-align: right;
       }
@@ -35,25 +36,31 @@ const Placeholder = styled.p`
   width: 100%;
 `
 
-interface Props {
-  items: (Record<string, any>)[],
-  onAdd?: (item: Record<string, any>) => void,
-  onEdit?: (id: string, item: Record<string, any>) => void,
+type Props<T extends Record<string, any>> = {
+  items: T[],
+  onAdd?: (item: T) => void,
+  onEdit?: (id: string, item: T) => void,
   onRemove?: (id: string) => void,
   placeholder?: string,
   className?: string,
-  itemColumn?: string,
-}
+} & ({
+  columns: { name: keyof T, label: string }[],
+  itemColumn?: never,
+} | {
+  columns?: never,
+  itemColumn: string,
+})
 
-const Table: React.FC<Props> = ({
+const Table = <T extends Record<string, any>>({
   items,
   onAdd,
   onEdit,
   onRemove,
+  columns,
   itemColumn = 'Item',
   placeholder,
   className,
-}) => {
+}: Props<T>) => {
   const [insertionMode, setInsertionMode] = useState(false)
   const hasActions = Boolean(onAdd || onEdit || onRemove)
   return (
@@ -64,9 +71,12 @@ const Table: React.FC<Props> = ({
           <table>
             <thead>
               <tr>
-                <th>{itemColumn}</th>
+                {!columns && itemColumn && <th>{itemColumn}</th>}
+                {columns?.map(column => (
+                  <th key={column.name as string}>{column.label}</th>
+                ))}
                 {hasActions && (
-                  <th>
+                  <th className="small">
                     <ActionButton onClick={() => setInsertionMode(true)}>
                       ➕
                     </ActionButton>
@@ -79,6 +89,7 @@ const Table: React.FC<Props> = ({
                 <Item
                   editMode
                   hasActions
+                  columns={columns}
                   onEdit={(item) => {
                     setInsertionMode(false)
                     onAdd(item)
@@ -90,6 +101,7 @@ const Table: React.FC<Props> = ({
                 <Item
                   key={item.id}
                   item={item}
+                  columns={columns}
                   onEdit={onEdit && item.id
                     ? newItem => onEdit(item.id as string, newItem)
                     : undefined}

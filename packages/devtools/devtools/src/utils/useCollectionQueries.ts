@@ -15,8 +15,13 @@ export default function useCollectionQueries(collectionName: string) {
       .sort((a, b) => a.time - b.time)
       .reverse()
       .map(({ collectionName: _, lastTime, ...item }) => ({
-        ...item,
+        id: item.id,
+        collectionName: item.collectionName,
         lastTime: new Date(lastTime as number),
+        count: item.count,
+        selector: item.selector,
+        options: item.options,
+        callstack: item.callstack,
       }))
   }, [queries?.items, collectionName])
 }

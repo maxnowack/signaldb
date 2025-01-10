@@ -51,6 +51,7 @@ const Data: React.FC = () => {
         : (
           <Items
             items={[]}
+            columns={[]}
             placeholder="Select a collection on the left"
           />
         )}

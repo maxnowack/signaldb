@@ -5,6 +5,7 @@ import UnstyledCollectionList from '../components/CollectionList'
 import Table from '../components/Table'
 import dataStore from '../models/dataStore'
 import useCollectionMutations from '../utils/useCollectionMutations'
+import clearCallstack from '../utils/clearCallstack'
 
 const Wrapper = styled.div`
   display: grid;
@@ -31,7 +32,15 @@ const Mutations: React.FC = () => {
     () => collectionsItem?.items.find(c => c.name === collectionName) as Collection<any>,
     [collectionsItem, collectionName],
   )
-  const mutations = useCollectionMutations(collectionName || '')
+  const items = useCollectionMutations(collectionName || '')
+  const mutations = useMemo(() => items.map(item => ({
+    id: item.id,
+    time: item.time.toLocaleString(),
+    type: item.type,
+    selector: JSON.stringify(item.selector, null, 2),
+    modifier: JSON.stringify(item.modifier, null, 2),
+    callstack: clearCallstack(item.callstack as string),
+  })), [items])
   return (
     <Wrapper>
       <CollectionList
@@ -41,13 +50,29 @@ const Mutations: React.FC = () => {
       {collection
         ? (
           <Items
-            itemColumn={`${collectionName} (${mutations.length} mutations)`}
             items={mutations}
+            columns={[{
+              name: 'time',
+              label: 'Time',
+            }, {
+              name: 'type',
+              label: 'Type',
+            }, {
+              name: 'selector',
+              label: 'Selector',
+            }, {
+              name: 'modifier',
+              label: 'Modifier',
+            }, {
+              name: 'callstack',
+              label: 'Callstack',
+            }]}
           />
         )
         : (
           <Items
             items={[]}
+            columns={[]}
             placeholder="Select a collection on the left"
           />
         )}

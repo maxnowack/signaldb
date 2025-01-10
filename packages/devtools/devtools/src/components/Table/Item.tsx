@@ -3,7 +3,8 @@ import styled from 'styled-components'
 import colors from '../../colorPalette'
 import ActionButton from './ActionButton'
 
-const Wrapper = styled.tr`
+const CellContent = styled.div``
+const Wrapper = styled.tr<{ $expanded?: boolean }>`
   &:nth-child(even) {
     background-color: ${colors.black};
   }
@@ -16,6 +17,13 @@ const Wrapper = styled.tr`
     text-overflow: ellipsis;
     color: ${colors.lightGrey};
     vertical-align: top;
+    &.expandable {
+      cursor: ${p => (p.$expanded ? 'n-resize' : 's-resize')};
+    }
+    ${CellContent} {
+      white-space: ${p => (p.$expanded ? 'pre-wrap' : 'nowrap')};
+      max-height: ${p => (p.$expanded ? 'none' : '25px')};
+    }
     &:nth-child(2) {
       text-align: right;
       ${ActionButton} {
@@ -34,23 +42,26 @@ const Textarea = styled.textarea<{ $isValid: boolean }>`
   outline: none;
 `
 
-interface Props {
-  item?: Record<string, any>,
-  onEdit?: (item: Record<string, any>) => void,
+interface Props<T extends Record<string, any>> {
+  item?: T,
+  columns?: { name: keyof T, label: string }[],
+  onEdit?: (item: T) => void,
   onCancel?: () => void,
   editMode?: boolean,
   onRemove?: () => void,
   hasActions?: boolean,
 }
 
-const Item: React.FC<Props> = ({
+const Item = <T extends Record<string, any>>({
   item,
+  columns,
   onEdit,
   onCancel,
   editMode: editModeProperty,
   onRemove,
   hasActions,
-}) => {
+}: Props<T>) => {
+  const [expanded, setExpanded] = useState(false)
   const [editMode, setEditMode] = useState(editModeProperty)
   const [itemValue, setItemValue] = useState(() => JSON.stringify(item || {}))
   const [isValid, setIsValid] = useState(true)
@@ -60,27 +71,48 @@ const Item: React.FC<Props> = ({
     setItemValue(JSON.stringify(item || {}))
   }, [item, editMode])
   return (
-    <Wrapper>
-      <td title={editMode ? '' : itemValue}>
-        {editMode
-          ? (
-            <Textarea
-              $isValid={isValid}
-              defaultValue={itemValue}
-              onChange={(event) => {
-                const { value } = event.target
-                setItemValue(value)
-                try {
-                  JSON.parse(value)
-                  setIsValid(true)
-                } catch {
-                  setIsValid(false)
-                }
-              }}
-            />
-          )
-          : itemValue}
-      </td>
+    <Wrapper $expanded={expanded}>
+      {editMode || !columns
+        ? (
+          <td
+            title={editMode ? '' : itemValue}
+            colSpan={columns ? columns.length : undefined}
+          >
+            {editMode
+              ? (
+                <Textarea
+                  $isValid={isValid}
+                  defaultValue={itemValue}
+                  onChange={(event) => {
+                    const { value } = event.target
+                    setItemValue(value)
+                    try {
+                      JSON.parse(value)
+                      setIsValid(true)
+                    } catch {
+                      setIsValid(false)
+                    }
+                  }}
+                />
+              )
+              : itemValue}
+          </td>
+        )
+        : (
+          <>
+            {columns.map(column => (
+              <td
+                key={column.name as string}
+                className="expandable"
+                onClick={() => setExpanded(!expanded)}
+              >
+                <CellContent>
+                  {item?.[column.name]}
+                </CellContent>
+              </td>
+            ))}
+          </>
+        )}
       {hasActions && (
         <td>
           {editMode && onEdit
@@ -90,7 +122,7 @@ const Item: React.FC<Props> = ({
                   disabled={!isValid}
                   onClick={() => {
                     try {
-                      const parsedItem = JSON.parse(itemValue) as Record<string, any>
+                      const parsedItem = JSON.parse(itemValue) as T
                       onEdit(parsedItem)
                       setEditMode(false)
                     } catch {
