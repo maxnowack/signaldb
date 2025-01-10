@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import colors from '../../colorPalette'
 import ActionButton from './ActionButton'
@@ -54,6 +54,11 @@ const Item: React.FC<Props> = ({
   const [editMode, setEditMode] = useState(editModeProperty)
   const [itemValue, setItemValue] = useState(() => JSON.stringify(item || {}))
   const [isValid, setIsValid] = useState(true)
+
+  useEffect(() => {
+    if (editMode) return
+    setItemValue(JSON.stringify(item || {}))
+  }, [item, editMode])
   return (
     <Wrapper>
       <td title={editMode ? '' : itemValue}>
