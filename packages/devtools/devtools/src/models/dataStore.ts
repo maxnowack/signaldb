@@ -186,7 +186,7 @@ function registerHandlers(currentCollections: Collection<any>[]) {
       const activated = handlerCategories[key].some(category => isCategoryActive(category))
 
       const wrappedHandler = wrapHandler(handler, collection)
-      collection.off(key, wrappedHandler as any) // Ensure previous handler is removed
+      collection.off(key as any, wrappedHandler) // Ensure previous handler is removed
 
       if (!activated) return
       collection.on(key as any, wrappedHandler) // Register the wrapped handler
@@ -204,6 +204,11 @@ Collection.onCreation(() => {
   collections.patch({ items: currentCollections })
 
   registerHandlers(currentCollections)
+})
+
+Collection.onDispose(() => {
+  const currentCollections = Collection.getCollections()
+  collections.patch({ items: currentCollections })
 })
 
 dataStore.register('queries', { items: [] })
