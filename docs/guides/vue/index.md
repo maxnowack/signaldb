@@ -104,5 +104,5 @@ You have successfully integrated SignalDB into a Vue project and created a react
 
 ## Next Steps
 
-Now that you’ve learned how to use SignalDB in Angular, you maybe want to explore the possibilities how you can synchronize the data with your backend.
+Now that you’ve learned how to use SignalDB in Vue, you maybe want to explore the possibilities how you can synchronize the data with your backend.
 Take a look at the [Synchronization Overview](/sync/) to get started
