@@ -33,4 +33,7 @@ export { default as EventEmitter } from './utils/EventEmitter'
 
 export { default as loadDeveloperTools } from './devtools'
 
-loadDeveloperTools()
+/* istanbul ignore if -- @preserve */
+if (process.env.NODE_ENV !== 'production') {
+  loadDeveloperTools()
+}
