@@ -58,6 +58,19 @@ The developer tools will open and you should the following tabs.
 The developer tools will try to resolve names for your collections. You can provide a name for your collection by passing the `name` property to the options of the collection constructor.
 :::
 
+### Devtools in production
+Devtools are excluded in production builds. However, it might be desirable to lazy load the devtools in production:
+```ts
+import { loadDeveloperTools } from '@signaldb/devtools';
+
+if (process.env.NODE_ENV === 'production') {
+  Object.assign(window, {
+    loadDeveloperTools
+  })
+}
+```
+Then open the browser console and type `loadDeveloperTools()` into it.
+
 ### Data
 
 The data tab shows the current state of all of your SignalDB collections. You can inspect the collections, documents and even edit the data directly in the developer tools.
