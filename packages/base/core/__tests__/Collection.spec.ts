@@ -1,6 +1,7 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
+import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
 
 const measureTime = (fn: () => void) => {
   const start = performance.now()
@@ -716,6 +717,16 @@ describe('Collection', () => {
 
         expect(col.find({ id: '2' }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
       })
+    })
+
+    it('should return if a collection is being persisted or not', () => {
+      const col1 = new Collection<{ id: string, name: string }>()
+      expect(col1.hasPersistence()).toBe(false)
+
+      const col2 = new Collection<{ id: string, name: string }>({
+        persistence: memoryPersistenceAdapter(),
+      })
+      expect(col2.hasPersistence()).toBe(true)
     })
   })
 })
