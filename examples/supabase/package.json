@@ -16,7 +16,7 @@
     "@signaldb/maverickjs": "*",
     "@signaldb/react": "*",
     "@signaldb/sync": "*",
-    "@supabase/supabase-js": "^2.47.8",
+    "@supabase/supabase-js": "^2.47.12",
     "@types/node": "22.10.6",
     "@types/react": "19.0.6",
     "@types/react-dom": "19.0.3",
@@ -26,6 +26,6 @@
     "typescript": "5.7.3"
   },
   "devDependencies": {
-    "sass": "^1.83.0"
+    "sass": "^1.83.1"
   }
 }
