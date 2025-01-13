@@ -316,6 +316,15 @@ export default class SyncManager<
   }
 
   /**
+   * Setup all collections to be synced with remote changes
+   * and enable automatic pushing changes to the remote source.
+   */
+  public async startAll() {
+    await Promise.all([...this.collections.keys()].map(id =>
+      this.startSync(id)))
+  }
+
+  /**
    * Setup a collection to be synced with remote changes
    * and enable automatic pushing changes to the remote source.
    * @param name Name of the collection
@@ -375,6 +384,16 @@ export default class SyncManager<
       syncPaused: false,
       cleanupFunction,
     })
+  }
+
+  /**
+   * Pauses the sync process for all collections.
+   * This means that the collections will not be synced with remote changes
+   * and changes will not automatically be pushed to the remote source.
+   */
+  public async pauseAll() {
+    await Promise.all([...this.collections.keys()].map(id =>
+      this.pauseSync(id)))
   }
 
   /**

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Allow sync to be paused and resumed with `syncManager.startSync(name)` and `syncManager.pauseSync(name)` (thanks @obedm503)
+* Added `syncManager.startAll()` and `syncManasger.pauseAll()` to start and pause all collections
 
 ## [1.0.1] - 2025-01-10
 
