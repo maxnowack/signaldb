@@ -719,14 +719,19 @@ describe('Collection', () => {
       })
     })
 
-    it('should return if a collection is being persisted or not', () => {
-      const col1 = new Collection<{ id: string, name: string }>()
-      expect(col1.hasPersistence()).toBe(false)
-
-      const col2 = new Collection<{ id: string, name: string }>({
+    it('should wait until a collection is ready', async () => {
+      const col1 = new Collection<{ id: string, name: string }>({
         persistence: memoryPersistenceAdapter(),
       })
-      expect(col2.hasPersistence()).toBe(true)
+      let persistenceInit = false
+      col1.once('persistence.init', () => {
+        persistenceInit = true
+      })
+      await expect(col1.isReady()).resolves.toBeUndefined()
+      expect(persistenceInit).toBe(true)
+
+      const col2 = new Collection<{ id: string, name: string }>()
+      await expect(col2.isReady()).resolves.toBeUndefined()
     })
   })
 })

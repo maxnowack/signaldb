@@ -137,7 +137,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await waitForEvent(collection, 'persistence.error')
+    await expect(collection.isReady()).rejects.toThrowError('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -153,7 +153,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await waitForEvent(collection, 'persistence.error')
+    await expect(collection.isReady()).rejects.toThrowError('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -194,7 +194,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await waitForEvent(collection, 'persistence.error')
+    await expect(collection.isReady()).rejects.toThrowError('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -210,7 +210,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await waitForEvent(collection, 'persistence.error')
+    await expect(collection.isReady()).rejects.toThrowError('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 

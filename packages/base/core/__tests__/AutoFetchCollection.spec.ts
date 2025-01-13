@@ -93,8 +93,7 @@ it('should trigger persistence.error event when fetchQueryItems fails', async ()
   fetchQueryItems.mockRejectedValue(error)
 
   expect(collection.find({}).fetch()).toEqual([])
-
-  await waitForEvent(collection, 'persistence.error')
+  await expect(collection.isReady()).rejects.toThrow(error)
   expect(collection.find({}, { reactive: false }).fetch()).toEqual([])
 })
 
