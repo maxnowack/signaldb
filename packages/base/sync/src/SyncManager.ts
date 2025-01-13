@@ -82,6 +82,7 @@ export default class SyncManager<
   protected collections: Map<string, [
     Collection<ItemType, IdType, any>,
     SyncOptions<CollectionOptions>,
+    readyPromise: Promise<void>,
   ]> = new Map()
 
   protected changes: Collection<Change<ItemType>, string>
@@ -222,6 +223,19 @@ export default class SyncManager<
     options: SyncOptions<CollectionOptions>,
   ) {
     if (this.isDisposed) throw new Error('SyncManager is disposed')
+
+    const readyPromise = new Promise<void>((resolve, reject) => {
+      if (!collection.hasPersistence()) {
+        resolve()
+        return
+      }
+      collection.once('persistence.error', (error) => {
+        if (this.options.onError) this.options.onError(options, error)
+        reject(error)
+      })
+      collection.once('persistence.init', resolve)
+    })
+
     if (this.options.registerRemoteChange) {
       this.options.registerRemoteChange(options, async (data) => {
         if (data == null) {
@@ -262,7 +276,7 @@ export default class SyncManager<
       })
     }
 
-    this.collections.set(options.name, [collection, options])
+    this.collections.set(options.name, [collection, options, readyPromise])
 
     const hasRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
       for (const remoteChange of this.remoteChanges) {
@@ -379,6 +393,8 @@ export default class SyncManager<
     await this.isReady()
     const entry = this.getCollection(name)
     const collectionOptions = entry[1]
+    const readyPromise = entry[2]
+    await readyPromise
 
     const hasActiveSyncs = this.syncOperations.find({
       collectionName: name,
