@@ -143,30 +143,9 @@ export default class SyncManager<
     this.syncOperations.on('persistence.error', error => syncOperationsPersistence?.handler(error))
 
     this.persistenceReady = Promise.all([
-      new Promise<void>((resolve, reject) => {
-        if (!changesPersistence) {
-          resolve()
-          return
-        }
-        this.syncOperations.once('persistence.error', reject)
-        this.syncOperations.once('persistence.init', resolve)
-      }),
-      new Promise<void>((resolve, reject) => {
-        if (!snapshotsPersistence) {
-          resolve()
-          return
-        }
-        this.changes.once('persistence.error', reject)
-        this.changes.once('persistence.init', resolve)
-      }),
-      new Promise<void>((resolve, reject) => {
-        if (!syncOperationsPersistence) {
-          resolve()
-          return
-        }
-        this.snapshots.once('persistence.error', reject)
-        this.snapshots.once('persistence.init', resolve)
-      }),
+      this.syncOperations.isReady(),
+      this.changes.isReady(),
+      this.snapshots.isReady(),
     ]).then(() => { /* noop */ })
 
     this.changes.setMaxListeners(1000)
@@ -245,21 +224,10 @@ export default class SyncManager<
   ) {
     if (this.isDisposed) throw new Error('SyncManager is disposed')
 
-    const readyPromise = new Promise<void>((resolve, reject) => {
-      if (!collection.hasPersistence()) {
-        resolve()
-        return
-      }
-      collection.once('persistence.error', (error) => {
-        if (this.options.onError) this.options.onError(options, error)
-        reject(error)
-      })
-      collection.once('persistence.init', resolve)
-    })
     this.collections.set(options.name, {
       collection,
       options,
-      readyPromise,
+      readyPromise: collection.isReady(),
       syncPaused: true, // always start paused as the autostart will start it
     })
 

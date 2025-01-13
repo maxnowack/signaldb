@@ -204,6 +204,7 @@ export default class Collection<
   private isDisposed = false
   private postBatchCallbacks = new Set<() => void>()
   private fieldTracking = false
+  private persistenceReadyPromise: Promise<void>
 
   /**
    * Initializes a new instance of the `Collection` class with optional configuration.
@@ -391,15 +392,13 @@ export default class Collection<
           this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
         })
     }
-    Collection.onCreationCallbacks.forEach(callback => callback(this))
-  }
+    this.persistenceReadyPromise = new Promise<void>((resolve, reject) => {
+      if (!this.persistenceAdapter) return resolve()
+      this.once('persistence.init', resolve)
+      this.once('persistence.error', reject)
+    })
 
-  /**
-   * Checks whether the collection is persisted.
-   * @returns A boolean indicating if the collection is persisted.
-   */
-  public hasPersistence() {
-    return !!this.persistenceAdapter
+    Collection.onCreationCallbacks.forEach(callback => callback(this))
   }
 
   /**
@@ -457,6 +456,23 @@ export default class Collection<
    */
   public setFieldTracking(enable: boolean) {
     this.fieldTracking = enable
+  }
+
+  /**
+   * Resolves when the persistence adapter finished initializing
+   * and the collection is ready to be used.
+   * @returns A promise that resolves when the collection is ready.
+   * @example
+   * ```ts
+   * const collection = new Collection({
+   *   persistence: // ...
+   * })
+   * await collection.isReady()
+   *
+   * collection.insert({ name: 'Item 1' })
+   */
+  public async isReady() {
+    return this.persistenceReadyPromise
   }
 
   private profile<ReturnValue>(

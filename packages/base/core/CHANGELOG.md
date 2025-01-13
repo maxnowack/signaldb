@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `hasPersistence` method on `Collection` to check if a collection has persistence
+* `isReady` method on `Collection` to wait for the collection to be ready
 
 ### Changed
 

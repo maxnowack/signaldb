@@ -75,6 +75,20 @@ Parameters
 
 ## Methods
 
+### `isReady()`
+
+Resolves when the persistence adapter finished initializing  and the collection is ready to be used.
+This is useful when you need to wait for the collection to be ready before executing any operations directly after creating it.
+
+Example:
+```ts
+const collection = new Collection({ persistence: /* ... */ })
+await collection.isReady()
+
+collection.insert({ name: 'Item 1' })
+// ...
+```
+
 ### `find(selector?: Selector<T>, options?: Options)`
 
 Returns a new cursor object for the items in the collection that match a given selector and options.
