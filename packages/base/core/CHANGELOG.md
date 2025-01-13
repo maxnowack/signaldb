@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-01-13
+
 ### Added
 
 * `isReady` method on `Collection` to wait for the collection to be ready
