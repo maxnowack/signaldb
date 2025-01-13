@@ -67,6 +67,6 @@
     "styled-components": "^6.1.14"
   },
   "devDependencies": {
-    "@types/react": "^19.0.3"
+    "@types/react": "^19.0.6"
   }
 }
