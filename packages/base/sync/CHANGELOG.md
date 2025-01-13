@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Wait until collections persistence was initialized before starting sync
 
+### Added
+
+* Allow sync to be paused and resumed with `syncManager.startSync(name)` and `syncManager.pauseSync(name)` (thanks @obedm503)
+
 ## [1.0.1] - 2025-01-10
 
 ### Changed
