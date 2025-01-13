@@ -516,9 +516,10 @@ export default class Collection<
       ? indexInfo.positions.map(index => memory[index])
       : memory
     const item = items.find(document => match(document, selector))
-    const index = (indexInfo.matched
-      && indexInfo.positions.find(itemIndex => memory[itemIndex] === item))
-        || memory.findIndex(document => document === item)
+    const foundInIndex = indexInfo.matched
+      && indexInfo.positions.find(itemIndex => memory[itemIndex] === item)
+    const index = foundInIndex
+      || memory.findIndex(document => document === item)
     if (item == null) return { item: null, index: -1 }
     if (index === -1) throw new Error('Cannot resolve index for item')
     return { item, index }

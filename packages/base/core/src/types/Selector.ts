@@ -17,13 +17,13 @@ export interface FieldExpression<T> {
   $regex?: RegExp | string | undefined,
   $options?: string | undefined,
   $text?:
-  | {
-    $search: string,
-    $language?: string | undefined,
-    $caseSensitive?: boolean | undefined,
-    $diacriticSensitive?: boolean | undefined,
-  }
-  | undefined,
+    | {
+      $search: string,
+      $language?: string | undefined,
+      $caseSensitive?: boolean | undefined,
+      $diacriticSensitive?: boolean | undefined,
+    }
+    | undefined,
   $where?: string | ((item: T) => boolean) | undefined,
   $all?: T[] | undefined,
 
