@@ -31,7 +31,7 @@ export default withMermaid({
         items: [
           {
             text: 'Changelog',
-            link: 'https://github.com/maxnowack/signaldb/blob/main/CHANGELOG.md',
+            link: '/changelog/core/',
           },
           {
             text: 'Contributing',
