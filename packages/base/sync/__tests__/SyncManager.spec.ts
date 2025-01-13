@@ -1013,3 +1013,143 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
   // @ts-expect-error - private property
   expect(syncManager.remoteChanges.length).toBe(0)
 })
+
+it('should start sync after internal collections are ready', async () => {
+  const persistenceAdapter = memoryPersistenceAdapter([], undefined, 100)
+  const mockPersistenceAdapter = createPersistenceAdapter({
+    register: vi.fn(persistenceAdapter.register),
+    load: vi.fn(persistenceAdapter.load),
+    save: vi.fn(persistenceAdapter.save),
+  })
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [{ id: '1', name: 'Test Item' }],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const syncManager = new SyncManager({
+    persistenceAdapter: () => mockPersistenceAdapter,
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  let persistenceInitialized = false
+  void Promise.all([
+    new Promise((resolve) => {
+      // @ts-expect-error - private property
+      syncManager.syncOperations.once('persistence.init', resolve)
+    }),
+    new Promise((resolve) => {
+      // @ts-expect-error - private property
+      syncManager.changes.once('persistence.init', resolve)
+    }),
+    new Promise((resolve) => {
+      // @ts-expect-error - private property
+      syncManager.snapshots.once('persistence.init', resolve)
+    }),
+  ]).then(() => {
+    persistenceInitialized = true
+  })
+
+  const collection = new Collection<TestItem, string, any>()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(mockPersistenceAdapter.load).not.toBeCalled()
+  expect(mockPull).not.toBeCalled()
+  expect(persistenceInitialized).toBeFalsy()
+  await syncManager.sync('test')
+
+  expect(mockPull).toBeCalled()
+  expect(mockPersistenceAdapter.load).toHaveBeenCalledBefore(mockPull)
+  expect(persistenceInitialized).toBeTruthy()
+})
+
+it('should start sync after collection is ready', async () => {
+  const persistenceAdapter = memoryPersistenceAdapter([], undefined, 100)
+  const mockPersistenceAdapter = createPersistenceAdapter({
+    register: vi.fn(persistenceAdapter.register),
+    load: vi.fn(persistenceAdapter.load),
+    save: vi.fn(persistenceAdapter.save),
+  })
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [{ id: '1', name: 'Test Item' }],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const collection = new Collection<TestItem, string, any>({
+    persistence: mockPersistenceAdapter,
+  })
+  let persistenceInitialized = false
+  void new Promise<void>((resolve) => {
+    collection.once('persistence.init', resolve)
+  }).then(() => {
+    persistenceInitialized = true
+  })
+
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(mockPull).not.toBeCalled()
+  expect(mockPersistenceAdapter.load).not.toBeCalled()
+  expect(persistenceInitialized).toBeFalsy()
+  await syncManager.sync('test')
+
+  expect(mockPull).toBeCalled()
+  expect(mockPersistenceAdapter.load).toHaveBeenCalledBefore(mockPull)
+  expect(persistenceInitialized).toBeTruthy()
+})
+
+it('should fail if there was a persistence error during initialization', async () => {
+  const persistenceAdapter = memoryPersistenceAdapter([], undefined, 100)
+  const mockPersistenceAdapter = createPersistenceAdapter({
+    register: vi.fn(persistenceAdapter.register),
+    load: vi.fn(() => Promise.reject(new Error('Persistence error'))),
+    save: vi.fn(persistenceAdapter.save),
+  })
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [{ id: '1', name: 'Test Item' }],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const collection = new Collection<TestItem, string, any>({
+    persistence: mockPersistenceAdapter,
+  })
+  let persistenceInitialized = false
+  void new Promise<void>((resolve) => {
+    collection.once('persistence.init', resolve)
+  }).then(() => {
+    persistenceInitialized = true
+  })
+  let persistenceError = false
+  void new Promise<void>((resolve) => {
+    collection.once('persistence.error', () => resolve())
+  }).then(() => {
+    persistenceError = true
+  })
+
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(mockPull).not.toBeCalled()
+  expect(persistenceInitialized).toBeFalsy()
+  expect(persistenceError).toBeFalsy()
+
+  await expect(syncManager.sync('test')).rejects.toThrowError('Persistence error')
+
+  expect(mockPull).not.toBeCalled()
+  expect(persistenceInitialized).toBeFalsy()
+  expect(persistenceError).toBeTruthy()
+})
