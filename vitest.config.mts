@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config'
-import GithubActionsReporter from 'vitest-github-actions-reporter'
 
 export default defineConfig({
   test: {
@@ -18,8 +17,6 @@ export default defineConfig({
         'packages/devtools/devtools',
       ],
     },
-    reporters: process.env.GITHUB_ACTIONS
-      ? ['default', new GithubActionsReporter()]
-      : 'default',
+    reporters: process.env.GITHUB_ACTIONS ? ['dot', 'github-actions'] : ['dot'],
   },
 })
