@@ -7,4 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2025-01-13
+
+### Fixed
+
+* Fixed version range for `@signaldb/core` peer dependency
+
+## [1.0.0-beta.1] - 2025-01-10
+
+### Changed
+
+* Improved tables in the UI
+
 ## [1.0.0-beta.0] - 2025-01-10

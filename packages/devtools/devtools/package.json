@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/devtools",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "Developer tools for SignalDB",
   "scripts": {
     "build": "rimraf dist && vite build"
@@ -59,7 +59,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "1.1.x"
+    "@signaldb/core": "^1.1.0"
   },
   "dependencies": {
     "react": "^19.0.0",
