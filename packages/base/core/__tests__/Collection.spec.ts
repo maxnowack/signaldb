@@ -460,7 +460,6 @@ describe('Collection', () => {
     })
   })
 
-  // eslint-disable-next-line vitest/valid-describe-callback
   describe('performance', { retry: 5 }, () => {
     it('should be faster with id only queries', () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
