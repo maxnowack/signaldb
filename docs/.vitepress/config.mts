@@ -115,7 +115,6 @@ export default withMermaid({
           items: [
             {
               text: '@signaldb/core',
-              link: '/reference/core/',
               collapsed: true,
               items: [
                 { text: 'Collection', link: '/reference/core/collection/' },
