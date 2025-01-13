@@ -133,6 +133,14 @@ Pauses the sync process for a collection. This means that the collection will no
 
 - `name` (`string`): The name of the collection.
 
+### `startAll()`
+
+Setup all collections to be synced with remote changes and enable automatic pushing changes to the remote source.
+
+### `pauseAll()`
+
+Pauses the sync process for all collections. This means that the collections will not be synced with remote changes and changes will not automatically be pushed to the remote source.
+
 ### `pushChanges(name)`
 
 Initiates the push process for a collection, syncing only if there are changes.

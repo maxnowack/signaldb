@@ -1331,3 +1331,33 @@ it('should return a tuple from getCollection function', () => {
   expect(collectionInstance).toBeInstanceOf(Collection)
   expect(collectionOptions).toEqual({ name: 'test' })
 })
+
+it('should pause and resume sync all collections', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [{ id: '1', name: 'Test Item' }],
+  })
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+
+  const registerRemoteChange = vi.fn()
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+    registerRemoteChange,
+    autostart: false,
+  })
+
+  const col1 = new Collection<TestItem, string, any>()
+  syncManager.addCollection(col1, { name: 'test1' })
+
+  const col2 = new Collection<TestItem, string, any>()
+  syncManager.addCollection(col2, { name: 'test2' })
+
+  expect(registerRemoteChange).toBeCalledTimes(0)
+  await syncManager.startAll()
+  expect(registerRemoteChange).toHaveBeenNthCalledWith(1, { name: 'test1' }, expect.any(Function))
+  expect(registerRemoteChange).toHaveBeenNthCalledWith(2, { name: 'test2' }, expect.any(Function))
+
+  await syncManager.pauseAll()
+  expect(registerRemoteChange).toBeCalledTimes(2)
+})
