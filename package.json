@@ -46,7 +46,7 @@
     "fast-glob": "^3.3.2",
     "happy-dom": "16.5.3",
     "husky": "9.1.7",
-    "mermaid": "^10.9.1",
+    "mermaid": "^11.4.1",
     "rimraf": "6.0.1",
     "rollup-plugin-typescript-paths": "1.5.0",
     "ts-node": "10.9.2",
@@ -58,7 +58,7 @@
     "vite-plugin-dts": "4.5.0",
     "vite-tsconfig-paths": "5.1.4",
     "vitepress": "1.5.0",
-    "vitepress-plugin-mermaid": "^2.0.16",
+    "vitepress-plugin-mermaid": "^2.0.17",
     "vitest": "3.0.0-beta.4"
   }
 }
