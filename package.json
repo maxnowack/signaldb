@@ -32,7 +32,7 @@
     "@stylistic/eslint-plugin": "^2.12.1",
     "@typescript-eslint/eslint-plugin": "8.19.1",
     "@typescript-eslint/parser": "8.19.1",
-    "@vitest/coverage-istanbul": "^2.0.4",
+    "@vitest/coverage-istanbul": "3.0.0-beta.4",
     "eslint": "9.18.0",
     "eslint-import-resolver-typescript": "3.7.0",
     "eslint-plugin-import": "2.31.0",
@@ -59,7 +59,6 @@
     "vite-tsconfig-paths": "5.1.4",
     "vitepress": "1.5.0",
     "vitepress-plugin-mermaid": "^2.0.16",
-    "vitest": "2.1.8",
-    "vitest-github-actions-reporter": "0.11.1"
+    "vitest": "3.0.0-beta.4"
   }
 }
