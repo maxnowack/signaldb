@@ -8,13 +8,13 @@ type ElementsOf<T> = {
 }
 type PushModifier<T> = {
   [P in keyof T]?:
-  | OnlyElementsOfArrays<T[P]>
-  | {
-    $each?: T[P] | undefined,
-    $position?: number | undefined,
-    $slice?: number | undefined,
-    $sort?: 1 | -1 | Dictionary<number> | undefined,
-  }
+    | OnlyElementsOfArrays<T[P]>
+    | {
+      $each?: T[P] | undefined,
+      $position?: number | undefined,
+      $slice?: number | undefined,
+      $sort?: 1 | -1 | Dictionary<number> | undefined,
+    }
 }
 type ArraysOrEach<T> = {
   [P in keyof T]?: OnlyElementsOfArrays<T[P]> | { $each: T[P] }

@@ -102,7 +102,6 @@ export default tseslint.config(
         ignoreRegExpLiterals: true,
       }],
       '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
-      '@stylistic/indent-binary-ops': ['off'], // disabled until this issue was resolved: https://github.com/eslint-stylistic/eslint-stylistic/issues/546
       '@stylistic/brace-style': ['error', '1tbs'],
       'import/order': ['error', { groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'] }],
       'import/no-named-as-default-member': 'off',
