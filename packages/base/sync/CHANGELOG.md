@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-13
+
 ### Fixed
 
 * Wait until collections persistence was initialized before starting sync

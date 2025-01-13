@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/sync",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build"
@@ -52,6 +52,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "1.x"
+    "@signaldb/core": "^1.2.0"
   }
 }
