@@ -395,6 +395,14 @@ export default class Collection<
   }
 
   /**
+   * Checks whether the collection is persisted.
+   * @returns A boolean indicating if the collection is persisted.
+   */
+  public hasPersistence() {
+    return !!this.persistenceAdapter
+  }
+
+  /**
    * Checks whether the collection is currently performing a pull operation
    * ⚡️ this function is reactive!
    * (loading data from the persistence adapter).
