@@ -285,6 +285,7 @@ export default withMermaid({
       '/reactivity/oby.html': '/reference/oby/',
       '/reactivity/oby/index.html': '/reference/oby/',
       '/reactivity/other.html': '/reference/core/createreactivityadapter/',
+      '/reactivity/other/index.html': '/reactivity/',
       '/reactivity/preact-signals.html': '/reference/preact/',
       '/reactivity/preact-signals/index.html': '/reference/preact/',
       '/reactivity/preact/index.html': '/reference/preact/',
@@ -313,6 +314,7 @@ export default withMermaid({
       '/replication/supabase/index.html': '/sync/',
       '/sync/implementation': '/sync/',
       '/sync/reference/index.html': '/reference/sync/',
+      '/todo-example/index.html': '/examples/appwrite/',
       '/troubleshooting.html': '/troubleshooting/',
     }
 
