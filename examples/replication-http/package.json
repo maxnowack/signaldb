@@ -17,7 +17,7 @@
     "@signaldb/react": "*",
     "@signaldb/sync": "*",
     "@types/node": "22.10.6",
-    "@types/react": "19.0.6",
+    "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
     "next": "15.1.4",
     "react": "19.0.0",
