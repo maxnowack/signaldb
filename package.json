@@ -57,7 +57,7 @@
     "vite": "6.0.9",
     "vite-plugin-dts": "4.5.0",
     "vite-tsconfig-paths": "5.1.4",
-    "vitepress": "1.6.0",
+    "vitepress": "1.6.1",
     "vitepress-plugin-mermaid": "^2.0.17",
     "vitest": "3.0.2"
   }
