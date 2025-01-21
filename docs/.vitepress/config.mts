@@ -224,7 +224,6 @@ export default withMermaid({
     ['meta', { name: 'msapplication-TileColor', content: '#0367e9' }],
     ['meta', { name: 'theme-color', content: '#ffffff' }],
     ['script', { 'defer': '', 'data-domain': 'signaldb.js.org', 'src': 'https://plausible.unsou.de/js/script.js' }],
-    ['script', { 'async': '', 'data-uid': 'fc19a2cffc', 'src': 'https://maxnowack.ck.page/fc19a2cffc/index.js' }],
   ],
 
   sitemap: {
