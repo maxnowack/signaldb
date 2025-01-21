@@ -81,4 +81,4 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reference/c
 | [`Svelte Runes`](/guides/svelte/) | ❌ | - | - |
 | [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |
 | [`usignal`](/reference/usignal/) | ✅ | ❌ | ❌ |
-| [`Vue.js refs`](/reference/vue/) | ✅ | ✅ | ✅ |
+| [`Vue.js refs`](/reference/vue/) | ✅ | ❌ | ❌ |

@@ -61,8 +61,10 @@ const Posts = new Collection({
 })
 
 const items = ref([])
-watchEffect(() => {
-  items.value = Posts.find().fetch()
+watchEffect((onCleanup) => {
+  const cursor = Posts.find()
+  items.value = cursor.fetch()
+  onCleanup(() => cursor.cleanup())
 })
 
 function addPost() {
@@ -72,6 +74,13 @@ function addPost() {
 ```
 
 In this code, we create a `Posts` collection using the Vue reactivity adapter. The `items` array is kept in sync with the collection using `watchEffect`.
+
+::: info
+The API of Vue doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean).
+In Vue, the function passed to the `watchEffect()` function gets a `onCleanup` callback that can be used to cleanup the effect. You have to use this to cleanup the cursor manually (see example above).
+
+You also must manually disable reactivity when making calls outside your `watchEffect()` function to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
+:::
 
 ## Building a Vue Component
 
