@@ -464,6 +464,8 @@ export default class SyncManager<
       collectionName: name,
       instanceId: this.instanceId,
       status: 'active',
+    }, {
+      reactive: false,
     }).count() > 0
     const syncTime = Date.now()
     let syncId: string | null = null
@@ -473,14 +475,23 @@ export default class SyncManager<
       setTimeout(resolve, 0)
     })
     const doSync = async () => {
-      const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { end: -1 } })
+      const lastFinishedSync = this.syncOperations.findOne({
+        collectionName: name,
+        status: 'done',
+      }, {
+        sort: { end: -1 },
+        reactive: false,
+      })
       if (options?.onlyWithChanges) {
         const currentChanges = this.changes.find({
           collectionName: name,
           $and: [
             { time: { $lte: syncTime } },
           ],
-        }, { sort: { time: 1 } }).count()
+        }, {
+          sort: { time: 1 },
+          reactive: false,
+        }).count()
         if (currentChanges === 0) return
       }
 
@@ -547,16 +558,28 @@ export default class SyncManager<
 
     const syncTime = Date.now()
 
-    const lastFinishedSync = this.syncOperations.findOne({ collectionName: name, status: 'done' }, { sort: { end: -1 } })
+    const lastFinishedSync = this.syncOperations.findOne({
+      collectionName: name,
+      status: 'done',
+    }, {
+      sort: { end: -1 },
+      reactive: false,
+    })
     const lastSnapshot = this.snapshots.findOne({
       collectionName: name,
-    } as Selector<Snapshot<any>>, { sort: { time: -1 } })
+    } as Selector<Snapshot<any>>, {
+      sort: { time: -1 },
+      reactive: false,
+    })
     const currentChanges = this.changes.find({
       collectionName: name,
       $and: [
         { time: { $lte: syncTime } },
       ],
-    }, { sort: { time: 1 } }).fetch()
+    }, {
+      sort: { time: 1 },
+      reactive: false,
+    }).fetch()
 
     await sync<ItemType, ItemType['id']>({
       changes: currentChanges,
@@ -568,7 +591,10 @@ export default class SyncManager<
       }),
       push: changes => this.options.push(collectionOptions, { changes }),
       insert: (item) => {
-        if (item.id && !!collection.findOne({ id: item.id } as Selector<any>)) {
+        const itemExists = item.id && !!collection.findOne({
+          id: item.id,
+        } as Selector<any>, { reactive: false })
+        if (itemExists) {
           this.remoteChanges.push({
             collectionName: name,
             type: 'update',
@@ -587,7 +613,10 @@ export default class SyncManager<
         collection.insert(item)
       },
       update: (itemId, modifier) => {
-        if (itemId && !collection.findOne({ id: itemId } as Selector<any>)) {
+        const itemExists = itemId && !collection.findOne({
+          id: itemId,
+        } as Selector<any>, { reactive: false })
+        if (itemExists) {
           const item = { ...modifier.$set as ItemType, id: itemId }
           this.remoteChanges.push({
             collectionName: name,
@@ -607,7 +636,10 @@ export default class SyncManager<
         collection.updateOne({ id: itemId } as Selector<any>, modifier)
       },
       remove: (itemId) => {
-        if (!collection.findOne({ id: itemId } as Selector<any>)) return
+        const itemExists = !!collection.findOne({
+          id: itemId,
+        } as Selector<any>, { reactive: false })
+        if (!itemExists) return
         this.remoteChanges.push({
           collectionName: name,
           type: 'remove',
@@ -648,7 +680,7 @@ export default class SyncManager<
 
         const hasChanges = this.changes.find({
           collectionName: name,
-        }).count() > 0
+        }, { reactive: false }).count() > 0
 
         if (hasChanges) {
           // check if there are unsynced changes to push
@@ -666,12 +698,18 @@ export default class SyncManager<
         // find all items that are not in the snapshot
         const nonExistingItemIds = collection.find({
           id: { $nin: snapshot.map(item => item.id) },
-        } as Selector<any>).map(item => item.id) as IdType[]
+        } as Selector<any>, {
+          reactive: false,
+        }).map(item => item.id) as IdType[]
 
         collection.batch(() => {
           // update all items that are in the snapshot
           snapshot.forEach((item) => {
-            const itemExists = !!collection.findOne({ id: item.id } as Selector<any>)
+            const itemExists = !!collection.findOne({
+              id: item.id,
+            } as Selector<any>, {
+              reactive: false,
+            })
             /* istanbul ignore else -- @preserve */
             if (itemExists) {
               this.remoteChanges.push({
