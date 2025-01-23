@@ -3,9 +3,9 @@ import Store from '../utils/Store'
 const settingsStore = new Store({
   showButton: true,
   badgeType: 'collections',
-  trackQueries: true,
-  trackMutations: true,
-  trackMeasurements: true,
+  trackQueries: false,
+  trackMutations: false,
+  trackMeasurements: false,
 })
 
 if (typeof document !== 'undefined') {
