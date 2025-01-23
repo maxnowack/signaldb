@@ -66,6 +66,7 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reference/c
 | [`@preact/signals-core`](/reference/preact/) | ✅ | ❌ | ❌ |
 | [`@reactively/core`](/reference/reactively/) | ✅ | ✅ | ❌ |
 | [`@webreflection/signal`](https://github.com/WebReflection/signal) | ❌ | - | - |
+| [`alien-signals`](https://github.com/maxnowack/signaldb/issues/1341) | ✅ | ❌ | ❌ |
 | [`Angular Signals`](/reference/angular/) | ✅ | ❌ | ❌ |
 | [`Maverick-js Signals`](/reference/maverickjs/) | ✅ | ✅ | ✅ |
 | [`Meteor Tracker`](/reference/meteor/) | ✅ | ✅ | ✅ |
