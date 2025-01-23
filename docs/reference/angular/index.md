@@ -46,7 +46,7 @@ effect((onCleanup) => {
 
 Reactivity adapter for usage with [Angular](https://angular.dev/).
 
-The API of Angular doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean).
+The API of Angular doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean-optional).
 In Angular, the function passed to the `effect()` function gets a `onCleanup` callback that can be used to cleanup the effect. You can use this to cleanup the cursor (see an example below).
 You also must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).
 

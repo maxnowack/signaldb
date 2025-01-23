@@ -45,7 +45,7 @@ watchEffect((onCleanup) => {
 Reactivity adapter for usage with [Vue](https://vuejs.org/guide/essentials/reactivity-fundamentals.html).
 
 ::: info
-The API of Vue doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean).
+The API of Vue doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean-optional).
 In Vue, the function passed to the `watchEffect()` function gets a `onCleanup` callback that can be used to cleanup the effect. You have to use this to cleanup the cursor manually (see example above).
 
 You also must manually disable reactivity when making calls outside your `watchEffect()` function to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).

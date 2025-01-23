@@ -47,6 +47,6 @@ effect(() => {
 
 Reactivity adapter for usage with [µsignal](https://github.com/WebReflection/usignal).
 
-The API of usignal doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean).
+The API of usignal doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean-optional).
 With usignal, you can return a function from your `effect` that will be called on cleanup. Use this one to cleanup your cursors (see below for an example).
 You also must manually disable reactivity when making calls outside a reactive scope to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).

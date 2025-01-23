@@ -39,7 +39,7 @@ The `create` function creates a new reactive dependency. A `Dependency` object m
 * `depend()`: This method is called when the collection data is read, marking the place in the code as dependent on the collection data. Subsequent changes to the collection data will cause this place to be re-evaluated.
 * `notify()`: This method is called when the collection data changes, notifying all dependent parts of the code that they need to re-evaluate.
 
-You can also include more methods or other data in the dependency which you can access from the [`onDispose`](#ondispose-callback-void-dependency-dependency) method.
+You can also include more methods or other data in the dependency which you can access from the [`onDispose`](#ondispose-callback-void-dependency-dependency-optional) method.
 
 ```js
 create: () => {
