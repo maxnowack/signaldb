@@ -29,7 +29,7 @@
     "@commitlint/cli": "19.6.1",
     "@commitlint/config-conventional": "19.6.0",
     "@rollup/plugin-typescript": "12.1.2",
-    "@stylistic/eslint-plugin": "^2.13.0",
+    "@stylistic/eslint-plugin": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "8.21.0",
     "@typescript-eslint/parser": "8.21.0",
     "@vitest/coverage-istanbul": "3.0.4",
