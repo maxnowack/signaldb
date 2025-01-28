@@ -55,7 +55,7 @@ features:
     title: simplicity
     link: /core-concepts/
     details: SignalDB is designed for simplicity and ease of use. With full <strong>TypeScript</strong> support, it guarantees type safety across your application. The familiar MongoDB-like query syntax lets you use existing knowledge of selectors and operators. SignalDB is built with <strong>Developer Experience</strong> in mind, ensuring a smooth and intuitive workflow.
-  - icon: 📦
+  - icon: 🛠️
     title: Developer Tools
     link: /devtools/
     details: SignalDB comes with a set of <strong>Developer Tools</strong> that provide real-time debugging, query monitoring, and performance insights. These tools help you optimize your application by identifying bottlenecks and improving performance.
