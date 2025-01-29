@@ -22,8 +22,7 @@ head:
   - name: keywords
     content: SignalDB, Cursor, reactive, transformation, observation, reactivity, JavaScript, TypeScript, database, reactivity, reactivity adapters, field-level reactivity
 ---
-
-## Cursor
+# Cursor
 
 Cursors are a concept that appears in many database systems and are used to iterate over and access data in a controlled manner. A cursor in SignalDB is a pointer to a specific set of rows.
 It provides an interface to interact with items while offering capabilities like reactivity, transformation, observation of changes, and more.
@@ -32,7 +31,7 @@ You don't have to create a cursor by yourself. SignalDB is handling that for you
 
 The following methods are available in the cursor class:
 
-### ⚡️ `forEach(callback: (item: TransformedItem) => void)` *(reactive)*
+## ⚡️ `forEach(callback: (item: TransformedItem) => void)` *(reactive)*
 Iterates over each item in the cursor, applying the given callback function.
 
 * Parameters:
@@ -42,7 +41,7 @@ Iterates over each item in the cursor, applying the given callback function.
 This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
 :::
 
-### ⚡️ `map<T> (callback: (item: TransformedItem) => T)` *(reactive)*
+## ⚡️ `map<T> (callback: (item: TransformedItem) => T)` *(reactive)*
 Maps each item in the cursor to a new array using the provided callback function.
 
 * Parameters:
@@ -54,7 +53,7 @@ Maps each item in the cursor to a new array using the provided callback function
 This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
 :::
 
-### ⚡️ `fetch()` *(reactive)*
+## ⚡️ `fetch()` *(reactive)*
 Fetches all the items in the cursor and returns them.
 
 * Returns
@@ -64,7 +63,7 @@ Fetches all the items in the cursor and returns them.
 This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
 :::
 
-### ⚡️ `count()` *(reactive)*
+## ⚡️ `count()` *(reactive)*
 Counts the number of items in the cursor.
 
 * Returns
@@ -74,7 +73,7 @@ Counts the number of items in the cursor.
 This method is reactive, so it will rerun automatically when a document was added or removed from the query.
 :::
 
-### `observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false)`
+## `observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false)`
 This method allows observation of changes in the cursor items. It uses callbacks to notify of different events like addition, removal, changes, etc.
 
 * Parameters
@@ -88,8 +87,8 @@ This method allows observation of changes in the cursor items. It uses callbacks
 * Returns
   * A function that, when called, stops observing the changes.
 
-### `requery()`
+## `requery()`
 Re-queries the cursor to fetch items and check observers for any changes.
 
-### `cleanup()`
+## `cleanup()`
 The cleanup method is used to invoke all the cleanup callbacks. This helps in managing resources and ensuring efficient garbage collection. You have to call this method, if you're using a reactivity adapter, that doesn't support automatic cleanup.
