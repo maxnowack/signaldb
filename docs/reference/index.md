@@ -31,6 +31,7 @@ SignalDB consists of several packages of which each has indiviudal exports.
 ### `@signaldb/core`
 
 * [`Collection`](/reference/core/collection/)
+* [`Cursor`](/reference/core/cursor/)
 * [`AutoFetchCollection`](/reference/core/autofetchcollection/)
 * [`createIndex`](/reference/core/createindex/)
 * [`createIndexProvider`](/reference/core/createindexprovider/)

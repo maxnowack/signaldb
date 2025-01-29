@@ -91,7 +91,7 @@ collection.insert({ name: 'Item 1' })
 
 ### `find(selector?: Selector<T>, options?: Options)`
 
-Returns a new cursor object for the items in the collection that match a given selector and options.
+Returns a new [cursor object](/reference/core/cursor/) for the items in the collection that match a given selector and options.
 Also check out the [queries section](/queries/).
 
 Parameters
@@ -99,7 +99,7 @@ Parameters
 * `options` (Optional): Options for the cursor.
 
 ### `findOne(selector?: Selector<T>, options?: Options)`
-Behaves the same like `.find()` but doesn't return a cursor. Instead it will directly return the first found document.
+Behaves the same like [`.find()`](#find-selector-selector-t-options-options) but doesn't return a cursor. Instead it will directly return the first found document.
 
 ### `insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>)`
 Inserts an item into the collection and returns the ID of the newly inserted item.
