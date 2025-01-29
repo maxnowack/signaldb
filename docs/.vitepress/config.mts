@@ -24,7 +24,7 @@ export default withMermaid({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Get Started', link: '/getting-started/' },
+      { text: 'Documentation', link: '/getting-started/' },
       { text: 'Reference', link: '/reference/' },
       {
         text: package_.version,
