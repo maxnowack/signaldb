@@ -57,9 +57,11 @@ collection.find({}, {
 
 You can also control which fields should be returned in the query. To do this, specify the `fields` object in the `options` of the `.find()` method.
 
-> With the `fields` option you can also control when you query will rerun. If you only query for a field that is not changing, the query will not rerun.
->
-> Also see [Field-Level Reactitivity](#field-level-reactivity)
+::: tip
+With the `fields` option you can also control when you query will rerun. If you only query for a field that is not changing, the query will not rerun.
+
+Also see [Field-Level Reactitivity](#field-level-reactivity)
+:::
 
 ```js
 collection.find({}, {

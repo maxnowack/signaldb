@@ -35,36 +35,44 @@ The following methods are available in the cursor class:
 ### ⚡️ `forEach(callback: (item: TransformedItem) => void)` *(reactive)*
 Iterates over each item in the cursor, applying the given callback function.
 
-> This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
-
 * Parameters:
   * `callback`: A function that gets executed for each item.
 
+::: tip Reactive ⚡️
+This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
+:::
+
 ### ⚡️ `map<T> (callback: (item: TransformedItem) => T)` *(reactive)*
 Maps each item in the cursor to a new array using the provided callback function.
-
-> This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
 
 * Parameters:
   * `callback`: A function that transforms each item.
 * Returns
   * An array of transformed items
 
+::: tip Reactive ⚡️
+This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
+:::
+
 ### ⚡️ `fetch()` *(reactive)*
 Fetches all the items in the cursor and returns them.
-
-> This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
 
 * Returns
   * An array of items
 
+::: tip Reactive ⚡️
+This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
+:::
+
 ### ⚡️ `count()` *(reactive)*
 Counts the number of items in the cursor.
 
-> This method is reactive, so it will rerun automatically when a document was added or removed from the query.
-
 * Returns
   * The count of items
+
+::: tip Reactive ⚡️
+This method is reactive, so it will rerun automatically when a document was added or removed from the query.
+:::
 
 ### `observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false)`
 This method allows observation of changes in the cursor items. It uses callbacks to notify of different events like addition, removal, changes, etc.
