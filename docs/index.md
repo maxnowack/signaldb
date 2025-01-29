@@ -56,9 +56,9 @@ features:
     link: /sync/
     details: With SignalDB’s sync capabilities you can ensures data consistency between your application and your server. SignalDB provides <strong>Real-Time Synchronization</strong> that keeps your data up-to-date across all clients and servers, providing a seamless user experience. It also includes built-in conflict resolution to manage data discrepancies effectively.
   - icon: 👌
-    title: simplicity
+    title: Developer Friendly
     link: /core-concepts/
-    details: SignalDB is designed for simplicity and ease of use. With full <strong>TypeScript</strong> support, it guarantees type safety across your application. The familiar MongoDB-like query syntax lets you use existing knowledge of selectors and operators. SignalDB is built with <strong>Developer Experience</strong> in mind, ensuring a smooth and intuitive workflow.
+    details: SignalDB is designed for simplicity and ease of use. With full <strong>TypeScript</strong> support, it guarantees type safety across your application. The familiar <a href="/queries/">MongoDB-like query syntax</a> lets you use existing knowledge of selectors and operators. Additionally, the built-in <a href="/orm/">ORM</a> simplifies data modeling, letting you define relationships and handle complex data structures more easily.
   - icon: ✨
     title: Optimistic UI
     link: /core-concepts/#optimistic-ui
