@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-02-01
+
+### Fixed
+
+* Fixed a bug where the build environment was complaining about missing `@signaldb/devtools` package ([#1359](https://github.com/maxnowack/signaldb/issues/1359))
+
 ### Added
 
 * Enabled type checking in query selectors
