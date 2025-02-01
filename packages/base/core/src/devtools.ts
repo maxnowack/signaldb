@@ -12,6 +12,8 @@ Please move @signaldb/devtools to development dependencies to disable it in prod
 
 `
 
+const packageName = '@signaldb/devtools'
+
 /**
  * A small helper type for Node errors, allowing us to check the `code` property.
  */
@@ -58,7 +60,7 @@ async function checkDevtoolsAvailability(): Promise<boolean> {
   // 1. If we have CommonJS, try `require.resolve`
   if (isCommonJS()) {
     try {
-      require.resolve('@signaldb/devtools')
+      require.resolve(packageName)
       return true
     } catch {
       return false
@@ -67,9 +69,7 @@ async function checkDevtoolsAvailability(): Promise<boolean> {
 
   // 2. If we are in a pure ESM environment, try dynamic import
   try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    await import('@signaldb/devtools')
+    await import(/* @vite-ignore */ packageName)
     return true
   } catch (error) {
     // In some Node ESM cases, dynamic import might fail due to lack of the module.
@@ -86,7 +86,7 @@ async function checkDevtoolsAvailability(): Promise<boolean> {
     const modulePackage = await import('module')
     const createRequireFunction = modulePackage.default.createRequire
     const cjsRequire = createRequireFunction(import.meta.url)
-    cjsRequire.resolve('@signaldb/devtools')
+    cjsRequire.resolve(packageName)
     return true
   } catch {
     // If that fails, we consider it not available
@@ -110,7 +110,7 @@ async function checkAndImportDevtools(): Promise<boolean> {
   if (isCommonJS()) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('@signaldb/devtools')
+      require(packageName)
       return true
     } catch (error) {
       if (isNodeErrorWithCode(error) && error.code === 'MODULE_NOT_FOUND') {
@@ -122,9 +122,7 @@ async function checkAndImportDevtools(): Promise<boolean> {
 
   // 2. Dynamic import in ESM
   try {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    await import('@signaldb/devtools')
+    await import(/* @vite-ignore */ packageName)
     return true
   } catch (error) {
     // If we got here, try the createRequire fallback
@@ -138,7 +136,7 @@ async function checkAndImportDevtools(): Promise<boolean> {
     const modulePackage = await import('module')
     const createRequireFunction = modulePackage.default.createRequire
     const cjsRequire = createRequireFunction(import.meta.url)
-    cjsRequire('@signaldb/devtools')
+    cjsRequire(packageName)
     return true
   } catch (error) {
     if (isNodeErrorWithCode(error) && error.code === 'MODULE_NOT_FOUND') {
