@@ -26,8 +26,8 @@
     "packages/base/*"
   ],
   "devDependencies": {
-    "@commitlint/cli": "19.6.1",
-    "@commitlint/config-conventional": "19.6.0",
+    "@commitlint/cli": "19.7.1",
+    "@commitlint/config-conventional": "19.7.1",
     "@rollup/plugin-typescript": "12.1.2",
     "@stylistic/eslint-plugin": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "8.22.0",
