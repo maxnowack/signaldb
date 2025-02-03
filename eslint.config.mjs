@@ -73,6 +73,7 @@ export default tseslint.config(
           props: true,
           refs: true,
           DevTools: true,
+          isFailedDevToolsImportError: true,
           Props: true,
         },
       }],
