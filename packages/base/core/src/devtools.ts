@@ -36,6 +36,20 @@ function isNodeErrorWithCode(error: unknown): error is NodeError {
 }
 
 /**
+ * Checks if a given error object represents a failed attempt to import dev tools.
+ * @param error - The error object to check.
+ * @returns A boolean indicating whether the error is recognized as a failed dev tools import.
+ */
+function isFailedDevToolsImportError(error: Error | NodeError): boolean {
+  if (isNodeErrorWithCode(error)) {
+    return error.code === 'MODULE_NOT_FOUND'
+  }
+  return error.name === 'TypeError'
+    && error.message.includes('Failed to resolve module specifier')
+    && error.message.includes(packageName)
+}
+
+/**
  * Helper to detect if we're in a CommonJS environment.
  * @returns True if we're in a CommonJS environment, false otherwise.
  */
@@ -72,10 +86,7 @@ async function checkDevtoolsAvailability(): Promise<boolean> {
     await import(/* @vite-ignore */ packageName)
     return true
   } catch (error) {
-    // In some Node ESM cases, dynamic import might fail due to lack of the module.
-    // We'll attempt `createRequire` as a last resort if the error is specifically MODULE_NOT_FOUND.
-    if (!isNodeErrorWithCode(error) || error.code !== 'MODULE_NOT_FOUND') {
-      // It's some other error, so rethrow
+    if (!isFailedDevToolsImportError(error as Error)) {
       throw error
     }
   }
@@ -113,7 +124,7 @@ async function checkAndImportDevtools(): Promise<boolean> {
       require(packageName)
       return true
     } catch (error) {
-      if (isNodeErrorWithCode(error) && error.code === 'MODULE_NOT_FOUND') {
+      if (isFailedDevToolsImportError(error as Error)) {
         return false
       }
       throw error
