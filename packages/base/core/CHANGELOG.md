@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2025-02-03
+
 ### Fixed
 
 * Fixed check if `@signaldb/devtools` package is available for some environments (addition to [#1359](https://github.com/maxnowack/signaldb/issues/1359))
