@@ -65,6 +65,6 @@
     "@maverick-js/signals": "^6.0.0",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^19.0.6",
-    "happy-dom": "^16.5.3"
+    "happy-dom": "^17.0.0"
   }
 }
