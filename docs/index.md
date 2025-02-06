@@ -29,7 +29,7 @@ head:
 
 hero:
   name: SignalDB
-  text: Local-First JavaScript Database with Signal-Based Reactivity
+  text: Local-First JavaScript Database with Signals
   tagline: Build offline-capable apps that stay fast and responsive, with real-time sync across any backend.
   image:
     src: /logo.svg
