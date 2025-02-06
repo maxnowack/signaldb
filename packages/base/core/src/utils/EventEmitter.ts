@@ -1,20 +1,15 @@
 /**
- * A strongly‑typed EventEmitter using the native EventTarget under the hood.
+ * A strongly‑typed EventEmitter.
  */
-export default class EventEmitter<
-  Events extends Record<string | symbol, any>,
-> extends EventTarget {
+export default class EventEmitter<Events extends Record<string | symbol, any>> {
   private _maxListeners = 100
 
   /**
-   * We store a map of:
-   *   eventName => (originalListener => wrappedListener)
-   *
-   * The "wrappedListener" is the actual function passed to `addEventListener()`.
+   * We store a set of the listeners for each event.
    */
   private _listenerStore = new Map<
     keyof Events,
-    Map<Events[keyof Events], EventListener>
+    Set<Events[keyof Events]>
   >()
 
   public setMaxListeners(max: number): this {
@@ -28,35 +23,24 @@ export default class EventEmitter<
    * @param listener  A function that receives the emitted arguments.
    * @returns         The emitter instance (for chaining).
    */
-  public on<K extends keyof Events>(
-    eventName: K,
-    listener: Events[K],
-  ): this {
+  public on<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     // Get or create the Map for this particular event name.
-    let listenersMap = this._listenerStore.get(eventName)
-    if (!listenersMap) {
-      listenersMap = new Map()
-      this._listenerStore.set(eventName, listenersMap)
+    let listenersSet = this._listenerStore.get(eventName)
+    if (!listenersSet) {
+      listenersSet = new Set()
+      this._listenerStore.set(eventName, listenersSet)
     }
 
-    // Wrap the user-supplied listener in an EventListener that
-    // unpacks the `detail` array from the CustomEvent.
-    const wrappedListener: EventListener = (event: Event) => {
-      const customEvent = event as CustomEvent<Parameters<Events[K]>>
-      // “detail” is an array of arguments for this event.
-      listener(...(customEvent.detail ?? []))
-    }
+    listenersSet.add(listener)
 
-    // Store the mapping of original => wrapped.
-    listenersMap.set(listener, wrappedListener)
-
-    // Actually subscribe using the native EventTarget API.
-    this.addEventListener(eventName as string, wrappedListener)
-
-    if (listenersMap.size > this._maxListeners) {
+    if (listenersSet.size > this._maxListeners) {
       // eslint-disable-next-line no-console
       console.warn(
-        `Possible EventEmitter memory leak detected. ${listenersMap.size} ${String(eventName)} listeners added. Use emitter.setMaxListeners() to increase limit.`,
+        `Possible EventEmitter memory leak detected. ${
+          listenersSet.size
+        } ${String(
+          eventName,
+        )} listeners added. Use emitter.setMaxListeners() to increase limit.`,
       )
     }
 
@@ -83,10 +67,7 @@ export default class EventEmitter<
    * @param listener  A function that receives the emitted arguments.
    * @returns         The emitter instance (for chaining).
    */
-  public once<K extends keyof Events>(
-    eventName: K,
-    listener: Events[K],
-  ): this {
+  public once<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     // We define a wrapper that calls the listener once, then unsubscribes itself.
     const onceWrapper = ((...args: Parameters<Events[K]>) => {
       listener(...args)
@@ -103,21 +84,14 @@ export default class EventEmitter<
    * @param listener  The original function passed to `on` or `once`.
    * @returns         The emitter instance (for chaining).
    */
-  public off<K extends keyof Events>(
-    eventName: K,
-    listener: Events[K],
-  ): this {
-    const listenersMap = this._listenerStore.get(eventName)
-    if (!listenersMap) return this
+  public off<K extends keyof Events>(eventName: K, listener: Events[K]): this {
+    const listenersSet = this._listenerStore.get(eventName)
+    if (!listenersSet) return this
 
-    const wrappedListener = listenersMap.get(listener)
-    if (wrappedListener) {
-      this.removeEventListener(eventName as string, wrappedListener)
-      listenersMap.delete(listener)
-    }
+    listenersSet.delete(listener)
 
     // Clean up if there are no more listeners for that event.
-    if (listenersMap.size === 0) {
+    if (listenersSet.size === 0) {
       this._listenerStore.delete(eventName)
     }
 
@@ -141,13 +115,14 @@ export default class EventEmitter<
    * Emit (dispatch) an event with a variable number of arguments.
    * @param eventName The event name (key of E).
    * @param args      The arguments to pass to subscribed listeners.
-   * @returns         A boolean indicating if the event was not cancelled.
    */
-  public emit<K extends keyof Events>(eventName: K, ...args: Parameters<Events[K]>): boolean {
-    const event = new CustomEvent<Parameters<Events[K]>>(eventName as string, { detail: args })
-    // dispatchEvent returns false if an event was cancelled by
-    // a listener calling evt.preventDefault().
-    return this.dispatchEvent(event)
+  public emit<K extends keyof Events>(
+    eventName: K,
+    ...args: Parameters<Events[K]>
+  ): void {
+    this.listeners(eventName).forEach((listener) => {
+      listener(...args)
+    })
   }
 
   /**
@@ -158,9 +133,9 @@ export default class EventEmitter<
   public listeners<K extends keyof Events>(
     eventName: K,
   ): Array<(...args: Parameters<Events[K]>) => void> {
-    const listenersMap = this._listenerStore.get(eventName)
-    if (!listenersMap) return []
-    return [...listenersMap.keys()]
+    const listenersSet = this._listenerStore.get(eventName)
+    if (!listenersSet) return []
+    return [...listenersSet.values()]
   }
 
   /**
@@ -169,8 +144,8 @@ export default class EventEmitter<
    * @returns         The number of listeners.
    */
   public listenerCount<K extends keyof Events>(eventName: K): number {
-    const listenersMap = this._listenerStore.get(eventName)
-    return listenersMap ? listenersMap.size : 0
+    const listenersSet = this._listenerStore.get(eventName)
+    return listenersSet ? listenersSet.size : 0
   }
 
   /**
@@ -181,17 +156,17 @@ export default class EventEmitter<
   public removeAllListeners<K extends keyof Events>(eventName?: K): this {
     if (eventName === undefined) {
       // Remove listeners for all events
-      for (const [eventName_, listenersMap] of this._listenerStore.entries()) {
-        for (const wrappedListener of listenersMap.values()) {
-          this.removeEventListener(eventName_ as string, wrappedListener)
+      for (const [eventName_, listenersSet] of this._listenerStore.entries()) {
+        for (const listener of listenersSet.values()) {
+          this.off(eventName_, listener)
         }
       }
       this._listenerStore.clear()
     } else {
-      const listenersMap = this._listenerStore.get(eventName)
-      if (listenersMap) {
-        for (const wrappedListener of listenersMap.values()) {
-          this.removeEventListener(eventName as string, wrappedListener)
+      const listenersSet = this._listenerStore.get(eventName)
+      if (listenersSet) {
+        for (const listener of listenersSet.values()) {
+          this.off(eventName, listener)
         }
         this._listenerStore.delete(eventName)
       }

@@ -103,31 +103,6 @@ describe('EventEmitter', () => {
     expect(goodbyeListener).toHaveBeenCalledTimes(1)
   })
 
-  it('should return true/false from emit() based on preventDefault()', () => {
-    // By default, events are not cancelable, but CustomEvent is by default set to be cancelable = false
-    // If you want to test cancellation logic, you can set "cancelable: true" in the event init
-    // For demonstration, let's do a small patch:
-
-    const mockDispatchEvent = vi.spyOn(emitter, 'dispatchEvent')
-      .mockImplementation((event: Event) => {
-        // We can simulate a cancellation condition here
-        // e.g., some listeners might call evt.preventDefault() if it's cancelable
-        if (event.cancelable) {
-          event.preventDefault()
-          return !event.defaultPrevented // false
-        }
-        // If it's not cancelable, it returns true
-        return true
-      })
-
-    // By default, our CustomEvent in emit() is not specifying "cancelable: true",
-    // so this should return true
-    const result = emitter.emit('hello', 'CancelTest')
-    expect(result).toBe(true)
-
-    mockDispatchEvent.mockRestore()
-  })
-
   it('should return the array of listener functions with listeners()', () => {
     const fn1 = vi.fn()
     const fn2 = vi.fn()
