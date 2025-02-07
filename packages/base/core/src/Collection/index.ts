@@ -787,29 +787,45 @@ export default class Collection<
    * Updates multiple items in the collection that match the given selector.
    * @param selector - The criteria to select the items to update.
    * @param modifier - The modifications to apply to the items.
+   * @param arrayFilters - Filters to apply to array elements.
+   * @param condition - Conditions to check before updating.
+   * @param options - Additional update options.
    * @returns The number of items updated.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
+  public updateMany(
+    selector: Selector<T>,
+    modifier: Modifier<T>,
+    arrayFilters: AnyObject[] = [],
+    condition: AnyObject = {},
+    options: UpdateOptions = {},
+  ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
 
     const items = this.getItems(selector)
     const modifiedItems: T[] = []
+
     items.forEach((item) => {
       const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
       if (index === -1) throw new Error('Cannot resolve index for item')
-      const modifiedItem = modify(deepClone(item), modifier)
+
+      const modifiedItem = modify(deepClone(item), modifier, arrayFilters, condition, options)
+
       this.memory().splice(index, 1, modifiedItem)
       modifiedItems.push(modifiedItem)
     })
+
     this.rebuildIndices()
+
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem, modifier)
     })
+
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
+
     return modifiedItems.length
   }
 
