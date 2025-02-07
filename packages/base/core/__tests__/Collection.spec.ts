@@ -198,6 +198,19 @@ describe('Collection', () => {
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
     })
+
+    it('should update a single item with arrayFilters and condition', () => {
+      collection.insert({ id: '1', name: 'John', tags: ['a', 'b'] })
+
+      collection.updateOne(
+        { id: '1' },
+        { $set: { 'tags.$[elem]': 'c' } },
+        [{ elem: 'a' }],
+        { name: 'John' },
+      )
+
+      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'John', tags: ['c', 'b'] })
+    })
   })
 
   describe('updateMany', () => {
@@ -236,6 +249,21 @@ describe('Collection', () => {
       collection.updateMany({ id: '1' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
+    })
+
+    it('should update multiple items with arrayFilters and condition', () => {
+      collection.insert({ id: '1', name: 'John', tags: ['a', 'b'] })
+      collection.insert({ id: '2', name: 'Jane', tags: ['a', 'b'] })
+
+      collection.updateMany(
+        { tags: 'a' },
+        { $set: { 'tags.$[elem]': 'c' } },
+        [{ elem: 'a' }],
+        { name: { $in: ['John', 'Jane'] } },
+      )
+
+      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'John', tags: ['c', 'b'] })
+      expect(collection.findOne({ id: '2' })).toEqual({ id: '2', name: 'Jane', tags: ['c', 'b'] })
     })
   })
 
@@ -326,12 +354,12 @@ describe('Collection', () => {
   })
 
   describe('isLoading', () => {
-    it('should ouput the correct value without persistence', () => {
+    it('should output the correct value without persistence', () => {
       const col = new Collection()
       expect(col.isLoading()).toBe(false)
     })
 
-    it('should ouput the correct value with persistence', async () => {
+    it('should output the correct value with persistence', async () => {
       const col = new Collection({
         persistence: {
           register: () => new Promise((resolve) => {
@@ -669,7 +697,7 @@ describe('Collection', () => {
       })
     })
 
-    it('should dipose the collection', async () => {
+    it('should dispose the collection', async () => {
       const col = new Collection<{ id: string, name: string }>()
       col.insert({ id: '1', name: 'John' })
       await col.dispose()
