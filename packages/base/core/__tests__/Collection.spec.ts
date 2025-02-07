@@ -10,7 +10,7 @@ const measureTime = (fn: () => void) => {
 }
 
 describe('Collection', () => {
-  let collection: Collection<{ id: string; name: string; tags?: string[]; }>
+  let collection: Collection<{ id: string, name: string, tags?: string[] }>
 
   beforeEach(() => {
     collection = new Collection<{ id: string, name: string }>({

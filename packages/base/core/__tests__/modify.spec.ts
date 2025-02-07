@@ -12,8 +12,7 @@ describe('modify', () => {
   it('should apply modifier with custom options', () => {
     const item = { a: 1, b: 2 }
     const modifier = { $set: { b: 3, c: 4 } }
-    const options = { upsert: true }
-    const result = modify(item, modifier, [], {}, options)
+    const result = modify(item, modifier)
     expect(result).toEqual({ a: 1, b: 3, c: 4 })
   })
 
