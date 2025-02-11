@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2025-02-11
+
 ### Changed
 
-* Replace EventTarget-based emitter with a native implementation
+* Replace EventTarget-based emitter with a native implementation (thanks @Jordan-Mysten)
 
 ## [1.2.2] - 2025-02-03
 
