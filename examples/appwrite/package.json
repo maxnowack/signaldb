@@ -16,7 +16,7 @@
     "@signaldb/maverickjs": "*",
     "@signaldb/react": "*",
     "@signaldb/sync": "*",
-    "@types/node": "22.13.2",
+    "@types/node": "22.13.4",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
     "appwrite": "^17.0.0",
