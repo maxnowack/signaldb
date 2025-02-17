@@ -59,6 +59,13 @@ export default tseslint.config(
       'import/extensions': ['.js', '.cjs', '.mjs', '.ts', '.mts', '.tsx'],
     },
     rules: {
+      'vitest/expect-expect': [
+        'error',
+        {
+          assertFunctionNames: ['expect', 'expectTypeOf'],
+          additionalTestBlockFunctions: [],
+        },
+      ],
       'jsdoc/require-jsdoc': 'error',
       'unicorn/consistent-function-scoping': ['error', { checkArrowFunctions: false }],
       'unicorn/no-useless-undefined': ['error', {
