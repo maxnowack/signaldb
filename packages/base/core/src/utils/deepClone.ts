@@ -14,7 +14,7 @@ export function clone<T>(value: T): T {
   if (value === null || typeof value !== 'object') return value
 
   // Dates
-  if (value instanceof Date) return new Date(value.getTime()) as T
+  if (value instanceof Date) return new Date(value) as T
 
   // Arrays
   if (Array.isArray(value)) return value.map(item => clone(item)) as T
