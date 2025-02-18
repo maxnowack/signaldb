@@ -3,43 +3,55 @@ import type { FlatSelector } from '../types/Selector'
 import isFieldExpression from './isFieldExpression'
 import serializeValue from './serializeValue'
 
+type KeyResult = {
+  include: string[] | null,
+  exclude: string[] | null,
+}
+
 /**
- * Extracts the matching keys for a given field in a selector.
- * Supports serialized values and `$in` field expressions for optimization.
- * Returns `null` if the field cannot be optimized.
+ * Extracts the matching and excluded keys for a given field in a selector.
+ * Supports serialized values and `$in`/`$nin` field expressions for optimization.
+ * Returns `null` for include/exclude if the field cannot be optimized.
  * @template T - The type of the items in the selector.
  * @template I - The type of the unique identifier for the items.
  * @param field - The name of the field to extract matching keys for.
  * @param selector - The selector object containing query criteria.
- * @returns An array of serialized matching keys for the field, or `null` if the field
- *   cannot be optimized (e.g., if it's a `RegExp` or non-optimizable field expression).
+ * @returns An object containing arrays of serialized included and excluded keys,
+ *   or `null` if the field cannot be optimized.
  */
 export default function getMatchingKeys<
   T extends BaseItem<I> = BaseItem, I = any,
->(field: string, selector: FlatSelector<T>): string[] | null {
+>(field: string, selector: FlatSelector<T>): KeyResult {
+  const result: KeyResult = { include: null, exclude: null }
   const fieldSelector = (selector as Record<string, any>)[field]
-  if (fieldSelector instanceof RegExp) return null
-  if (fieldSelector != null) {
-    if (isFieldExpression(fieldSelector)) {
-      const is$in = isFieldExpression(fieldSelector)
-        && Array.isArray(fieldSelector.$in)
-        && fieldSelector.$in.length > 0
-      if (is$in) {
-        const optimizedSelector = {
-          ...selector,
-          [field]: { ...fieldSelector },
-        } as Record<string, any>
-        delete optimizedSelector[field].$in
-        if (Object.keys(optimizedSelector[field] as object).length === 0) {
-          delete optimizedSelector[field]
-        }
 
-        return (fieldSelector.$in as I[]).map(serializeValue)
-      }
-      return null
+  if (fieldSelector instanceof RegExp) return result
+  if (fieldSelector == null) return result
+
+  if (isFieldExpression(fieldSelector)) {
+    // Handle $ne operator
+    if (fieldSelector.$ne != null) {
+      result.exclude = [serializeValue(fieldSelector.$ne)]
+      return result
     }
-    return [serializeValue(fieldSelector)]
+
+    // Handle $in operator
+    if (Array.isArray(fieldSelector.$in) && fieldSelector.$in.length > 0) {
+      result.include = fieldSelector.$in.map(serializeValue)
+      return result
+    }
+
+    // Handle $nin operator
+    if (Array.isArray(fieldSelector.$nin) && fieldSelector.$nin.length > 0) {
+      result.exclude = fieldSelector.$nin.map(serializeValue)
+      return result
+    }
+
+    // If there are other operators, we can't optimize
+    return { include: null, exclude: null }
   }
 
-  return null
+  // Direct value match
+  result.include = [serializeValue(fieldSelector)]
+  return result
 }

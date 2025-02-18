@@ -8,7 +8,8 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toBeNull()
+    expect(result.include).toBeNull()
+    expect(result.exclude).toBeNull()
   })
 
   it('should return null if the selector field is null or undefined', () => {
@@ -19,8 +20,10 @@ describe('getMatchingKeys', () => {
     const result1 = getMatchingKeys(field, selector1)
     const result2 = getMatchingKeys(field, selector2)
 
-    expect(result1).toBeNull()
-    expect(result2).toBeNull()
+    expect(result1.include).toBeNull()
+    expect(result1.exclude).toBeNull()
+    expect(result2.include).toBeNull()
+    expect(result2.exclude).toBeNull()
   })
 
   it('should return an array of matching keys if the selector field is a single value', () => {
@@ -29,7 +32,8 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual(['John'])
+    expect(result.include).toEqual(['John'])
+    expect(result.exclude).toBeNull()
   })
 
   it('should return an array of matching keys if the selector field is an $in expression', () => {
@@ -38,6 +42,27 @@ describe('getMatchingKeys', () => {
 
     const result = getMatchingKeys(field, selector)
 
-    expect(result).toEqual(['John', 'Jane'])
+    expect(result.include).toEqual(['John', 'Jane'])
+    expect(result.exclude).toBeNull()
+  })
+
+  it('should return an array of matching keys if the selector field is a single negated value', () => {
+    const field = 'name'
+    const selector = { name: { $ne: 'John' } }
+
+    const result = getMatchingKeys(field, selector)
+
+    expect(result.include).toBeNull()
+    expect(result.exclude).toEqual(['John'])
+  })
+
+  it('should return an array of non-matching keys if the selector field is an $nin expression', () => {
+    const field = 'name'
+    const selector = { name: { $nin: ['John', 'Jane'] } }
+
+    const result = getMatchingKeys(field, selector)
+
+    expect(result.include).toBeNull()
+    expect(result.exclude).toEqual(['John', 'Jane'])
   })
 })
