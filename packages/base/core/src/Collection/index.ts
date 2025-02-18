@@ -585,12 +585,17 @@ export default class Collection<
           return matches
         }
 
-        // no index available, use complete memory
-        if (!indexInfo.matched) return this.memory().filter(matchItems)
-
-        const memory = this.memoryArray()
-        const items = indexInfo.positions.map(index => memory[index])
         this.emit('getItems', selector)
+        const memory = this.memoryArray()
+
+        // no index available, use complete memory
+        if (!indexInfo.matched) {
+          if (isEqual(selector, {})) return memory
+          return memory.filter(matchItems)
+        }
+
+        const items = indexInfo.positions.map(index => memory[index])
+        if (isEqual(indexInfo.optimizedSelector, {})) return items
         return items.filter(matchItems)
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Implement exclusion of specific items when querying indices (when a selector contains `$nin` or `$ne`)
 
+### Fixed
+
+* Emit `getItems` event on collections regardless of an index hit
+
 ## [1.2.4] - 2025-02-17
 
 ### Changed
