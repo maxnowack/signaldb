@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Implement exclusion of specific items when querying indices (when a selector contains `$nin` or `$ne`)
+
 ## [1.2.4] - 2025-02-17
 
 ### Changed

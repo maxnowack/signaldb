@@ -117,6 +117,24 @@ describe('getIndexInfo', () => {
       optimizedSelector: {},
     })
 
+    // with $in, flat selector
+    expect(getIndexInfo([idIndex], {
+      id: { $in: ['0', '1'] },
+    })).toEqual({
+      matched: true,
+      positions: [0, 1],
+      optimizedSelector: {},
+    })
+
+    // with $nin, flat selector
+    expect(getIndexInfo([idIndex], {
+      id: { $nin: ['0', '1'] },
+    })).toEqual({
+      matched: true,
+      positions: [2],
+      optimizedSelector: {},
+    })
+
     // with match, $and selector
     expect(getIndexInfo([idIndex], {
       $and: [

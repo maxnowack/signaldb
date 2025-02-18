@@ -18,9 +18,18 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
   return createIndexProvider<T, I>({
     query(selector) {
       const keys = getMatchingKeys<T, I>(field, selector)
-      if (keys == null) return { matched: false }
-      const itemPositions = keys
-        .reduce<number[]>((memo, key) => [...memo, ...index.get(key) || []], [])
+      if (keys.include == null && keys.exclude == null) return { matched: false }
+
+      const includedKeys = keys.include == null
+        // eslint-disable-next-line unicorn/prefer-array-flat
+        ? [...index.values()].reduce<number[]>((memo, set) => [...memo, ...set], [])
+        : keys.include.reduce<number[]>((memo, key) => [...memo, ...index.get(key) || []], [])
+
+      const itemPositions = keys.exclude == null
+        ? includedKeys
+        : keys.exclude.reduce<number[]>((memo, key) =>
+          memo.filter(i => !index.get(key)?.has(i)), includedKeys)
+
       return {
         matched: true,
         positions: itemPositions,
