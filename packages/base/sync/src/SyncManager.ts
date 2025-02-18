@@ -6,7 +6,7 @@ import type {
   LoadResponse,
   Selector,
 } from '@signaldb/core'
-import { Collection, randomId, isEqual } from '@signaldb/core'
+import { Collection, randomId, isEqual, createIndex } from '@signaldb/core'
 import debounce from './utils/debounce'
 import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'
@@ -127,16 +127,19 @@ export default class SyncManager<
     this.changes = new Collection({
       name: `${this.options.id}-changes`,
       persistence: changesPersistence?.adapter,
+      indices: [createIndex('collectionName')],
       reactivity,
     })
     this.snapshots = new Collection({
       name: `${this.options.id}-snapshots`,
       persistence: snapshotsPersistence?.adapter,
+      indices: [createIndex('collectionName')],
       reactivity,
     })
     this.syncOperations = new Collection({
       name: `${this.options.id}-sync-operations`,
       persistence: syncOperationsPersistence?.adapter,
+      indices: [createIndex('collectionName'), createIndex('status')],
       reactivity,
     })
     this.changes.on('persistence.error', error => changesPersistence?.handler(error))
@@ -485,9 +488,7 @@ export default class SyncManager<
       if (options?.onlyWithChanges) {
         const currentChanges = this.changes.find({
           collectionName: name,
-          $and: [
-            { time: { $lte: syncTime } },
-          ],
+          time: { $lte: syncTime },
         }, {
           sort: { time: 1 },
           reactive: false,
@@ -573,9 +574,7 @@ export default class SyncManager<
     })
     const currentChanges = this.changes.find({
       collectionName: name,
-      $and: [
-        { time: { $lte: syncTime } },
-      ],
+      time: { $lte: syncTime },
     }, {
       sort: { time: 1 },
       reactive: false,
