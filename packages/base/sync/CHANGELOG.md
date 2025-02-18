@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Add indices to internal collections to improve performance
+
 ## [1.1.1] - 2025-01-21
 
 ### Fixed
