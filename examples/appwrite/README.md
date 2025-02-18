@@ -2,7 +2,7 @@
 
 The interesting part is in these files:
 * [src/models/Todos.ts](https://github.com/maxnowack/signaldb/blob/main/examples/appwrite/src/models/Todos.ts)
-* [src/utils/createAppwritePersistenceAdapter.ts](https://github.com/maxnowack/signaldb/blob/main/examples/appwrite/src/utils/createAppwritePersistenceAdapter.ts)
+* [src/system/syncManager.ts](https://github.com/maxnowack/signaldb/blob/main/examples/appwrite/src/system/syncManager.ts)
 
 
 [Here's the demo](https://signaldb.js.org/examples/appwrite/)
