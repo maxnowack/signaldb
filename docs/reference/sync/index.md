@@ -57,7 +57,7 @@ Creates a new instance of `SyncManager`.
   - `push`: Function to send changes to the remote source.
   - `registerRemoteChange`: Optional function to register a callback for remote changes. The callback can also return a cleanup function to remove the listener.
   - `id`: Optional unique identifier for the sync manager.
-  - `persistenceAdapter`: Optional function to create a persistence adapter. Takes 2 arguments: `name` and `registerErrorHandler`. Defaults to [`createLocalStorageAdapter`](/reference/localstorage/)).
+  - `persistenceAdapter`: Optional function to create a persistence adapter. Takes 2 arguments: `name` and `registerErrorHandler`.
   - `reactivity`: Optional reactivity adapter for handling reactivity.
   - `onError`: Optional function to handle errors.
   - `autostart`: Optional flag to start syncing automatically after adding collections (default: `true`).
