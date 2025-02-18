@@ -18,7 +18,7 @@ export default defineConfig({
     reportCompressedSize: true,
     lib: {
       name: 'SignalDBDevTools',
-      entry: path.resolve(__dirname, 'src/index.tsx'),
+      entry: path.resolve(__dirname, 'src/index.ts'),
       fileName: format => (format === 'es' ? 'index.mjs' : `index.${format}.js`),
     },
     rollupOptions: {

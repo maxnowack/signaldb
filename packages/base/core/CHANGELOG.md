@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Emit `getItems` event on collections regardless of an index hit
 
+### Removed
+
+* Removed auto-loading of developer tools and moved the loading to the `@signaldb/devtools` package
+
 ## [1.2.4] - 2025-02-17
 
 ### Changed
