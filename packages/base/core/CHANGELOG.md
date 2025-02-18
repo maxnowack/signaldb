@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-* Removed auto-loading of developer tools and moved the loading to the `@signaldb/devtools` package
+* Removed auto-loading of developer tools and moved the loading to the `@signaldb/devtools` package. To load the developer tools, you now need to import `@signaldb/devtools` somewhere in your frontend code. Make sure that it doesn't get imported when running your code in production mode.
 
 ## [1.2.4] - 2025-02-17
 

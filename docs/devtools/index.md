@@ -39,7 +39,9 @@ npm install --save-dev @signaldb/devtools
 
 ## Usage
 
-The developer tools will load automatically when you start your development server. You should see the SignalDB icon in the bottom left corner of your screen.
+To load the developer tools, you need to import `@signaldb/devtools` somewhere in your frontend code. Make sure that it doesn't gets imported when running your code in production mode.
+
+Now you should see the SignalDB icon in the bottom left corner of your screen.
 You can open the developer tools by clicking on the icon or by pressing `Ctrl + Shift + S`.
 
 ::: info
