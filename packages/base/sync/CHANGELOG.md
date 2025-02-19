@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Improved sync performance by reducing overhead in internal `applyChanges` method
+* Improved sync performance by updating only changed documents when applying snapshots
 
 ## [1.1.2] - 2025-02-18
 

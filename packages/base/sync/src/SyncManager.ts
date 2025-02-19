@@ -704,19 +704,22 @@ export default class SyncManager<
         collection.batch(() => {
           // update all items that are in the snapshot
           snapshot.forEach((item) => {
-            const itemExists = !!collection.findOne({
+            const currentItem = collection.findOne({
               id: item.id,
             } as Selector<any>, {
               reactive: false,
             })
             /* istanbul ignore else -- @preserve */
-            if (itemExists) {
-              this.remoteChanges.push({
-                collectionName: name,
-                type: 'update',
-                data: { id: item.id, modifier: { $set: item } },
-              })
-              collection.updateOne({ id: item.id } as Selector<any>, { $set: item })
+            if (currentItem) {
+              /* istanbul ignore if -- @preserve */
+              if (!isEqual(currentItem, item)) { // this case should never happen
+                this.remoteChanges.push({
+                  collectionName: name,
+                  type: 'update',
+                  data: { id: item.id, modifier: { $set: item } },
+                })
+                collection.updateOne({ id: item.id } as Selector<any>, { $set: item })
+              }
             } else { // this case should never happen
               this.remoteChanges.push({
                 collectionName: name,
