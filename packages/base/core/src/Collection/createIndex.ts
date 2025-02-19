@@ -20,19 +20,43 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
       const keys = getMatchingKeys<T, I>(field, selector)
       if (keys.include == null && keys.exclude == null) return { matched: false }
 
-      const includedKeys = keys.include == null
-        // eslint-disable-next-line unicorn/prefer-array-flat
-        ? [...index.values()].reduce<number[]>((memo, set) => [...memo, ...set], [])
-        : keys.include.reduce<number[]>((memo, key) => [...memo, ...index.get(key) || []], [])
+      // Accumulate included positions
+      let includedPositions: number[] = []
+      if (keys.include == null) {
+        for (const set of index.values()) {
+          for (const pos of set) {
+            includedPositions.push(pos)
+          }
+        }
+      } else {
+        for (const key of keys.include) {
+          const posSet = index.get(key)
+          if (posSet) {
+            for (const pos of posSet) {
+              includedPositions.push(pos)
+            }
+          }
+        }
+      }
 
-      const itemPositions = keys.exclude == null
-        ? includedKeys
-        : keys.exclude.reduce<number[]>((memo, key) =>
-          memo.filter(i => !index.get(key)?.has(i)), includedKeys)
+      // If exclusion is specified, build a single set of all positions to exclude.
+      if (keys.exclude != null) {
+        const excludeSet = new Set<number>()
+        for (const key of keys.exclude) {
+          const posSet = index.get(key)
+          if (posSet) {
+            for (const pos of posSet) {
+              excludeSet.add(pos)
+            }
+          }
+        }
+        // Filter out any position that exists in the exclude set.
+        includedPositions = includedPositions.filter(pos => !excludeSet.has(pos))
+      }
 
       return {
         matched: true,
-        positions: itemPositions,
+        positions: includedPositions,
         fields: [field],
       }
     },
