@@ -6,6 +6,7 @@
     "prepare": "npm run build && husky install",
     "lint": "eslint .",
     "test": "vitest",
+    "bench": "vitest bench",
     "typedoc": "typedoc",
     "coverage": "vitest run --coverage",
     "build": "(cd packages/base/core && npm run build) && npm run build -w packages/base && npm run build -w packages/devtools && npm run build -w packages/integrations && npm run build -w packages/persistence-adapters && npm run build -w packages/reactivity-adapters",
