@@ -72,10 +72,10 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   let newSnapshot = getSnapshot(lastSnapshot, newData)
   if (changes.length > 0) {
     // apply changes on last snapshot and check if there is a difference
-    const lastSnapshotWithChanges = await applyChanges(previousSnapshot, changes)
+    const lastSnapshotWithChanges = applyChanges(previousSnapshot, changes)
     if (hasDifference(previousSnapshot, lastSnapshotWithChanges)) {
       // if yes, apply the changes on the newSnapshot and check if there is a difference
-      const newSnapshotWithChanges = await applyChanges(newSnapshot, changes)
+      const newSnapshotWithChanges = applyChanges(newSnapshot, changes)
       const changesToPush = computeChanges(newSnapshot, newSnapshotWithChanges)
       if (hasChanges(changesToPush)) {
         // if yes, push the changes to the server
