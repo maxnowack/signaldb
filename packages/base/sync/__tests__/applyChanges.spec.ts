@@ -24,7 +24,7 @@ it('should insert new items', async () => {
     { ...getDefaultChangeItem(), type: 'insert', data: { id: 2, name: 'Item 2' } },
   ]
 
-  const result = await applyChanges(items, changes)
+  const result = applyChanges(items, changes)
   expect(result).toEqual([
     { id: 1, name: 'Item 1' },
     { id: 2, name: 'Item 2' },
@@ -37,7 +37,7 @@ it('should update an item', async () => {
     { ...getDefaultChangeItem(), type: 'update', data: { id: 1, modifier: { $set: { name: 'Updated Item 1' } } } },
   ]
 
-  const result = await applyChanges(items, changes)
+  const result = applyChanges(items, changes)
   expect(result).toEqual([{ id: 1, name: 'Updated Item 1' }])
 })
 
@@ -47,7 +47,7 @@ it('should remove an item', async () => {
     { ...getDefaultChangeItem(), type: 'remove', data: 1 },
   ]
 
-  const result = await applyChanges(items, changes)
+  const result = applyChanges(items, changes)
   expect(result).toEqual([{ id: 2, name: 'Item 2' }])
 })
 
@@ -59,7 +59,7 @@ it('should handle a mix of inserts, updates, and removes', async () => {
     { ...getDefaultChangeItem('3'), type: 'remove', data: 2 },
   ]
 
-  const result = await applyChanges(items, changes)
+  const result = applyChanges(items, changes)
   expect(result).toEqual([{ id: 1, name: 'Updated Item 1' }])
 })
 
@@ -69,7 +69,7 @@ it('should update already existing items with insert', async () => {
     { ...getDefaultChangeItem(), type: 'insert', data: { id: 1, name: 'New Item Name' } },
   ]
 
-  const result = await applyChanges(items, changes)
+  const result = applyChanges(items, changes)
   expect(result).toEqual([
     { id: 1, name: 'New Item Name' },
   ])
@@ -81,6 +81,6 @@ it('should insert non-existing items on update', async () => {
     { ...getDefaultChangeItem(), type: 'update', data: { id: 1, modifier: { $set: { name: 'Updated Item 1' } } } },
   ]
 
-  const result = await applyChanges(items, changes)
+  const result = applyChanges(items, changes)
   expect(result).toEqual([{ id: 1, name: 'Updated Item 1' }])
 })
