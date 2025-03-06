@@ -33,7 +33,7 @@
     "@stylistic/eslint-plugin": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "8.26.0",
     "@typescript-eslint/parser": "8.26.0",
-    "@vitest/coverage-istanbul": "3.0.7",
+    "@vitest/coverage-istanbul": "3.0.8",
     "@vitest/eslint-plugin": "^1.1.25",
     "eslint": "9.21.0",
     "eslint-import-resolver-typescript": "3.8.3",
@@ -60,6 +60,6 @@
     "vite-tsconfig-paths": "5.1.4",
     "vitepress": "1.6.3",
     "vitepress-plugin-mermaid": "^2.0.17",
-    "vitest": "3.0.7"
+    "vitest": "3.0.8"
   }
 }
