@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-03-06
+
 ### Fixed
 
 * Check for initial render to be completed before forcing a re-render. This fixes warnings in the console about setting state on a not-yet-mounted component.
