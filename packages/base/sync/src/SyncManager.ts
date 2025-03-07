@@ -95,6 +95,7 @@ export default class SyncManager<
   protected changes: Collection<Change<ItemType>, string>
   protected snapshots: Collection<Snapshot<ItemType>, string>
   protected syncOperations: Collection<SyncOperation, string>
+  protected scheduledPushes: Set<string> = new Set()
   protected remoteChanges: Omit<Change, 'id' | 'time'>[] = []
   protected syncQueues: Map<string, PromiseQueue> = new Map()
   protected persistenceReady: Promise<void>
@@ -311,12 +312,16 @@ export default class SyncManager<
     }
   }
 
-  protected deboucedPush = debounce((name: string) => {
-    this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
+  protected debouncedFlush = debounce(() => {
+    this.scheduledPushes.forEach((name) => {
+      this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
+    })
+    this.scheduledPushes.clear()
   }, 100)
 
   protected schedulePush(name: string) {
-    this.deboucedPush(name)
+    this.scheduledPushes.add(name)
+    this.debouncedFlush()
   }
 
   /**
