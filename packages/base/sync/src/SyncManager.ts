@@ -50,6 +50,7 @@ interface Options<
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 
   autostart?: boolean,
+  debounceTime?: number,
 }
 
 /**
@@ -102,6 +103,7 @@ export default class SyncManager<
   protected isDisposed = false
   protected instanceId = randomId()
   protected id: string
+  protected debouncedFlush: () => void
 
   /**
    * @param options Collection options
@@ -112,6 +114,8 @@ export default class SyncManager<
    * @param [options.persistenceAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
    * @param [options.reactivity] Reactivity adapter to use for reactivity.
    * @param [options.onError] Function to handle errors that occur async during syncing.
+   * @param [options.autostart] Whether to automatically start syncing new collections.
+   * @param [options.debounceTime] The time in milliseconds to debounce push operations.
    */
   constructor(options: Options<CollectionOptions, ItemType, IdType>) {
     this.options = {
@@ -156,6 +160,8 @@ export default class SyncManager<
     this.changes.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
     this.syncOperations.setMaxListeners(1000)
+
+    this.debouncedFlush = debounce(this.flushScheduledPushes, this.options.debounceTime ?? 100)
   }
 
   protected createPersistenceAdapter(name: string) {
@@ -312,12 +318,12 @@ export default class SyncManager<
     }
   }
 
-  protected debouncedFlush = debounce(() => {
+  protected flushScheduledPushes() {
     this.scheduledPushes.forEach((name) => {
       this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
     })
     this.scheduledPushes.clear()
-  }, 100)
+  }
 
   protected schedulePush(name: string) {
     this.scheduledPushes.add(name)
