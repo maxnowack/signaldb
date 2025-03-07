@@ -300,6 +300,7 @@ it('should debounce push requests', async () => {
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
+    debounceTime: 25,
   })
 
   const mockCollection = new Collection<TestItem, string, any>()
@@ -310,7 +311,7 @@ it('should debounce push requests', async () => {
   mockCollection.insert({ id: '3', name: 'Second Item' })
 
   await new Promise((resolve) => {
-    setTimeout(resolve, 110)
+    setTimeout(resolve, 50)
   })
 
   expect(onError).not.toHaveBeenCalled()
@@ -331,6 +332,7 @@ it('should debounce push requests for multiple collections', async () => {
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
+    debounceTime: 25,
   })
 
   const collection1 = new Collection<TestItem, string, any>()
@@ -344,7 +346,7 @@ it('should debounce push requests for multiple collections', async () => {
 
   // Wait for debounce period to complete
   await new Promise((resolve) => {
-    setTimeout(resolve, 110)
+    setTimeout(resolve, 50)
   })
 
   expect(onError).not.toHaveBeenCalled()
