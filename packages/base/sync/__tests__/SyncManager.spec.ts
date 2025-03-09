@@ -300,6 +300,7 @@ it('should debounce push requests', async () => {
     persistenceAdapter: () => memoryPersistenceAdapter([]),
     pull: mockPull,
     push: mockPush,
+    debounceTime: 25,
   })
 
   const mockCollection = new Collection<TestItem, string, any>()
@@ -310,11 +311,50 @@ it('should debounce push requests', async () => {
   mockCollection.insert({ id: '3', name: 'Second Item' })
 
   await new Promise((resolve) => {
-    setTimeout(resolve, 110)
+    setTimeout(resolve, 50)
   })
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(1)
+})
+
+it('should debounce push requests for multiple collections', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [],
+  })
+
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: mockPull,
+    push: mockPush,
+    debounceTime: 25,
+  })
+
+  const collection1 = new Collection<TestItem, string, any>()
+  const collection2 = new Collection<TestItem, string, any>()
+
+  syncManager.addCollection(collection1, { name: 'test1' })
+  syncManager.addCollection(collection2, { name: 'test2' })
+
+  collection1.insert({ id: '1', name: 'Collection 1 Item' })
+  collection2.insert({ id: '2', name: 'Collection 2 Item' })
+
+  // Wait for debounce period to complete
+  await new Promise((resolve) => {
+    setTimeout(resolve, 50)
+  })
+
+  expect(onError).not.toHaveBeenCalled()
+  expect(mockPush).toHaveBeenCalledTimes(2)
+
+  const calls = mockPush.mock.calls
+  expect(calls.some(call => call[0].name === 'test1')).toBe(true)
+  expect(calls.some(call => call[0].name === 'test2')).toBe(true)
 })
 
 it('should handle sync errors and update sync operation status', async () => {

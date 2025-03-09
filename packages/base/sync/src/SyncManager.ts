@@ -50,6 +50,7 @@ interface Options<
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 
   autostart?: boolean,
+  debounceTime?: number,
 }
 
 /**
@@ -95,12 +96,14 @@ export default class SyncManager<
   protected changes: Collection<Change<ItemType>, string>
   protected snapshots: Collection<Snapshot<ItemType>, string>
   protected syncOperations: Collection<SyncOperation, string>
+  protected scheduledPushes: Set<string> = new Set()
   protected remoteChanges: Omit<Change, 'id' | 'time'>[] = []
   protected syncQueues: Map<string, PromiseQueue> = new Map()
   protected persistenceReady: Promise<void>
   protected isDisposed = false
   protected instanceId = randomId()
   protected id: string
+  protected debouncedFlush: () => void
 
   /**
    * @param options Collection options
@@ -111,6 +114,8 @@ export default class SyncManager<
    * @param [options.persistenceAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
    * @param [options.reactivity] Reactivity adapter to use for reactivity.
    * @param [options.onError] Function to handle errors that occur async during syncing.
+   * @param [options.autostart] Whether to automatically start syncing new collections.
+   * @param [options.debounceTime] The time in milliseconds to debounce push operations.
    */
   constructor(options: Options<CollectionOptions, ItemType, IdType>) {
     this.options = {
@@ -155,6 +160,8 @@ export default class SyncManager<
     this.changes.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
     this.syncOperations.setMaxListeners(1000)
+
+    this.debouncedFlush = debounce(this.flushScheduledPushes, this.options.debounceTime ?? 100)
   }
 
   protected createPersistenceAdapter(name: string) {
@@ -311,12 +318,16 @@ export default class SyncManager<
     }
   }
 
-  protected deboucedPush = debounce((name: string) => {
-    this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
-  }, 100)
+  protected flushScheduledPushes() {
+    this.scheduledPushes.forEach((name) => {
+      this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
+    })
+    this.scheduledPushes.clear()
+  }
 
   protected schedulePush(name: string) {
-    this.deboucedPush(name)
+    this.scheduledPushes.add(name)
+    this.debouncedFlush()
   }
 
   /**
