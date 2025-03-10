@@ -61,6 +61,7 @@ Creates a new instance of `SyncManager`.
   - `reactivity`: Optional reactivity adapter for handling reactivity.
   - `onError`: Optional function to handle errors.
   - `autostart`: Optional flag to start syncing automatically after adding collections (default: `true`).
+  - `debounceTime`: Optional time in milliseconds to debounce pushing changes (default: `100`).
 
 
 ## Methods

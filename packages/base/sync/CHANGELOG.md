@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Allow configuration of debounce time for pushing changes (thanks @augustpemberton!)
+
+### Fixed
+
+* Don't skip debounces when pushing multiple collections (#1470, thanks @augustpemberton!)
+
 ## [1.1.3] - 2025-02-19
 
 ### Changed
