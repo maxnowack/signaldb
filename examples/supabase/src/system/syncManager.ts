@@ -63,7 +63,7 @@ const syncManager = new SyncManager({
       .subscribe()
   },
   async pull({ name }) {
-    const documents = await supabase.from(name as any).select().returns<{ id: string }[]>()
+    const documents = await supabase.from(name as any).select().overrideTypes<{ id: string }[]>()
     const items = documents.data ?? []
     return { items }
   },
