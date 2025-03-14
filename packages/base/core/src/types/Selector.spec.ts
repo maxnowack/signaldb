@@ -25,21 +25,21 @@ interface TestUser {
 }
 
 it('should allow basic field queries', () => {
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     name?: string | RegExp | FieldExpression<string>,
     age?: number | FieldExpression<number>,
   }>()
 })
 
 it('should allow nested object queries', () => {
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     'address.street'?: string | RegExp | FieldExpression<string>,
     'address.city'?: string | RegExp | FieldExpression<string>,
   }>()
 })
 
 it('should allow array queries', () => {
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     'tags'?: string | RegExp | FieldExpression<string> | string[] | FieldExpression<string[]>,
     'tags.$'?: string | RegExp | FieldExpression<string>,
   }>()
@@ -47,14 +47,14 @@ it('should allow array queries', () => {
 })
 
 it('should allow array of objects queries', () => {
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     'scores.math'?: number | FieldExpression<number>,
     'scores.$.math'?: number | FieldExpression<number>,
   }>()
 })
 
 it('should allow logical operators', () => {
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     $or?: Selector<TestUser>[],
     $and?: Selector<TestUser>[],
     $nor?: Selector<TestUser>[],
@@ -62,10 +62,10 @@ it('should allow logical operators', () => {
 })
 
 it('should allow deep nested queries', () => {
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     'deep.nested.value'?: boolean | FieldExpression<false> | FieldExpression<true>,
   }>()
-  expectTypeOf<Selector<TestUser>>().toMatchTypeOf<{
+  expectTypeOf<Selector<TestUser>>().toExtend<{
     'scores.deep.nested'?: boolean | FieldExpression<false> | FieldExpression<true>,
     'scores.$.deep.nested'?: boolean | FieldExpression<false> | FieldExpression<true>,
   }>()
