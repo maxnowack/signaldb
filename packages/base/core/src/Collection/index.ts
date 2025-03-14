@@ -1,3 +1,5 @@
+import type { AnyObject } from 'mingo/types'
+import type { UpdateOptions } from 'mingo/core'
 import type MemoryAdapter from '../types/MemoryAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type PersistenceAdapter from '../types/PersistenceAdapter'
@@ -749,25 +751,40 @@ export default class Collection<
    * Updates a single item in the collection that matches the given selector.
    * @param selector - The criteria to select the item to update.
    * @param modifier - The modifications to apply to the item.
+   * @param arrayFilters - The array filters to apply to the update operation.
+   * @param condition - The condition that must be met for the update to succeed.
+   * @param options - The options for the update operation.
    * @returns The number of items updated (0 or 1).
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
+  public updateOne(
+    selector: Selector<T>,
+    modifier: Modifier<T>,
+    arrayFilters: AnyObject[] = [],
+    condition: AnyObject = {},
+    options: UpdateOptions = {},
+  ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
 
     const { item, index } = this.getItemAndIndex(selector)
     if (item == null) return 0
-    const modifiedItem = modify(deepClone(item), modifier)
+
+    const modifiedItem = modify(deepClone(item), modifier, arrayFilters, condition, options)
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const existingItem = this.findOne({ id: modifiedItem.id } as any, { reactive: false })
-    if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) throw new Error('Item with same id already exists')
+    if (!isEqual(existingItem, { ...existingItem, id: modifiedItem.id })) {
+      throw new Error('Item with same id already exists')
+    }
+
     this.memory().splice(index, 1, modifiedItem)
     this.rebuildIndices()
     this.emit('changed', modifiedItem, modifier)
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
+
     return 1
   }
 
@@ -775,29 +792,45 @@ export default class Collection<
    * Updates multiple items in the collection that match the given selector.
    * @param selector - The criteria to select the items to update.
    * @param modifier - The modifications to apply to the items.
+   * @param arrayFilters - Filters to apply to array elements.
+   * @param condition - Conditions to check before updating.
+   * @param options - Additional update options.
    * @returns The number of items updated.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
+  public updateMany(
+    selector: Selector<T>,
+    modifier: Modifier<T>,
+    arrayFilters: AnyObject[] = [],
+    condition: AnyObject = {},
+    options: UpdateOptions = {},
+  ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
 
     const items = this.getItems(selector)
     const modifiedItems: T[] = []
+
     items.forEach((item) => {
       const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
       if (index === -1) throw new Error('Cannot resolve index for item')
-      const modifiedItem = modify(deepClone(item), modifier)
+
+      const modifiedItem = modify(deepClone(item), modifier, arrayFilters, condition, options)
+
       this.memory().splice(index, 1, modifiedItem)
       modifiedItems.push(modifiedItem)
     })
+
     this.rebuildIndices()
+
     modifiedItems.forEach((modifiedItem) => {
       this.emit('changed', modifiedItem, modifier)
     })
+
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
+
     return modifiedItems.length
   }
 
