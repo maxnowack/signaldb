@@ -131,9 +131,74 @@ Now let's create a component that lists posts and allows the user to add new one
 ```
 
 ### Explanation:
+
 1. **Reactivity Configuration**: We define the reactivity system inside the `Posts` collection, with `depend()` and `notify()` managing dependencies.
 2. **Reactive Items List**: The `items` array is set using Svelte's reactivity system, and the component automatically updates when the `Posts` collection changes.
 3. **UI Interaction**: Clicking the "Add Post" button inserts a new post into the `Posts` collection, which triggers the component to update.
+
+## Web Worker Compatibility
+
+When using SignalDB with Svelte 5 in applications that utilize web workers, the standard reactivity setup can fail in production builds. This happens because Svelte's runes like `$state` aren't defined in web worker contexts.
+
+To solve this issue, you can create a dedicated adapter that works in both standard and web worker environments:
+
+```js
+import { createReactivityAdapter } from "@signaldb/core";
+
+// Reusable adapter for Svelte reactivity
+export function svelteReactivityAdapter() {
+  // Check if we're in a web worker
+  const isWebWorker =
+    typeof self !== "undefined" &&
+    typeof WorkerGlobalScope !== "undefined" &&
+    self instanceof WorkerGlobalScope;
+
+  if (isWebWorker) {
+    return createReactivityAdapter({
+      create() {
+        return {
+          depend() {
+            // No-op in web worker
+          },
+          notify() {
+            // No-op in web worker
+          },
+        };
+      },
+      isInScope: () => false,
+    });
+  } else {
+    // Regular context, use Svelte's reactivity primitives
+    return createReactivityAdapter({
+      create() {
+        let dep = $state(0);
+        return {
+          depend() {
+            dep;
+          },
+          notify() {
+            dep += 1;
+          },
+        };
+      },
+      isInScope: () => !!$effect.tracking(),
+    });
+  }
+}
+```
+
+Then use this adapter in your collection setup:
+
+```js
+import { Collection } from "@signaldb/core";
+import { svelteReactivityAdapter } from "./your-adapter-file";
+
+const Posts = new Collection({
+  reactivity: svelteReactivityAdapter(),
+});
+```
+
+This approach ensures your SignalDB collections work properly both in the main thread and in web workers.
 
 ## Conclusion
 
