@@ -45,6 +45,14 @@ collection.updateMany({ title: 'Hello World' }, {
 })
 ```
 
+## Replacing items
+
+To replace an item in a collection, use the [`.replaceOne()`](/reference/core/collection/#replaceone-selector-selector-t-replacement-omit-t-id-partial-pick-t-id-options-upsert-boolean) method.
+
+```js
+collection.replaceOne({ id: 'xyz' }, { title: 'Hello SignalDB' })
+```
+
 ## Deleting data
 
 To delete data from a collection, use the [`.removeOne()`](/reference/core/collection/#removemanyselector-selector-t) or [`.removeMany()`](/reference/core/collection/#removemanyselector-selector-t) method.
