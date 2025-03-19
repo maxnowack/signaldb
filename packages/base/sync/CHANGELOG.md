@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Use upserts in `updateOne` internally instead of searching for the document first
+
+### Fixed
+
+* Use `replaceOne` internally to replace documents in collections instead of just updating them with `updateOne`
+
 ## [1.2.0] - 2025-03-10
 
 ### Added

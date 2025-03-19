@@ -1016,7 +1016,7 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
 
   const mockCollection = new Collection<TestItem, string, any>({
     memory: [
-      { id: '1', name: 'Test Item' },
+      { id: '1', name: 'Test Item', additionalField: true },
       { id: 'x', name: 'Test Item 3' },
     ],
   })
