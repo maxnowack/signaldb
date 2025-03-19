@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Check for already existing ids in `updateMany`
+
 ## [1.3.1] - 2025-02-19
 
 ### Changed
