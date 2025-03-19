@@ -198,6 +198,49 @@ describe('Collection', () => {
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
     })
+
+    it('should not upsert items if upsert option was not specified', () => {
+      expect(collection.updateOne({ id: 'asdf' }, {
+        $set: { name: 'Upsert' },
+      })).toEqual(0)
+      expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
+    })
+
+    it('should upsert items if upsert option is true', () => {
+      expect(collection.updateOne({ id: 'asdf' }, {
+        $set: { name: 'Upsert' },
+      }, { upsert: true })).toEqual(1)
+      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
+    })
+
+    it('should use $setOnInsert if upsert option is true', () => {
+      expect(collection.updateOne({ id: 'asdf' }, {
+        $set: { name: 'Upsert' },
+        $setOnInsert: {
+          upserted: true,
+        },
+      }, { upsert: true })).toEqual(1)
+      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert', upserted: true })
+    })
+
+    it('should ignore $setOnInsert if item was not upserted', () => {
+      collection.insert({ id: '1', name: 'John' })
+      expect(collection.updateOne({ id: '1' }, {
+        $set: { name: 'Jane' },
+        $setOnInsert: { upserted: true },
+      }, { upsert: true })).toEqual(1)
+
+      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jane' })
+    })
+
+    it('should fail if there is an id conflict during upsert', () => {
+      collection.insert({ id: '1', name: 'John' })
+
+      expect(() => collection.updateOne({ name: 'Jane' }, {
+        $set: { name: 'Jane' },
+        $setOnInsert: { id: '1' },
+      }, { upsert: true })).toThrow()
+    })
   })
 
   describe('updateMany', () => {
@@ -283,6 +326,53 @@ describe('Collection', () => {
       collection.removeOne({ id: '1' })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' })
+    })
+
+    it('should not upsert items if upsert option was not specified', () => {
+      expect(collection.updateMany({ id: 'asdf' }, {
+        $set: { name: 'Upsert' },
+      })).toEqual(0)
+      expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
+    })
+
+    it('should upsert items if upsert option is true', () => {
+      expect(collection.updateMany({ id: 'asdf' }, {
+        $set: { name: 'Upsert' },
+      }, { upsert: true })).toEqual(1)
+      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
+    })
+
+    it('should use $setOnInsert if upsert option is true', () => {
+      expect(collection.updateMany({ id: 'asdf' }, {
+        $set: { name: 'Upsert' },
+        $setOnInsert: {
+          upserted: true,
+        },
+      }, { upsert: true })).toEqual(1)
+      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert', upserted: true })
+    })
+
+    it('should ignore $setOnInsert if item was not upserted', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
+      expect(collection.updateMany({}, {
+        $set: { updated: true },
+        $setOnInsert: { upserted: true },
+      }, { upsert: true })).toEqual(2)
+
+      expect(collection.find().fetch()).toEqual([
+        { id: '1', name: 'John', updated: true },
+        { id: '2', name: 'Jane', updated: true },
+      ])
+    })
+
+    it('should fail if there is an id conflict during upsert', () => {
+      collection.insert({ id: '1', name: 'John' })
+
+      expect(() => collection.updateMany({ name: 'Jane' }, {
+        $set: { name: 'Jane' },
+        $setOnInsert: { id: '1' },
+      }, { upsert: true })).toThrow()
     })
   })
 

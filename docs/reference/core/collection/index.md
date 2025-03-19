@@ -111,7 +111,7 @@ Inserts multiple items into the collection and returns the IDs of the newly inse
 Parameters
 * `item`: The item to be inserted into the collection.
 
-### `updateMany(selector: Selector<T>, modifier: Modifier<T>)`
+### `updateMany(selector: Selector<T>, modifier: Modifier<T>, options?: { upsert?: boolean })`
 
 Updates multiple items in the collection that match a given selector with the specified modifier.
 Also check out the [data manipulation section](/data-manipulation/).
@@ -119,9 +119,10 @@ Also check out the [data manipulation section](/data-manipulation/).
 Parameters
 * `selector`: A function to filter items in the collection.
 * `modifier`: An object describing how to modify the matching items.
+* `options`: An object with additional options. Currently only `upsert` is supported, which will insert a document based on the modifier, if the selector doesn't match any documents.
 
 
-### `updateOne(selector: Selector<T>, modifier: Modifier<T>)`
+### `updateOne(selector: Selector<T>, modifier: Modifier<T>, options?: { upsert?: boolean })`
 
 Behaves the same like `.updateMany()` but only updates the first found document.
 

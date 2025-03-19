@@ -749,23 +749,48 @@ export default class Collection<
    * Updates a single item in the collection that matches the given selector.
    * @param selector - The criteria to select the item to update.
    * @param modifier - The modifications to apply to the item.
+   * @param [options] - Optional settings for the update operation.
+   * @param [options.upsert] - If `true`, creates a new item if no item matches the selector.
    * @returns The number of items updated (0 or 1).
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateOne(selector: Selector<T>, modifier: Modifier<T>) {
+  public updateOne(
+    selector: Selector<T>,
+    modifier: Modifier<T>,
+    options?: { upsert?: boolean },
+  ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
+    const { $setOnInsert, ...restModifier } = modifier
 
     const { item, index } = this.getItemAndIndex(selector)
-    if (item == null) return 0
-    const modifiedItem = modify(deepClone(item), modifier)
-    if (!isEqual(item, { ...item, id: modifiedItem.id })) throw new Error('Item with same id already exists')
-    this.memory().splice(index, 1, modifiedItem)
-    this.rebuildIndices()
-    this.emit('changed', modifiedItem, modifier)
+    if (item == null) {
+      if (options?.upsert) {
+        // if upsert is enabled, insert a new item
+        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
+          ...restModifier,
+          $set: {
+            ...$setOnInsert,
+            ...restModifier.$set,
+          },
+        })
+        if (newItem.id != null
+          && this.getItemAndIndex({ id: newItem.id } as Selector<T>).item != null) {
+          throw new Error('Item with same id already exists')
+        }
+        this.insert(newItem)
+      }
+    } else {
+      const modifiedItem = modify(deepClone(item), restModifier)
+      if (!isEqual(item, { ...item, id: modifiedItem.id })) throw new Error('Item with same id already exists')
+      this.memory().splice(index, 1, modifiedItem)
+      this.rebuildIndices()
+      this.emit('changed', modifiedItem, restModifier)
+    }
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
+    if (item == null && !options?.upsert) return 0
     return 1
   }
 
@@ -773,19 +798,41 @@ export default class Collection<
    * Updates multiple items in the collection that match the given selector.
    * @param selector - The criteria to select the items to update.
    * @param modifier - The modifications to apply to the items.
+   * @param [options] - Optional settings for the update operation.
+   * @param [options.upsert] - If `true`, creates new items if no items match the selector.
    * @returns The number of items updated.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateMany(selector: Selector<T>, modifier: Modifier<T>) {
+  public updateMany(
+    selector: Selector<T>,
+    modifier: Modifier<T>,
+    options?: { upsert?: boolean },
+  ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
+    const { $setOnInsert, ...restModifier } = modifier
 
     const items = this.getItems(selector)
+    if (items.length === 0 && options?.upsert) {
+      const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
+        ...restModifier,
+        $set: {
+          ...$setOnInsert,
+          ...restModifier.$set,
+        },
+      })
+      if (newItem.id != null
+        && this.getItemAndIndex({ id: newItem.id } as Selector<T>).item != null) {
+        throw new Error('Item with same id already exists')
+      }
+      this.insert(newItem)
+    }
+
     const changes = items.map((item) => {
       const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
       if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
-      const modifiedItem = modify(deepClone(item), modifier)
+      const modifiedItem = modify(deepClone(item), restModifier)
       if (!isEqual(item, { ...item, id: modifiedItem.id })) throw new Error(`Item with same id '${modifiedItem.id as string}' already exists`)
       return {
         item: modifiedItem,
@@ -797,11 +844,11 @@ export default class Collection<
     })
     this.rebuildIndices()
     changes.forEach(({ item }) => {
-      this.emit('changed', item, modifier)
+      this.emit('changed', item, restModifier)
     })
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
-    return changes.length
+    return changes.length === 0 && options?.upsert ? 1 : changes.length
   }
 
   /**
