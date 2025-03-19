@@ -282,6 +282,70 @@ describe('Collection', () => {
     })
   })
 
+  describe('replaceOne', () => {
+    it('should replace a single item that matches the selector', () => {
+      collection.insert({ id: '1', name: 'John' })
+
+      collection.replaceOne({ id: '1' }, { name: 'Jack' })
+
+      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jack' })
+    })
+
+    it('should emit "changed" event when an item was replaced', () => {
+      collection.insert({ id: '1', name: 'John' })
+      const eventHandler = vi.fn()
+      collection.on('changed', eventHandler)
+
+      collection.replaceOne({ id: '1' }, { name: 'Jack' })
+
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jack' })
+    })
+
+    it('should not throw an error if no item matches the selector', () => {
+      expect(collection.replaceOne({ id: '1' }, { name: 'Jack' })).toBe(0)
+    })
+
+    it('should throw an error if trying to update the item id to a value that already exists', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
+
+      expect(() => collection.replaceOne({ id: '1' }, { id: '1', name: 'Jack' })).not.toThrow()
+      expect(() => collection.replaceOne({ id: '1' }, { id: '2', name: 'Jack' })).toThrow()
+      expect(() => collection.replaceOne({ id: '1' }, { id: '3', name: 'Jack' })).not.toThrow()
+    })
+
+    it('should emit "replaceOne" event', () => {
+      collection.insert({ id: '1', name: 'John' })
+      const eventHandler = vi.fn()
+      collection.on('replaceOne', eventHandler)
+
+      collection.replaceOne({ id: '1' }, { name: 'Jack' })
+
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { name: 'Jack' })
+    })
+
+    it('should not upsert items if upsert option was not specified', () => {
+      expect(collection.replaceOne({ id: 'asdf' }, { name: 'Upsert' })).toEqual(0)
+      expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
+    })
+
+    it('should upsert items if upsert option is true', () => {
+      expect(collection.replaceOne({ id: 'asdf' }, {
+        name: 'Upsert',
+      }, { upsert: true })).toEqual(1)
+      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
+    })
+
+    it('should fail if there is an id conflict during upsert', () => {
+      collection.insert({ id: '1', name: 'John' })
+
+      expect(() => collection.replaceOne({ name: 'Jane' }, {
+        id: '1',
+        name: 'Jane',
+      }, { upsert: true })).toThrow()
+    })
+  })
+
   describe('removeOne', () => {
     it('should remove an item that match the selector', () => {
       collection.insert({ id: '1', name: 'John' })

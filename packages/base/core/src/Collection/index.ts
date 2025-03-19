@@ -38,7 +38,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
 
 interface CollectionEvents<T extends BaseItem, U = T> {
   'added': (item: T) => void,
-  'changed': (item: T, modifier: Modifier<T>) => void,
+  'changed': (item: T, modifier?: Modifier<T>) => void,
   'removed': (item: T) => void,
 
   'persistence.init': () => void,
@@ -67,6 +67,7 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'insert': (item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   'updateOne': (selector: Selector<T>, modifier: Modifier<T>) => void,
   'updateMany': (selector: Selector<T>, modifier: Modifier<T>) => void,
+  'replaceOne': (selector: Selector<T>, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   'removeOne': (selector: Selector<T>) => void,
   'removeMany': (selector: Selector<T>) => void,
 
@@ -76,6 +77,7 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   '_debug.insert': (callstack: string, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.updateOne': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
   '_debug.updateMany': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
+  '_debug.replaceOne': (callstack: string, selector: Selector<T>, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.removeOne': (callstack: string, selector: Selector<T>) => void,
   '_debug.removeMany': (callstack: string, selector: Selector<T>) => void,
 }
@@ -849,6 +851,49 @@ export default class Collection<
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
     return changes.length === 0 && options?.upsert ? 1 : changes.length
+  }
+
+  /**
+   * Replaces a single item in the collection that matches the given selector.
+   * @param selector - The criteria to select the item to replace.
+   * @param replacement - The item to replace the selected item with.
+   * @param [options] - Optional settings for the replace operation.
+   * @param [options.upsert] - If `true`, creates a new item if no item matches the selector.
+   * @returns The number of items replaced (0 or 1).
+   * @throws {Error} If the collection is disposed or invalid arguments are provided.
+   */
+  public replaceOne(
+    selector: Selector<T>,
+    replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
+    options?: { upsert?: boolean },
+  ) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
+    if (!selector) throw new Error('Invalid selector')
+
+    const { item, index } = this.getItemAndIndex(selector)
+    if (item == null) {
+      if (options?.upsert) {
+        // if upsert is enabled, insert a new item
+        if (replacement.id != null
+          && this.getItemAndIndex({ id: replacement.id } as Selector<T>).item != null) {
+          throw new Error('Item with same id already exists')
+        }
+        this.insert(replacement)
+      }
+    } else {
+      if (item.id !== replacement.id
+        && this.getItemAndIndex({ id: replacement.id } as Selector<T>).item != null) {
+        throw new Error('Item with same id already exists')
+      }
+      const modifiedItem = { id: item.id, ...replacement } as T
+      this.memory().splice(index, 1, modifiedItem)
+      this.rebuildIndices()
+      this.emit('changed', modifiedItem)
+    }
+    this.emit('replaceOne', selector, replacement)
+    this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
+    if (item == null && !options?.upsert) return 0
+    return 1
   }
 
   /**

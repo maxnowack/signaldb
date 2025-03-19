@@ -126,6 +126,16 @@ Parameters
 
 Behaves the same like `.updateMany()` but only updates the first found document.
 
+### `replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>, options?: { upsert?: boolean })`
+
+Replaces a single item in the collection that matches a given selector with the specified replacement.
+Also check out the [data manipulation section](/data-manipulation/).
+
+Parameters
+* `selector`: A function to filter items in the collection.
+* `replacement`: The new item that should replace the existing one.
+* `options`: An object with additional options. Currently only `upsert` is supported, which will insert a document based on the replacement, if the selector doesn't match any documents.
+
 ### `removeMany(selector: Selector<T>)`
 
 Removes multiple items from the collection that match a given selector.
@@ -172,6 +182,7 @@ In addition to that, the collection will fire events for each executed method. F
 * `insert`: Fired when the `insert` method is called. The event handler receives the inserted item as an argument.
 * `updateMany`: Emitted when the `updateMany` method is called. The event handler receives the selector and the modifier as arguments.
 * `updateOne`: Triggered when the `updateOne` method is called. The event handler receives the selector and the modifier as arguments.
+* `replaceOne`: Emitted when the `replaceOne` method is called. The event handler receives the selector and the replacement as arguments.
 * `removeMany`: Emitted when the `removeMany` method is called. The event handler receives the selector as an argument.
 * `removeOne`: Triggered when the `removeOne` method is called. The event handler receives the selector as an argument.
 
