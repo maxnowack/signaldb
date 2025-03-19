@@ -6,7 +6,7 @@ import type {
   LoadResponse,
   Selector,
 } from '@signaldb/core'
-import { Collection, randomId, isEqual, createIndex } from '@signaldb/core'
+import { Collection, randomId, createIndex } from '@signaldb/core'
 import debounce from './utils/debounce'
 import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'
@@ -244,25 +244,33 @@ export default class SyncManager<
 
     const hasRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
       for (const remoteChange of this.remoteChanges) {
-        if (isEqual(remoteChange, change)) {
-          return true
-        }
+        if (remoteChange == null) continue
+        if (remoteChange.collectionName !== change.collectionName) continue
+        if (remoteChange.type !== change.type) continue
+
+        if (change.type === 'remove' && remoteChange.data !== change.data) continue
+        if (remoteChange.data.id !== change.data.id) continue
+        return true
       }
       return false
     }
-    const removeRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
-      for (let i = 0; i < this.remoteChanges.length; i += 1) {
-        if (isEqual(this.remoteChanges[i], change)) {
-          this.remoteChanges.splice(i, 1)
-          return
-        }
+    const removeRemoteChanges = (collectionName: string, id: IdType) => {
+      const newRemoteChanges: (Omit<Change, 'id' | 'time'> | null)[] = [...this.remoteChanges]
+      for (let i = 0; i < newRemoteChanges.length; i += 1) {
+        const item = newRemoteChanges[i]
+        if (item == null) continue
+        if (item.collectionName !== collectionName) continue
+        if (item.type === 'remove' && item.data !== id) continue
+        if (item.data.id !== id) continue
+        newRemoteChanges[i] = null
       }
+      this.remoteChanges = newRemoteChanges.filter(item => item != null)
     }
 
     collection.on('added', (item) => {
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'insert', data: item })) {
-        removeRemoteChange({ collectionName: options.name, type: 'insert', data: item })
+        removeRemoteChanges(options.name, item.id)
         return
       }
       this.changes.insert({
@@ -279,7 +287,7 @@ export default class SyncManager<
       const data = { id, modifier }
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'update', data })) {
-        removeRemoteChange({ collectionName: options.name, type: 'update', data })
+        removeRemoteChanges(options.name, id)
         return
       }
       this.changes.insert({
@@ -295,7 +303,7 @@ export default class SyncManager<
     collection.on('removed', ({ id }) => {
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'remove', data: id })) {
-        removeRemoteChange({ collectionName: options.name, type: 'remove', data: id })
+        removeRemoteChanges(options.name, id)
         return
       }
       this.changes.insert({
@@ -601,49 +609,36 @@ export default class SyncManager<
       }),
       push: changes => this.options.push(collectionOptions, { changes }),
       insert: (item) => {
-        const itemExists = item.id && !!collection.findOne({
-          id: item.id,
-        } as Selector<any>, { reactive: false })
-        if (itemExists) {
-          this.remoteChanges.push({
-            collectionName: name,
-            type: 'update',
-            data: { id: item.id, modifier: { $set: item } },
-          })
-
-          // update the item if it already exists
-          collection.updateOne({ id: item.id } as Selector<any>, { $set: item })
-          return
-        }
+        // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
           collectionName: name,
           type: 'insert',
           data: item,
+        }, {
+          collectionName: name,
+          type: 'update',
+          data: { id: item.id, modifier: { $set: item } },
         })
-        collection.insert(item)
+
+        // replace the item
+        collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
       },
       update: (itemId, modifier) => {
-        const itemExists = itemId && !collection.findOne({
-          id: itemId,
-        } as Selector<any>, { reactive: false })
-        if (itemExists) {
-          const item = { ...modifier.$set as ItemType, id: itemId }
-          this.remoteChanges.push({
-            collectionName: name,
-            type: 'insert',
-            data: item,
-          })
-
-          // insert the item if it does not exist
-          collection.insert(item)
-          return
-        }
+        // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
+          collectionName: name,
+          type: 'insert',
+          data: { id: itemId, ...modifier.$set },
+        }, {
           collectionName: name,
           type: 'update',
           data: { id: itemId, modifier },
         })
-        collection.updateOne({ id: itemId } as Selector<any>, modifier)
+
+        collection.updateOne({ id: itemId } as Selector<any>, {
+          ...modifier,
+          $setOnInsert: { id: itemId } as Partial<ItemType>,
+        }, { upsert: true })
       },
       remove: (itemId) => {
         const itemExists = !!collection.findOne({
@@ -715,30 +710,19 @@ export default class SyncManager<
         collection.batch(() => {
           // update all items that are in the snapshot
           snapshot.forEach((item) => {
-            const currentItem = collection.findOne({
-              id: item.id,
-            } as Selector<any>, {
-              reactive: false,
+            // add multiple remote changes as we don't know if the item will be updated or inserted during replace
+            this.remoteChanges.push({
+              collectionName: name,
+              type: 'insert',
+              data: item,
+            }, {
+              collectionName: name,
+              type: 'update',
+              data: { id: item.id, modifier: { $set: item } },
             })
-            /* istanbul ignore else -- @preserve */
-            if (currentItem) {
-              /* istanbul ignore if -- @preserve */
-              if (!isEqual(currentItem, item)) { // this case should never happen
-                this.remoteChanges.push({
-                  collectionName: name,
-                  type: 'update',
-                  data: { id: item.id, modifier: { $set: item } },
-                })
-                collection.updateOne({ id: item.id } as Selector<any>, { $set: item })
-              }
-            } else { // this case should never happen
-              this.remoteChanges.push({
-                collectionName: name,
-                type: 'insert',
-                data: item,
-              })
-              collection.insert(item)
-            }
+
+            // replace the item
+            collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
           })
 
           // remove all items that are not in the snapshot
