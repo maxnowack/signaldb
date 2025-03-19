@@ -17,6 +17,9 @@ export default function modify<T extends Record<string, any>>(
   item: T,
   modifier: Modifier,
 ) {
+  const hasOperators = Object.keys(modifier).some(key => key.startsWith('$'))
+  if (!hasOperators) return modifier as T
+
   const clonedItem = { ...item }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   update(clonedItem, modifier as any)
