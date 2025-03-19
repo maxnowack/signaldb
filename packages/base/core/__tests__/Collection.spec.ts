@@ -309,7 +309,7 @@ describe('Collection', () => {
 
       collection.replaceOne({ id: '1' }, { name: 'Jack' })
 
-      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jack' })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jack' }, { name: 'Jack' })
     })
 
     it('should not throw an error if no item matches the selector', () => {
