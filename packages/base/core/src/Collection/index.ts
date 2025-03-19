@@ -38,7 +38,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
 
 interface CollectionEvents<T extends BaseItem, U = T> {
   'added': (item: T) => void,
-  'changed': (item: T, modifier?: Modifier<T>) => void,
+  'changed': (item: T, modifier: Modifier<T>) => void,
   'removed': (item: T) => void,
 
   'persistence.init': () => void,
@@ -894,7 +894,7 @@ export default class Collection<
       const modifiedItem = { id: item.id, ...replacement } as T
       this.memory().splice(index, 1, modifiedItem)
       this.rebuildIndices()
-      this.emit('changed', modifiedItem)
+      this.emit('changed', modifiedItem, replacement as Modifier<T>)
     }
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
