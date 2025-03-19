@@ -184,9 +184,11 @@ describe('Collection', () => {
 
     it('should throw an error if trying to update the item id to a value that already exists', () => {
       collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
 
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '2' } })).toThrow()
+      expect(() => collection.updateOne({ id: '1' }, { $set: { id: '3' } })).not.toThrow()
     })
 
     it('should emit "updateOne" event', () => {
@@ -269,6 +271,15 @@ describe('Collection', () => {
       expect(eventHandler).toHaveBeenCalledTimes(2)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
       expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' }, { $set: { name: 'Jane' } })
+    })
+
+    it('should throw an error if trying to update the item id to a value that already exists', () => {
+      collection.insert({ id: '1', name: 'John' })
+      collection.insert({ id: '2', name: 'Jane' })
+
+      expect(() => collection.updateMany({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
+      expect(() => collection.updateMany({ id: '1' }, { $set: { id: '2' } })).toThrow()
+      expect(() => collection.updateMany({ id: '1' }, { $set: { id: '3' } })).not.toThrow()
     })
 
     it('should emit "updateMany" event', () => {

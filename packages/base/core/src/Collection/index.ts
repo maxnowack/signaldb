@@ -783,7 +783,10 @@ export default class Collection<
       }
     } else {
       const modifiedItem = modify(deepClone(item), restModifier)
-      if (!isEqual(item, { ...item, id: modifiedItem.id })) throw new Error('Item with same id already exists')
+      if (item.id !== modifiedItem.id
+        && this.getItemAndIndex({ id: modifiedItem.id } as Selector<T>).item != null) {
+        throw new Error('Item with same id already exists')
+      }
       this.memory().splice(index, 1, modifiedItem)
       this.rebuildIndices()
       this.emit('changed', modifiedItem, restModifier)
@@ -833,7 +836,10 @@ export default class Collection<
       const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
       if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
       const modifiedItem = modify(deepClone(item), restModifier)
-      if (!isEqual(item, { ...item, id: modifiedItem.id })) throw new Error(`Item with same id '${modifiedItem.id as string}' already exists`)
+      if (item.id !== modifiedItem.id
+        && this.getItemAndIndex({ id: modifiedItem.id } as Selector<T>).item != null) {
+        throw new Error(`Item with same id '${modifiedItem.id as string}' already exists`)
+      }
       return {
         item: modifiedItem,
         index,

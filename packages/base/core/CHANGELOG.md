@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Check for already existing ids in `updateMany`
 
+### Fixed
+
+* Fixed checking for existing ids in `updateOne` and `updateMany`. There was a bug that made it impossible to update the id of an item.
+
 ## [1.3.1] - 2025-02-19
 
 ### Changed
