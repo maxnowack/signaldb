@@ -782,21 +782,26 @@ export default class Collection<
     if (!modifier) throw new Error('Invalid modifier')
 
     const items = this.getItems(selector)
-    const modifiedItems: T[] = []
-    items.forEach((item) => {
+    const changes = items.map((item) => {
       const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
-      if (index === -1) throw new Error('Cannot resolve index for item')
+      if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
       const modifiedItem = modify(deepClone(item), modifier)
-      this.memory().splice(index, 1, modifiedItem)
-      modifiedItems.push(modifiedItem)
+      if (!isEqual(item, { ...item, id: modifiedItem.id })) throw new Error(`Item with same id '${modifiedItem.id as string}' already exists`)
+      return {
+        item: modifiedItem,
+        index,
+      }
+    })
+    changes.forEach(({ item, index }) => {
+      this.memory().splice(index, 1, item)
     })
     this.rebuildIndices()
-    modifiedItems.forEach((modifiedItem) => {
-      this.emit('changed', modifiedItem, modifier)
+    changes.forEach(({ item }) => {
+      this.emit('changed', item, modifier)
     })
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
-    return modifiedItems.length
+    return changes.length
   }
 
   /**
