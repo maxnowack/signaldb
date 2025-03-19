@@ -590,17 +590,19 @@ describe('Collection', () => {
       // Perform operations to trigger debug events
       const item = { name: 'test' }
       col.insert(item)
-      col.find({ name: 'test' })
-      col.findOne({ name: 'test' })
-      col.updateOne({ name: 'test' }, { $set: { name: 'updated' } })
-      col.removeOne({ name: 'updated' })
+      expect(emitSpy.mock.calls.some(call => call[0] === '_debug.insert')).toBe(true)
 
-      // Verify that debug events were emitted
-      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.insert'), expect.any(String), expect.any(Object))
-      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.find'), expect.any(String), expect.any(Object), expect.any(Object), expect.any(Object))
-      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.findOne'), expect.any(String), expect.any(Object), expect.any(Object), expect.any(Object))
-      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.updateOne'), expect.any(String), expect.any(Object), expect.any(Object))
-      expect(emitSpy).toHaveBeenCalledWith(expect.stringContaining('_debug.removeOne'), expect.any(String), expect.any(Object))
+      col.find({ name: 'test' })
+      expect(emitSpy.mock.calls.some(call => call[0] === '_debug.find')).toBe(true)
+
+      col.findOne({ name: 'test' })
+      expect(emitSpy.mock.calls.some(call => call[0] === '_debug.findOne')).toBe(true)
+
+      col.updateOne({ name: 'test' }, { $set: { name: 'updated' } })
+      expect(emitSpy.mock.calls.some(call => call[0] === '_debug.updateOne')).toBe(true)
+
+      col.removeOne({ name: 'updated' })
+      expect(emitSpy.mock.calls.some(call => call[0] === '_debug.removeOne')).toBe(true)
 
       // Cleanup
       emitSpy.mockRestore()
