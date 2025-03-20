@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/sync",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build"
