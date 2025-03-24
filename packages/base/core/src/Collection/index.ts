@@ -71,6 +71,8 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'removeOne': (selector: Selector<T>) => void,
   'removeMany': (selector: Selector<T>) => void,
 
+  'validate': (item: T) => void,
+
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
   '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, U>) => void,
   '_debug.findOne': <O extends FindOptions<T>>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
@@ -714,6 +716,7 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
     const newItem = { id: randomId(), ...item } as T
+    this.emit('validate', newItem)
     if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
     const itemIndex = this.memory().findIndex(document => document === newItem)
@@ -789,6 +792,7 @@ export default class Collection<
         && this.getItemAndIndex({ id: modifiedItem.id } as Selector<T>).item != null) {
         throw new Error('Item with same id already exists')
       }
+      this.emit('validate', modifiedItem)
       this.memory().splice(index, 1, modifiedItem)
       this.rebuildIndices()
       this.emit('changed', modifiedItem, restModifier)
@@ -842,6 +846,7 @@ export default class Collection<
         && this.getItemAndIndex({ id: modifiedItem.id } as Selector<T>).item != null) {
         throw new Error(`Item with same id '${modifiedItem.id as string}' already exists`)
       }
+      this.emit('validate', modifiedItem)
       return {
         item: modifiedItem,
         index,
@@ -892,6 +897,7 @@ export default class Collection<
         throw new Error('Item with same id already exists')
       }
       const modifiedItem = { id: item.id, ...replacement } as T
+      this.emit('validate', modifiedItem)
       this.memory().splice(index, 1, modifiedItem)
       this.rebuildIndices()
       this.emit('changed', modifiedItem, replacement as Modifier<T>)
