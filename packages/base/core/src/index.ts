@@ -15,6 +15,7 @@ export type {
   SortSpecifier,
   FieldSpecifier,
   FindOptions,
+  CollectionOptions,
 } from './Collection'
 
 export { default as Collection, createIndex } from './Collection'

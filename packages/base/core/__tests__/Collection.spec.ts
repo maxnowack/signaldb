@@ -1,4 +1,7 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
+import { z } from 'zod'
+import type { ZodSchema, infer as ZodInfer } from 'zod'
+import type { BaseItem, CollectionOptions } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
@@ -788,6 +791,118 @@ describe('Collection', () => {
 
       // Cleanup
       emitSpy.mockRestore()
+    })
+  })
+
+  describe('Schema Validation', () => {
+    interface SchemaCollectionOptions<
+      T extends ZodSchema<BaseItem<I>>,
+      I,
+      U = ZodInfer<T>,
+    > extends CollectionOptions<ZodInfer<T>, I, U> {
+      schema: T,
+    }
+
+    class SchemaCollection<
+      T extends ZodSchema<BaseItem<I>>,
+      I = any,
+      U = ZodInfer<T>,
+    > extends Collection<ZodInfer<T>, I, U> {
+      private schema: T
+
+      constructor(options: SchemaCollectionOptions<T, I, U>) {
+        super(options)
+        this.schema = options.schema
+        this.on('validate', (item) => {
+          this.schema.parse(item)
+        })
+      }
+    }
+
+    it('should validate the schema without errors', () => {
+      const Posts = new SchemaCollection({
+        schema: z.object({
+          id: z.string(),
+          title: z.string(),
+          content: z.string(),
+          published: z.boolean().optional(),
+        }),
+      })
+
+      expect(() => {
+        Posts.insert({
+          id: '1',
+          title: 'Hello',
+          content: 'World',
+        })
+      }).not.toThrowError()
+
+      expect(() => {
+        Posts.updateOne({
+          id: '1',
+        }, {
+          $set: { published: true },
+        })
+      }).not.toThrowError()
+
+      expect(() => {
+        Posts.updateMany({}, {
+          $set: { published: true },
+        })
+      }).not.toThrowError()
+
+      expect(() => {
+        Posts.replaceOne({
+          id: '1',
+        }, {
+          title: 'Hello',
+          content: 'World',
+        })
+      }).not.toThrowError()
+    })
+
+    it('should validate the schema and throw errors', () => {
+      const Posts = new SchemaCollection({
+        schema: z.object({
+          id: z.string(),
+          title: z.string(),
+          content: z.string(),
+          published: z.boolean().optional(),
+        }),
+      })
+
+      expect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        Posts.insert({
+          id: '1',
+          content: 'World',
+        } as any)
+      }).toThrowError()
+
+      expect(() => {
+        Posts.updateOne({
+          id: '1',
+        }, {
+          $set: { foo: true },
+        })
+      }).not.toThrowError()
+
+      expect(() => {
+        Posts.updateMany({}, {
+          $set: { bar: true },
+        })
+      }).not.toThrowError()
+
+      expect(() => {
+        Posts.replaceOne({
+          id: '1',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        }, {
+          title: 'Hello',
+          content: 'World',
+          asdf: true,
+        } as any)
+      }).not.toThrowError()
     })
   })
 
