@@ -3,7 +3,8 @@
   "version": "1.0.4",
   "description": "",
   "scripts": {
-    "build": "rimraf dist && vite build"
+    "build": "rimraf dist && vite build",
+    "test": "vitest"
   },
   "repository": {
     "type": "git",
