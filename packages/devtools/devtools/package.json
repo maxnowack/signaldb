@@ -3,7 +3,8 @@
   "version": "1.0.0-beta.4",
   "description": "Developer tools for SignalDB",
   "scripts": {
-    "build": "rimraf dist && vite build"
+    "build": "rimraf dist && vite build",
+    "test": "vitest"
   },
   "repository": {
     "type": "git",

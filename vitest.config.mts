@@ -2,6 +2,13 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
+    workspace: [
+      'packages/base/*',
+      'packages/devtools/*',
+      'packages/integrations/*',
+      'packages/persistence-adapters/*',
+      'packages/reactivity-adapters/*',
+    ],
     coverage: {
       provider: 'istanbul',
       exclude: [
