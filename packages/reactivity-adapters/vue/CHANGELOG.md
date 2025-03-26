@@ -7,4 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Removed `onScopeDispose` and `onDispose` from the reactivity adapter as it was not working as expected
+
 ## [1.0.0] - 2024-12-16

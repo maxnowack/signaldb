@@ -9,17 +9,19 @@ import vueReactivityAdapter from '../src'
 
 describe('@signaldb/vue', () => {
   it('should be reactive with Vue.js', async () => {
-    const reactivity = vueReactivityAdapter
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
-    reactivity.onDispose = vi.fn(reactivity.onDispose!)
-    const collection = new Collection({ reactivity })
+    const collection = new Collection({ reactivity: vueReactivityAdapter })
     const callback = vi.fn()
+    const cleanup = vi.fn()
 
     const scope = effectScope()
     scope.run(() => {
-      watchEffect(() => {
+      watchEffect((onCleanup) => {
         const cursor = collection.find({ name: 'John' })
         callback(cursor.count())
+        cleanup.mockImplementation(() => cursor.cleanup())
+        onCleanup(() => {
+          cleanup()
+        })
       })
     })
     await nextTick()
@@ -30,7 +32,6 @@ describe('@signaldb/vue', () => {
     })
     expect(callback).toHaveBeenLastCalledWith(1)
     expect(callback).toHaveBeenCalledTimes(2)
-    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
     scope.stop()
   })
 })
