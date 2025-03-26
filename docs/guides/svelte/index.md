@@ -48,18 +48,20 @@ Once you’ve installed SignalDB, the next step is to set up your collections. H
 
 ```js
 <script>
+  import { createSubscriber } from 'svelte/reactivity';
   import { Collection } from "@signaldb/core";
 
   const Posts = new Collection({
     reactivity: {
       create() {
-        let dep = $state(0);
+        let update;
+        const subscribe = createSubscriber(u => update = u);
         return {
           depend() {
-            dep;
+            subscribe();
           },
           notify() {
-            dep += 1;
+            update();
           },
         };
       },
@@ -87,18 +89,20 @@ Now let's create a component that lists posts and allows the user to add new one
 
 ```svelte
 <script>
+  import { createSubscriber } from 'svelte/reactivity';
   import { Collection } from "@signaldb/core";
 
   const Posts = new Collection({
     reactivity: {
       create() {
-        let dep = $state(0);
+        let update;
+        const subscribe = createSubscriber(u => update = u);
         return {
           depend() {
-            dep;
+            subscribe();
           },
           notify() {
-            dep += 1;
+            update();
           },
         };
       },
@@ -143,6 +147,7 @@ When using SignalDB with Svelte 5 in applications that utilize web workers, the 
 To solve this issue, you can create a dedicated adapter that works in both standard and web worker environments:
 
 ```js
+import { createSubscriber } from 'svelte/reactivity';
 import { createReactivityAdapter } from "@signaldb/core";
 
 // Reusable adapter for Svelte reactivity
@@ -171,13 +176,14 @@ export function svelteReactivityAdapter() {
     // Regular context, use Svelte's reactivity primitives
     return createReactivityAdapter({
       create() {
-        let dep = $state(0);
+        let update;
+        const subscribe = createSubscriber(u => update = u);
         return {
           depend() {
-            dep;
+            subscribe();
           },
           notify() {
-            dep += 1;
+            update();
           },
         };
       },
