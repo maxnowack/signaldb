@@ -12,10 +12,8 @@ describe('@signaldb/usignal', () => {
     effect(() => {
       const cursor = collection.find({ name: 'John' })
       callback(cursor.count())
-      return () => {
-        cleanup()
-        cursor.cleanup()
-      }
+      cleanup.mockImplementation(() => cursor.cleanup())
+      return () => cleanup()
     })
     collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {

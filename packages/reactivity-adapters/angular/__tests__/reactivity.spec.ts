@@ -33,11 +33,13 @@ describe('angular', () => {
   it('should be reactive with angular signals', async () => {
     const collection = new Collection({ reactivity: angularReactivityAdapter })
     const callback = vi.fn()
+    const cleanup = vi.fn()
 
     testingEffect((onCleanup) => {
       const cursor = collection.find({ name: 'John' })
       callback(cursor.count())
-      onCleanup(() => cursor.cleanup())
+      cleanup.mockImplementation(() => cursor.cleanup())
+      onCleanup(() => cleanup())
     })
     flushEffects()
     expect(callback).toHaveBeenCalledTimes(1)
