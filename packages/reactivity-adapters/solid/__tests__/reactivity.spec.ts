@@ -16,8 +16,13 @@ vi.mock('solid-js', async () => {
 describe('@signaldb/solid', () => {
   it('should be reactive with solid', async () => {
     const reactivity = solidReactivityAdapter
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
-    reactivity.onDispose = vi.fn(reactivity.onDispose!)
+    const originalOnDispose = reactivity.onDispose
+    const dispose = vi.fn()
+    reactivity.onDispose = (callback, dependency) => {
+      if (!originalOnDispose) return
+      dispose.mockImplementation(callback)
+      originalOnDispose(dispose, dependency)
+    }
     const callback = vi.fn()
     const collection = new Collection({ reactivity })
     createRoot(() => {
@@ -35,6 +40,7 @@ describe('@signaldb/solid', () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
+    expect(dispose).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })

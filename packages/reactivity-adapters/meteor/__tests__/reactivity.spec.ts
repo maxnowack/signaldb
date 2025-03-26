@@ -5,8 +5,13 @@ import createMeteorReactivityAdapter from '../src'
 
 describe('@signaldb/meteor', () => {
   const reactivity = createMeteorReactivityAdapter(Tracker)
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
-  reactivity.onDispose = vi.fn(reactivity.onDispose!)
+  const originalOnDispose = reactivity.onDispose
+  const dispose = vi.fn()
+  reactivity.onDispose = (callback, dependency) => {
+    if (!originalOnDispose) return
+    dispose.mockImplementation(callback)
+    originalOnDispose(dispose, dependency)
+  }
 
   it('should be reactive with Tracker', async () => {
     const collection = new Collection({ reactivity })
@@ -24,7 +29,7 @@ describe('@signaldb/meteor', () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
-    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
+    expect(dispose).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })
