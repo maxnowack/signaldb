@@ -174,6 +174,7 @@ The Collection class is equipped with a set of events that provide insights into
 * `added`: Triggered when a new item is added to the collection. The event handler receives the added item as an argument.
 * `changed`: Fired when an existing item in the collection undergoes modification. The event handler is passed the modified item.
 * `removed`: Signaled when an item is removed or deleted from the collection. The event handler receives the removed item.
+* `validate`: Emitted when an item should be validated. The event handler receives the item as an argument. Validate the item inside of the event handler and throw an error if the item is invalid. This will prevent the item from being inserted or updated.
 
 In addition to that, the collection will fire events for each executed method. For example, if you call `.updateOne()`, the collection will fire an `updateOne` event. The event handler will receive the selector and the modifier as arguments.
 
