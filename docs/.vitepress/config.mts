@@ -60,6 +60,7 @@ export default withMermaid({
             { text: 'Synchronization', link: '/sync/' },
             { text: 'ORM', link: '/orm/' },
             { text: 'Developer Tools', link: '/devtools/' },
+            { text: 'Schema Validation', link: '/schema-validation/' },
             { text: 'Upgrade to v1', link: '/upgrade/v1/' },
           ],
         },
