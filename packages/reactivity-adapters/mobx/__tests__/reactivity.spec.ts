@@ -6,8 +6,13 @@ import mobxReactivityAdapter from '../src'
 describe('@signaldb/mobx', () => {
   it('should be reactive with MobX', async () => {
     const reactivity = mobxReactivityAdapter
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
-    reactivity.onDispose = vi.fn(reactivity.onDispose!)
+    const originalOnDispose = reactivity.onDispose
+    const dispose = vi.fn()
+    reactivity.onDispose = (callback, dependency) => {
+      if (!originalOnDispose) return
+      dispose.mockImplementation(callback)
+      originalOnDispose(dispose, dependency)
+    }
 
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
@@ -20,7 +25,7 @@ describe('@signaldb/mobx', () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
-    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
+    expect(dispose).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
     stop()

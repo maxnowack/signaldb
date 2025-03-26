@@ -6,8 +6,13 @@ import obyReactivityAdapter from '../src'
 describe('@signaldb/oby', () => {
   it('should be reactive with oby', async () => {
     const reactivity = obyReactivityAdapter
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
-    reactivity.onDispose = vi.fn(reactivity.onDispose!)
+    const originalOnDispose = reactivity.onDispose
+    const dispose = vi.fn()
+    reactivity.onDispose = (callback, dependency) => {
+      if (!originalOnDispose) return
+      dispose.mockImplementation(callback)
+      originalOnDispose(dispose, dependency)
+    }
 
     const collection = new Collection({ reactivity })
     const callback = vi.fn()
@@ -21,7 +26,7 @@ describe('@signaldb/oby', () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
-    expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
+    expect(dispose).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
   })
