@@ -1,7 +1,6 @@
 import {
   shallowRef,
   triggerRef,
-  onScopeDispose,
 } from 'vue'
 import { createReactivityAdapter } from '@signaldb/core'
 
@@ -17,9 +16,6 @@ const vueReactivityAdapter = createReactivityAdapter({
         triggerRef(dep)
       },
     }
-  },
-  onDispose: (callback) => {
-    onScopeDispose(callback, true)
   },
 })
 
