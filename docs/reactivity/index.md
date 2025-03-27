@@ -79,7 +79,7 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reference/c
 | [`sinuous`](/reference/sinuous/) | ✅ | ✅ | ❌ |
 | [`Solid Signals`](/reference/solid/) | ✅ | ✅ | ❌ |
 | [`sprae`](https://github.com/dy/sprae) (see [#858](https://github.com/maxnowack/signaldb/issues/858)) | ✅ | ❌ | ❌ |
-| [`Svelte Runes`](/guides/svelte/) | ❌ | - | - |
+| [`Svelte Runes`](/reference/svelte/) | ✅ | ❌ | ✅ |
 | [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |
 | [`usignal`](/reference/usignal/) | ✅ | ❌ | ❌ |
 | [`Vue.js refs`](/reference/vue/) | ✅ | ❌ | ❌ |
