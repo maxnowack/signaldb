@@ -1,0 +1,50 @@
+{
+  "name": "@signaldb/svelte",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc -d --noEmit false",
+    "test": "vitest"
+  },
+  "svelte": "dist/index.svelte.js",
+  "types": "dist/index.svelte.d.ts",
+  "exports": {
+    ".": {
+      "svelte": "./dist/index.svelte.js",
+      "types": "./dist/index.svelte.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxnowack/signaldb.git"
+  },
+  "homepage": "https://signaldb.js.org",
+  "keywords": [
+    "client-database",
+    "client",
+    "database",
+    "local-database",
+    "offline-first",
+    "optimistic-ui",
+    "plugin",
+    "reactive",
+    "reactivity",
+    "synchronization",
+    "typescript",
+    "svelte"
+  ],
+  "author": "Max Nowack <max.nowack@gmail.com>",
+  "license": "MIT",
+  "description": "",
+  "peerDependencies": {
+    "@signaldb/core": "1.x",
+    "svelte": "^5.7.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "svelte": "^5.25.3"
+  }
+}

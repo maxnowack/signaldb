@@ -40,45 +40,33 @@ First, you need to install SignalDB in your project. Open your terminal and run:
 npm install @signaldb/core
 ```
 
-As Svelte runes have to be used inline, there isn't an easy way to provide a prebuilt adapter. Therefore you have to add a few lines in your code to specify the adapter during collection initialization.
+Next, install the [Svelte-specific reactivity adapter for SignalDB](/reference/svelte/):
+
+```bash
+npm install @signaldb/svelte
+```
 
 ## Setting Up SignalDB
 
-Once you’ve installed SignalDB, the next step is to set up your collections. Here's how you can define a `Posts` collection with a custom reactivity configuration for Svelte:
+Once you’ve installed SignalDB, the next step is to set up your collections. Here's how you can define a `Posts` collection with the reactivity configuration for Svelte:
 
 ```js
-<script>
-  import { createSubscriber } from 'svelte/reactivity';
-  import { Collection } from "@signaldb/core";
+import { Collection } from "@signaldb/core";
+import svelteReactivityAdapter from "@signaldb/svelte";
 
-  const Posts = new Collection({
-    reactivity: {
-      create() {
-        let update;
-        const subscribe = createSubscriber(u => update = u);
-        return {
-          depend() {
-            subscribe();
-          },
-          notify() {
-            update();
-          },
-        };
-      },
-      isInScope: () => !!$effect.tracking(),
-    },
-  });
+const Posts = new Collection({
+  reactivity: svelteReactivityAdapter,
+});
 
-  let items = $state.raw([]);
-  $effect(() => {
-    const cursor = Posts.find({});
-    items = cursor.fetch();
+let items = $state.raw([]);
+$effect(() => {
+  const cursor = Posts.find({});
+  items = cursor.fetch();
 
-    return () => {
-      cursor.cleanup();
-    };
-  });
-</script>
+  return () => {
+    cursor.cleanup();
+  };
+});
 ```
 
 This code sets up a `Posts` collection and enables reactivity using Svelte’s built-in reactivity features.
@@ -89,25 +77,11 @@ Now let's create a component that lists posts and allows the user to add new one
 
 ```svelte
 <script>
-  import { createSubscriber } from 'svelte/reactivity';
   import { Collection } from "@signaldb/core";
+  import svelteReactivityAdapter from "@signaldb/svelte";
 
   const Posts = new Collection({
-    reactivity: {
-      create() {
-        let update;
-        const subscribe = createSubscriber(u => update = u);
-        return {
-          depend() {
-            subscribe();
-          },
-          notify() {
-            update();
-          },
-        };
-      },
-      isInScope: () => !!$effect.tracking(),
-    },
+    reactivity: svelteReactivityAdapter,
   });
 
   let items = $state.raw([]);
@@ -136,71 +110,31 @@ Now let's create a component that lists posts and allows the user to add new one
 
 ### Explanation:
 
-1. **Reactivity Configuration**: We define the reactivity system inside the `Posts` collection, with `depend()` and `notify()` managing dependencies.
-2. **Reactive Items List**: The `items` array is set using Svelte's reactivity system, and the component automatically updates when the `Posts` collection changes.
-3. **UI Interaction**: Clicking the "Add Post" button inserts a new post into the `Posts` collection, which triggers the component to update.
+1. **Reactive Items List**: The `items` array is set using Svelte's reactivity system, and the component automatically updates when the `Posts` collection changes.
+2. **UI Interaction**: Clicking the "Add Post" button inserts a new post into the `Posts` collection, which triggers the component to update.
+3. **Rendering Posts**: The component renders a list of posts using the `#each` directive, displaying the post title and author.
 
 ## Web Worker Compatibility
 
 When using SignalDB with Svelte 5 in applications that utilize web workers, the standard reactivity setup can fail in production builds. This happens because Svelte's runes like `$state` aren't defined in web worker contexts.
 
-To solve this issue, you can create a dedicated adapter that works in both standard and web worker environments:
-
-```js
-import { createSubscriber } from 'svelte/reactivity';
-import { createReactivityAdapter } from "@signaldb/core";
-
-// Reusable adapter for Svelte reactivity
-export function svelteReactivityAdapter() {
-  // Check if we're in a web worker
-  const isWebWorker =
-    typeof self !== "undefined" &&
-    typeof WorkerGlobalScope !== "undefined" &&
-    self instanceof WorkerGlobalScope;
-
-  if (isWebWorker) {
-    return createReactivityAdapter({
-      create() {
-        return {
-          depend() {
-            // No-op in web worker
-          },
-          notify() {
-            // No-op in web worker
-          },
-        };
-      },
-      isInScope: () => false,
-    });
-  } else {
-    // Regular context, use Svelte's reactivity primitives
-    return createReactivityAdapter({
-      create() {
-        let update;
-        const subscribe = createSubscriber(u => update = u);
-        return {
-          depend() {
-            subscribe();
-          },
-          notify() {
-            update();
-          },
-        };
-      },
-      isInScope: () => !!$effect.tracking(),
-    });
-  }
-}
-```
+To solve this issue, specify the reactivity adapter only if you're not in a web worker environment:
 
 Then use this adapter in your collection setup:
 
 ```js
 import { Collection } from "@signaldb/core";
+import svelteReactivityAdapter from "@signaldb/svelte";
 import { svelteReactivityAdapter } from "./your-adapter-file";
 
+// Check if we're in a web worker
+const isWebWorker =
+  typeof self !== "undefined" &&
+  typeof WorkerGlobalScope !== "undefined" &&
+  self instanceof WorkerGlobalScope;
+
 const Posts = new Collection({
-  reactivity: svelteReactivityAdapter(),
+  reactivity: isWebWorker ? undefined : svelteReactivityAdapter,
 });
 ```
 
