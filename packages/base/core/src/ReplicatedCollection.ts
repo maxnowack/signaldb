@@ -107,8 +107,8 @@ export default class ReplicatedCollection<
       ...options,
       persistence: persistenceAdapter,
     })
-    this.isPullingRemoteSignal = createSignal(options.reactivity?.create(), false)
-    this.isPushingRemoteSignal = createSignal(options.reactivity?.create(), false)
+    this.isPullingRemoteSignal = createSignal(options.reactivity, false)
+    this.isPushingRemoteSignal = createSignal(options.reactivity, false)
   }
 
   /**

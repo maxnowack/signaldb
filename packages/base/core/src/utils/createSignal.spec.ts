@@ -1,62 +1,100 @@
 // @vitest-environment happy-dom
 import { vi, it, expect } from 'vitest'
-import type Dependency from '../types/Dependency'
+import createReactivityAdapter from '../createReactivityAdapter'
 import createSignal from './createSignal'
 
 it('should return the initial value', () => {
-  const dependency = {
-    depend: vi.fn(),
-    notify: vi.fn(),
-  } as Dependency
-  const signal = createSignal(dependency, 'initialValue')
+  const depend = vi.fn()
+  const notify = vi.fn()
+  const reactivityAdapter = createReactivityAdapter({
+    create: () => ({
+      depend,
+      notify,
+    }),
+  })
+  const signal = createSignal(reactivityAdapter, 'initialValue')
   expect(signal.get()).toBe('initialValue')
-  expect(dependency.depend).toHaveBeenCalled()
-  expect(dependency.notify).not.toHaveBeenCalled()
+  expect(depend).toHaveBeenCalled()
+  expect(notify).not.toHaveBeenCalled()
 })
 
 it('should update the value', () => {
-  const dependency = {
-    depend: vi.fn(),
-    notify: vi.fn(),
-  } as Dependency
-  const signal = createSignal(dependency, 'initialValue')
+  const depend = vi.fn()
+  const notify = vi.fn()
+  const reactivityAdapter = createReactivityAdapter({
+    create: () => ({
+      depend,
+      notify,
+    }),
+  })
+  const signal = createSignal(reactivityAdapter, 'initialValue')
   signal.set('newValue')
-  expect(dependency.notify).toHaveBeenCalled()
+  expect(notify).toHaveBeenCalled()
   expect(signal.get()).toBe('newValue')
-  expect(dependency.depend).toHaveBeenCalled()
+  expect(depend).toHaveBeenCalled()
 })
 
 it('should not notify dependency if value is equal', () => {
-  const dependency = {
-    depend: vi.fn(),
-    notify: vi.fn(),
-  } as Dependency
-  const signal = createSignal(dependency, 'initialValue')
+  const depend = vi.fn()
+  const notify = vi.fn()
+  const reactivityAdapter = createReactivityAdapter({
+    create: () => ({
+      depend,
+      notify,
+    }),
+  })
+  const signal = createSignal(reactivityAdapter, 'initialValue')
   signal.set('initialValue')
-  expect(dependency.depend).not.toHaveBeenCalled()
-  expect(dependency.notify).not.toHaveBeenCalled()
+  expect(depend).not.toHaveBeenCalled()
+  expect(notify).not.toHaveBeenCalled()
 })
 
 it('should notify dependency if value is not equal', () => {
-  const dependency = {
-    depend: vi.fn(),
-    notify: vi.fn(),
-  } as Dependency
-  const signal = createSignal(dependency, 'initialValue')
+  const depend = vi.fn()
+  const notify = vi.fn()
+  const reactivityAdapter = createReactivityAdapter({
+    create: () => ({
+      depend,
+      notify,
+    }),
+  })
+  const signal = createSignal(reactivityAdapter, 'initialValue')
   signal.set('newValue')
-  expect(dependency.depend).not.toHaveBeenCalled()
-  expect(dependency.notify).toHaveBeenCalled()
+  expect(depend).not.toHaveBeenCalled()
+  expect(notify).toHaveBeenCalled()
 })
 
 it('should use custom isEqual function', () => {
-  const dependency = {
-    depend: vi.fn(),
-    notify: vi.fn(),
-  } as Dependency
+  const depend = vi.fn()
+  const notify = vi.fn()
+  const reactivityAdapter = createReactivityAdapter({
+    create: () => ({
+      depend,
+      notify,
+    }),
+  })
   const isEqual = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
-  const signal = createSignal<string>(dependency, 'initialValue', isEqual)
+  const signal = createSignal<string>(reactivityAdapter, 'initialValue', isEqual)
   signal.set('INITIALVALUE')
-  expect(dependency.notify).not.toHaveBeenCalled()
+  expect(notify).not.toHaveBeenCalled()
   expect(signal.get()).toBe('initialValue')
-  expect(dependency.depend).toHaveBeenCalled()
+  expect(depend).toHaveBeenCalled()
+})
+
+it('should not depend if called outside scope', () => {
+  const depend = vi.fn()
+  const notify = vi.fn()
+  const reactivityAdapter = createReactivityAdapter({
+    create: () => ({
+      depend,
+      notify,
+    }),
+    isInScope: () => false,
+  })
+  const signal = createSignal(reactivityAdapter, 'initialValue')
+  signal.set('newValue')
+  expect(depend).not.toHaveBeenCalled()
+  expect(signal.get()).toBe('newValue')
+  expect(depend).not.toHaveBeenCalled()
+  expect(notify).toHaveBeenCalled()
 })

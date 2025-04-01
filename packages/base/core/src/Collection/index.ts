@@ -242,8 +242,8 @@ export default class Collection<
     ]
     this.rebuildIndices()
 
-    this.isPullingSignal = createSignal(this.options.reactivity?.create(), !!options?.persistence)
-    this.isPushingSignal = createSignal(this.options.reactivity?.create(), false)
+    this.isPullingSignal = createSignal(this.options.reactivity, !!options?.persistence)
+    this.isPushingSignal = createSignal(this.options.reactivity, false)
     this.on('persistence.pullStarted', () => {
       this.isPullingSignal.set(true)
     })
