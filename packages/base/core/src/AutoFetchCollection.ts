@@ -67,7 +67,7 @@ export default class AutoFetchCollection<
     })
     this.mergeItems = options.mergeItems ?? ((itemA, itemB) => ({ ...itemA, ...itemB }))
     this.purgeDelay = options.purgeDelay ?? 10_000 // 10 seconds
-    this.isFetchingSignal = createSignal(options.reactivity?.create(), false)
+    this.isFetchingSignal = createSignal(options.reactivity, false)
     if (!triggerRemoteChange) throw new Error('No triggerRemoteChange method found. Looks like your persistence adapter was not registered')
     this.triggerReload = triggerRemoteChange
     this.reactivityAdapter = options.reactivity ?? null
@@ -190,7 +190,7 @@ export default class AutoFetchCollection<
     if (!this.loadingSignals.has(this.getKeyForSelector(selector))) {
       this.loadingSignals.set(
         this.getKeyForSelector(selector),
-        createSignal(this.reactivityAdapter.create(), false),
+        createSignal(this.reactivityAdapter, false),
       )
     }
     return this.loadingSignals.get(this.getKeyForSelector(selector)) as Signal<boolean>
