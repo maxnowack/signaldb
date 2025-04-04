@@ -3,23 +3,25 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const svelteReactivityAdapter = createReactivityAdapter({
   create() {
-    let update: () => void
-    let cancel: () => void
+    let update: undefined | (() => void)
+    let stop: undefined | (() => void)
     const subscribe = createSubscriber((u) => {
       update = u
-      return () => cancel()
+      return () => {
+        if (!stop) return
+        stop()
+      }
     })
     return {
       depend() {
         subscribe()
       },
       notify() {
-        if (update) {
-          update()
-        }
+        if (!update) return
+        update()
       },
       onStop(callback: () => void) {
-        cancel = callback
+        stop = callback
       },
     }
   },
