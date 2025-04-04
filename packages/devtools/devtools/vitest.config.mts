@@ -7,6 +7,5 @@ export default mergeConfig(viteConfig, defineConfig({
     coverage: {
       provider: 'istanbul',
     },
-    reporters: process.env.GITHUB_ACTIONS ? ['dot', 'github-actions'] : ['dot'],
   },
 }))

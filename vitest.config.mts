@@ -24,6 +24,6 @@ export default defineConfig({
         'packages/devtools/devtools',
       ],
     },
-    reporters: process.env.GITHUB_ACTIONS ? ['dot', 'github-actions'] : ['dot'],
+    reporters: process.env.GITHUB_ACTIONS ? ['dot', 'junit', 'github-actions'] : ['dot'],
   },
 })
