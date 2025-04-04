@@ -58,15 +58,7 @@ const Posts = new Collection({
   reactivity: svelteReactivityAdapter,
 });
 
-let items = $state.raw([]);
-$effect(() => {
-  const cursor = Posts.find({});
-  items = cursor.fetch();
-
-  return () => {
-    cursor.cleanup();
-  };
-});
+let items = $directive(Posts.find({}).fetch());
 ```
 
 This code sets up a `Posts` collection and enables reactivity using Svelte’s built-in reactivity features.
@@ -84,15 +76,7 @@ Now let's create a component that lists posts and allows the user to add new one
     reactivity: svelteReactivityAdapter,
   });
 
-  let items = $state.raw([]);
-  $effect(() => {
-    const cursor = Posts.find({});
-    items = cursor.fetch();
-
-    return () => {
-      cursor.cleanup();
-    };
-  });
+  let items = $directive(Posts.find({}).fetch());
 </script>
 
 <button onclick={() => Posts.insert({ title: 'Post', author: 'Author' })}>

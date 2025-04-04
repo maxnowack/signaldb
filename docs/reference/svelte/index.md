@@ -34,21 +34,10 @@ const Posts = new Collection({
   reactivity: svelteReactivityAdapter,
 });
 
-let items = $state.raw([]);
-$effect(() => {
-  const cursor = Posts.find({});
-  items = cursor.fetch();
-
-  return () => {
-    cursor.cleanup();
-  };
-});
+let items = $directive(Posts.find({}).fetch());
 ```
 
 Reactivity adapter for usage with [Svelte 5](https://svelte.dev/).
-
-The API of Svelte doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional).
-With Svelte, you can return a function from your `$effect` that will be called on cleanup. Use this one to cleanup your cursors (see an example above).
 
 In Svelte, reactivity is built into the very fabric of the framework, eliminating the need for manual change detection cycles. Svelte’s reactive declarations and writable stores automatically track and update state, ensuring that your UI remains consistently in sync with underlying data changes. When paired with SignalDB this natural reactivity is taken to the next level.
 
