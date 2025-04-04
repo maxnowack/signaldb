@@ -4,6 +4,7 @@
   "description": "Developer tools for SignalDB",
   "scripts": {
     "build": "rimraf dist && vite build",
+    "analyze-bundle": "bundle-analyzer ./dist --upload-token=$BUNDLE_ANALYZER_UPLOAD_TOKEN --bundle-name=@signaldb/devtools",
     "test": "vitest"
   },
   "repository": {

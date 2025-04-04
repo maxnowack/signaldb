@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
+    "analyze-bundle": "bundle-analyzer ./dist --upload-token=$BUNDLE_ANALYZER_UPLOAD_TOKEN --bundle-name=@signaldb/vue",
     "test": "vitest"
   },
   "repository": {

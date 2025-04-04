@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc -d --noEmit false",
+    "analyze-bundle": "bundle-analyzer ./dist --upload-token=$BUNDLE_ANALYZER_UPLOAD_TOKEN --bundle-name=@signaldb/svelte",
     "test": "vitest"
   },
   "svelte": "dist/index.svelte.js",

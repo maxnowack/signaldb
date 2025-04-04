@@ -3,3 +3,7 @@ coverage:
     project:
       default:
         target: 100%
+
+bundle_analysis:
+  warning_threshold: 5%
+  status: informational

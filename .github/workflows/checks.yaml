@@ -143,6 +143,11 @@ jobs:
       - name: build package
         run: |
           npm run build
+      - name: analyze bundle
+        run: |
+          npm run analyze-bundle
+        env:
+          BUNDLE_ANALYZER_UPLOAD_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   build-docs:
     needs: preflight
