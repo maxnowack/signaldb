@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Add `onDispose` method to adapter and remove the need for manual cleanup (thanks @signalize!)
+
 ## [1.0.0] - 2025-03-27
 
 ### Added
