@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-04-04
+
 ### Fixed
 
 * Guard `stop` call to prevent `TypeError`s in combination with persistence adapters
