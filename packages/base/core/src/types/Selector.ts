@@ -33,7 +33,7 @@ export interface FieldExpression<T> {
 }
 
 // Recursive type to generate dot-notation keys
-type DotNotation<T> = {
+export type DotNotation<T> = {
   [K in keyof T & string]: T[K] extends Array<infer U>
     // If it's an array, include both the index and the $ wildcard
     ? `${K}` | `${K}.$` | `${K}.${DotNotation<U>}`
@@ -43,7 +43,7 @@ type DotNotation<T> = {
       : `${K}` // Base case: Just return the key
 }[keyof T & string]
 
-type GetType<T, P extends string> =
+export type GetType<T, P extends string> =
   P extends `${infer H}.${infer R}`
     ? H extends keyof T
       ? T[H] extends Array<infer U>
@@ -58,21 +58,21 @@ type GetType<T, P extends string> =
       ? T[P]
       : never
 
-type FlatQuery<T> = {
+export type FlatQuery<T> = {
   [P in DotNotation<T>]?: FlatQueryValue<T, P>
 }
 
-type FieldValue<U> = U extends string
+export type FieldValue<U> = U extends string
   ? string | RegExp | FieldExpression<string>
   : U | FieldExpression<U>
 
-type FlatQueryValue<T, P extends string> = GetType<T, P> extends never
+  export type FlatQueryValue<T, P extends string> = GetType<T, P> extends never
   ? never
   : GetType<T, P> extends Array<infer U>
     ? FieldValue<U> | FieldValue<U[]>
     : FieldValue<GetType<T, P>>
 
-type Query<T> = FlatQuery<T> & {
+    export type Query<T> = FlatQuery<T> & {
   $or?: Query<T>[],
   $and?: Query<T>[],
   $nor?: Query<T>[],
