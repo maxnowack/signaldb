@@ -58,21 +58,21 @@ export type GetType<T, P extends string> =
       ? T[P]
       : never
 
-export type FlatQuery<T> = {
+type FlatQuery<T> = {
   [P in DotNotation<T>]?: FlatQueryValue<T, P>
 }
 
-export type FieldValue<U> = U extends string
+type FieldValue<U> = U extends string
   ? string | RegExp | FieldExpression<string>
   : U | FieldExpression<U>
 
-export type FlatQueryValue<T, P extends string> = GetType<T, P> extends never
+type FlatQueryValue<T, P extends string> = GetType<T, P> extends never
   ? never
   : GetType<T, P> extends Array<infer U>
     ? FieldValue<U> | FieldValue<U[]>
     : FieldValue<GetType<T, P>>
 
-export type Query<T> = FlatQuery<T> & {
+type Query<T> = FlatQuery<T> & {
   $or?: Query<T>[],
   $and?: Query<T>[],
   $nor?: Query<T>[],
