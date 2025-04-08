@@ -53,8 +53,15 @@ Creates a new instance of `SyncManager`.
 
 - `options` (`Options`): Configuration options for the sync manager.
 
-  - `pull`: Function to fetch data from the remote source.
-  - `push`: Function to send changes to the remote source.
+  - `pull`: Function to fetch data from the remote source. The function gets the collection options as the first parameter. The second parameter is an object containing the following properties:
+    - `lastFinishedSyncStart`: The start time of the last finished sync (if available).
+    - `lastFinishedSyncEnd`: The end time of the last finished sync (if available).
+  - `push`: Function to send changes to the remote source. The function gets the collection options as the first parameter. The second parameter is an object that contains the following properties:
+    - `changes`:
+      - `added`: An array of added items.
+      - `modified`: An array of updated items.
+      - `removed`: An array of removed items.
+
   - `registerRemoteChange`: Optional function to register a callback for remote changes. The callback can also return a cleanup function to remove the listener.
   - `id`: Optional unique identifier for the sync manager.
   - `persistenceAdapter`: Optional function to create a persistence adapter. Takes 2 arguments: `name` and `registerErrorHandler`.
