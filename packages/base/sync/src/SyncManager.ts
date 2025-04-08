@@ -33,6 +33,7 @@ interface Options<
   push: (
     collectionOptions: SyncOptions<CollectionOptions>,
     pushParameters: {
+      rawChanges: Omit<Change, 'id' | 'collectionName'>[],
       changes: Changeset<ItemType>,
     }
   ) => Promise<void>,
@@ -607,7 +608,10 @@ export default class SyncManager<
         lastFinishedSyncStart: lastFinishedSync?.start,
         lastFinishedSyncEnd: lastFinishedSync?.end,
       }),
-      push: changes => this.options.push(collectionOptions, { changes }),
+      push: changes => this.options.push(collectionOptions, {
+        changes,
+        rawChanges: currentChanges,
+      }),
       insert: (item) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({

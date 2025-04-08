@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added `rawChanges` array to `push` function parameters to make all changes available during push.
+
 ## [1.2.2] - 2025-03-20
 
 ### Fixed
