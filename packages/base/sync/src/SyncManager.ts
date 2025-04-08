@@ -34,7 +34,9 @@ interface Options<
     collectionOptions: SyncOptions<CollectionOptions>,
     pushParameters: {
       rawChanges: Omit<Change, 'id' | 'collectionName'>[],
-      changes: Changeset<ItemType>,
+      changes: Changeset<ItemType> & {
+        modifiedFields: Map<IdType, string[]>,
+      },
     }
   ) => Promise<void>,
   registerRemoteChange?: (

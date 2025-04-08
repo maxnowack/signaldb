@@ -34,7 +34,9 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
   lastSnapshot?: ItemType[],
   data: LoadResponse<ItemType>,
   pull: () => Promise<LoadResponse<ItemType>>,
-  push: (changes: Changeset<ItemType>) => Promise<void>,
+  push: (changes: Changeset<ItemType> & {
+    modifiedFields: Map<IdType, string[]>,
+  }) => Promise<void>,
   insert: (item: ItemType) => void,
   update: (id: IdType, modifier: Modifier<ItemType>) => void,
   remove: (id: IdType) => void,
@@ -76,7 +78,7 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
     if (hasDifference(previousSnapshot, lastSnapshotWithChanges)) {
       // if yes, apply the changes on the newSnapshot and check if there is a difference
       const newSnapshotWithChanges = applyChanges(newSnapshot, changes)
-      const changesToPush = computeChanges(newSnapshot, newSnapshotWithChanges)
+      const changesToPush = computeChanges<ItemType, IdType>(newSnapshot, newSnapshotWithChanges)
       if (hasChanges(changesToPush)) {
         // if yes, push the changes to the server
         await push(changesToPush)
