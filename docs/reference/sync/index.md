@@ -61,6 +61,7 @@ Creates a new instance of `SyncManager`.
       - `added`: An array of added items.
       - `modified`: An array of updated items.
       - `removed`: An array of removed items.
+    - `rawChanges`: An array of the raw change operations.
 
   - `registerRemoteChange`: Optional function to register a callback for remote changes. The callback can also return a cleanup function to remove the listener.
   - `id`: Optional unique identifier for the sync manager.
