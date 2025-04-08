@@ -60,6 +60,7 @@ Creates a new instance of `SyncManager`.
     - `changes`:
       - `added`: An array of added items.
       - `modified`: An array of updated items.
+      - `modifiedFields`: A map with the modified fields per item id.
       - `removed`: An array of removed items.
     - `rawChanges`: An array of the raw change operations.
 

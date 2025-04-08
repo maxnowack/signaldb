@@ -276,6 +276,22 @@ const syncManager = new SyncManager({
       await response.text()
     }))
 
+    // there is also the changes.modifiedFields property that contains the modified fields per item id if you prefer PATCH requests
+    await Promise.all(changes.modifiedFields.keys().map(async (itemId) => {
+      const fields = changes.modifiedFields.get(itemId)
+      const item = changes.modified.find(item => item.id === itemId)
+      const change = fields.reduce((memo, field) => {
+        memo[field] = get(item, field)
+        return memo
+      }, {})
+      const response = await fetch(apiPath, {
+        method: 'PATCH',
+        body: JSON.stringify(change),
+      })
+      if (response.status >= 400 && response.status <= 499) return
+      await response.text()
+    }))
+
     await Promise.all(changes.removed.map(async (item) => {
       const response = await fetch(apiPath, { method: 'DELETE', body: JSON.stringify(item) })
       if (response.status >= 400 && response.status <= 499) return
