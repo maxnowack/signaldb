@@ -1018,4 +1018,14 @@ describe('Collection', () => {
       await expect(col2.isReady()).resolves.toBeUndefined()
     })
   })
+
+  describe('Custom Primary Key Generator', () => {
+    it('should use custom primary key generator', () => {
+      const col = new Collection<{ id: string, name: string }>({
+        primaryKeyGenerator: () => 'custom-id',
+      })
+      col.insert({ name: 'John' })
+      expect(col.findOne({ id: 'custom-id' })).toEqual({ id: 'custom-id', name: 'John' })
+    })
+  })
 })
