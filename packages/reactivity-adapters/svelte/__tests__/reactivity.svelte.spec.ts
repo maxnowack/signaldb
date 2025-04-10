@@ -16,33 +16,34 @@ describe('SvelteDependency', () => {
       return cnt++
     })
 
-    expect(count).to.equal(0)
+    // wrap in function to avoid svelte compiler warning: `state_referenced_locally`
+    const getCount = () => count
+    expect(getCount()).to.equal(0)
 
     notify?.()
-    expect(count).to.equal(1)
+    expect(getCount()).to.equal(1)
   })
 
   it('should call disposals', async () => {
+    let cnt = 0
+    let notify: (() => void) | undefined
     const callback = vi.fn()
 
-    let notify: (() => void) | undefined
     // eslint-disable-next-line prefer-const
-    let x = $derived.by(() => {
+    let count = $derived.by(() => {
       const dep = new SvelteDependency()
       dep.onDispose(callback)
       notify = () => dep.notify()
       dep.depend()
+
+      return cnt++
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    x // to refresh $derived
+    const getCount = () => count
+    expect(getCount()).to.equal(0)
+
     notify?.()
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    x
-    await tick()
-    expect(callback).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    x
+    expect(getCount()).to.equal(1)
     await tick()
     expect(callback).toHaveBeenCalledTimes(1)
   })
@@ -54,9 +55,10 @@ it('should be reactive with svelte', async () => {
   })
 
   const count = $derived(collection.find({}).count())
+  const getCount = () => count
 
-  expect(count).to.equal(0)
+  expect(getCount()).to.equal(0)
   collection.insert({ text: 'foo' })
 
-  expect(count).to.equal(1)
+  expect(getCount()).to.equal(1)
 })
