@@ -20,6 +20,8 @@ export class SvelteDependency {
   }
 
   notify() {
+    // The #update can potentially be undefined because it only becomes
+    // available after #subscribe is called for the first time within a scope.
     this.#update?.()
   }
 
