@@ -33,7 +33,7 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
   changes: Change<ItemType, IdType>[],
   lastSnapshot?: ItemType[],
   data: LoadResponse<ItemType>,
-  pull: () => Promise<LoadResponse<ItemType>>,
+  pull: (() => Promise<LoadResponse<ItemType>>) | undefined,
   push: (changes: Changeset<ItemType>) => Promise<void>,
   insert: (item: ItemType) => void,
   update: (id: IdType, modifier: Modifier<ItemType>) => void,
@@ -81,9 +81,14 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
         // if yes, push the changes to the server
         await push(changesToPush)
 
-        // pull new data afterwards to ensure that all server changes are applied
-        newData = await pull()
-        newSnapshot = getSnapshot(newSnapshot, newData)
+        if (pull) {
+          // pull new data afterwards to ensure that all server changes are applied
+          newData = await pull()
+          newSnapshot = getSnapshot(newSnapshot, newData)
+        } else {
+          newData = { changes: changesToPush }
+          newSnapshot = getSnapshot(newSnapshot, newData)
+        }
       }
       previousSnapshot = lastSnapshotWithChanges
     }

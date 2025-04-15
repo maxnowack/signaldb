@@ -103,7 +103,8 @@ SignalDB's synchronization mechanism is inherently backend-agnostic. This means 
 
 Central to this flexibility are the `pull` and `push` functions within the [`SyncManager`](/reference/sync/#syncmanager-default). These functions act as intermediaries between your application and the backend, abstracting the details of data retrieval and submission. This design ensures that:
 
-- **Pull Function**: Retrieves data from the server. You can define how data is fetched, whether it’s through a REST API call, a GraphQL query, or another method. This flexibility allows you to adapt to various server architectures with minimal effort.
+- **Pull Function**: Retrieves data from the server. You can define how data is fetched, whether it’s through a REST API call, a GraphQL query, or another method. This flexibility allows you to adapt to various server architectures with minimal effort. The `pull` function is optional, if you don't provide one, the `sync` function will only apply the changes that are already present in the collection. This is useful if you are applying changes with [`registerRemoteChange`](#handle-remote-changes).
+
 
 - **Push Function**: Sends local changes to the server. Similar to the pull function, you can specify how changes are transmitted, ensuring compatibility with your backend's requirements. This includes sending data through HTTP methods, websockets, or custom protocols.
 
