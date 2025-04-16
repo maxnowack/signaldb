@@ -37,4 +37,14 @@ describe('enrich', () => {
       },
     }])
   })
+
+  it('should skip enrichment', () => {
+    const result = enrich(objects, {})
+
+    expect(result).toEqual([{
+      name: 'John Doe',
+      age: 25,
+      parent: '1',
+    }])
+  })
 })
