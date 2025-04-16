@@ -20,7 +20,7 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
 export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
   transform?: Transform<T, U>,
   bindEvents?: (requery: () => void) => () => void,
-  enrichCollection?: (items: T[], fields: CursorOptions<T, U>['fields']) => T[],
+  enrichCollection?: (items: T[], fields: CursorOptions<T, U>['fields']) => unknown,
 }
 
 /**
@@ -96,7 +96,7 @@ export default class Cursor<T extends BaseItem, U = T> {
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0
-    const entries = enrichCollection ? enrich(limited, this.options) : limited
+    const entries = enrichCollection ? enrich(limited, this.options) as unknown as T[] : limited
     return entries.map((item) => {
       if (!this.options.fields) return item
       return {

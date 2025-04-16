@@ -1,4 +1,4 @@
-import type { CursorOptions } from '../Collection'
+import type { BaseItem, CursorOptions } from '../Collection'
 import { clone } from './deepClone.ts'
 
 /**
@@ -11,9 +11,9 @@ import { clone } from './deepClone.ts'
  * @param options.enrichCollection - A function that will be able to solve the n+1 problem
  * @returns A new collection with the specified fields included.
  */
-export default function enrich<T extends Record<string, any>>(
+export default function enrich<T extends BaseItem, U = T>(
   items: T[],
-  options: CursorOptions<T>,
+  options: CursorOptions<T, U>,
 ) {
   if (!options.enrichCollection || !options.fields) {
     return items

@@ -13,7 +13,7 @@ describe('enrich', () => {
   }]
 
   it('should enrich with a parent', () => {
-    const result = enrich(objects, {
+    const result = enrich<any>(objects, {
       fields: {
         name: 1,
         age: 1,
@@ -39,7 +39,7 @@ describe('enrich', () => {
   })
 
   it('should skip enrichment', () => {
-    const result = enrich(objects, {})
+    const result = enrich<any>(objects, {})
 
     expect(result).toEqual([{
       name: 'John Doe',

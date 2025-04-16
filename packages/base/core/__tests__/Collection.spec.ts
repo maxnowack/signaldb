@@ -1,7 +1,7 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { ZodSchema, infer as ZodInfer } from 'zod'
-import type { BaseItem, CollectionOptions, CursorOptions } from '../src'
+import type { BaseItem, CollectionOptions } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
@@ -1001,7 +1001,7 @@ describe('Collection', () => {
     })
 
     it('should wait until a collection is ready', async () => {
-      const col1 = new Collection<{ id: string, name: string }>({
+      const col1 = new Collection({
         persistence: memoryPersistenceAdapter(),
       })
       let persistenceInit = false
@@ -1011,20 +1011,19 @@ describe('Collection', () => {
       await expect(col1.isReady()).resolves.toBeUndefined()
       expect(persistenceInit).toBe(true)
 
-      const col2 = new Collection<{ id: string, name: string }>()
+      const col2 = new Collection()
       await expect(col2.isReady()).resolves.toBeUndefined()
     })
 
     it('correctly enriches entities', async () => {
-      const col1 = new Collection<{ id: string, name: string }>({
+      const col1 = new Collection({
         persistence: memoryPersistenceAdapter(),
       })
       col1.insert({ id: '1', name: 'John' })
       col1.insert({ id: '2', name: 'Jane' })
 
-      type T = { id: string, name: string, parent: string }
-      const col2 = new Collection<T>({
-        enrichCollection: (items: T[], fields: CursorOptions<any>['fields']) => {
+      const col2 = new Collection({
+        enrichCollection: (items, fields) => {
           if (fields?.parent) {
             const foreignKeys = [...new Set(items.map(item => item.parent))]
             const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()

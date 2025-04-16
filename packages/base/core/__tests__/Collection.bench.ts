@@ -53,8 +53,8 @@ describe('Collection benchmarks', () => {
     })
   })
   describe('enrichment', () => {
-    const col1 = new Collection<{ id: string, name: string }>()
-    const col2 = new Collection<{ id: string, name: string, parent: string }>({
+    const col1 = new Collection()
+    const col2 = new Collection({
       enrichCollection: (items, fields) => {
         if (fields?.parent) {
           const foreignKeys = [...new Set(items.map(item => item.parent))]

@@ -35,7 +35,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
-  enrichCollection?: (collection: T[], fields: CursorOptions<T>['fields']) => void,
+  enrichCollection?: (collection: (T | U)[], fields: CursorOptions<T>['fields']) => void,
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {

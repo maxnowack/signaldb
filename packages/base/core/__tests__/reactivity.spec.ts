@@ -1,5 +1,5 @@
 import { vi, describe, it, expect } from 'vitest'
-import { Collection, createReactivityAdapter, type CursorOptions } from '../src'
+import { Collection, createReactivityAdapter } from '../src'
 import deepClone from '../src/utils/deepClone'
 
 const primitiveReactivity = (() => {
@@ -246,15 +246,13 @@ describe('reactivity primitives', () => {
   })
 
   it('should be reactive enrichment after fields updates', async () => {
-    type T1 = { id: string, name: string }
-    type T2 = { id: string, name: string, parent: string }
-    const col1 = new Collection<T1>({ reactivity: primitiveReactivityAdapter })
+    const col1 = new Collection({ reactivity: primitiveReactivityAdapter })
     col1.insert({ id: '1', name: 'John' })
     col1.insert({ id: '2', name: 'Jane' })
 
-    const col2 = new Collection<T2>({
+    const col2 = new Collection({
       reactivity: primitiveReactivityAdapter,
-      enrichCollection: (items: T[], fields: CursorOptions<T2>['fields']) => {
+      enrichCollection: (items, fields) => {
         if (fields?.parent) {
           const foreignKeys = [...new Set(items.map(item => item.parent))]
           const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
