@@ -1,5 +1,6 @@
 import sortItems from '../utils/sortItems'
 import project from '../utils/project'
+import enrich from '../utils/enrich.ts'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
@@ -19,6 +20,7 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
 export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
   transform?: Transform<T, U>,
   bindEvents?: (requery: () => void) => () => void,
+  enrichCollection?: (items: T[], fields: CursorOptions<T, U>['fields']) => T[],
 }
 
 /**
@@ -48,6 +50,7 @@ export default class Cursor<T extends BaseItem, U = T> {
    * @param options.limit - The maximum number of items to return in the result set.
    * @param options.reactive - A reactivity adapter to enable observing changes in the cursor's result set.
    * @param options.fieldTracking - A boolean to enable fine-grained field tracking for reactivity.
+   * @param options.enrichCollection - A function that will be able to solve the n+1 problem
    */
   constructor(
     getItems: () => T[],
@@ -88,12 +91,13 @@ export default class Cursor<T extends BaseItem, U = T> {
 
   private getItems() {
     const items = this.getFilteredItems()
-    const { sort, skip, limit } = this.options
+    const { sort, skip, limit, enrichCollection } = this.options
     const sorted = sort ? sortItems(items, sort) : items
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0
-    return limited.map((item) => {
+    const entries = enrichCollection ? enrich(limited, this.options) : limited
+    return entries.map((item) => {
       if (!this.options.fields) return item
       return {
         ...idExcluded ? {} : { id: item.id },

@@ -1,7 +1,7 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { ZodSchema, infer as ZodInfer } from 'zod'
-import type { BaseItem, CollectionOptions } from '../src'
+import type { BaseItem, CollectionOptions, CursorOptions } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
@@ -1013,6 +1013,36 @@ describe('Collection', () => {
 
       const col2 = new Collection<{ id: string, name: string }>()
       await expect(col2.isReady()).resolves.toBeUndefined()
+    })
+
+    it('correctly enriches entities', async () => {
+      const col1 = new Collection<{ id: string, name: string }>({
+        persistence: memoryPersistenceAdapter(),
+      })
+      col1.insert({ id: '1', name: 'John' })
+      col1.insert({ id: '2', name: 'Jane' })
+
+      type T = { id: string, name: string, parent: string }
+      const col2 = new Collection<T>({
+        enrichCollection: (items: T[], fields: CursorOptions<any>['fields']) => {
+          if (fields?.parent) {
+            const foreignKeys = [...new Set(items.map(item => item.parent))]
+            const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
+            items.forEach((item) => {
+              item.parent = relatedItems.find(related => related.id === item.parent)
+            })
+          }
+        },
+      })
+
+      col2.insert({ id: '1', name: 'John', parent: '1' })
+      col2.insert({ id: '2', name: 'Jane', parent: '2' })
+
+      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
+      expect(col2.find({ id: '2' }, { fields: { id: 1, name: 1 } }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
+
+      col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
+      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
   })
 })
