@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* Introduced the `enrichCollection` option when creating a `Collection`. This allows you to define a function that enriches items after they are retrieved from persistence, enabling the integration of data from other collections or external sources.
+
 ## [1.5.2] - 2025-04-04
 
 ### Changed
