@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* Introduced `beforeInsert` option when creating a `Collection`. This allows specifying a function that will be executed before an item is inserted, enabling custom logic like generating unique IDs.
+
 ## [1.5.2] - 2025-04-04
 
 ### Changed
