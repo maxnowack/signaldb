@@ -1019,7 +1019,7 @@ describe('Collection', () => {
   describe('Custom Primary Generator', () => {
     it('should use custom primary key generator', () => {
       const col = new Collection<{ id: string, name: string }>({
-        primaryGenerator: () => 'custom-id',
+        beforeInsert: item => item.id = 'custom-id',
       })
       col.insert({ name: 'John' })
       expect(col.findOne({ id: 'custom-id' })).toEqual({ id: 'custom-id', name: 'John' })

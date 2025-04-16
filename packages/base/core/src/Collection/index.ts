@@ -34,7 +34,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
-  primaryGenerator?: () => string,
+  beforeInsert?: (item: T) => void,
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {
@@ -716,8 +716,10 @@ export default class Collection<
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
-    const primaryGenerator = this.options.primaryGenerator ?? randomId
-    const newItem = { id: primaryGenerator(), ...item } as T
+    const newItem = { id: randomId(), ...item } as T
+    if (this.options.beforeInsert) {
+      this.options.beforeInsert(newItem)
+    }
     this.emit('validate', newItem)
     if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
