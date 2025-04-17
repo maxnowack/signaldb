@@ -1401,3 +1401,34 @@ it('should pause and resume sync all collections', async () => {
   await syncManager.pauseAll()
   expect(registerRemoteChange).toBeCalledTimes(2)
 })
+
+it('should not pull if pull is not defined', async () => {
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    push: mockPush,
+  })
+
+  const mockCollection = new Collection<TestItem, string, any>({
+    memory: [
+      { id: '1', name: 'Test Item' },
+    ],
+  })
+
+  syncManager.addCollection(mockCollection, { name: 'test' })
+
+  mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated' } })
+  await syncManager.sync('test')
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
+
+  expect(onError).not.toHaveBeenCalled()
+  expect(mockPush).toHaveBeenCalled()
+  expect(mockCollection.findOne({ id: '1' })?.name).toBe('Updated')
+})
