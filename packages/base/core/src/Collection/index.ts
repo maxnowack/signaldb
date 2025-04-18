@@ -34,6 +34,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
+  beforeInsert?: (item: T) => void,
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {
@@ -716,6 +717,9 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
     const newItem = { id: randomId(), ...item } as T
+    if (this.options.beforeInsert) {
+      this.options.beforeInsert(newItem)
+    }
     this.emit('validate', newItem)
     if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
     this.memory().push(newItem)
