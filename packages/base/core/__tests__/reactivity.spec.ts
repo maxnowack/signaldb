@@ -244,4 +244,42 @@ describe('reactivity primitives', () => {
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(35)
   })
+
+  it('should be reactive enrichment after fields updates', async () => {
+    const col1 = new Collection({ reactivity: primitiveReactivityAdapter })
+    col1.insert({ id: '1', name: 'John' })
+    col1.insert({ id: '2', name: 'Jane' })
+
+    const col2 = new Collection({
+      reactivity: primitiveReactivityAdapter,
+      enrichCollection: (items, fields) => {
+        if (fields?.parent) {
+          const foreignKeys = [...new Set(items.map(item => item.parent))]
+          const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
+          items.forEach((item) => {
+            item.parent = relatedItems.find(related => related.id === item.parent)
+          })
+        }
+      },
+    })
+    const callback = vi.fn()
+
+    primitiveReactivity.effect(() => {
+      const items = col2.find({}, { fields: { id: 1, name: 1, parent: 1 } }).fetch()
+      callback(deepClone(items))
+    })
+
+    col2.insert({ id: '1', name: 'John', parent: '1' })
+    await tick()
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
+
+    col1.updateOne({ name: 'John' }, {
+      $set: { name: 'John Jr' },
+    })
+    await tick()
+
+    expect(callback).toHaveBeenCalledTimes(3)
+    expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', parent: { id: '1', name: 'John Jr' } }])
+  })
 })

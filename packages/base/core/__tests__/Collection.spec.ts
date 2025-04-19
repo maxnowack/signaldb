@@ -1001,7 +1001,7 @@ describe('Collection', () => {
     })
 
     it('should wait until a collection is ready', async () => {
-      const col1 = new Collection<{ id: string, name: string }>({
+      const col1 = new Collection({
         persistence: memoryPersistenceAdapter(),
       })
       let persistenceInit = false
@@ -1011,8 +1011,37 @@ describe('Collection', () => {
       await expect(col1.isReady()).resolves.toBeUndefined()
       expect(persistenceInit).toBe(true)
 
-      const col2 = new Collection<{ id: string, name: string }>()
+      const col2 = new Collection()
       await expect(col2.isReady()).resolves.toBeUndefined()
+    })
+
+    it('correctly enriches entities', async () => {
+      const col1 = new Collection({
+        persistence: memoryPersistenceAdapter(),
+      })
+      col1.insert({ id: '1', name: 'John' })
+      col1.insert({ id: '2', name: 'Jane' })
+
+      const col2 = new Collection({
+        enrichCollection: (items, fields) => {
+          if (fields?.parent) {
+            const foreignKeys = [...new Set(items.map(item => item.parent))]
+            const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
+            items.forEach((item) => {
+              item.parent = relatedItems.find(related => related.id === item.parent)
+            })
+          }
+        },
+      })
+
+      col2.insert({ id: '1', name: 'John', parent: '1' })
+      col2.insert({ id: '2', name: 'Jane', parent: '2' })
+
+      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
+      expect(col2.find({ id: '2' }, { fields: { id: 1, name: 1 } }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
+
+      col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
+      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
   })
 })
