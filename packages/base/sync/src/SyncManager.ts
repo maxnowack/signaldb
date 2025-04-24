@@ -23,7 +23,7 @@ interface Options<
   ItemType extends BaseItem<IdType> = BaseItem,
   IdType = any,
 > {
-  pull: (
+  pull?: (
     collectionOptions: SyncOptions<CollectionOptions>,
     pullParameters: {
       lastFinishedSyncStart?: number,
@@ -523,6 +523,17 @@ export default class SyncManager<
           status: 'active',
         })
       }
+
+      if (!this.options.pull) {
+        return await this.syncWithData(name, {
+          changes: {
+            added: [],
+            modified: [],
+            removed: [],
+          },
+        })
+      }
+
       const data = await this.options.pull(collectionOptions, {
         lastFinishedSyncStart: lastFinishedSync?.start,
         lastFinishedSyncEnd: lastFinishedSync?.end,
@@ -599,14 +610,18 @@ export default class SyncManager<
       reactive: false,
     }).fetch()
 
+    const pull = this.options.pull
+
     await sync<ItemType, ItemType['id']>({
       changes: currentChanges,
       lastSnapshot: lastSnapshot?.items,
       data,
-      pull: () => this.options.pull(collectionOptions, {
-        lastFinishedSyncStart: lastFinishedSync?.start,
-        lastFinishedSyncEnd: lastFinishedSync?.end,
-      }),
+      pull: pull
+        ? () => pull(collectionOptions, {
+          lastFinishedSyncStart: lastFinishedSync?.start,
+          lastFinishedSyncEnd: lastFinishedSync?.end,
+        })
+        : undefined,
       push: changes => this.options.push(collectionOptions, { changes }),
       insert: (item) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
