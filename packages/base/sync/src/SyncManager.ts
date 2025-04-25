@@ -329,11 +329,11 @@ export default class SyncManager<
     }
   }
 
-  protected flushScheduledPushes() {
-    this.scheduledPushes.forEach((name) => {
-      this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
-    })
-    this.scheduledPushes.clear()
+  protected async flushScheduledPushes() {
+    for (const name of this.scheduledPushes) {
+      await this.pushChanges(name).catch(() => { /* error handler is called in sync */ });
+    }
+    this.scheduledPushes.clear();
   }
 
   protected schedulePush(name: string) {
