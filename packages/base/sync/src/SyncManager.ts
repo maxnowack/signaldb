@@ -164,7 +164,7 @@ export default class SyncManager<
     this.snapshots.setMaxListeners(1000)
     this.syncOperations.setMaxListeners(1000)
 
-    this.debouncedFlush = debounce(this.flushScheduledPushes, this.options.debounceTime ?? 100)
+    this.debouncedFlush = debounce(() => void this.flushScheduledPushes(), this.options.debounceTime ?? 100)
   }
 
   protected createPersistenceAdapter(name: string) {
@@ -331,9 +331,9 @@ export default class SyncManager<
 
   protected async flushScheduledPushes() {
     for (const name of this.scheduledPushes) {
-      await this.pushChanges(name).catch(() => { /* error handler is called in sync */ });
+      await this.pushChanges(name).catch(() => { /* error handler is called in sync */ })
     }
-    this.scheduledPushes.clear();
+    this.scheduledPushes.clear()
   }
 
   protected schedulePush(name: string) {
