@@ -19,7 +19,7 @@ export function computeModifiedFields<T extends Record<string, any>>(
 
   for (const key of allKeys) {
     if (newItem[key] !== oldItem[key]) {
-      if (typeof newItem[key] === 'object' && typeof oldItem[key] === 'object') {
+      if (typeof newItem[key] === 'object' && typeof oldItem[key] === 'object' && newItem[key] != null && oldItem[key] != null) {
         const nestedModifiedFields = computeModifiedFields(oldItem[key], newItem[key])
         for (const nestedField of nestedModifiedFields) {
           modifiedFields.push(`${key}.${nestedField}`)
