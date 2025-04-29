@@ -193,7 +193,7 @@ export default class SyncManager<
   public async dispose() {
     this.collections.clear()
     this.syncQueues.clear()
-    this.remoteChanges.splice(0, this.remoteChanges.length)
+    this.remoteChanges.splice(0)
     await Promise.all([
       this.changes.dispose(),
       this.snapshots.dispose(),
