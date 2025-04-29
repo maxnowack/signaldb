@@ -152,6 +152,14 @@ describe('computeChanges', () => {
       },
     }])
   })
+
+  it('should handle items with null and undefined values', () => {
+    const oldItems = [{ id: 1, name: 'Item 1', value: null as null | { test: boolean } }]
+    const newItems = [{ id: 1, name: 'Item 1', value: { test: true } }]
+
+    const result = computeChanges(oldItems, newItems)
+    expect(result.modified).toEqual([{ id: 1, name: 'Item 1', value: { test: true } }])
+  })
 })
 
 describe('computeModifiedFields', () => {
@@ -310,5 +318,13 @@ describe('computeModifiedFields', () => {
     expect(result).toContain('details.description')
     expect(result).toContain('details.tags.1')
     expect(result.length).toBe(3)
+  })
+
+  it('should handle keys with null values', () => {
+    const oldItem = { id: 1, name: 'Item 1', value: null as null | { test: boolean } }
+    const newItem = { id: 1, name: 'Item 1', value: { test: true } }
+
+    const result = computeModifiedFields(oldItem, newItem)
+    expect(result).toEqual(['value'])
   })
 })
