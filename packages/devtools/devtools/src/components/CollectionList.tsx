@@ -17,11 +17,11 @@ interface Props {
  * @param props.onChange - The function to call when the collection changes.
  * @returns The rendered collection list component.
  */
-const CollectionList: React.FC<Props> = ({
+const CollectionList = ({
   value,
   onChange,
   className,
-}) => {
+}: Props) => {
   const collectionsItem = dataStore.useItem('collections')
   const collections = useMemo(() => ((collectionsItem?.items || []) as Collection<any>[])
     .sort((a, b) => {
