@@ -84,3 +84,18 @@ it('should insert non-existing items on update', async () => {
   const result = applyChanges(items, changes)
   expect(result).toEqual([{ id: 1, name: 'Updated Item 1' }])
 })
+
+it('should not modify the original items array', async () => {
+  const items: TestItem[] = [{ id: 1, name: 'Item 1', meta: { likes: 5 } }]
+  const changes: Change<TestItem, number>[] = [
+    { ...getDefaultChangeItem(), type: 'insert', data: { id: 2, name: 'Item 2' } },
+    { ...getDefaultChangeItem(), type: 'update', data: { id: 1, modifier: { $set: { 'meta.likes': 14 } } } },
+  ]
+
+  const result = applyChanges(items, changes)
+  expect(result).toEqual([
+    { id: 1, name: 'Item 1', meta: { likes: 14 } },
+    { id: 2, name: 'Item 2' },
+  ])
+  expect(items).toEqual([{ id: 1, name: 'Item 1', meta: { likes: 5 } }])
+})
