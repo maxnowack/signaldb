@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.4] - 2025-05-02
+
 ### Fixed
 
 * Fixed a bug where the index wasn't filtered correctly when it was outdated
