@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* deep clone items before modifying them
+
 ## [1.5.2] - 2025-04-04
 
 ### Changed

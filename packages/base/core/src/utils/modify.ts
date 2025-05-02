@@ -1,5 +1,6 @@
 import { update } from 'mingo'
 import type Modifier from '../types/Modifier'
+import deepClone from './deepClone'
 
 /**
  * Applies a modifier to an object and returns a new modified object.
@@ -20,7 +21,7 @@ export default function modify<T extends Record<string, any>>(
   const hasOperators = Object.keys(modifier).some(key => key.startsWith('$'))
   if (!hasOperators) return modifier as T
 
-  const clonedItem = { ...item }
+  const clonedItem = deepClone(item)
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   update(clonedItem, modifier as any)
   return clonedItem
