@@ -14,10 +14,10 @@ head:
     content: Object-Relational Mapping (ORM) | SignalDB
 - - meta
   - name: og:description
-    content: Learn how to use SignalDB for ORM-like functionality with reactive relationships, static methods, instance methods, and TypeScript support.
+    content: Learn how to use SignalDB for ORM-like functionality with reactive relationships, instance methods, and TypeScript support.
 - - meta
   - name: description
-    content: Learn how to use SignalDB for ORM-like functionality with reactive relationships, static methods, instance methods, and TypeScript support.
+    content: Learn how to use SignalDB for ORM-like functionality with reactive relationships, instance methods, and TypeScript support.
 - - meta
   - name: keywords
     content: SignalDB, ORM, reactive database, JavaScript ORM, TypeScript ORM, object relational mapping, reactive relationships, database methods, SignalDB tutorials, SignalDB features
@@ -26,11 +26,11 @@ head:
 
 SignalDB provides functionality to add methods to [collections](/reference/core/collection/) and item instances to enable ORM-like behavior. With this functionality, you can also reactively resolve relationships between items in different collections.
 
-## Adding Static Methods to Collections
+## Adding Instance Methods to Collections
 
-To add new static methods to a specific collection instance, we have to create a a new class that inherits from the collection class and use it like a kind of [singleton](https://en.wikipedia.org/wiki/Singleton_pattern). With this pattern, it's also possible to directly define collection options like the name or the persistence adapter.
+To add new methods to a specific collection instance, we have to create a new class that inherits from the collection class. With this approach, it's also possible to directly define collection options like the name or the persistence adapter.
 
-In the example below, we create a new class `PostsCollection` that inherits from the `Collection` class and adds a new static method `getPublishedPosts` to the class. This method returns all published posts from the collection.
+In the example below, we create a new class `PostsCollection` that inherits from the `Collection` class and add a new method `findPublishedPosts` to the class. This method returns a `Cursor` to all published posts from the collection.
 
 ```js
 import { Collection } from '@signaldb/core'
@@ -44,8 +44,8 @@ class PostsCollection extends Collection {
     })
   }
 
-  // static method to get all published posts
-  static getPublishedPosts() {
+  // instance method to find all published posts
+  findPublishedPosts() {
     return this.find({ published: true })
   }
 
@@ -54,7 +54,7 @@ class PostsCollection extends Collection {
 const Posts = new PostsCollection()
 
 
-const publishedPosts = Posts.getPublishedPosts().fetch()
+const publishedPosts = Posts.findPublishedPosts().fetch()
 ```
 
 You can use this pattern to add methods to your collection that predefines queries that you use often in your application like in the example above.
@@ -147,7 +147,7 @@ In the example above, we create three classes `Post`, `Comment`, and `User` that
 
 ## TypeScript Support
 
-When extending the collection class with static methods, TypeScript works seamlessly without additional setup. However, adding instance methods to item instances requires using a helper class to maintain type safety for the instance class. This is because we need to include all item properties in the class interface.
+Adding instance methods to collection or item instances requires using a helper class to maintain type safety for the instance class. This is because we need to include all properties in the class interface.
 
 ```ts
 declare interface BaseEntity<T extends {}> extends T {}
