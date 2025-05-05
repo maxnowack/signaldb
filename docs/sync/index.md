@@ -238,19 +238,32 @@ syncManager.addCollection(someCollection, {
 
 ### Implementing the `pull` method
 
-After we've added our collection to the `syncManager`, we can start implementing the `pull` method. The `pull` method is responsible for fetching the latest data from the server and applying it to the collection. The `pull` method is called whenever the `syncAll` or the `sync(name)` method are called. During sync, the `pull` method will be called for each collection that was added to the `syncManager`. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and an object with additional information, like the `lastFinishedSyncStart` and `lastFinishedSyncEnd` timestamps, as the second parameter. The `pull` method must return a promise that resolves to an object with either an `items` property containing all items that should be applied to the collection or a `changes` property containing all changes `{ added: T[], modified: T[], removed: T[] }`.
-
+After we've added our collection to the `syncManager`, we can start implementing the `pull` method. The `pull` method is responsible for fetching the latest data from the server and applying it to the collection. The `pull` method is called whenever the `syncAll` or the `sync(name)` method are called. During sync, the `pull` method will be called for each collection that was added to the `syncManager`. It's receiving the collection options, passed to the `addCollection` method, as the first parameter and an object with additional information, like the `lastFinishedSyncStart` and `lastFinishedSyncEnd` timestamps, as the second parameter. The `pull` method must return a promise that resolves to an object with either:
+- an `items` property containing **_all items_** from the server, without limiting the result set (`syncManager` will internally do a snapshot comparison between the local and the fetched items to determine and apply the changes to the collection):
 ```ts
 const syncManager = new SyncManager({
   // …
-  pull: async ({ apiPath }, { lastFinishedSyncStart }) => {
-    const data = await fetch(`${apiPath}?since=${lastFinishedSyncStart}`).then(res => res.json())
+  pull: async ({ apiPath }) => {
+    const data = await fetch(apiPath).then(res => res.json())
 
     return { items: data }
   },
   // …
 })
 ```
+- or a `changes` property containing only changes (`{ added: T[], modified: T[], removed: T[] }`) since the last sync (this is usefull when we do not want to always fetch the full data set from the server):
+```ts
+const syncManager = new SyncManager({
+  // …
+  pull: async ({ apiPath }, { lastFinishedSyncStart }) => {
+    const data = await fetch(`${apiPath}?since=${lastFinishedSyncStart}`).then(res => res.json())
+
+    return { changes: data }
+  },
+  // …
+})
+```
+
 
 ### Implementing the `push` method
 
