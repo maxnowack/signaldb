@@ -79,18 +79,27 @@ export default function createOPFSAdapter<
         .then((currentItems) => {
           const items = [...currentItems]
           added.forEach((item) => {
+            const index = items.findIndex(({ id }) => id === item.id)
+            /* istanbul ignore if -- @preserve */
+            if (index !== -1) {
+              items[index] = item
+              return
+            }
             items.push(item)
           })
           modified.forEach((item) => {
             const index = items.findIndex(({ id }) => id === item.id)
             /* istanbul ignore if -- @preserve */
-            if (index === -1) throw new Error(`Item with ID ${item.id as string} not found`)
+            if (index === -1) {
+              items.push(item)
+              return
+            }
             items[index] = item
           })
           removed.forEach((item) => {
             const index = items.findIndex(({ id }) => id === item.id)
             /* istanbul ignore if -- @preserve */
-            if (index === -1) throw new Error(`Item with ID ${item.id as string} not found`)
+            if (index === -1) return
             items.splice(index, 1)
           })
           return items

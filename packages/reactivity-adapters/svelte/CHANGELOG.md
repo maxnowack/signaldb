@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Refactored `create` to use a class-based object, and updated `onDispose` to support zero or multiple callbacks.
+
 ## [1.1.1] - 2025-04-04
 
 ### Fixed

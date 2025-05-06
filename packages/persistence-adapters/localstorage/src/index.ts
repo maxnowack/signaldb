@@ -49,24 +49,33 @@ export default function createLocalStorageAdapter<
       const items = getItems()
       return { items }
     },
-    async save(items, { added, modified, removed }) {
-      const currentItems = getItems()
+    async save(_items, { added, modified, removed }) {
+      const items = [...getItems()]
       added.forEach((item) => {
-        currentItems.push(item)
+        const index = items.findIndex(({ id }) => id === item.id)
+        /* istanbul ignore if -- @preserve */
+        if (index !== -1) {
+          items[index] = item
+          return
+        }
+        items.push(item)
       })
       modified.forEach((item) => {
-        const index = currentItems.findIndex(({ id }) => id === item.id)
+        const index = items.findIndex(({ id }) => id === item.id)
         /* istanbul ignore if -- @preserve */
-        if (index === -1) throw new Error(`Item with ID ${item.id as string} not found`)
-        currentItems[index] = item
+        if (index === -1) {
+          items.push(item)
+          return
+        }
+        items[index] = item
       })
       removed.forEach((item) => {
-        const index = currentItems.findIndex(({ id }) => id === item.id)
+        const index = items.findIndex(({ id }) => id === item.id)
         /* istanbul ignore if -- @preserve */
-        if (index === -1) throw new Error(`Item with ID ${item.id as string} not found`)
-        currentItems.splice(index, 1)
+        if (index === -1) return
+        items.splice(index, 1)
       })
-      localStorage.setItem(collectionId, serialize(currentItems))
+      localStorage.setItem(collectionId, serialize(items))
       return
     },
     async register() {

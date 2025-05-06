@@ -33,7 +33,10 @@ interface Options<
   push: (
     collectionOptions: SyncOptions<CollectionOptions>,
     pushParameters: {
-      changes: Changeset<ItemType>,
+      rawChanges: Omit<Change, 'id' | 'collectionName'>[],
+      changes: Changeset<ItemType> & {
+        modifiedFields: Map<IdType, string[]>,
+      },
     }
   ) => Promise<void>,
   registerRemoteChange?: (
@@ -190,7 +193,7 @@ export default class SyncManager<
   public async dispose() {
     this.collections.clear()
     this.syncQueues.clear()
-    this.remoteChanges.splice(0, this.remoteChanges.length)
+    this.remoteChanges.splice(0)
     await Promise.all([
       this.changes.dispose(),
       this.snapshots.dispose(),
@@ -607,7 +610,10 @@ export default class SyncManager<
         lastFinishedSyncStart: lastFinishedSync?.start,
         lastFinishedSyncEnd: lastFinishedSync?.end,
       }),
-      push: changes => this.options.push(collectionOptions, { changes }),
+      push: changes => this.options.push(collectionOptions, {
+        changes,
+        rawChanges: currentChanges,
+      }),
       insert: (item) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
