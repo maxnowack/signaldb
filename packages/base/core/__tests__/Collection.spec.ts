@@ -1,7 +1,7 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { ZodSchema, infer as ZodInfer } from 'zod'
-import type { BaseItem, CollectionOptions } from '../src'
+import type { BaseItem, CollectionOptions, TransformAll } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
@@ -1019,20 +1019,26 @@ describe('Collection', () => {
       const col1 = new Collection({
         persistence: memoryPersistenceAdapter(),
       })
+
+      interface TestItem {
+        id: number,
+        parent?: any,
+      }
+
+      const transformAll: TransformAll<BaseItem, TestItem> = (items, fields) => {
+        if (fields?.parent) {
+          const foreignKeys = [...new Set(items.map(item => item.parent))]
+          const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
+          items.forEach((item) => {
+            item.parent = relatedItems.find(related => related.id === item.parent)
+          })
+        }
+        return items
+      }
       col1.insert({ id: '1', name: 'John' })
       col1.insert({ id: '2', name: 'Jane' })
 
-      const col2 = new Collection({
-        transformAll: (items, fields) => {
-          if (fields?.parent) {
-            const foreignKeys = [...new Set(items.map(item => item.parent))]
-            const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
-            items.forEach((item) => {
-              item.parent = relatedItems.find(related => related.id === item.parent)
-            })
-          }
-        },
-      })
+      const col2 = new Collection({ transformAll })
 
       col2.insert({ id: '1', name: 'John', parent: '1' })
       col2.insert({ id: '2', name: 'Jane', parent: '2' })

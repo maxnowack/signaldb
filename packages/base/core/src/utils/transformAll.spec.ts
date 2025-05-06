@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import transformAll from './transformAll.ts'
+import transformAll from './transformAll'
 
 describe('transformAll', () => {
   const parents = [{

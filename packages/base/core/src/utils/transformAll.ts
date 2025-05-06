@@ -1,5 +1,5 @@
 import type { BaseItem, CursorOptions } from '../Collection'
-import { clone } from './deepClone.ts'
+import { clone } from './deepClone'
 
 /**
  * Transform a collection based on a specified fields configuration.

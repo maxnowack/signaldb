@@ -2,7 +2,7 @@ import sortItems from '../utils/sortItems'
 import project from '../utils/project'
 import transformAll from '../utils/transformAll'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
-import type { BaseItem, FindOptions, Transform } from './types'
+import type { BaseItem, FindOptions, Transform, TransformAll } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
@@ -20,7 +20,7 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
 export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
   transform?: Transform<T, U>,
   bindEvents?: (requery: () => void) => () => void,
-  transformAll?: (items: T[], fields: CursorOptions<T, U>['fields']) => unknown,
+  transformAll?: TransformAll<T, U>,
 }
 
 /**
@@ -96,7 +96,7 @@ export default class Cursor<T extends BaseItem, U = T> {
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0
-    const entries = _transformAll ? transformAll(limited, this.options) as any as T[] : limited
+    const entries = _transformAll ? transformAll(limited, this.options) : limited
     return entries.map((item) => {
       if (!this.options.fields) return item
       return {

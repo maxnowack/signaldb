@@ -260,6 +260,7 @@ describe('reactivity primitives', () => {
             item.parent = relatedItems.find(related => related.id === item.parent)
           })
         }
+        return items
       },
     })
     const callback = vi.fn()

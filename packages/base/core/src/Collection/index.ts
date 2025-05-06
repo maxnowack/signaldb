@@ -15,13 +15,12 @@ import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
 import serializeValue from '../utils/serializeValue'
 import type Signal from '../types/Signal'
 import createSignal from '../utils/createSignal'
-import type { CursorOptions } from './Cursor'
 import Cursor from './Cursor'
-import type { BaseItem, FindOptions, Transform } from './types'
+import type { BaseItem, FindOptions, Transform, TransformAll } from './types'
 import getIndexInfo from './getIndexInfo'
 import { createExternalIndex } from './createIndex'
 
-export type { BaseItem, Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
+export type { BaseItem, Transform, TransformAll, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from './createIndex'
@@ -35,7 +34,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
-  transformAll?: (collection: (T | U)[], fields: CursorOptions<T>['fields']) => void,
+  transformAll?: TransformAll<T, U>,
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {

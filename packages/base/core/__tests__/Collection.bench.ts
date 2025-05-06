@@ -1,6 +1,7 @@
 /* istanbul ignore file -- @preserve */
 import { bench, describe } from 'vitest'
 import { Collection, createIndex } from '../src'
+import type { TransformAll, BaseItem } from '../src'
 
 describe('Collection benchmarks', () => {
   describe('id index', () => {
@@ -54,17 +55,21 @@ describe('Collection benchmarks', () => {
   })
   describe('transformAll', () => {
     const col1 = new Collection()
-    const col2 = new Collection({
-      transformAll: (items, fields) => {
-        if (fields?.parent) {
-          const foreignKeys = [...new Set(items.map(item => item.parent))]
-          const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
-          items.forEach((item) => {
-            item.parent = relatedItems.find(related => related.id === item.parent)
-          })
-        }
-      },
-    })
+    interface TestItem {
+      id: number,
+      parent?: any,
+    }
+    const transformAll: TransformAll<BaseItem, TestItem> = (items, fields) => {
+      if (fields?.parent) {
+        const foreignKeys = [...new Set(items.map(item => item.parent))]
+        const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
+        items.forEach((item) => {
+          item.parent = relatedItems.find(related => related.id === item.parent)
+        })
+      }
+      return items
+    }
+    const col2 = new Collection({ transformAll })
 
     Collection.batch(() => {
       // create items

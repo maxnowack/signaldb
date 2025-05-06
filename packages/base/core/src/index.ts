@@ -12,6 +12,7 @@ export type {
   ObserveCallbacks,
   CursorOptions,
   Transform,
+  TransformAll,
   SortSpecifier,
   FieldSpecifier,
   FindOptions,
