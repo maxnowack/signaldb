@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources.
 
+## [1.5.4] - 2025-05-02
+
+### Fixed
+
+* Fixed a bug where the index wasn't filtered correctly when it was outdated
+
+## [1.5.3] - 2025-05-02
+
+### Changed
+
+* deep clone items before modifying them
+
 ## [1.5.2] - 2025-04-04
 
 ### Changed

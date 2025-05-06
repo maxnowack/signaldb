@@ -56,7 +56,7 @@ it('should rerun in strict mode', async () => {
     return reactive.get()
   })
   const { result, unmount } = renderHook(() => useReactivity(fn), {
-    wrapper: StrictMode,
+    wrapper: StrictMode as React.FC,
   })
   await waitFor(async () => expect(await result.current).toBe(1))
   expect(fn).toBeCalledTimes(3)

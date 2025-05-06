@@ -1401,3 +1401,60 @@ it('should pause and resume sync all collections', async () => {
   await syncManager.pauseAll()
   expect(registerRemoteChange).toBeCalledTimes(2)
 })
+
+it('should trigger sync when using $set on an array to modify an object/item inline', async () => {
+  type ItemType = {
+    id: string,
+    title: string,
+    text: string,
+    meta?: { likes: number },
+  }
+  const fakeDatabasePosts: ItemType[] = []
+
+  const posts = new Collection({ name: 'posts' })
+  const pull = vi.fn<() => Promise<LoadResponse<any>>>().mockImplementation(async () => ({
+    items: fakeDatabasePosts,
+  }))
+  const push = vi.fn<(options: any, pushParameters: any) => Promise<void>>().mockImplementation(
+    async (_, { changes }) => {
+      changes.added.forEach((item: ItemType) => {
+        fakeDatabasePosts.push(item)
+      })
+    },
+  )
+
+  const syncManager = new SyncManager({
+    pull,
+    push,
+    autostart: true,
+  })
+
+  syncManager.addCollection(posts, { name: 'posts' })
+
+  const postId1 = posts.insert({
+    title: 'Foo',
+    text: 'Lorem ipsum …',
+    meta: { likes: 14 },
+  })
+  const postId2 = posts.insert({ title: 'Foo', text: 'Riker ipsum …' })
+
+  expect(posts.find().fetch()).toEqual([
+    { id: postId1, title: 'Foo', text: 'Lorem ipsum …', meta: { likes: 14 } },
+    { id: postId2, title: 'Foo', text: 'Riker ipsum …' },
+  ])
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
+
+  expect(pull).toHaveBeenCalledTimes(2)
+  expect(push).toHaveBeenCalledTimes(1)
+
+  posts.updateOne({ id: postId1 }, { $set: { 'meta.likes': 5 } })
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, 110)
+  })
+
+  expect(push).toHaveBeenCalledTimes(2)
+})

@@ -940,7 +940,9 @@ describe('Collection', () => {
     })
 
     it('should disable indexing temporarily if indices are outdated', () => {
-      const col = new Collection<{ id: string, name: string }>()
+      const col = new Collection<{ id: string, name: string }>({
+        indices: [createIndex('name')],
+      })
       col.batch(() => {
         col.insert({ id: '1', name: 'John' })
         col.insert({ id: '2', name: 'Jane' })
@@ -948,6 +950,7 @@ describe('Collection', () => {
         col.removeOne({ id: '2' })
 
         expect(col.find().fetch()).toEqual([{ id: '1', name: 'John Doe' }])
+        expect(col.find({ name: 'John Doe' }).fetch()).toEqual([{ id: '1', name: 'John Doe' }])
       })
     })
 

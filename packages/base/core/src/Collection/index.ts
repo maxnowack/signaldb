@@ -517,22 +517,23 @@ export default class Collection<
   }
 
   private getIndexInfo(selector?: Selector<T>) {
-    if (selector != null
+    const isIdOnlySelector = selector != null
       && Object.keys(selector).length === 1
       && 'id' in selector
-      && typeof selector.id !== 'object') {
-      return {
-        matched: true,
-        positions: [...this.idIndex.get(serializeValue(selector.id)) || []],
-        optimizedSelector: {},
-      }
-    }
 
-    if (selector == null || this.indicesOutdated) {
+    if (selector == null) {
       return {
         matched: false,
         positions: [],
         optimizedSelector: {},
+      }
+    }
+
+    if (!isIdOnlySelector && this.indicesOutdated) {
+      return {
+        matched: false,
+        positions: [],
+        optimizedSelector: selector,
       }
     }
 
