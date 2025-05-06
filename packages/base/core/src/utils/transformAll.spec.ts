@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import enrich from './enrich'
+import transformAll from './transformAll.ts'
 
-describe('enrich', () => {
+describe('transformAll', () => {
   const parents = [{
     id: '1',
     name: 'John Doe Sr.',
@@ -12,14 +12,14 @@ describe('enrich', () => {
     parent: '1',
   }]
 
-  it('should enrich with a parent', () => {
-    const result = enrich<any>(objects, {
+  it('should transformAll with a parent', () => {
+    const result = transformAll<any>(objects, {
       fields: {
         name: 1,
         age: 1,
         parent: 1,
       },
-      enrichCollection: (items, fields) => {
+      transformAll: (items, fields) => {
         if (fields?.parent) {
           return items.map((item) => {
             item.parent = parents.find(parent => parent.id === item.parent)
@@ -38,8 +38,8 @@ describe('enrich', () => {
     }])
   })
 
-  it('should skip enrichment', () => {
-    const result = enrich<any>(objects, {})
+  it('should skip transformAll', () => {
+    const result = transformAll<any>(objects, {})
 
     expect(result).toEqual([{
       name: 'John Doe',

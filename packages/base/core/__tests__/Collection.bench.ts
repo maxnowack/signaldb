@@ -52,10 +52,10 @@ describe('Collection benchmarks', () => {
       col2.findOne({ num: 999 })
     })
   })
-  describe('enrichment', () => {
+  describe('transformAll', () => {
     const col1 = new Collection()
     const col2 = new Collection({
-      enrichCollection: (items, fields) => {
+      transformAll: (items, fields) => {
         if (fields?.parent) {
           const foreignKeys = [...new Set(items.map(item => item.parent))]
           const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
@@ -78,7 +78,7 @@ describe('Collection benchmarks', () => {
       col2.find().map(value => value.parent = col1.findOne({ id: value.parent }))
     })
 
-    bench('enriched', () => {
+    bench('transformAll', () => {
       col2.find({}, { fields: { parent: 1 } }).fetch()
     })
   })

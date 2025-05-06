@@ -2,24 +2,24 @@ import type { BaseItem, CursorOptions } from '../Collection'
 import { clone } from './deepClone.ts'
 
 /**
- * Enrich a collection based on a specified fields configuration.
+ * Transform a collection based on a specified fields configuration.
  * @template T - The type of the items in the collection.
- * @param items - The collection to enrich.
+ * @param items - The collection to transform.
  * @param options - Optional configuration for the cursor.
  * @param options.fields - An object defining the fields to include (`1`) or exclude (`0`).
  *   - Keys are the field names, and values are either `1` (include) or `0` (exclude).
- * @param options.enrichCollection - A function that will be able to solve the n+1 problem
+ * @param options.transformAll - A function that will be able to solve the n+1 problem
  * @returns A new collection with the specified fields included.
  */
-export default function enrich<T extends BaseItem, U = T>(
+export default function transformAll<T extends BaseItem, U = T>(
   items: T[],
   options: CursorOptions<T, U>,
 ) {
-  if (!options.enrichCollection || !options.fields) {
+  if (!options.transformAll || !options.fields) {
     return items
   }
 
   const result = clone(items)
-  options.enrichCollection(result, options.fields)
+  options.transformAll(result, options.fields)
   return result
 }

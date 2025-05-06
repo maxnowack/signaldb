@@ -245,14 +245,14 @@ describe('reactivity primitives', () => {
     expect(callback).toHaveBeenLastCalledWith(35)
   })
 
-  it('should be reactive enrichment after fields updates', async () => {
+  it('should be reactive transformAll after fields updates', async () => {
     const col1 = new Collection({ reactivity: primitiveReactivityAdapter })
     col1.insert({ id: '1', name: 'John' })
     col1.insert({ id: '2', name: 'Jane' })
 
     const col2 = new Collection({
       reactivity: primitiveReactivityAdapter,
-      enrichCollection: (items, fields) => {
+      transformAll: (items, fields) => {
         if (fields?.parent) {
           const foreignKeys = [...new Set(items.map(item => item.parent))]
           const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()

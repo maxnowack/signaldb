@@ -35,7 +35,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
-  enrichCollection?: (collection: (T | U)[], fields: CursorOptions<T>['fields']) => void,
+  transformAll?: (collection: (T | U)[], fields: CursorOptions<T>['fields']) => void,
 }
 
 interface CollectionEvents<T extends BaseItem, U = T> {
@@ -227,7 +227,7 @@ export default class Collection<
    * @param options.indices - An array of index providers for optimized querying.
    * @param options.enableDebugMode - A boolean to enable or disable debug mode.
    * @param options.fieldTracking - A boolean to enable or disable field tracking by default.
-   * @param options.enrichCollection - A function that will be able to solve the n+1 problem
+   * @param options.transformAll - A function that will be able to solve the n+1 problem
    */
   constructor(options?: CollectionOptions<T, I, U>) {
     super()
@@ -640,7 +640,7 @@ export default class Collection<
     const cursor = new Cursor<T, U>(() => this.getItems(selector), {
       reactive: this.options.reactivity,
       fieldTracking: this.fieldTracking,
-      enrichCollection: this.options.enrichCollection,
+      transformAll: this.options.transformAll,
       ...options,
       transform: this.transform.bind(this),
       bindEvents: (requery) => {

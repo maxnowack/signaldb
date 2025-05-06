@@ -1015,7 +1015,7 @@ describe('Collection', () => {
       await expect(col2.isReady()).resolves.toBeUndefined()
     })
 
-    it('correctly enriches entities', async () => {
+    it('correctly transform entities', async () => {
       const col1 = new Collection({
         persistence: memoryPersistenceAdapter(),
       })
@@ -1023,7 +1023,7 @@ describe('Collection', () => {
       col1.insert({ id: '2', name: 'Jane' })
 
       const col2 = new Collection({
-        enrichCollection: (items, fields) => {
+        transformAll: (items, fields) => {
           if (fields?.parent) {
             const foreignKeys = [...new Set(items.map(item => item.parent))]
             const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()

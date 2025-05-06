@@ -177,15 +177,15 @@ class Post extends BaseEntity<PostType> {
 ```
 
 
-## Solving the N+1 Problem with Enrichment
+## Solving the N+1 Problem with transformAll
 
 While the instance method approach (like `post.getAuthor()`) is convenient for accessing related data on individual items, it can lead to the "N+1 problem" when dealing with multiple items. If you fetch N posts and then call `getAuthor()` on each, you might end up making N additional database queries (1 query for the posts + N queries for the authors).
 
-To address this, SignalDB offers an `enrichCollection` option in the `Collection` constructor. This allows you to define a function that efficiently pre-loads related data in bulk for a set of items *before* they are returned by a query, significantly reducing the number of database operations.
+To address this, SignalDB offers an `transformAll` option in the `Collection` constructor. This allows you to define a function that efficiently pre-loads related data in bulk for a set of items *before* they are returned by a query, significantly reducing the number of database operations.
 
-### How Enrichment Works
+### How transformAll Works
 
-The `enrichCollection` function you provide receives two arguments:
+The `transformAll` function you provide receives two arguments:
 1.  `items`: An array of items that matched the query's filter, *after* sorting and limiting, but *before* being returned.
 2.  `fields`: The `fields` projection object specified in the query options (e.g., `{ name: 1, author: 1 }`).
 
@@ -199,7 +199,7 @@ This process happens automatically whenever a query using the relevant `fields` 
 
 ### Example
 
-Let's redefine our `Posts` and `Users` collections to use enrichment for fetching authors:
+Let's redefine our `Posts` and `Users` collections to use transformAll for fetching authors:
 
 ```js
 import { Collection, memoryPersistenceAdapter, primitiveReactivityAdapter, effect } from '@signaldb/core' // Assuming adapters are imported
@@ -216,13 +216,13 @@ Users.insert({ _id: 'user1', name: 'Alice' })
 Users.insert({ _id: 'user2', name: 'Bob' })
 
 
-// Post Collection with Enrichment
+// Post Collection with transformAll
 const Posts = new Collection({
   name: 'posts',
   reactivity: primitiveReactivityAdapter,
   persistence: memoryPersistenceAdapter(),
-  // --- Enrichment Function ---
-  enrichCollection: (items, fields) => {
+  // --- transformAll Function ---
+  transformAll: (items, fields) => {
     // 1. Check if the 'author' field is requested
     if (fields?.author) {
       // 2. Collect unique author IDs
@@ -249,7 +249,7 @@ Posts.insert({ _id: 'post3', title: 'Third Post', authorId: 'user1' })
 
 // --- Usage ---
 
-// Query requesting the author field - enrichment runs
+// Query requesting the author field - transformAll runs
 const postsWithAuthors = Posts.find({}, { fields: { title: 1, author: 1 } }).fetch()
 console.log(postsWithAuthors)
 /* Output:
@@ -260,7 +260,7 @@ console.log(postsWithAuthors)
 ]
 */
 
-// Query NOT requesting the author field - enrichment is skipped for 'author'
+// Query NOT requesting the author field - transformAll is skipped for 'author'
 const postsWithoutAuthors = Posts.find({}, { fields: { title: 1, authorId: 1 } }).fetch()
 console.log(postsWithoutAuthors)
 /* Output:
@@ -273,13 +273,13 @@ console.log(postsWithoutAuthors)
 ```
 ### Reactivity
 
-The enrichment process is fully integrated with SignalDB's reactivity system. If the data in the related collection changes (e.g., a user's name is updated), any reactive query that includes the enriched field will automatically re-run and reflect the changes.
+The transformAll process is fully integrated with SignalDB's reactivity system. If the data in the related collection changes (e.g., a user's name is updated), any reactive query that includes the transformAll field will automatically re-run and reflect the changes.
 
 ```js
 import { effect, Users, Posts } from './your-setup'; // Assuming Users, Posts, effect are set up/imported
 
 effect(() => {
-  // This query requests the enriched 'author' field
+  // This query requests the transformAll 'author' field
   const posts = Posts.find({ _id: 'post1' }, { fields: { title: 1, author: 1 } }).fetch()
   console.log('Post 1 Author:', posts[0]?.author?.name)
 })
@@ -292,4 +292,4 @@ Users.updateOne({ _id: 'user1' }, { $set: { name: 'Alice Smith' } })
 // The effect will re-run automatically due to the change in Users
 // Updated output: Post 1 Author: Alice Smith
 ```
-By using the enrichCollection option, you can efficiently load related data, avoid the N+1 problem, and maintain reactivity, especially when dealing with lists or collections of items. This approach is often more performant than using instance methods for simple relationship loading in bulk scenarios.
+By using the transformAll option, you can efficiently load related data, avoid the N+1 problem, and maintain reactivity, especially when dealing with lists or collections of items. This approach is often more performant than using instance methods for simple relationship loading in bulk scenarios.
