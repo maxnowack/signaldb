@@ -38,7 +38,15 @@ const collection = new Collection({
 Function to create an IndexedDB adapter for use with a collection.
 The IndexedDB Adapter is designed for robust and efficient data storage within a browser environment, especially for larger datasets or those requiring more advanced querying capabilities. To get started, provide a unique name for your collection. This name acts as the identifier for your data, enabling it to be stored and retrieved seamlessly using IndexedDB. The adapter supports advanced operations such as updates, deletions, and batch processing, ensuring data integrity and performance.
 
-Example Usage:
+### Parameters
+
+- `name` - A unique name for the collection, used as the database name.
+- `options` - (Optional) Configuration object with the following properties:
+  - `prefix` - (Optional) A string prefix to add to the database name. Default is 'signaldb-'.
+
+### Examples
+
+Basic usage:
 
 ```js
 import createIndexedDBAdapter from '@signaldb/indexeddb'
@@ -54,4 +62,19 @@ collection.insert({ id: '1', name: 'John Doe' })
 // Fetch data
 const items = collection.find().fetch()
 console.log(items) // [{ id: '1', name: 'John Doe' }]
+```
+
+With custom prefix:
+
+```js
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+import { Collection } from '@signaldb/core'
+
+const collection = new Collection({
+  persistence: createIndexedDBAdapter('myCollection', {
+    prefix: 'my-app-'
+  }),
+})
+
+// This will create a database named 'my-app-myCollection'
 ```

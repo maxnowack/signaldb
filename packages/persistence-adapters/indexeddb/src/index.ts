@@ -6,13 +6,16 @@ import { createPersistenceAdapter } from '@signaldb/core'
  * @template T - The type of the items in the collection.
  * @template I - The type of the unique identifier for the items.
  * @param name - A unique name for the collection, used as the database name.
+ * @param options - Optional configuration for the adapter.
+ * @param options.prefix - A prefix to be added to the database name (default: 'signaldb-').
  * @returns A SignalDB persistence adapter for managing data in IndexedDB.
  */
 export default function createIndexedDBAdapter<
   T extends { id: I } & Record<string, any>,
   I extends IDBValidKey,
->(name: string) {
-  const databaseName = `signaldb-${name}`
+>(name: string, options?: { prefix?: string }) {
+  const { prefix = 'signaldb-' } = options || {}
+  const databaseName = `${prefix}${name}`
   const storeName = 'items'
 
   /**
