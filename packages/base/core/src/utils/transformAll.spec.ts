@@ -21,10 +21,11 @@ describe('transformAll', () => {
       },
       transformAll: (items, fields) => {
         if (fields?.parent) {
-          return items.map((item) => {
+          items.forEach((item) => {
             item.parent = parents.find(parent => parent.id === item.parent)
           })
         }
+        return items
       },
     })
 
