@@ -148,25 +148,25 @@ describe('Persistence', () => {
       const customPrefix = 'custom-prefix-'
       const persistence = createIndexedDBAdapter(collectionName, { prefix: customPrefix })
       await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      
+
       // Verify data was saved with the custom prefix by opening the database directly
       const openRequest = indexedDB.open(`${customPrefix}${collectionName}`, 1)
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
         openRequest.addEventListener('success', () => resolve(openRequest.result))
         openRequest.addEventListener('error', () => reject(new Error('Failed to open database with custom prefix')))
       })
-      
-      const transaction = db.transaction('items', 'readonly')
+
+      const transaction = database.transaction('items', 'readonly')
       const store = transaction.objectStore('items')
       const getAllRequest = store.getAll()
-      
+
       const items = await new Promise<any[]>((resolve, reject) => {
         getAllRequest.addEventListener('success', () => resolve(getAllRequest.result))
         getAllRequest.addEventListener('error', () => reject(new Error('Failed to get items')))
       })
-      
+
       expect(items).toEqual([{ id: '1', name: 'John' }])
-      db.close()
+      database.close()
     })
   })
 })
