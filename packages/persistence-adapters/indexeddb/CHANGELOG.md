@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-05-08
+
+### Added
+
+* Added support for custom database prefix option (thanks to @pierissimo!)
+
 ## [1.0.0] - 2025-01-06
 
 * Initial release

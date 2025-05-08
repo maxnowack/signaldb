@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources.
 
+### Fixed
+
+* Improve performance of checking id index
+
 ## [1.5.4] - 2025-05-02
 
 ### Fixed
