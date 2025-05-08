@@ -142,5 +142,31 @@ describe('Persistence', () => {
       const loadResult = await persistence.load()
       expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
     })
+
+    it('should use custom prefix when provided in options', async () => {
+      const collectionName = `test-${Math.floor(Math.random() * 1e17).toString(16)}`
+      const customPrefix = 'custom-prefix-'
+      const persistence = createIndexedDBAdapter(collectionName, { prefix: customPrefix })
+      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
+
+      // Verify data was saved with the custom prefix by opening the database directly
+      const openRequest = indexedDB.open(`${customPrefix}${collectionName}`, 1)
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        openRequest.addEventListener('success', () => resolve(openRequest.result))
+        openRequest.addEventListener('error', () => reject(new Error('Failed to open database with custom prefix')))
+      })
+
+      const transaction = database.transaction('items', 'readonly')
+      const store = transaction.objectStore('items')
+      const getAllRequest = store.getAll()
+
+      const items = await new Promise<any[]>((resolve, reject) => {
+        getAllRequest.addEventListener('success', () => resolve(getAllRequest.result))
+        getAllRequest.addEventListener('error', () => reject(new Error('Failed to get items')))
+      })
+
+      expect(items).toEqual([{ id: '1', name: 'John' }])
+      database.close()
+    })
   })
 })
