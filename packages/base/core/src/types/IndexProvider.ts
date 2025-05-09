@@ -4,10 +4,12 @@ import type { FlatSelector } from './Selector'
 type IndexResult = {
   positions: number[],
   fields: string[],
+  keepSelector?: boolean,
   matched: true,
 } | {
   positions?: never,
   fields?: never,
+  keepSelector?: never,
   matched: false,
 }
 

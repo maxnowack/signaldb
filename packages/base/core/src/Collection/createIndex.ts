@@ -13,11 +13,20 @@ import type { BaseItem } from './types'
  */
 export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
   field: string,
-  index: Map<string, Set<number>>,
+  index: Map<string | undefined | null, Set<number>>,
 ) {
   return createIndexProvider<T, I>({
     query(selector) {
-      const keys = getMatchingKeys<T, I>(field, selector)
+      if (!Object.hasOwnProperty.call(selector, field)) {
+        // If the field is not present in the selector, we can't optimize
+        return { matched: false }
+      }
+
+      const fieldSelector = (selector as Record<string, any>)[field]
+      const filteresForNull = fieldSelector == null || fieldSelector.$exists === false
+      const keys = filteresForNull
+        ? { include: null, exclude: [...index.keys()].filter(key => key != null) }
+        : getMatchingKeys<T, I>(field, selector)
       if (keys.include == null && keys.exclude == null) return { matched: false }
 
       // Accumulate included positions
@@ -58,6 +67,7 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
         matched: true,
         positions: includedPositions,
         fields: [field],
+        keepSelector: filteresForNull,
       }
     },
     rebuild() {
@@ -72,7 +82,7 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
  * @returns an index provider to pass to the `indices` option of the collection constructor
  */
 export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(field: string) {
-  const index = new Map<string, Set<number>>()
+  const index = new Map<string | undefined | null, Set<number>>()
   return {
     ...createExternalIndex<T, I>(field, index),
     rebuild(items) {

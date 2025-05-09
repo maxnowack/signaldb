@@ -4,8 +4,8 @@ import isFieldExpression from './isFieldExpression'
 import serializeValue from './serializeValue'
 
 type KeyResult = {
-  include: string[] | null,
-  exclude: string[] | null,
+  include: (string | null)[] | null,
+  exclude: (string | null)[] | null,
 }
 
 /**
