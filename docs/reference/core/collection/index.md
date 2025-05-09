@@ -72,6 +72,7 @@ Parameters
   * persistence: A [PersistenceAdapter](/data-persistence/) for enabling persistent storage.
   * transform: A transformation function to be applied to items. The document that should be transformed is passed as the only parameter. The function should return the transformed document (e.g. `(doc: T) => U`)
   * indices: An array of [IndexProvider](/reference/core/createindexprovider/) objects for creating indices on the collection.
+  * primaryKeyGenerator: A function that generates a unique ID for the item. If not provided, a default generator will be used.
 
 ## Methods
 

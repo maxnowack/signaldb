@@ -35,6 +35,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
   transformAll?: TransformAll<T, E>,
+  primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 }
 
 interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
@@ -732,7 +733,8 @@ export default class Collection<
   public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
-    const newItem = { id: randomId(), ...item } as T
+    const primaryKeyGenerator = this.options.primaryKeyGenerator ?? randomId
+    const newItem = { id: primaryKeyGenerator(item), ...item } as T
     this.emit('validate', newItem)
     if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
     this.memory().push(newItem)

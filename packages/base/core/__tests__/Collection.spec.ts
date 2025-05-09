@@ -1053,4 +1053,14 @@ describe('Collection', () => {
       expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
   })
+
+  describe('Custom Primary Key Generator', () => {
+    it('should use custom primary key generator', () => {
+      const col = new Collection<{ id: string, name: string }>({
+        primaryKeyGenerator: () => 'custom-id',
+      })
+      col.insert({ name: 'John' })
+      expect(col.findOne({ id: 'custom-id' })).toEqual({ id: 'custom-id', name: 'John' })
+    })
+  })
 })
