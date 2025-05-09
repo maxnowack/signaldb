@@ -1,6 +1,6 @@
 import sortItems from '../utils/sortItems'
 import project from '../utils/project'
-import { clone } from '../utils/deepClone'
+import deepClone from '../utils/deepClone'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type { BaseItem, FindOptions, Transform, TransformAll } from './types'
 import type { ObserveCallbacks } from './Observer'
@@ -102,7 +102,7 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0
     const entries = transformAll
-      ? transformAll(clone(limited), fields)
+      ? transformAll(deepClone(limited), fields)
       : (limited as unknown as E[])
     return entries.map((item) => {
       if (!this.options.fields) return item
