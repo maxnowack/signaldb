@@ -190,6 +190,34 @@ describe('getIndexInfo', () => {
         ],
       },
     })
+
+    const nameIndex = createIndex<{ id: string, name?: string | null }>('name')
+    nameIndex.rebuild([
+      { id: '0', name: '0' },
+      { id: '1', name: '1' },
+      { id: '2', name: null },
+      { id: '3', name: undefined },
+      { id: '4' },
+    ])
+    expect(getIndexInfo([nameIndex], {
+      $and: [{
+        $or: [
+          { name: null },
+          { name: { $exists: false } },
+        ],
+      }],
+    })).toEqual({
+      matched: true,
+      positions: [2, 3, 4],
+      optimizedSelector: {
+        $and: [{
+          $or: [
+            { name: null },
+            { name: { $exists: false } },
+          ],
+        }],
+      },
+    })
   })
 
   it('should return the correct result when using multiple index providers', () => {
