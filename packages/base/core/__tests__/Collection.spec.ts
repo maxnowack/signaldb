@@ -798,19 +798,21 @@ describe('Collection', () => {
     interface SchemaCollectionOptions<
       T extends ZodSchema<BaseItem<I>>,
       I,
-      U = ZodInfer<T>,
-    > extends CollectionOptions<ZodInfer<T>, I, U> {
+      E extends ZodSchema<BaseItem<I>> = T,
+      U = ZodInfer<E>,
+    > extends CollectionOptions<ZodInfer<T>, I, ZodInfer<E>, U> {
       schema: T,
     }
 
     class SchemaCollection<
       T extends ZodSchema<BaseItem<I>>,
       I = any,
-      U = ZodInfer<T>,
-    > extends Collection<ZodInfer<T>, I, U> {
+      E extends ZodSchema<BaseItem<I>> = T,
+      U = ZodInfer<E>,
+    > extends Collection<ZodInfer<T>, I, ZodInfer<E>, U> {
       private schema: T
 
-      constructor(options: SchemaCollectionOptions<T, I, U>) {
+      constructor(options: SchemaCollectionOptions<T, I, E, U>) {
         super(options)
         this.schema = options.schema
         this.on('validate', (item) => {
@@ -1004,7 +1006,7 @@ describe('Collection', () => {
     })
 
     it('should wait until a collection is ready', async () => {
-      const col1 = new Collection({
+      const col1 = new Collection<{ id: string, name: string }>({
         persistence: memoryPersistenceAdapter(),
       })
       let persistenceInit = false
@@ -1014,7 +1016,7 @@ describe('Collection', () => {
       await expect(col1.isReady()).resolves.toBeUndefined()
       expect(persistenceInit).toBe(true)
 
-      const col2 = new Collection()
+      const col2 = new Collection<{ id: string, name: string }>()
       await expect(col2.isReady()).resolves.toBeUndefined()
     })
 
