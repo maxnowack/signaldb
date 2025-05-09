@@ -101,9 +101,11 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0
-    const entries = transformAll
-      ? transformAll(deepClone(limited), fields)
-      : (limited as unknown as E[])
+
+    let entries = limited as unknown as E[]
+    if (transformAll) {
+      entries = transformAll(deepClone(limited), fields)
+    }
     return entries.map((item) => {
       if (!this.options.fields) return item
       return {
