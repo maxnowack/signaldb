@@ -269,4 +269,27 @@ describe('Queries', () => {
     // Test removeOne with no match
     expect(c.removeOne({ id: 100 })).toBe(0)
   })
+
+  it('should handle queries for empty values correctly', () => {
+    const c = new Collection({ indices: [createIndex('name')] })
+    c.insert({ id: 1, name: 'John' })
+    c.insert({ id: 2, name: null })
+    c.insert({ id: 3, name: undefined })
+    c.insert({ id: 4, name: '' })
+    c.insert({ id: 5, name: 0 })
+    c.insert({ id: 6, name: false })
+    c.insert({ id: 7, name: [] })
+    c.insert({ id: 8, name: {} })
+    c.insert({ id: 9 })
+
+    expect(c.find({ name: null }).count()).toBe(3)
+    expect(c.find({ name: undefined }).count()).toBe(3)
+    expect(c.find({ name: '' }).count()).toBe(1)
+    expect(c.find({ name: 0 }).count()).toBe(1)
+    expect(c.find({ name: false }).count()).toBe(1)
+    expect(c.find({ name: [] }).count()).toBe(1)
+    expect(c.find({ name: {} }).count()).toBe(1)
+    expect(c.find({ name: { $exists: false } }).count()).toBe(2)
+    expect(c.find({ name: { $exists: true } }).count()).toBe(7)
+  })
 })

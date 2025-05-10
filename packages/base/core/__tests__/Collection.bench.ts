@@ -52,4 +52,31 @@ describe('Collection benchmarks', () => {
       col2.findOne({ num: 999 })
     })
   })
+
+  describe('index null and undefined values', () => {
+    const col1 = new Collection<{ id: string, name: string, num?: number | null }>({
+      indices: [createIndex('num')],
+    })
+    const col2 = new Collection<{ id: string, name: string, num?: number | null }>()
+
+    Collection.batch(() => {
+      // create items
+      for (let i = 0; i < 10_000; i += 1) {
+        col1.insert({ id: i.toString(), name: 'John', num: i > 5000 ? i : undefined })
+        col2.insert({ id: i.toString(), name: 'John', num: i > 5000 ? i : undefined })
+      }
+    })
+
+    bench('with index', () => {
+      col1.findOne({ num: undefined })
+      col1.findOne({ num: null })
+      col1.findOne({ num: { $exists: false } })
+    })
+
+    bench('without index', () => {
+      col2.findOne({ num: undefined })
+      col2.findOne({ num: null })
+      col2.findOne({ num: { $exists: false } })
+    })
+  })
 })

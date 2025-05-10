@@ -10,6 +10,7 @@
  * @returns A string representation of the value.
  */
 export default function serializeValue(value: any) {
+  if (value == null) return null
   if (typeof value === 'string') return value
   if (typeof value === 'number') return value.toString()
   if (typeof value === 'boolean') return value.toString()

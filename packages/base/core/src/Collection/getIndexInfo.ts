@@ -29,8 +29,10 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
     const info = indexProvider.query(selector)
     if (!info.matched) return memo
 
-    const optimizedSelector = Object.fromEntries(Object.entries(memo.optimizedSelector)
-      .filter(([key]) => !info.fields.includes(key))) as FlatSelector<T>
+    const optimizedSelector = info.keepSelector
+      ? memo.optimizedSelector
+      : Object.fromEntries(Object.entries(memo.optimizedSelector)
+        .filter(([key]) => !info.fields.includes(key))) as FlatSelector<T>
 
     return {
       matched: true,
