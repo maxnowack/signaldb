@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources.
+
 ### Added
 
 * Introduced `primaryKeyGenerator`. A function that generates a unique ID for the item. If not provided, a default generator will be used (thanks @signalize!)
