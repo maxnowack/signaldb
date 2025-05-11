@@ -17,6 +17,7 @@ export type {
   FindOptions,
   CollectionOptions,
 } from './Collection'
+export { default as Cursor } from './Collection/Cursor'
 
 export { default as Collection, createIndex } from './Collection'
 export { default as AutoFetchCollection } from './AutoFetchCollection'
