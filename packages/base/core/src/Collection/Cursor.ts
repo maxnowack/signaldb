@@ -1,7 +1,8 @@
 import sortItems from '../utils/sortItems'
 import project from '../utils/project'
+import deepClone from '../utils/deepClone'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
-import type { BaseItem, FindOptions, Transform } from './types'
+import type { BaseItem, FindOptions, Transform, TransformAll } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
@@ -16,8 +17,13 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
 }
 
-export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
-  transform?: Transform<T, U>,
+export interface CursorOptions<
+  T extends BaseItem,
+  E extends BaseItem = T,
+  U = E,
+> extends FindOptions<T> {
+  transformAll?: TransformAll<T, E>,
+  transform?: Transform<E, U>,
   bindEvents?: (requery: () => void) => () => void,
 }
 
@@ -25,12 +31,13 @@ export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T>
  * Represents a cursor for querying and observing a filtered, sorted, and transformed
  * subset of items from a collection. Supports reactivity and field tracking.
  * @template T - The type of the items in the collection.
- * @template U - The transformed item type after applying transformations (default is T).
+ * @template E - The transformed item type after applying transformAll (default is T).
+ * @template U - The transformed item type after applying transform (default is E).
  */
-export default class Cursor<T extends BaseItem, U = T> {
-  private observer: Observer<T> | undefined
+export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
+  private observer: Observer<E> | undefined
   private getFilteredItems: () => T[]
-  private options: CursorOptions<T, U>
+  private options: CursorOptions<T, E, U>
   private onCleanupCallbacks: (() => void)[] = []
 
   /**
@@ -48,16 +55,17 @@ export default class Cursor<T extends BaseItem, U = T> {
    * @param options.limit - The maximum number of items to return in the result set.
    * @param options.reactive - A reactivity adapter to enable observing changes in the cursor's result set.
    * @param options.fieldTracking - A boolean to enable fine-grained field tracking for reactivity.
+   * @param options.transformAll - A function that will be able to solve the n+1 problem
    */
   constructor(
     getItems: () => T[],
-    options?: CursorOptions<T, U>,
+    options?: CursorOptions<T, E, U>,
   ) {
     this.getFilteredItems = getItems
     this.options = options || {}
   }
 
-  private addGetters(item: T) {
+  private addGetters(item: E) {
     if (!isInReactiveScope(this.options.reactive)) return item
     const depend = this.depend.bind(this)
     return Object.entries(item).reduce((memo, [key, value]) => {
@@ -75,10 +83,10 @@ export default class Cursor<T extends BaseItem, U = T> {
         configurable: true,
       })
       return memo
-    }, {}) as T
+    }, {}) as E
   }
 
-  private transform(rawItem: T): U {
+  private transform(rawItem: E): U {
     const item = this.options.fieldTracking
       ? this.addGetters(rawItem)
       : rawItem
@@ -88,24 +96,29 @@ export default class Cursor<T extends BaseItem, U = T> {
 
   private getItems() {
     const items = this.getFilteredItems()
-    const { sort, skip, limit } = this.options
+    const { sort, skip, limit, transformAll, fields } = this.options
     const sorted = sort ? sortItems(items, sort) : items
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
     const idExcluded = this.options.fields && this.options.fields.id === 0
-    return limited.map((item) => {
+
+    let entries = limited as unknown as E[]
+    if (transformAll) {
+      entries = transformAll(deepClone(limited), fields)
+    }
+    return entries.map((item) => {
       if (!this.options.fields) return item
       return {
         ...idExcluded ? {} : { id: item.id },
-        ...project(item, this.options.fields),
+        ...project<E>(item, this.options.fields),
       }
     })
   }
 
   private depend(
     changeEvents: {
-      [P in keyof ObserveCallbacks<T>]?: true
-        | ((notify: () => void) => NonNullable<ObserveCallbacks<T>[P]>)
+      [P in keyof ObserveCallbacks<E>]?: true
+        | ((notify: () => void) => NonNullable<ObserveCallbacks<E>[P]>)
     },
   ) {
     if (!this.options.reactive) return
@@ -125,7 +138,7 @@ export default class Cursor<T extends BaseItem, U = T> {
     ) {
       const eventHandler = changeEvents[event]
 
-      return (...args: Parameters<NonNullable<ObserveCallbacks<T>[Event]>>) => {
+      return (...args: Parameters<NonNullable<ObserveCallbacks<E>[Event]>>) => {
         // if the event is just turned on with true, we can notify directly
         if (eventHandler === true) {
           notify()
@@ -136,7 +149,7 @@ export default class Cursor<T extends BaseItem, U = T> {
         if (typeof eventHandler !== 'function') return
 
         // if the event is a function, we call it with the notify function
-        eventHandler(notify)(...args as [T, T & keyof T, T[keyof T], T[keyof T]])
+        eventHandler(notify)(...args as [E, E & keyof E, E[keyof E], E[keyof E]])
       }
     }
 
@@ -156,7 +169,7 @@ export default class Cursor<T extends BaseItem, U = T> {
 
   private ensureObserver() {
     if (!this.observer) {
-      const observer = new Observer<T>(() => {
+      const observer = new Observer<E>(() => {
         const requery = () => {
           observer.runChecks(this.getItems())
         }
@@ -171,7 +184,7 @@ export default class Cursor<T extends BaseItem, U = T> {
     return this.observer
   }
 
-  private observeRawChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+  private observeRawChanges(callbacks: ObserveCallbacks<E>, skipInitial = false) {
     const observer = this.ensureObserver()
     observer.addCallbacks(callbacks, skipInitial)
     observer.runChecks(this.getItems())
@@ -281,14 +294,14 @@ export default class Cursor<T extends BaseItem, U = T> {
    * @param skipInitial - A boolean indicating whether to skip the initial notification of the current result set.
    * @returns A function to stop observing changes.
    */
-  public observeChanges(callbacks: ObserveCallbacks<U>, skipInitial = false) {
+  public observeChanges(callbacks: ObserveCallbacks<E>, skipInitial = false) {
     return this.observeRawChanges(Object
       .entries(callbacks)
       .reduce((memo, [callbackName, callback]) => {
         if (!callback) return memo
         return {
           ...memo,
-          [callbackName]: (item: T, before: T | undefined) => {
+          [callbackName]: (item: E, before: E | undefined) => {
             const transformedValue = this.transform(item)
             const hasBeforeParameter = before !== undefined
             const transformedBeforeValue = hasBeforeParameter && before
