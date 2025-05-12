@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2025-05-12
+
 ### Added
 
 * Introduced `primaryKeyGenerator`. A function that generates a unique ID for the item. If not provided, a default generator will be used (thanks @signalize!)
