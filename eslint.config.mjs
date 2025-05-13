@@ -23,10 +23,10 @@ export default tseslint.config(
   eslint.configs.recommended,
   tseslintConfigs.recommendedTypeChecked,
   importPlugin.recommended,
-  stylisticPlugin.configs['recommended-flat'],
+  stylisticPlugin.configs.recommended,
   jsdocPlugin.configs['flat/recommended-typescript'],
   vitestPlugin.configs.recommended,
-  unicornPlugin.configs['flat/recommended'],
+  unicornPlugin.configs.recommended,
   {
     plugins: {
       'react': reactPlugin,
