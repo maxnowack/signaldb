@@ -48,8 +48,8 @@ export default function createOPFSAdapter<
   async function getItems(): Promise<T[]> {
     const opfsRoot = await navigator.storage.getDirectory()
     const existingFileHandle = await opfsRoot.getFileHandle(filename, { create: true })
-    const contents = await existingFileHandle.getFile().then(value => value.text())
-    return deserialize(contents || '[]')
+    const serializedItems = await existingFileHandle.getFile().then(value => value.text())
+    return serializedItems ? deserialize(serializedItems) : []
   }
 
   return createPersistenceAdapter<T, I>({

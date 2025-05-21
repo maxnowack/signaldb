@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Custom deserialize function now works correctly when file is empty (thanks to @krolebord!)
+
 ## [1.0.1] - 2025-04-24
 
 ### Fixed

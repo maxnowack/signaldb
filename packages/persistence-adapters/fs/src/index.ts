@@ -46,13 +46,13 @@ export default function createFilesystemAdapter<
     const fs = await import('fs')
     const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
     if (!exists) return []
-    const contents = await fs.promises.readFile(filename, 'utf8').catch((error) => {
+    const serializedItems = await fs.promises.readFile(filename, 'utf8').catch((error) => {
       /* istanbul ignore next -- @preserve */
-      if (error.code === 'ENOENT') return '[]'
+      if (error.code === 'ENOENT') return
       /* istanbul ignore next -- @preserve */
       throw error
     })
-    return deserialize(contents)
+    return serializedItems ? deserialize(serializedItems) : []
   }
 
   return createPersistenceAdapter<T, I>({
