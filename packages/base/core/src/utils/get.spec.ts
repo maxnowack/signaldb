@@ -23,6 +23,12 @@ describe('get', () => {
     expect(value).toBe(2)
   })
 
+  it('retrieves value from nested array path', () => {
+    const nested = { a: [{ b: { c: 5 } }] }
+    const value = get(nested, 'a[0].b.c')
+    expect(value).toBe(5)
+  })
+
   it('retrieves null value', () => {
     const value = get(testObject, 'a.e')
     expect(value).toBeNull()
