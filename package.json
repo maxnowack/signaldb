@@ -31,7 +31,7 @@
     "@codecov/bundle-analyzer": "^1.9.0",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
-    "@rollup/plugin-typescript": "12.1.2",
+    "@rollup/plugin-typescript": "12.1.3",
     "@stylistic/eslint-plugin": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "8.34.1",
     "@typescript-eslint/parser": "8.34.1",
