@@ -39,7 +39,7 @@
     "@vitest/eslint-plugin": "^1.1.25",
     "eslint": "9.29.0",
     "eslint-import-resolver-typescript": "4.4.3",
-    "eslint-plugin-import": "2.31.0",
+    "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jsdoc": "^51.0.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.4",
