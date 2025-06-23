@@ -21,8 +21,8 @@ type ArraysOrEach<T> = {
 }
 type CurrentDateModifier = { $type: 'timestamp' | 'date' } | true
 
-type Modifier<T extends Dictionary<any> = Dictionary<any>> =
-  | {
+type Modifier<T extends Dictionary<any> = Dictionary<any>>
+  = | {
     $currentDate?:
     | (Partial<Record<keyof T, CurrentDateModifier>> & Dictionary<CurrentDateModifier>)
     | undefined,

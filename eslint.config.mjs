@@ -6,7 +6,7 @@ import globals from 'globals'
 import tseslint, { configs as tseslintConfigs } from 'typescript-eslint'
 import reactPlugin from 'eslint-plugin-react'
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y'
-import { flatConfigs as importPlugin } from 'eslint-plugin-import'
+import eslintPluginImport from 'eslint-plugin-import'
 import testingLibraryPlugin from 'eslint-plugin-testing-library'
 import jsdocPlugin from 'eslint-plugin-jsdoc'
 import vitestPlugin from '@vitest/eslint-plugin'
@@ -22,7 +22,7 @@ const projectDirectories = workspaces
 export default tseslint.config(
   eslint.configs.recommended,
   tseslintConfigs.recommendedTypeChecked,
-  importPlugin.recommended,
+  eslintPluginImport.flatConfigs.recommended,
   stylisticPlugin.configs.recommended,
   jsdocPlugin.configs['flat/recommended-typescript'],
   vitestPlugin.configs.recommended,
