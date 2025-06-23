@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed a bug where nested array parts where not resolved correctly
+* Removed non-working `$text` operator from query selector type
+* Fixed function signature for `$where` operator
 
 ## [1.6.0] - 2025-05-12
 
