@@ -2,6 +2,7 @@ import fs from 'fs/promises'
 import path from 'path'
 import { createRequire } from 'module'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import llmstxt from 'vitepress-plugin-llms'
 
 const require = createRequire(import.meta.url)
 const package_ = require('../../packages/base/core/package.json')
@@ -17,6 +18,9 @@ function buildRedirectHtml(to: string) {
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
+  vite: {
+    plugins: [llmstxt()],
+  },
   title: 'SignalDB',
   description: 'A reactive local JavaScript database with a MongoDB-like interface, first-class TypeScript support and signal-based reactivity.',
   lastUpdated: true,
