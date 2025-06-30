@@ -11,18 +11,18 @@ head:
     content: https://signaldb.js.org/signals/
 - - meta
   - name: og:title
-    content: Signals in JavaScript
+    content: JavaScript Signals
 - - meta
   - name: og:description
-    content: Discover the power of signals in JavaScript for real-time data and user interactions with efficient state management.
+    content: Discover the power of JavaScript Signals for real-time data and user interactions with efficient state management.
 - - meta
   - name: description
-    content: Discover the power of signals in JavaScript for real-time data and user interactions with efficient state management.
+    content: Discover the power of JavaScript Signals for real-time data and user interactions with efficient state management.
 - - meta
   - name: keywords
     content: signals, JavaScript signals, real-time data, reactive programming, SignalDB, user experience, developer experience, state management, SolidJS, reactive primitives, web development
 ---
-# Signals in JavaScript
+# JavaScript Signals
 
 ## Introduction
 
@@ -32,17 +32,35 @@ This blog post will delve into the essence of signals in the JavaScript context,
 
 By understanding the role and functionality of signals, developers can unlock new levels of interactivity and efficiency in their applications, making them more intuitive and engaging for users. Join us as we unpack the power of signals in JavaScript and their transformative impact on web development.
 
+::: info What are JavaScript signals?
+JavaScript signals are reactive primitives used in modern web development to manage and propagate state changes efficiently in real-time.
+:::
+
 ## Understanding Signals in JavaScript
 
 In the realm of JavaScript, signals represent a sophisticated approach to managing state and handling events in a reactive manner. To grasp their role and functionality, it's crucial to understand what signals are and how they operate within the JavaScript ecosystem.
 
-### What are Signals?
+A signal is often used together with an `effect` function, which reacts whenever the signal’s value changes. This connection between signals and effects is central to achieving automatic reactivity.
 
-Signals in JavaScript are primarily used in reactive programming paradigms to facilitate the automatic propagation of changes through an application. When data changes, signals help ensure that all parts of the application that depend on that data react accordingly, updating to reflect the new state. This model enhances the responsiveness and performance of web applications by minimizing unnecessary computations and DOM manipulations.
+## When to Use JavaScript Signals
+
+JavaScript signals are particularly useful in scenarios where fine-grained reactivity and real-time updates are critical. Consider using signals when:
+
+- You're building interactive UIs that respond to user input in real time
+- Your application relies heavily on dynamic or frequently changing data
+- You want to minimize unnecessary DOM updates and improve rendering performance
+- You need to synchronize state between components or even across clients
+- You want to adopt a declarative and reactive programming style with fewer dependencies
+
+These characteristics make JavaScript Signals a strong choice for modern, high-performance web applications.
+
+> **JavaScript signals** are reactive primitives that represent values over time and automatically notify subscribers of changes, enabling fine-grained reactivity in applications.
+
+In JavaScript, signals are primarily used in reactive programming paradigms to facilitate the automatic propagation of changes through an application. When data changes, signals help ensure that all parts of the application that depend on that data react accordingly, updating to reflect the new state. This model enhances the responsiveness and performance of web applications by minimizing unnecessary computations and DOM manipulations.
 
 ### Signals and Reactive Programming
 
-Reactive programming is a declarative programming paradigm concerned with data streams and the propagation of change. In JavaScript, this involves:
+[Reactive programming](https://en.wikipedia.org/wiki/Reactive_programming) is a declarative programming paradigm concerned with data streams and the propagation of change. In JavaScript, this involves:
 - **Creating observables**: Data sources that can be observed and manipulated.
 - **Subscribing to observables**: Components or functions that react to the changes in observables.
 - **Dynamic updates**: As data flows through these observables, subscribers automatically update themselves without explicit commands to re-render or fetch new data.
@@ -73,6 +91,8 @@ Signals were originally designed to handle interrupts and inter-process communic
 
 ### Adaptation to Web Development
 
+While signals in operating systems dealt with process-level interrupts, their conceptual shift in JavaScript redefines them as data-driven observables that notify subscribers on change.
+
 As web applications became more sophisticated, the need for handling real-time, asynchronous events grew. JavaScript, being at the heart of web development, required a mechanism to handle such events gracefully. This led to the adaptation of the signal concept within various JavaScript frameworks to manage state changes and asynchronous actions more seamlessly.
 
 ### Influence of Functional Reactive Programming (FRP)
@@ -81,7 +101,9 @@ Functional Reactive Programming (FRP) has been a significant influence on the in
 
 ### The SolidJS Revolution and the Rise of Signals
 
-SolidJS has played a significant role in the resurgence of interest in signals within the JavaScript community. This modern framework emphasizes fine-grained reactivity and efficient rendering, where signals are used to track and respond to state changes in applications. SolidJS's approach to signals has been praised for its simplicity and performance benefits, which align closely with the core principles of reactive programming. By making state management more transparent and less boilerplate-heavy than in traditional frameworks, SolidJS has not only popularized the use of signals but also demonstrated their potential to enhance both developer experience and application performance. This has created a buzz around signals, positioning them as a powerful tool for building modern, reactive web applications that require precise and efficient data handling.
+[SolidJS](https://docs.solidjs.com/concepts/intro-to-reactivity) has played a significant role in the resurgence of interest in signals within the JavaScript community. This modern framework emphasizes fine-grained reactivity and efficient rendering, where signals are used to track and respond to state changes in applications. SolidJS's approach to signals has been praised for its simplicity and performance benefits, which align closely with the core principles of reactive programming. By making state management more transparent and less boilerplate-heavy than in traditional frameworks, SolidJS has not only popularized the use of signals but also demonstrated their potential to enhance both developer experience and application performance. This has created a buzz around signals, positioning them as a powerful tool for building modern, reactive web applications that require precise and efficient data handling.
+
+This momentum was further amplified by Ryan Carniato’s article [*The Evolution of Signals in JavaScript*](https://dev.to/thisdotmedia/the-evolution-of-signals-in-javascript-ryan-carniato-5ejn), which recently generated significant buzz across the JavaScript ecosystem and spotlighted signals as a foundational primitive for modern reactivity.
 
 ### Influence on Other Frameworks
 
@@ -94,6 +116,15 @@ Understanding how signals work from a technical perspective is key to appreciati
 ### Signal Creation and Propagation
 
 At its core, a signal in JavaScript is a reactive value that tracks changes. When a signal is created, it holds a value and automatically triggers updates to any function or component that depends on that value whenever it changes. This automatic propagation is what makes signals powerful in managing state in reactive applications.
+
+```mermaid
+graph TD
+  A[User Interaction] --> B[Signal Value Changes]
+  B --> C{Any Reactive Dependencies?}
+  C -->|Yes| D[Re-run Effects / Computations]
+  D --> F[UI Reactively Reflects New State]
+  C -->|No| E[No Re-evaluation Needed]
+```
 
 For example, when a user interacts with an application—such as typing in a form—the signals corresponding to the form’s state will automatically update and trigger any necessary changes in the user interface (UI). This seamless update mechanism reduces the need for manual DOM manipulation, allowing the UI to remain in sync with the application’s state.
 
@@ -113,29 +144,6 @@ Signals are tightly integrated with the user interface in modern JavaScript fram
 
 In conclusion, signals provide a powerful and efficient mechanism for managing reactivity in JavaScript applications. Through automatic dependency tracking, localized reactivity, and seamless UI integration, signals enable developers to create highly responsive and performant applications with minimal effort.
 
-## SignalDB and Signals for Enhanced UX and DX
-
-SignalDB takes full advantage of the power of signals to deliver a superior user experience (UX) and developer experience (DX) in modern web applications. By integrating signals into its core functionality, SignalDB enables real-time data management and synchronization that are both intuitive and efficient.
-
-### Real-Time Data Synchronization
-
-One of the primary benefits of SignalDB is its ability to synchronize data in real-time across all connected clients. This is achieved through the use of signals, which automatically propagate changes from the database to the user interface without the need for manual refreshes or complex state management code. When data is updated in SignalDB, the corresponding signals are triggered, ensuring that all dependent components in the application are instantly updated. This seamless data flow is crucial for applications where timely updates are critical, such as in collaborative tools, real-time analytics dashboards, or live content feeds.
-
-### Simplified State Management
-
-For developers, SignalDB’s use of signals significantly simplifies state management. Traditional state management in JavaScript applications often requires complex setups with global state stores, context providers, and manual update mechanisms. In contrast, SignalDB leverages signals to handle state changes locally and automatically. This means developers can focus on building features rather than worrying about the intricacies of keeping the application state in sync with the backend. The reduction in boilerplate code not only speeds up development but also reduces the potential for bugs, making the application more stable and maintainable.
-
-### Performance Optimization
-
-Signals also play a crucial role in optimizing application performance. Because signals allow for fine-grained reactivity, only the components that depend on a changed piece of data are re-rendered. This selective updating process minimizes unnecessary computations and DOM updates, which is especially beneficial in large-scale applications with complex user interfaces. SignalDB’s architecture is designed to take full advantage of this, ensuring that even as an application grows, it remains responsive and efficient.
-
-### Enhanced Developer Experience
-
-The developer experience (DX) is further enhanced by SignalDB’s clear and straightforward API, which integrates seamlessly with popular JavaScript frameworks. Whether working with React, Vue, or Angular, developers can easily incorporate SignalDB into their projects and start leveraging signals to manage real-time data flows. The result is a more enjoyable and productive development process, where developers can quickly implement real-time features without the overhead typically associated with reactive programming.
-
-In summary, SignalDB uses signals to provide both a superior user experience, through real-time data updates and optimized performance, and a superior developer experience, by simplifying state management and reducing the complexity of integrating real-time data into modern web applications.
-
-## SignalDB and Signals for Enhanced UX and DX
 
 SignalDB takes full advantage of the power of signals to deliver a superior user experience (UX) and developer experience (DX) in modern web applications. By integrating signals into its core functionality, SignalDB enables real-time data management and synchronization that are both intuitive and efficient.
 
@@ -149,7 +157,7 @@ For developers, SignalDB’s use of signals significantly simplifies state manag
 
 ### Library-Agnostic Flexibility
 
-A key feature of SignalDB is its library-agnostic design, meaning it can be integrated with any signal implementation or JavaScript framework. Whether you're using React, Vue, Angular, or even custom signal libraries, SignalDB provides the flexibility to work within your existing technology stack. This adaptability allows developers to seamlessly incorporate SignalDB into a wide range of projects, leveraging its real-time capabilities without being tied to a specific framework or library.
+A key feature of SignalDB is its library-agnostic design, meaning it can be integrated with any signal implementation or JavaScript framework. Whether you're using React, Vue, Angular, or even custom signal libraries, SignalDB provides the flexibility to work within your existing technology stack. This adaptability allows developers to seamlessly incorporate SignalDB into a wide range of projects, leveraging its real-time capabilities without being tied to a specific framework or library. There are guides for [React](/guides/react/), [Vue](/guides/vue/), [Svelte](/guides/svelte/), [Angular](/guides/angular/), and [SolidJS](/guides/solid-js/) to help you get started with SignalDB in your preferred environment.
 
 ### Performance Optimization
 
@@ -160,6 +168,8 @@ Signals also play a crucial role in optimizing application performance. Because 
 The developer experience (DX) is further enhanced by SignalDB’s clear and straightforward API, which integrates seamlessly with popular JavaScript frameworks. Whether working with React, Vue, Angular, or any other framework that supports signals, developers can easily incorporate SignalDB into their projects and start leveraging signals to manage real-time data flows. The result is a more enjoyable and productive development process, where developers can quickly implement real-time features without the overhead typically associated with reactive programming.
 
 In summary, SignalDB uses signals to provide both a superior user experience, through real-time data updates and optimized performance, and a superior developer experience, by simplifying state management and reducing the complexity of integrating real-time data into modern web applications. Its library-agnostic nature ensures that it can be used flexibly across different frameworks and signal implementations, making it a versatile tool for any developer.
+
+Learn more about [SignalDB's architecture](/core-concepts/) and how it enables real-time reactivity across frameworks.
 
 ## Conclusion
 
