@@ -103,7 +103,10 @@ Functional Reactive Programming (FRP) has been a significant influence on the in
 
 [SolidJS](https://docs.solidjs.com/concepts/intro-to-reactivity) has played a significant role in the resurgence of interest in signals within the JavaScript community. This modern framework emphasizes fine-grained reactivity and efficient rendering, where signals are used to track and respond to state changes in applications. SolidJS's approach to signals has been praised for its simplicity and performance benefits, which align closely with the core principles of reactive programming. By making state management more transparent and less boilerplate-heavy than in traditional frameworks, SolidJS has not only popularized the use of signals but also demonstrated their potential to enhance both developer experience and application performance. This has created a buzz around signals, positioning them as a powerful tool for building modern, reactive web applications that require precise and efficient data handling.
 
+
 This momentum was further amplified by Ryan Carniato’s article [*The Evolution of Signals in JavaScript*](https://dev.to/thisdotmedia/the-evolution-of-signals-in-javascript-ryan-carniato-5ejn), which recently generated significant buzz across the JavaScript ecosystem and spotlighted signals as a foundational primitive for modern reactivity.
+
+**Building on this momentum, a formal [TC39 proposal for signals](https://github.com/tc39/proposal-signals) is now in development**, aiming to bring signals natively into the JavaScript language. This proposal, led by developers from Chrome and other influential projects, signals growing recognition of the power and utility of reactive primitives. If adopted, it would standardize a common reactive primitive across frameworks, simplifying interop and tooling while encouraging best practices in state management.
 
 ### Influence on Other Frameworks
 
@@ -144,6 +147,7 @@ Signals are tightly integrated with the user interface in modern JavaScript fram
 
 In conclusion, signals provide a powerful and efficient mechanism for managing reactivity in JavaScript applications. Through automatic dependency tracking, localized reactivity, and seamless UI integration, signals enable developers to create highly responsive and performant applications with minimal effort.
 
+## SignalDB and the Power of Signals
 
 SignalDB takes full advantage of the power of signals to deliver a superior user experience (UX) and developer experience (DX) in modern web applications. By integrating signals into its core functionality, SignalDB enables real-time data management and synchronization that are both intuitive and efficient.
 
