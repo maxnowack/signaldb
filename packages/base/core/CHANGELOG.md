@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Type safety for modifiers in `updateOne`, `updateMany`, and `replaceOne` methods
+
 ### Fixed
 
 * Fixed a bug where nested array parts where not resolved correctly
