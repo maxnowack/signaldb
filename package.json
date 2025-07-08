@@ -57,7 +57,7 @@
     "typedoc": "^0.28.5",
     "typescript": "5.8.3",
     "typescript-eslint": "^8.34.1",
-    "vite": "7.0.3",
+    "vite": "6.3.5",
     "vite-plugin-dts": "4.5.4",
     "vite-tsconfig-paths": "5.1.4",
     "vitepress": "1.6.3",
