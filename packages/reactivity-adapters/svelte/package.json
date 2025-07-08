@@ -42,10 +42,10 @@
   "description": "",
   "peerDependencies": {
     "@signaldb/core": "1.x",
-    "svelte": "^5.7.0"
+    "svelte": "5.7.0"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^6.0.0",
-    "svelte": "^5.25.3"
+    "@sveltejs/vite-plugin-svelte": "6.0.0",
+    "svelte": "5.35.6"
   }
 }
