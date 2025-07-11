@@ -1,24 +1,17 @@
-import type MemoryAdapter from '../types/MemoryAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
-import type PersistenceAdapter from '../types/PersistenceAdapter'
 import EventEmitter from '../utils/EventEmitter'
 import type Selector from '../types/Selector'
 import type Modifier from '../types/Modifier'
 import type IndexProvider from '../types/IndexProvider'
-import type { LowLevelIndexProvider } from '../types/IndexProvider'
-import match from '../utils/match'
-import modify from '../utils/modify'
-import isEqual from '../utils/isEqual'
-import randomId from '../utils/randomId'
-import deepClone from '../utils/deepClone'
-import type { Changeset, LoadResponse } from '../types/PersistenceAdapter'
-import serializeValue from '../utils/serializeValue'
 import type Signal from '../types/Signal'
 import createSignal from '../utils/createSignal'
+import type DataAdapter from '../DataAdapter'
+import type { CollectionBackend, QueryOptions } from '../DataAdapter'
+import randomId from '../utils/randomId'
+import DefaultDataAdapter from '../DefaultDataAdapter'
+import type PersistenceAdapter from '../types/PersistenceAdapter'
 import Cursor from './Cursor'
-import type { BaseItem, FindOptions, Transform, TransformAll, FieldSpecifier } from './types'
-import getIndexInfo from './getIndexInfo'
-import { createExternalIndex } from './createIndex'
+import type { BaseItem, FieldSpecifier, FindOptions, Transform, TransformAll } from './types'
 
 export type { BaseItem, Transform, TransformAll, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
@@ -26,16 +19,26 @@ export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from './createIndex'
 
 export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem = T, U = E> {
+  /**
+   * @deprecated Use new constructor parameters instead.
+   */
   name?: string,
-  memory?: MemoryAdapter,
+  /**
+   * @deprecated Use `DataAdapter` options instead.
+   */
+  persistence?: PersistenceAdapter<T, I>,
+
+  /**
+   * @deprecated Use `DataAdapter` options instead.
+   */
+  primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
+
   reactivity?: ReactivityAdapter,
   transform?: Transform<E, U>,
-  persistence?: PersistenceAdapter<T, I>,
+  transformAll?: TransformAll<T, E>,
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
-  transformAll?: TransformAll<T, E>,
-  primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 }
 
 interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
@@ -52,16 +55,16 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'persistence.pushStarted': () => void,
   'persistence.pushCompleted': () => void,
 
-  'observer.created': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
-  'observer.disposed': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
+  'observer.created': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
+  'observer.disposed': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
   'getItems': (selector: Selector<T> | undefined) => void,
-  'find': <O extends FindOptions<T>>(
+  'find': <O extends FindOptions<T, Async>, Async extends boolean>(
     selector: Selector<T> | undefined,
     options: O | undefined,
-    cursor: Cursor<T, E, U>,
+    cursor: Cursor<Async, E, U>,
   ) => void,
-  'findOne': <O extends FindOptions<T>>(
+  'findOne': <O extends QueryOptions<T>>(
     selector: Selector<T>,
     options: O | undefined,
     item: U | undefined,
@@ -76,58 +79,14 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'validate': (item: T) => void,
 
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
-  '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, E, U>) => void,
-  '_debug.findOne': <O extends FindOptions<T>>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
+  '_debug.find': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<Async, E, U>) => void,
+  '_debug.findOne': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
   '_debug.insert': (callstack: string, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.updateOne': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
   '_debug.updateMany': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
   '_debug.replaceOne': (callstack: string, selector: Selector<T>, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.removeOne': (callstack: string, selector: Selector<T>) => void,
   '_debug.removeMany': (callstack: string, selector: Selector<T>) => void,
-}
-
-/**
- * Checks if there are any pending updates in the given changeset.
- * @template T - The type of the items in the changeset.
- * @param pendingUpdates - The changeset to check for pending updates.
- * @returns `true` if there are pending updates, otherwise `false`.
- */
-function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
-  return pendingUpdates.added.length > 0
-    || pendingUpdates.modified.length > 0
-    || pendingUpdates.removed.length > 0
-}
-
-/**
- * Applies updates (add, modify, remove) to a collection of current items.
- * @template T - The type of the items being updated.
- * @template I - The type of the unique identifier for the items.
- * @param currentItems - The current list of items.
- * @param changeset - The changeset containing added, modified, and removed items.
- * @param changeset.added An array of items to be added to the collection.
- * @param changeset.modified An array of items to replace existing items in the collection. Matching is based on item `id`.
- * @param changeset.removed An array of items to be removed from the collection. Matching is based on item `id`.
- * @returns A new array with the updates applied.
- */
-function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
-  currentItems: T[],
-  { added, modified, removed }: Changeset<T>,
-) {
-  const items = [...currentItems]
-  added.forEach((item) => {
-    items.push(item)
-  })
-  modified.forEach((item) => {
-    const index = items.findIndex(({ id }) => id === item.id)
-    if (index === -1) return
-    items[index] = item
-  })
-  removed.forEach((item) => {
-    const index = items.findIndex(({ id }) => id === item.id)
-    if (index === -1) return
-    items.splice(index, 1)
-  })
-  return items
 }
 
 /**
@@ -189,29 +148,49 @@ export default class Collection<
    * while deferring index rebuilding until all operations in the batch are completed.
    * This improves performance by avoiding repetitive index recalculations and
    * provides atomicity for the batch of operations.
+   * Supports both synchronous and asynchronous callbacks.
    * @param callback - The batch operation to execute.
+   * @returns A promise if the callback returns a promise, otherwise `void`.
    */
-  static batch(callback: () => void) {
+  static batch<ReturnType>(
+    callback: () => ReturnType,
+  ): ReturnType extends Promise<any> ? Promise<void> : void {
     Collection.batchOperationInProgress = true
-    Collection.collections.reduce((memo, collection) => () =>
-      collection.batch(() => memo()), callback)()
-    Collection.batchOperationInProgress = false
+
+    const execute = (): ReturnType => {
+      let result: ReturnType | undefined
+      for (const collection of Collection.collections) {
+        result = collection.batch(callback) as ReturnType
+      }
+      return result as ReturnType
+    }
+
+    const maybePromise = execute()
+
+    const afterBatch = () => {
+      Collection.batchOperationInProgress = false
+    }
+
+    if (maybePromise instanceof Promise) {
+      return maybePromise
+        .then(() => afterBatch()) as ReturnType extends Promise<any> ? Promise<void> : void
+    } else {
+      afterBatch()
+      return undefined as ReturnType extends Promise<any> ? Promise<void> : void
+    }
   }
 
   public readonly name: string
+  private backend: CollectionBackend<T, I>
   private options: CollectionOptions<T, I, E, U>
-  private persistenceAdapter: PersistenceAdapter<T, I> | null = null
   private isPullingSignal: Signal<boolean>
   private isPushingSignal: Signal<boolean>
-  private indexProviders: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = []
-  private indicesOutdated = false
   private idIndex = new Map<string | undefined | null, Set<number>>()
   private debugMode
   private batchOperationInProgress = false
   private isDisposed = false
   private postBatchCallbacks = new Set<() => void>()
   private fieldTracking = false
-  private persistenceReadyPromise: Promise<void>
 
   /**
    * Initializes a new instance of the `Collection` class with optional configuration.
@@ -219,6 +198,8 @@ export default class Collection<
    * @template T - The type of the items stored in the collection.
    * @template I - The type of the unique identifier for the items.
    * @template U - The transformed item type after applying transformations (default is T).
+   * @param name - The name of the collection.
+   * @param dataAdapter - The data adapter for creating the collection backend.
    * @param options - Optional configuration for the collection.
    * @param options.name - An optional name for the collection.
    * @param options.memory - The in-memory adapter for storing items.
@@ -230,23 +211,43 @@ export default class Collection<
    * @param options.fieldTracking - A boolean to enable or disable field tracking by default.
    * @param options.transformAll - A function that will be able to solve the n+1 problem
    */
-  constructor(options?: CollectionOptions<T, I, E, U>) {
+  constructor(options?: CollectionOptions<T, I, E, U>)
+  constructor(name: string, dataAdapter: DataAdapter, options?: CollectionOptions<T, I, E, U>)
+  constructor(
+    nameOrOptions: string | CollectionOptions<T, I, E, U> | undefined,
+    maybeDataAdapter?: DataAdapter,
+    maybeOptions?: CollectionOptions<T, I, E, U>,
+  ) {
     super()
+
+    const name = typeof nameOrOptions === 'string'
+      ? nameOrOptions
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      : nameOrOptions?.name || `${this.constructor.name}-${randomId()}`
+    const options = typeof nameOrOptions === 'string'
+      ? maybeOptions || {}
+      : nameOrOptions || {}
+
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const persistence = options.persistence
+    const dataAdapter = maybeDataAdapter || new DefaultDataAdapter({
+      ...persistence ? { storage: () => persistence } : {},
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      ...options.primaryKeyGenerator
+        ? {
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
+          primaryKeyGenerator: options.primaryKeyGenerator as any,
+        }
+        : {},
+    })
+
     Collection.collections.push(this)
-    this.name = options?.name ?? `${this.constructor.name}-${randomId()}`
-    this.options = {
-      memory: [],
-      ...options,
-    }
+    this.name = name
+    this.options = { ...options }
     this.fieldTracking = this.options.fieldTracking ?? Collection.fieldTracking
     this.debugMode = this.options.enableDebugMode ?? Collection.debugMode
-    this.indexProviders = [
-      createExternalIndex('id', this.idIndex),
-      ...(this.options.indices || []),
-    ]
-    this.rebuildIndices()
 
-    this.isPullingSignal = createSignal(this.options.reactivity, !!options?.persistence)
+    this.isPullingSignal = createSignal(this.options.reactivity, false)
     this.isPushingSignal = createSignal(this.options.reactivity, false)
     this.on('persistence.pullStarted', () => {
       this.isPullingSignal.set(true)
@@ -260,153 +261,16 @@ export default class Collection<
     this.on('persistence.pushCompleted', () => {
       this.isPushingSignal.set(false)
     })
-
-    this.persistenceAdapter = this.options.persistence ?? null
-    if (this.persistenceAdapter) {
-      let ongoingSaves = 0
-      let isInitialized = false
-      const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
-
-      const loadPersistentData = async (data?: LoadResponse<T>) => {
-        if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
-        this.emit('persistence.pullStarted')
-        // load items from persistence adapter and push them into memory
-        const { items, changes } = data ?? await this.persistenceAdapter.load()
-
-        if (items) {
-          // as we overwrite all items, we need to discard if there are ongoing saves
-          if (ongoingSaves > 0) return
-
-          // push new items to this.memory() and delete old ones
-          this.memory().splice(0, this.memoryArray().length, ...items)
-          this.idIndex.clear()
-
-          this.memory().map((item, index) => {
-            this.idIndex.set(serializeValue(item.id), new Set([index]))
-          })
-        } else if (changes) {
-          changes.added.forEach((item) => {
-            const index = this.memory().findIndex(document => document.id === item.id)
-            if (index !== -1) { // item already exists; doing upsert
-              this.memory().splice(index, 1, item)
-              return
-            }
-
-            // item does not exists yet; normal insert
-            this.memory().push(item)
-            const itemIndex = this.memory().findIndex(document => document === item)
-            this.idIndex.set(serializeValue(item.id), new Set([itemIndex]))
-          })
-          changes.modified.forEach((item) => {
-            const index = this.memory().findIndex(document => document.id === item.id)
-            if (index === -1) throw new Error('Cannot resolve index for item')
-            this.memory().splice(index, 1, item)
-          })
-          changes.removed.forEach((item) => {
-            const index = this.memory().findIndex(document => document.id === item.id)
-            if (index === -1) throw new Error('Cannot resolve index for item')
-            this.memory().splice(index, 1)
-          })
-        }
-        this.rebuildIndices()
-
-        this.emit('persistence.received')
-
-        // emit persistence.pullCompleted in next tick to let cursor observers
-        // do the requery before the loading state updates
-        setTimeout(() => this.emit('persistence.pullCompleted'), 0)
-      }
-
-      const saveQueue = {
-        added: [],
-        modified: [],
-        removed: [],
-      } as Changeset<T>
-      let isFlushing = false
-      const flushQueue = () => {
-        if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
-        if (ongoingSaves <= 0) this.emit('persistence.pushStarted')
-        if (isFlushing) return
-        if (!hasPendingUpdates(saveQueue)) return
-        isFlushing = true
-        ongoingSaves += 1
-        const currentItems = this.memoryArray()
-        const changes = { ...saveQueue }
-        saveQueue.added = []
-        saveQueue.modified = []
-        saveQueue.removed = []
-        this.persistenceAdapter.save(currentItems, changes)
-          .then(() => {
-            this.emit('persistence.transmitted')
-          }).catch((error) => {
-            this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-          }).finally(() => {
-            ongoingSaves -= 1
-            isFlushing = false
-            flushQueue()
-            if (ongoingSaves <= 0) this.emit('persistence.pushCompleted')
-          })
-      }
-
-      this.on('added', (item) => {
-        if (!isInitialized) {
-          pendingUpdates.added.push(item)
-          return
-        }
-        saveQueue.added.push(item)
-        flushQueue()
-      })
-      this.on('changed', (item) => {
-        if (!isInitialized) {
-          pendingUpdates.modified.push(item)
-          return
-        }
-        saveQueue.modified.push(item)
-        flushQueue()
-      })
-      this.on('removed', (item) => {
-        if (!isInitialized) {
-          pendingUpdates.removed.push(item)
-          return
-        }
-        saveQueue.removed.push(item)
-        flushQueue()
-      })
-
-      this.persistenceAdapter.register(data => loadPersistentData(data))
-        .then(async () => {
-          if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
-          let currentItems = this.memoryArray()
-          await loadPersistentData()
-          while (hasPendingUpdates(pendingUpdates)) {
-            const added = pendingUpdates.added.splice(0)
-            const modified = pendingUpdates.modified.splice(0)
-            const removed = pendingUpdates.removed.splice(0)
-            currentItems = applyUpdates(this.memoryArray(), { added, modified, removed })
-
-            await this.persistenceAdapter.save(currentItems, { added, modified, removed })
-              .then(() => {
-                this.emit('persistence.transmitted')
-              })
-          }
-          await loadPersistentData()
-
-          isInitialized = true
-          // emit persistence.init in next tick to make
-          // data available before the loading state updates
-          setTimeout(() => this.emit('persistence.init'), 0)
-        })
-        .catch((error) => {
-          this.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-        })
-    }
-    this.persistenceReadyPromise = new Promise<void>((resolve, reject) => {
-      if (!this.persistenceAdapter) return resolve()
-      this.once('persistence.init', resolve)
-      this.once('persistence.error', reject)
-    })
+    this.backend = dataAdapter.createCollectionBackend<T, I, E, U>(
+      this,
+      this.options.indices || [],
+    )
 
     Collection.onCreationCallbacks.forEach(callback => callback(this))
+  }
+
+  public isBatchOperationInProgress() {
+    return Collection.batchOperationInProgress || this.batchOperationInProgress
   }
 
   /**
@@ -480,7 +344,7 @@ export default class Collection<
    * collection.insert({ name: 'Item 1' })
    */
   public async isReady() {
-    return this.persistenceReadyPromise
+    return this.backend.isReady()
   }
 
   private profile<ReturnValue>(
@@ -489,10 +353,15 @@ export default class Collection<
   ) {
     if (!this.debugMode) return fn()
     const startTime = performance.now()
-    const result = fn()
-    const endTime = performance.now()
-    measureFunction(endTime - startTime)
-    return result
+    const handleProfileEnd = (result: ReturnValue) => {
+      const endTime = performance.now()
+      measureFunction(endTime - startTime)
+      return result
+    }
+    const maybePromise = fn()
+    return maybePromise instanceof Promise
+      ? maybePromise.then(handleProfileEnd)
+      : handleProfileEnd(maybePromise)
   }
 
   private executeInDebugMode(fn: (callstack: string) => void) {
@@ -502,125 +371,48 @@ export default class Collection<
     fn(callstack)
   }
 
-  private rebuildIndices() {
-    this.indicesOutdated = true
-    if (this.batchOperationInProgress) return
-    this.rebuildAllIndices()
-  }
-
-  private rebuildAllIndices() {
-    this.idIndex.clear()
-
-    this.memory().map((item, index) => {
-      this.idIndex.set(serializeValue(item.id), new Set([index]))
-    })
-    this.indexProviders.forEach(index => index.rebuild(this.memoryArray()))
-    this.indicesOutdated = false
-  }
-
-  private getIndexInfo(selector?: Selector<T>) {
-    if (selector != null
-      && Object.keys(selector).length === 1
-      && 'id' in selector
-      && typeof selector.id !== 'object') {
-      return {
-        matched: true,
-        positions: [...this.idIndex.get(serializeValue(selector.id)) || []],
-        optimizedSelector: {},
-      }
-    }
-
-    if (selector == null) {
-      return {
-        matched: false,
-        positions: [],
-        optimizedSelector: {},
-      }
-    }
-
-    if (this.indicesOutdated) {
-      return {
-        matched: false,
-        positions: [],
-        optimizedSelector: selector,
-      }
-    }
-
-    return getIndexInfo(this.indexProviders, selector)
-  }
-
-  private getItemAndIndex(selector: Selector<T>) {
-    const memory = this.memoryArray()
-    const indexInfo = this.getIndexInfo(selector)
-    const items = indexInfo.matched
-      ? indexInfo.positions.map(index => memory[index])
-      : memory
-    const item = items.find(document => match(document, selector))
-    const foundInIndex = indexInfo.matched
-      && indexInfo.positions.find(itemIndex => memory[itemIndex] === item)
-    const index = foundInIndex
-      || memory.findIndex(document => document === item)
-    if (item == null) return { item: null, index: -1 }
-    if (index === -1) throw new Error('Cannot resolve index for item')
-    return { item, index }
-  }
-
-  private deleteFromIdIndex(id: I, index: number) {
-    this.idIndex.delete(serializeValue(id))
-
-    // offset all indices after the deleted item -1, but only during batch operations
-    if (!this.batchOperationInProgress) return
-    this.idIndex.forEach(([currenIndex], key) => {
-      if (currenIndex > index) {
-        this.idIndex.set(key, new Set([currenIndex - 1]))
-      }
-    })
-  }
-
-  private memory() {
-    return this.options.memory as NonNullable<MemoryAdapter<T>>
-  }
-
-  private memoryArray() {
-    return this.memory().map(item => item)
-  }
-
   private transform(item: E): U {
     if (!this.options.transform) return item as unknown as U
     return this.options.transform(item)
   }
 
-  private transformAll(items: T[], fields?: FieldSpecifier<E>): E[] {
+  private transformAll(items: T[], fields?: FieldSpecifier<T>): E[] {
     if (!this.options.transformAll) return items as unknown as E[]
     return this.options.transformAll(items, fields)
   }
 
-  private getItems(selector?: Selector<T>) {
+  private getItems<O extends FindOptions<T, Async>, Async extends boolean>(
+    selector: Selector<T> = {},
+    options: O,
+  ): Async extends true ? Promise<E[]> : E[] {
+    this.emit('getItems', selector)
     return this.profile(
       () => {
-        const indexInfo = this.getIndexInfo(selector)
-        const matchItems = (item: T) => {
-          if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
-          if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
-          const matches = match(item, indexInfo.optimizedSelector)
-          return matches
+        const queryItems = () => {
+          const items = this.backend.getQueryResult(selector, options)
+          return this.transformAll(items, options.fields)
         }
 
-        this.emit('getItems', selector)
-        const memory = this.memoryArray()
+        if (!options?.async) return queryItems()
 
-        // no index available, use complete memory
-        if (!indexInfo.matched) {
-          if (isEqual(selector, {})) return memory
-          return memory.filter(matchItems)
-        }
-
-        const items = indexInfo.positions.map(index => memory[index])
-        if (isEqual(indexInfo.optimizedSelector, {})) return items
-        return items.filter(matchItems)
+        return new Promise<E[]>((resolve, reject) => {
+          const cleanup = this.backend.onQueryStateChange(
+            selector,
+            options,
+            (state) => {
+              if (state === 'error') {
+                cleanup()
+                reject(this.backend.getQueryError(selector, options) || new Error('Unknown error'))
+              } else if (state === 'complete') {
+                cleanup()
+                resolve(queryItems() || [])
+              }
+            },
+          )
+        })
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
-    )
+    ) as Async extends true ? Promise<E[]> : E[]
   }
 
   /**
@@ -629,11 +421,7 @@ export default class Collection<
    * @returns A promise that resolves when the collection is disposed.
    */
   public async dispose() {
-    if (this.persistenceAdapter?.unregister) await this.persistenceAdapter.unregister()
-    this.persistenceAdapter = null
-    this.memory().map(() => this.memory().pop())
-    this.idIndex.clear()
-    this.indexProviders = []
+    this.backend.dispose()
     this.isDisposed = true
     this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
@@ -648,38 +436,50 @@ export default class Collection<
    * @param [options] - Options for the find operation, such as limit and sort.
    * @returns A cursor to fetch and observe the matching items.
    */
-  public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
+  public find<
+    Async extends boolean = false,
+    O extends FindOptions<T, Async> = FindOptions<T, Async>,
+  >(
+    selector: Selector<T> = {},
+    options?: O,
+  ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
-    const cursor = new Cursor<T, E, U>(() => this.getItems(selector), {
-      reactive: this.options.reactivity,
-      fieldTracking: this.fieldTracking,
-      ...options,
-      transform: this.transform.bind(this),
-      transformAll: this.transformAll.bind(this),
-      bindEvents: (requery) => {
-        const handleRequery = () => {
-          if (this.batchOperationInProgress) {
-            this.postBatchCallbacks.add(requery)
-            return
+    const cursor = new Cursor<Async, E, U>(
+      (() => this.getItems(selector, options || {})) as Async extends true
+        ? () => Promise<E[]>
+        : () => E[],
+      {
+        reactive: this.options.reactivity,
+        fieldTracking: this.fieldTracking,
+        ...options,
+        transform: this.transform.bind(this),
+        bindEvents: (requery) => {
+          const handleRequery = () => {
+            if (this.batchOperationInProgress) {
+              this.postBatchCallbacks.add(requery)
+              return
+            }
+            requery()
           }
-          requery()
-        }
 
-        this.addListener('persistence.received', handleRequery)
-        this.addListener('added', handleRequery)
-        this.addListener('changed', handleRequery)
-        this.addListener('removed', handleRequery)
-        this.emit('observer.created', selector, options)
-        return () => {
-          this.removeListener('persistence.received', handleRequery)
-          this.removeListener('added', handleRequery)
-          this.removeListener('changed', handleRequery)
-          this.removeListener('removed', handleRequery)
-          this.emit('observer.disposed', selector, options)
-        }
-      },
-    })
+          this.backend.registerQuery(selector, options)
+          const queryStateChangeCleanup = this.backend.onQueryStateChange(
+            selector,
+            options,
+            (state) => {
+              if (state !== 'complete') return
+              handleRequery()
+            },
+          )
+          this.emit('observer.created', selector, options)
+          return () => {
+            this.backend.unregisterQuery(selector, options)
+            queryStateChangeCleanup()
+            this.emit('observer.disposed', selector, options)
+          }
+        },
+      })
     this.emit('find', selector, options, cursor)
     this.executeInDebugMode(callstack => this.emit('_debug.find', callstack, selector, options, cursor))
     return cursor
@@ -689,39 +489,62 @@ export default class Collection<
    * Finds a single item in the collection based on a selector and optional options.
    * ⚡️ this function is reactive!
    * Returns the found item or undefined if no item matches.
+   * @template Async - Whether to perform the operation asynchronously.
    * @template O - The options type for the find operation.
    * @param selector - The criteria to select the item.
    * @param [options] - Options for the find operation, such as projection.
    * @returns The found item or `undefined`.
    */
-  public findOne<O extends Omit<FindOptions<T>, 'limit'>>(selector: Selector<T>, options?: O) {
+  public findOne<
+    Async extends boolean = false,
+    O extends Omit<FindOptions<T, Async>, 'limit'> = Omit<FindOptions<T, Async>, 'limit'>,
+  >(
+    selector: Selector<T>,
+    options?: O,
+  ): Async extends true ? Promise<U | undefined> : U | undefined {
     if (this.isDisposed) throw new Error('Collection is disposed')
-    const cursor = this.find(selector, {
+    const cursor = this.find<Async, FindOptions<T, Async>>(selector, {
       limit: 1,
       ...options,
-    })
-    const returnValue = cursor.fetch()[0] || undefined
-    this.emit('findOne', selector, options, returnValue)
-    this.executeInDebugMode(callstack => this.emit('_debug.findOne', callstack, selector, options, returnValue))
-    return returnValue
+    } as FindOptions<T, Async>)
+    const handleItems = (items: U[]) => {
+      const returnValue = items[0] || undefined
+      this.emit('findOne', selector, options, returnValue)
+      this.executeInDebugMode(callstack => this.emit('_debug.findOne', callstack, selector, options, returnValue))
+      return returnValue
+    }
+
+    const maybePromise = cursor.fetch()
+    return (maybePromise instanceof Promise
+      ? maybePromise.then(handleItems)
+      : handleItems(maybePromise)) as Async extends true ? Promise<U | undefined> : U | undefined
   }
 
   /**
    * Performs a batch operation, deferring index rebuilds and allowing multiple
    * modifications to be made atomically. Executes any post-batch callbacks afterwards.
    * @param callback - The batch operation to execute.
+   * @returns A promise if the callback returns a promise, otherwise void.
    */
-  public batch(callback: () => void) {
+  public batch<ReturnType>(
+    callback: () => ReturnType,
+  ): ReturnType extends Promise<any> ? Promise<void> : void {
+    const maybePromise = callback()
     this.batchOperationInProgress = true
-    callback()
-    this.batchOperationInProgress = false
 
-    // rebuild indiices as they are not rebuilt during batch operations
-    this.rebuildAllIndices()
+    const afterBatch = () => {
+      this.batchOperationInProgress = false
+      this.postBatchCallbacks.forEach(callback_ => callback_())
+      this.postBatchCallbacks.clear()
+    }
 
-    // execute all post batch callbacks
-    this.postBatchCallbacks.forEach(callback_ => callback_())
-    this.postBatchCallbacks.clear()
+    if (maybePromise instanceof Promise) {
+      return maybePromise
+        .then(() => afterBatch()) as ReturnType extends Promise<any> ? Promise<void> : void
+    } else {
+      afterBatch()
+      return undefined as ReturnType extends Promise<any> ? Promise<void> : void
+    }
   }
 
   /**
@@ -730,17 +553,12 @@ export default class Collection<
    * @returns The ID of the inserted item.
    * @throws {Error} If the collection is disposed or the item has an invalid ID.
    */
-  public insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
+  public async insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
-    const primaryKeyGenerator = this.options.primaryKeyGenerator ?? randomId
-    const newItem = { id: primaryKeyGenerator(item), ...item } as T
-    this.emit('validate', newItem)
-    if (this.idIndex.has(serializeValue(newItem.id))) throw new Error('Item with same id already exists')
-    this.memory().push(newItem)
-    const itemIndex = this.memory().findIndex(document => document === newItem)
-    this.idIndex.set(serializeValue(newItem.id), new Set([itemIndex]))
-    this.rebuildIndices()
+
+    const newItem = await this.backend.insert(item)
+
     this.emit('added', newItem)
     this.emit('insert', newItem)
     this.executeInDebugMode(callstack => this.emit('_debug.insert', callstack, newItem))
@@ -753,7 +571,7 @@ export default class Collection<
    * @returns An array of IDs of the inserted items.
    * @throws {Error} If the collection is disposed or the items are invalid.
    */
-  public insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
+  public async insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!items) throw new Error('Invalid items')
     if (items.length === 0) {
@@ -761,10 +579,10 @@ export default class Collection<
     }
 
     const ids: I[] = []
-    this.batch(() => {
-      items.forEach((item) => {
-        ids.push(this.insert(item))
-      })
+    await this.batch(async () => {
+      await Promise.all(items.map(async (item) => {
+        ids.push(await this.insert(item))
+      }))
     })
     return ids
   }
@@ -778,7 +596,7 @@ export default class Collection<
    * @returns The number of items updated (0 or 1).
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateOne(
+  public async updateOne(
     selector: Selector<T>,
     modifier: Modifier<T>,
     options?: { upsert?: boolean },
@@ -786,40 +604,12 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
-    const { $setOnInsert, ...restModifier } = modifier
 
-    const { item, index } = this.getItemAndIndex(selector)
-    if (item == null) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-          ...restModifier,
-          $set: {
-            ...$setOnInsert,
-            ...restModifier.$set,
-          },
-        })
-        if (newItem.id != null
-          && this.getItemAndIndex({ id: newItem.id } as Selector<T>).item != null) {
-          throw new Error('Item with same id already exists')
-        }
-        this.insert(newItem)
-      }
-    } else {
-      const modifiedItem = modify(deepClone(item), restModifier)
-      if (item.id !== modifiedItem.id
-        && this.getItemAndIndex({ id: modifiedItem.id } as Selector<T>).item != null) {
-        throw new Error('Item with same id already exists')
-      }
-      this.emit('validate', modifiedItem)
-      this.memory().splice(index, 1, modifiedItem)
-      this.rebuildIndices()
-      this.emit('changed', modifiedItem, restModifier)
-    }
+    const changes = await this.backend.updateOne(selector, modifier, options)
+
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
-    if (item == null && !options?.upsert) return 0
-    return 1
+    return changes.length
   }
 
   /**
@@ -831,7 +621,7 @@ export default class Collection<
    * @returns The number of items updated.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public updateMany(
+  public async updateMany(
     selector: Selector<T>,
     modifier: Modifier<T>,
     options?: { upsert?: boolean },
@@ -841,46 +631,13 @@ export default class Collection<
     if (!modifier) throw new Error('Invalid modifier')
     const { $setOnInsert, ...restModifier } = modifier
 
-    const items = this.getItems(selector)
-    if (items.length === 0 && options?.upsert) {
-      const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-        ...restModifier,
-        $set: {
-          ...$setOnInsert,
-          ...restModifier.$set,
-        },
-      })
-      if (newItem.id != null
-        && this.getItemAndIndex({ id: newItem.id } as Selector<T>).item != null) {
-        throw new Error('Item with same id already exists')
-      }
-      this.insert(newItem)
-    }
-
-    const changes = items.map((item) => {
-      const { index } = this.getItemAndIndex({ id: item.id } as Selector<T>)
-      if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
-      const modifiedItem = modify(deepClone(item), restModifier)
-      if (item.id !== modifiedItem.id
-        && this.getItemAndIndex({ id: modifiedItem.id } as Selector<T>).item != null) {
-        throw new Error(`Item with same id '${modifiedItem.id as string}' already exists`)
-      }
-      this.emit('validate', modifiedItem)
-      return {
-        item: modifiedItem,
-        index,
-      }
-    })
-    changes.forEach(({ item, index }) => {
-      this.memory().splice(index, 1, item)
-    })
-    this.rebuildIndices()
-    changes.forEach(({ item }) => {
+    const changes = await this.backend.updateMany(selector, modifier, options)
+    changes.forEach((item) => {
       this.emit('changed', item, restModifier)
     })
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
-    return changes.length === 0 && options?.upsert ? 1 : changes.length
+    return changes.length
   }
 
   /**
@@ -892,7 +649,7 @@ export default class Collection<
    * @returns The number of items replaced (0 or 1).
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public replaceOne(
+  public async replaceOne(
     selector: Selector<T>,
     replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
     options?: { upsert?: boolean },
@@ -900,31 +657,11 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const { item, index } = this.getItemAndIndex(selector)
-    if (item == null) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        if (replacement.id != null
-          && this.getItemAndIndex({ id: replacement.id } as Selector<T>).item != null) {
-          throw new Error('Item with same id already exists')
-        }
-        this.insert(replacement)
-      }
-    } else {
-      if (item.id !== replacement.id
-        && this.getItemAndIndex({ id: replacement.id } as Selector<T>).item != null) {
-        throw new Error('Item with same id already exists')
-      }
-      const modifiedItem = { id: item.id, ...replacement } as T
-      this.emit('validate', modifiedItem)
-      this.memory().splice(index, 1, modifiedItem)
-      this.rebuildIndices()
-      this.emit('changed', modifiedItem, replacement as Modifier<T>)
-    }
+    const changes = await this.backend.replaceOne(selector, replacement, options)
+
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
-    if (item == null && !options?.upsert) return 0
-    return 1
+    return changes.length
   }
 
   /**
@@ -933,19 +670,15 @@ export default class Collection<
    * @returns The number of items removed (0 or 1).
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public removeOne(selector: Selector<T>) {
+  public async removeOne(selector: Selector<T>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
-    const { item, index } = this.getItemAndIndex(selector)
-    if (item != null) {
-      this.memory().splice(index, 1)
-      this.deleteFromIdIndex(item.id, index)
-      this.rebuildIndices()
-      this.emit('removed', item)
-    }
+
+    const removedItemCount = await this.backend.removeOne(selector)
+
     this.emit('removeOne', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
-    return item == null ? 0 : 1
+    return removedItemCount
   }
 
   /**
@@ -954,24 +687,14 @@ export default class Collection<
    * @returns The number of items removed.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
-  public removeMany(selector: Selector<T>) {
+  public async removeMany(selector: Selector<T>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
-    const items = this.getItems(selector)
 
-    items.forEach((item) => {
-      const index = this.memory().findIndex(document => document === item)
-      if (index === -1) throw new Error('Cannot resolve index for item')
-      this.memory().splice(index, 1)
-      this.deleteFromIdIndex(item.id, index)
-      this.rebuildIndices()
-    })
+    const removedItemCount = await this.backend.removeMany(selector)
 
-    items.forEach((item) => {
-      this.emit('removed', item)
-    })
     this.emit('removeMany', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeMany', callstack, selector))
-    return items.length
+    return removedItemCount
   }
 }
