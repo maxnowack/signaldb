@@ -1,5 +1,3 @@
-import sortItems from '../utils/sortItems'
-import project from '../utils/project'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
@@ -16,7 +14,11 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
 }
 
-export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T> {
+export interface CursorOptions<
+  Async extends boolean,
+  T extends BaseItem,
+  U = T,
+> extends FindOptions<T, Async> {
   transform?: Transform<T, U>,
   bindEvents?: (requery: () => void) => () => void,
 }
@@ -27,10 +29,10 @@ export interface CursorOptions<T extends BaseItem, U = T> extends FindOptions<T>
  * @template T - The type of the items in the collection.
  * @template U - The transformed item type after applying transformations (default is T).
  */
-export default class Cursor<T extends BaseItem, U = T> {
+export default class Cursor<Async extends boolean, T extends BaseItem, U = T> {
   private observer: Observer<T> | undefined
-  private getFilteredItems: () => T[]
-  private options: CursorOptions<T, U>
+  private getItems: Async extends true ? () => Promise<T[]> : () => T[]
+  private options: CursorOptions<Async, T, U>
   private onCleanupCallbacks: (() => void)[] = []
 
   /**
@@ -50,10 +52,10 @@ export default class Cursor<T extends BaseItem, U = T> {
    * @param options.fieldTracking - A boolean to enable fine-grained field tracking for reactivity.
    */
   constructor(
-    getItems: () => T[],
-    options?: CursorOptions<T, U>,
+    getItems: Async extends true ? () => Promise<T[]> : () => T[],
+    options?: CursorOptions<Async, T, U>,
   ) {
-    this.getFilteredItems = getItems
+    this.getItems = getItems
     this.options = options || {}
   }
 
@@ -84,22 +86,6 @@ export default class Cursor<T extends BaseItem, U = T> {
       : rawItem
     if (!this.options.transform) return item as unknown as U
     return this.options.transform(item)
-  }
-
-  private getItems() {
-    const items = this.getFilteredItems()
-    const { sort, skip, limit } = this.options
-    const sorted = sort ? sortItems(items, sort) : items
-    const skipped = skip ? sorted.slice(skip) : sorted
-    const limited = limit ? skipped.slice(0, limit) : skipped
-    const idExcluded = this.options.fields && this.options.fields.id === 0
-    return limited.map((item) => {
-      if (!this.options.fields) return item
-      return {
-        ...idExcluded ? {} : { id: item.id },
-        ...project(item, this.options.fields),
-      }
-    })
   }
 
   private depend(
@@ -158,7 +144,7 @@ export default class Cursor<T extends BaseItem, U = T> {
     if (!this.observer) {
       const observer = new Observer<T>(() => {
         const requery = () => {
-          observer.runChecks(this.getItems())
+          observer.runChecks(this.getItems)
         }
         const cleanup = this.options.bindEvents && this.options.bindEvents(requery)
         return () => {
@@ -174,7 +160,7 @@ export default class Cursor<T extends BaseItem, U = T> {
   private observeRawChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
     const observer = this.ensureObserver()
     observer.addCallbacks(callbacks, skipInitial)
-    observer.runChecks(this.getItems())
+    observer.runChecks(this.getItems)
     return () => {
       observer.removeCallbacks(callbacks)
       if (!observer.isEmpty()) return
@@ -212,18 +198,29 @@ export default class Cursor<T extends BaseItem, U = T> {
    * ⚡️ this function is reactive!
    * @param callback - A function to execute for each item in the result set.
    * @param callback.item - The transformed item.
+   * @returns A promise that resolves when all items have been processed, or void if not in async mode.
    */
-  public forEach(callback: (item: U) => void) {
-    const items = this.getItems()
+  public forEach(callback: (item: U) => void): Async extends true ? Promise<void> : void {
     this.depend({
       addedBefore: true,
       removed: true,
       movedBefore: true,
       ...this.options.fieldTracking ? {} : { changed: true },
     })
-    items.forEach((item) => {
-      callback(this.transform(item))
-    })
+
+    const executeForEach = (items: T[]) => {
+      items.forEach((item) => {
+        callback(this.transform(item))
+      })
+    }
+
+    const result = this.getItems()
+    if (result instanceof Promise) {
+      return result.then(executeForEach) as Async extends true ? Promise<void> : void
+    } else {
+      executeForEach(result)
+      return undefined as Async extends true ? Promise<void> : void
+    }
   }
 
   /**
@@ -235,12 +232,15 @@ export default class Cursor<T extends BaseItem, U = T> {
    * @param callback.item - The transformed item.
    * @returns An array of results after applying the callback to each item.
    */
-  public map<V>(callback: (item: U) => V) {
+  public map<V>(callback: (item: U) => V): Async extends true ? Promise<V[]> : V[] {
     const results: V[] = []
-    this.forEach((item) => {
+    const maybePromise = this.forEach((item) => {
       results.push(callback(item))
     })
-    return results
+    if (maybePromise instanceof Promise) {
+      return maybePromise.then(() => results) as Async extends true ? Promise<V[]> : V[]
+    }
+    return results as Async extends true ? Promise<V[]> : V[]
   }
 
   /**
@@ -249,7 +249,7 @@ export default class Cursor<T extends BaseItem, U = T> {
    * ⚡️ this function is reactive!
    * @returns An array of transformed items in the result set.
    */
-  public fetch(): U[] {
+  public fetch(): Async extends true ? Promise<U[]> : U[] {
     return this.map(item => item)
   }
 
@@ -259,13 +259,15 @@ export default class Cursor<T extends BaseItem, U = T> {
    * ⚡️ this function is reactive!
    * @returns The total number of items in the result set.
    */
-  public count() {
-    const items = this.getItems()
+  public count(): Async extends true ? Promise<number> : number {
     this.depend({
       added: true,
       removed: true,
     })
-    return items.length
+    const maybePromise = this.getItems()
+    return (maybePromise instanceof Promise
+      ? maybePromise.then(items => items.length)
+      : maybePromise.length) as Async extends true ? Promise<number> : number
   }
 
   /**
@@ -310,6 +312,6 @@ export default class Cursor<T extends BaseItem, U = T> {
    */
   public requery() {
     if (!this.observer) return
-    this.observer.runChecks(this.getItems())
+    this.observer.runChecks(this.getItems)
   }
 }

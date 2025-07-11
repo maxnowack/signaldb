@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+* The `insert`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous and return a `Promise<void>`
+* The `createMemoryAdapter` method was removed.
+* The `memory` option for a `Collection` was removed.
+
+### Added
+
+* Introduced support to use a `DataAdapter` with a `Collection` to handle data operations in a more structured way.
+* Added `DefaultDataAdapter` which provides a basic and backward compatible implementation of the `DataAdapter` interface.
+* Added `isBatchOperationInProgress` method to `Collection` to check if a batch operation is currently in progress.
+
 ## [1.7.1] - 2025-08-25
 
 ### Fixed
