@@ -3,13 +3,13 @@ import { bench, describe } from 'vitest'
 import { Collection, createIndex } from '../src'
 
 describe('Collection benchmarks', () => {
-  describe('id index', () => {
+  describe('id index', async () => {
     const col = new Collection<{ id: string, name: string, num: number }>()
 
     // create items
-    col.batch(() => {
+    await col.batch(async () => {
       for (let i = 0; i < 1000; i += 1) {
-        col.insert({ id: i.toString(), name: 'John', num: i })
+        await col.insert({ id: i.toString(), name: 'John', num: i })
       }
     })
 
@@ -26,17 +26,17 @@ describe('Collection benchmarks', () => {
     })
   })
 
-  describe('named index', () => {
+  describe('named index', async () => {
     const col1 = new Collection<{ id: string, name: string, num: number }>({
       indices: [createIndex('num')],
     })
     const col2 = new Collection<{ id: string, name: string, num: number }>()
 
-    Collection.batch(() => {
+    await Collection.batch(async () => {
       // create items
       for (let i = 0; i < 10_000; i += 1) {
-        col1.insert({ id: i.toString(), name: 'John', num: i })
-        col2.insert({ id: i.toString(), name: 'John', num: i })
+        await col1.insert({ id: i.toString(), name: 'John', num: i })
+        await col2.insert({ id: i.toString(), name: 'John', num: i })
       }
     })
 
@@ -53,17 +53,17 @@ describe('Collection benchmarks', () => {
     })
   })
 
-  describe('index null and undefined values', () => {
+  describe('index null and undefined values', async () => {
     const col1 = new Collection<{ id: string, name: string, num?: number | null }>({
       indices: [createIndex('num')],
     })
     const col2 = new Collection<{ id: string, name: string, num?: number | null }>()
 
-    Collection.batch(() => {
+    await Collection.batch(async () => {
       // create items
       for (let i = 0; i < 10_000; i += 1) {
-        col1.insert({ id: i.toString(), name: 'John', num: i > 5000 ? i : undefined })
-        col2.insert({ id: i.toString(), name: 'John', num: i > 5000 ? i : undefined })
+        await col1.insert({ id: i.toString(), name: 'John', num: i > 5000 ? i : undefined })
+        await col2.insert({ id: i.toString(), name: 'John', num: i > 5000 ? i : undefined })
       }
     })
 
