@@ -103,9 +103,18 @@ export default class Observer<T extends { id: any }> {
   /**
    * Compares the previous state of items with the new state and triggers the appropriate callbacks
    * for events such as added, removed, changed, or moved items.
-   * @param newItems - The new list of items to compare against the previous state.
+   * @param getItems - A function that returns a promise resolving to the new items or the items themselves.
    */
-  public runChecks(newItems: T[]) {
+  public runChecks(getItems: () => Promise<T[]> | T[]) {
+    const result = getItems()
+    if (result instanceof Promise) {
+      void result.then(newItems => this.checkItems(newItems)) // TODO: handle errors
+    } else {
+      this.checkItems(result)
+    }
+  }
+
+  private checkItems(newItems: T[]) {
     const oldItemsMap = new Map(this.previousItems.map((item, index) => [
       item.id,
       { item, index, beforeItem: this.previousItems[index + 1] || null },
