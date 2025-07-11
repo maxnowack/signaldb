@@ -15,7 +15,7 @@ interface TestItem {
 
 const transform: Transform<TestItem, { id: number }> = item => ({ id: item.id })
 
-describe('Cursor', () => {
+describe('Cursor', async () => {
   const items: TestItem[] = [
     { id: 1, name: 'Item 1', test: true },
     { id: 2, name: 'Item 2', test: false },
@@ -23,12 +23,12 @@ describe('Cursor', () => {
   ]
 
   const collection = new Collection<TestItem>()
-  items.forEach(item => collection.insert(item))
+  await Promise.all(items.map(item => collection.insert(item)))
 
   describe('fetch', () => {
-    it('should return transformed items when transform function is provided', () => {
+    it('should return transformed items when transform function is provided', async () => {
       const col = new Collection({ transform })
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
       const cursor = col.find({})
       const result = cursor.fetch()
       const expected = items.map(item => ({ id: item.id }))
@@ -127,9 +127,9 @@ describe('Cursor', () => {
       expect(result).toBe(1)
     })
 
-    it('should return the count of transformed items when transform function is provided', () => {
+    it('should return the count of transformed items when transform function is provided', async () => {
       const col = new Collection({ transform })
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
       const cursor = col.find({ id: 2 })
       const result = cursor.count()
       expect(result).toBe(1)
@@ -145,7 +145,7 @@ describe('Cursor', () => {
   describe('observeChanges', () => {
     it('should call the added callback when items are added', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -156,7 +156,7 @@ describe('Cursor', () => {
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
-      col.insert({ id: 4, name: 'item4' }) // Add new item
+      await col.insert({ id: 4, name: 'item4' }) // Add new item
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -169,7 +169,7 @@ describe('Cursor', () => {
 
     it('should call the changed callback when items are changed', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -180,7 +180,7 @@ describe('Cursor', () => {
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
-      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
+      await col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -193,7 +193,7 @@ describe('Cursor', () => {
 
     it('should call the removed callback when items are removed', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -204,7 +204,7 @@ describe('Cursor', () => {
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
-      col.removeOne({ id: 2 }) // Remove item
+      await col.removeOne({ id: 2 }) // Remove item
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -217,7 +217,7 @@ describe('Cursor', () => {
 
     it('should call the removed callback when items are removed from query', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -228,7 +228,7 @@ describe('Cursor', () => {
       }
       const cursor = col.find({ test: { $ne: true } })
       cursor.observeChanges(callbacks, true)
-      col.updateOne({ id: 2 }, { $set: { test: true } })
+      await col.updateOne({ id: 2 }, { $set: { test: true } })
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -241,7 +241,7 @@ describe('Cursor', () => {
 
     it('should call the addedBefore callback when items are added', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -254,7 +254,7 @@ describe('Cursor', () => {
         sort: { id: -1 },
       })
       cursor.observeChanges(callbacks, true)
-      col.insert({ id: 4, name: 'item4' }) // Add new item
+      await col.insert({ id: 4, name: 'item4' }) // Add new item
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -270,7 +270,7 @@ describe('Cursor', () => {
 
     it('should call the movedBefore callback when items are moved', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -283,7 +283,7 @@ describe('Cursor', () => {
         sort: { name: 1 },
       })
       cursor.observeChanges(callbacks, true)
-      col.updateOne({ id: 2 }, { $set: { name: 'Item 30' } })
+      await col.updateOne({ id: 2 }, { $set: { name: 'Item 30' } })
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -303,7 +303,7 @@ describe('Cursor', () => {
 
     it('should not call the changed callback when hidden fields are changed', async () => {
       const col = new Collection<TestItem>()
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -314,7 +314,7 @@ describe('Cursor', () => {
       }
       const cursor = col.find({}, { fields: { id: 1 } })
       cursor.observeChanges(callbacks, true)
-      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
+      await col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -327,7 +327,7 @@ describe('Cursor', () => {
 
     it('should call the appropriate callbacks when items are added, moved, changed, or removed', async () => {
       const col = new Collection<TestItem & { count: number }>()
-      items.forEach((item, index) => col.insert({ ...item, count: index }))
+      await Promise.all(items.map((item, index) => col.insert({ ...item, count: index })))
 
       const callbacks: ObserveCallbacks<TestItem> = {
         added: vi.fn(),
@@ -343,7 +343,7 @@ describe('Cursor', () => {
       cursor.observeChanges(callbacks, true)
 
       // Change data
-      col.insert({ id: 4, name: 'item4', count: 99 }) // Add new item
+      await col.insert({ id: 4, name: 'item4', count: 99 }) // Add new item
       await new Promise((resolve) => {
         setTimeout(resolve, 0)
       })
@@ -353,13 +353,13 @@ describe('Cursor', () => {
         null,
       )
 
-      col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
+      await col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } }) // Modify existing item
       await new Promise((resolve) => {
         setTimeout(resolve, 0)
       })
       expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
 
-      col.updateOne({ id: 1 }, { $set: { count: 42 } }) // Move existing item
+      await col.updateOne({ id: 1 }, { $set: { count: 42 } }) // Move existing item
       await new Promise((resolve) => {
         setTimeout(resolve, 0)
       })
@@ -368,7 +368,7 @@ describe('Cursor', () => {
         expect.objectContaining({ id: 4 }),
       )
 
-      col.updateOne({ id: 2 }, { $set: { count: 999 } }) // Move existing item
+      await col.updateOne({ id: 2 }, { $set: { count: 999 } }) // Move existing item
       await new Promise((resolve) => {
         setTimeout(resolve, 0)
       })
@@ -377,7 +377,7 @@ describe('Cursor', () => {
         null,
       )
 
-      col.removeOne({ id: 2 }) // Remove item
+      await col.removeOne({ id: 2 }) // Remove item
       await new Promise((resolve) => {
         setTimeout(resolve, 0)
       })
@@ -388,7 +388,7 @@ describe('Cursor', () => {
       const col = new Collection<TestItem>({
         transform: item => ({ ...item, id: item.id, test: true }),
       })
-      items.forEach(item => col.insert(item))
+      await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
         added: vi.fn(),
@@ -399,7 +399,7 @@ describe('Cursor', () => {
       }
       const cursor = col.find()
       cursor.observeChanges(callbacks, true)
-      col.insert({ id: 4, name: 'item4' }) // Add new item
+      await col.insert({ id: 4, name: 'item4' }) // Add new item
       cursor.requery()
 
       await wait() // Wait for all operations to finish
@@ -449,7 +449,7 @@ describe('Cursor', () => {
       expect(disposal).not.toHaveBeenCalled()
       expect(notify).not.toHaveBeenCalled()
 
-      collection.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } })
+      await collection.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } })
       await new Promise((resolve) => {
         setTimeout(resolve, 10)
       })
@@ -457,7 +457,7 @@ describe('Cursor', () => {
       expect(notify).toHaveBeenCalled()
       disposal()
       expect(disposal).toHaveBeenCalled()
-      collection.updateOne({ id: 1 }, { $set: { name: 'item1_' } })
+      await collection.updateOne({ id: 1 }, { $set: { name: 'item1_' } })
       await new Promise((resolve) => {
         setTimeout(resolve, 10)
       })
@@ -465,7 +465,7 @@ describe('Cursor', () => {
       cursor.cleanup()
     })
 
-    it('should requery only once after batch operation', () => {
+    it('should requery only once after batch operation', async () => {
       const depCreation = vi.fn()
       const dep = vi.fn()
       const notify = vi.fn()
@@ -495,10 +495,10 @@ describe('Cursor', () => {
       const result = cursor.fetch()
       expect(result).toHaveLength(0)
 
-      collection2.batch(() => {
+      await collection2.batch(async () => {
         // create items
         for (let i = 0; i < 10_000; i += 1) {
-          collection2.insert({ id: i.toString(), name: `John ${i}` })
+          await collection2.insert({ id: i.toString(), name: `John ${i}` })
           expect(notify).toHaveBeenCalledTimes(0)
         }
       })

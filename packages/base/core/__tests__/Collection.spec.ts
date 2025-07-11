@@ -2,7 +2,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { infer as ZodInfer } from 'zod'
 import type { BaseItem, CollectionOptions, TransformAll } from '../src'
-import { Collection, createMemoryAdapter, createIndex } from '../src'
+import { Collection, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
 
@@ -16,41 +16,39 @@ describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
 
   beforeEach(() => {
-    collection = new Collection<{ id: string, name: string }>({
-      memory: createMemoryAdapter([]),
-    })
+    collection = new Collection<{ id: string, name: string }>()
   })
 
   describe('findOne', () => {
-    it('should find and return an item that matches the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should find and return an item that matches the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
 
       const item = collection.findOne({ name: 'John' })
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
 
-    it('should return undefined if no item matches the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should return undefined if no item matches the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
       const item = collection.findOne({ name: 'Jane' })
 
       expect(item).toBeUndefined()
     })
 
-    it('should return the first matching item if multiple items match the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'John' })
+    it('should return the first matching item if multiple items match the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'John' })
 
       const item = collection.findOne({ name: 'John' })
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
 
-    it('should emit "findOne" event', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should emit "findOne" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
 
       const eventHandler = vi.fn()
       collection.on('findOne', eventHandler)
@@ -62,10 +60,10 @@ describe('Collection', () => {
   })
 
   describe('find', () => {
-    it('should find and return items that match the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should find and return items that match the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
 
       const items = collection.find({ name: 'John' }).fetch()
 
@@ -75,17 +73,17 @@ describe('Collection', () => {
       ])
     })
 
-    it('should return an empty array if no items match the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should return an empty array if no items match the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
       const items = collection.find({ name: 'Jane' }).fetch()
 
       expect(items).toEqual([])
     })
 
-    it('should emit "find" event', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should emit "find" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
 
       const eventHandler = vi.fn().mockImplementation((selector, options, cursor) => {
         expect(selector).toEqual({ name: 'John' })
@@ -102,45 +100,45 @@ describe('Collection', () => {
   })
 
   describe('insert', () => {
-    it('should insert an item into the collection', () => {
+    it('should insert an item into the collection', async () => {
       const item = { id: '1', name: 'John' }
 
-      collection.insert(item)
+      await collection.insert(item)
 
       expect(collection.findOne({ id: '1' })).toEqual(item)
     })
 
-    it('should emit "added" event when an item is inserted', () => {
+    it('should emit "added" event when an item is inserted', async () => {
       const item = { id: '1', name: 'John' }
       const eventHandler = vi.fn()
       collection.on('added', eventHandler)
 
-      collection.insert(item)
+      await collection.insert(item)
 
       expect(eventHandler).toHaveBeenCalledWith(item)
     })
 
-    it('should throw an error if trying to insert an item with the same id', () => {
+    it('should throw an error if trying to insert an item with the same id', async () => {
       const item = { id: '1', name: 'John' }
 
-      collection.insert(item)
+      await collection.insert(item)
 
       expect(() => collection.insert(item)).toThrow()
     })
 
-    it('should emit "insert" event', () => {
+    it('should emit "insert" event', async () => {
       const item = { id: '1', name: 'John' }
       const eventHandler = vi.fn()
       collection.on('insert', eventHandler)
 
-      collection.insert(item)
+      await collection.insert(item)
 
       expect(eventHandler).toHaveBeenCalledWith(item)
     })
   })
 
   describe('insertMany', () => {
-    it('should insert multiple items into the collection', () => {
+    it('should insert multiple items into the collection', async () => {
       const items = [
         { id: '1', name: 'John' },
         { id: '2', name: 'Bob' },
@@ -153,31 +151,31 @@ describe('Collection', () => {
       expect(collection.find({}).fetch()).toEqual(items)
     })
 
-    it('should not fail if empty array was passed', () => {
+    it('should not fail if empty array was passed', async () => {
       expect(collection.insertMany([])).toEqual([])
     })
   })
 
   describe('updateOne', () => {
-    it('should update a single item that matches the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should update a single item that matches the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
-      collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      await collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
 
       expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jane' })
     })
 
-    it('should emit "changed" event when an item is updated', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should emit "changed" event when an item is updated', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('changed', eventHandler)
 
-      collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      await collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
     })
 
-    it('should not throw an error if no item matches the selector', () => {
+    it('should not throw an error if no item matches the selector', async () => {
       expect(collection.updateOne({
         id: '1',
       }, {
@@ -185,40 +183,40 @@ describe('Collection', () => {
       })).toBe(0)
     })
 
-    it('should throw an error if trying to update the item id to a value that already exists', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should throw an error if trying to update the item id to a value that already exists', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
 
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '2' } })).toThrow()
       expect(() => collection.updateOne({ id: '1' }, { $set: { id: '3' } })).not.toThrow()
     })
 
-    it('should emit "updateOne" event', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should emit "updateOne" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('updateOne', eventHandler)
 
-      collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      await collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
     })
 
-    it('should not upsert items if upsert option was not specified', () => {
+    it('should not upsert items if upsert option was not specified', async () => {
       expect(collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       })).toEqual(0)
       expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
     })
 
-    it('should upsert items if upsert option is true', () => {
+    it('should upsert items if upsert option is true', async () => {
       expect(collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       }, { upsert: true })).toEqual(1)
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
     })
 
-    it('should use $setOnInsert if upsert option is true', () => {
+    it('should use $setOnInsert if upsert option is true', async () => {
       expect(collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
         $setOnInsert: {
@@ -228,8 +226,8 @@ describe('Collection', () => {
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert', upserted: true })
     })
 
-    it('should ignore $setOnInsert if item was not upserted', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should ignore $setOnInsert if item was not upserted', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       expect(collection.updateOne({ id: '1' }, {
         $set: { name: 'Jane' },
         $setOnInsert: { upserted: true },
@@ -238,8 +236,8 @@ describe('Collection', () => {
       expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jane' })
     })
 
-    it('should fail if there is an id conflict during upsert', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should fail if there is an id conflict during upsert', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
       expect(() => collection.updateOne({ name: 'Jane' }, {
         $set: { name: 'Jane' },
@@ -249,12 +247,12 @@ describe('Collection', () => {
   })
 
   describe('updateMany', () => {
-    it('should update multiple items that match the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should update multiple items that match the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
 
-      collection.updateMany({ name: 'John' }, { $set: { name: 'Jay' } })
+      await collection.updateMany({ name: 'John' }, { $set: { name: 'Jay' } })
 
       expect(collection.find({ name: 'Jay' }).fetch()).toEqual([
         { id: '1', name: 'Jay' },
@@ -262,96 +260,96 @@ describe('Collection', () => {
       ])
     })
 
-    it('should emit "changed" event for each updated item', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should emit "changed" event for each updated item', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('changed', eventHandler)
 
-      collection.updateMany({ name: 'John' }, { $set: { name: 'Jane' } })
+      await collection.updateMany({ name: 'John' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledTimes(2)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
       expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' }, { $set: { name: 'Jane' } })
     })
 
-    it('should throw an error if trying to update the item id to a value that already exists', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should throw an error if trying to update the item id to a value that already exists', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
 
       expect(() => collection.updateMany({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
       expect(() => collection.updateMany({ id: '1' }, { $set: { id: '2' } })).toThrow()
       expect(() => collection.updateMany({ id: '1' }, { $set: { id: '3' } })).not.toThrow()
     })
 
-    it('should emit "updateMany" event', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should emit "updateMany" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('updateMany', eventHandler)
 
-      collection.updateMany({ id: '1' }, { $set: { name: 'Jane' } })
+      await collection.updateMany({ id: '1' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { $set: { name: 'Jane' } })
     })
   })
 
   describe('replaceOne', () => {
-    it('should replace a single item that matches the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should replace a single item that matches the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
-      collection.replaceOne({ id: '1' }, { name: 'Jack' })
+      await collection.replaceOne({ id: '1' }, { name: 'Jack' })
 
       expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jack' })
     })
 
-    it('should emit "changed" event when an item was replaced', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should emit "changed" event when an item was replaced', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('changed', eventHandler)
 
-      collection.replaceOne({ id: '1' }, { name: 'Jack' })
+      await collection.replaceOne({ id: '1' }, { name: 'Jack' })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jack' }, { name: 'Jack' })
     })
 
-    it('should not throw an error if no item matches the selector', () => {
+    it('should not throw an error if no item matches the selector', async () => {
       expect(collection.replaceOne({ id: '1' }, { name: 'Jack' })).toBe(0)
     })
 
-    it('should throw an error if trying to update the item id to a value that already exists', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should throw an error if trying to update the item id to a value that already exists', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
 
       expect(() => collection.replaceOne({ id: '1' }, { id: '1', name: 'Jack' })).not.toThrow()
       expect(() => collection.replaceOne({ id: '1' }, { id: '2', name: 'Jack' })).toThrow()
       expect(() => collection.replaceOne({ id: '1' }, { id: '3', name: 'Jack' })).not.toThrow()
     })
 
-    it('should emit "replaceOne" event', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should emit "replaceOne" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('replaceOne', eventHandler)
 
-      collection.replaceOne({ id: '1' }, { name: 'Jack' })
+      await collection.replaceOne({ id: '1' }, { name: 'Jack' })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' }, { name: 'Jack' })
     })
 
-    it('should not upsert items if upsert option was not specified', () => {
+    it('should not upsert items if upsert option was not specified', async () => {
       expect(collection.replaceOne({ id: 'asdf' }, { name: 'Upsert' })).toEqual(0)
       expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
     })
 
-    it('should upsert items if upsert option is true', () => {
+    it('should upsert items if upsert option is true', async () => {
       expect(collection.replaceOne({ id: 'asdf' }, {
         name: 'Upsert',
       }, { upsert: true })).toEqual(1)
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
     })
 
-    it('should fail if there is an id conflict during upsert', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should fail if there is an id conflict during upsert', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
       expect(() => collection.replaceOne({ name: 'Jane' }, {
         id: '1',
@@ -361,66 +359,66 @@ describe('Collection', () => {
   })
 
   describe('removeOne', () => {
-    it('should remove an item that match the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should remove an item that match the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
 
-      collection.removeOne({ name: 'John' })
+      await collection.removeOne({ name: 'John' })
 
       expect(collection.find({ name: 'John' }).fetch()).toEqual([{ id: '3', name: 'John' }])
     })
 
-    it('should emit "removed" event for the removed item', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should emit "removed" event for the removed item', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('removed', eventHandler)
 
-      collection.removeOne({ name: 'John' })
+      await collection.removeOne({ name: 'John' })
 
       expect(eventHandler).toHaveBeenCalledTimes(1)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'John' })
     })
 
-    it('should remove the index if the item is removed', () => {
+    it('should remove the index if the item is removed', async () => {
       const id = 'test'
-      collection.insert({ id, name: 'John' })
+      await collection.insert({ id, name: 'John' })
       expect(collection.findOne({ id })).toEqual({ id, name: 'John' })
 
-      collection.removeOne({ id })
+      await collection.removeOne({ id })
       expect(collection.findOne({ id })).toBeUndefined()
 
-      collection.insert({ id, name: 'Jane' })
+      await collection.insert({ id, name: 'Jane' })
       expect(collection.findOne({ id })).toEqual({ id, name: 'Jane' })
     })
 
-    it('should emit "removeOne" event', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should emit "removeOne" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('removeOne', eventHandler)
 
-      collection.removeOne({ id: '1' })
+      await collection.removeOne({ id: '1' })
 
       expect(eventHandler).toHaveBeenCalledWith({ id: '1' })
     })
 
-    it('should not upsert items if upsert option was not specified', () => {
+    it('should not upsert items if upsert option was not specified', async () => {
       expect(collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       })).toEqual(0)
       expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
     })
 
-    it('should upsert items if upsert option is true', () => {
+    it('should upsert items if upsert option is true', async () => {
       expect(collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       }, { upsert: true })).toEqual(1)
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
     })
 
-    it('should use $setOnInsert if upsert option is true', () => {
+    it('should use $setOnInsert if upsert option is true', async () => {
       expect(collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
         $setOnInsert: {
@@ -430,9 +428,9 @@ describe('Collection', () => {
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert', upserted: true })
     })
 
-    it('should ignore $setOnInsert if item was not upserted', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
+    it('should ignore $setOnInsert if item was not upserted', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
       expect(collection.updateMany({}, {
         $set: { updated: true },
         $setOnInsert: { upserted: true },
@@ -444,8 +442,8 @@ describe('Collection', () => {
       ])
     })
 
-    it('should fail if there is an id conflict during upsert', () => {
-      collection.insert({ id: '1', name: 'John' })
+    it('should fail if there is an id conflict during upsert', async () => {
+      await collection.insert({ id: '1', name: 'John' })
 
       expect(() => collection.updateMany({ name: 'Jane' }, {
         $set: { name: 'Jane' },
@@ -455,46 +453,46 @@ describe('Collection', () => {
   })
 
   describe('removeMany', () => {
-    it('should remove items that match the selector', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should remove items that match the selector', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
 
-      collection.removeMany({ name: 'John' })
+      await collection.removeMany({ name: 'John' })
 
       expect(collection.find({ name: 'John' }).fetch()).toEqual([])
     })
 
-    it('should emit "removed" event for each removed item', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should emit "removed" event for each removed item', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
       const eventHandler = vi.fn()
       collection.on('removed', eventHandler)
 
-      collection.removeMany({ name: 'John' })
+      await collection.removeMany({ name: 'John' })
 
       expect(eventHandler).toHaveBeenCalledTimes(2)
       expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'John' })
       expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'John' })
     })
 
-    it('should emit "removeMany" event', () => {
-      collection.insert({ id: '1', name: 'John' })
-      collection.insert({ id: '2', name: 'Jane' })
-      collection.insert({ id: '3', name: 'John' })
+    it('should emit "removeMany" event', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+      await collection.insert({ id: '3', name: 'John' })
 
       const eventHandler = vi.fn()
       collection.on('removeMany', eventHandler)
 
-      collection.removeMany({ name: 'John' })
+      await collection.removeMany({ name: 'John' })
 
       expect(eventHandler).toHaveBeenCalledWith({ name: 'John' })
     })
   })
 
   describe('isLoading', () => {
-    it('should ouput the correct value without persistence', () => {
+    it('should ouput the correct value without persistence', async () => {
       const col = new Collection()
       expect(col.isLoading()).toBe(false)
     })
@@ -518,15 +516,15 @@ describe('Collection', () => {
   })
 
   describe('events', () => {
-    it('shouldn\'t register any event listeners without reactivity', () => {
+    it('shouldn\'t register any event listeners without reactivity', async () => {
       const col = new Collection<{ id: string, name: string }>()
       expect(col.listenerCount('added')).toBe(0)
       expect(col.listenerCount('changed')).toBe(0)
       expect(col.listenerCount('removed')).toBe(0)
 
-      col.insert({ id: '1', name: 'John' })
-      col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
-      col.removeOne({ id: '1' })
+      await col.insert({ id: '1', name: 'John' })
+      await col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      await col.removeOne({ id: '1' })
 
       expect(col.listenerCount('added')).toBe(0)
       expect(col.listenerCount('changed')).toBe(0)
@@ -558,7 +556,7 @@ describe('Collection', () => {
       expect(col.listenerCount('removed')).toBe(0)
     })
 
-    it('should register event listeners in reactive scope', () => {
+    it('should register event listeners in reactive scope', async () => {
       const col = new Collection<{ id: string, name: string }>({
         reactivity: {
           create: () => ({
@@ -578,9 +576,9 @@ describe('Collection', () => {
       expect(col.listenerCount('changed')).toBe(0)
       expect(col.listenerCount('removed')).toBe(0)
 
-      col.insert({ id: '1', name: 'John' })
-      col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
-      col.removeOne({ id: '1' })
+      await col.insert({ id: '1', name: 'John' })
+      await col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
+      await col.removeOne({ id: '1' })
 
       expect(col.listenerCount('added')).toBe(0)
       expect(col.listenerCount('changed')).toBe(0)
@@ -629,13 +627,13 @@ describe('Collection', () => {
   })
 
   describe('performance', { retry: 5 }, () => {
-    it('should be faster with id only queries', () => {
+    it('should be faster with id only queries', async () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
       // create items
-      col.batch(() => {
+      await col.batch(async () => {
         for (let i = 0; i < 1000; i += 1) {
-          col.insert({ id: i.toString(), name: 'John', num: i })
+          await col.insert({ id: i.toString(), name: 'John', num: i })
         }
       })
 
@@ -657,17 +655,17 @@ describe('Collection', () => {
       expect(percentage).toBeLessThan(10)
     })
 
-    it('should be faster with field indices', () => {
+    it('should be faster with field indices', async () => {
       const col1 = new Collection<{ id: string, name: string, num: number }>({
         indices: [createIndex('num')],
       })
       const col2 = new Collection<{ id: string, name: string, num: number }>()
 
-      Collection.batch(() => {
+      await Collection.batch(async () => {
         // create items
         for (let i = 0; i < 10_000; i += 1) {
-          col1.insert({ id: i.toString(), name: 'John', num: i })
-          col2.insert({ id: i.toString(), name: 'John', num: i })
+          await col1.insert({ id: i.toString(), name: 'John', num: i })
+          await col2.insert({ id: i.toString(), name: 'John', num: i })
         }
       })
 
@@ -691,7 +689,7 @@ describe('Collection', () => {
   })
 
   describe('Field Tracking', () => {
-    it('should enable field tracking globally', () => {
+    it('should enable field tracking globally', async () => {
       const col1 = new Collection<any>()
       // @ts-expect-error private property
       expect(col1.fieldTracking).toBe(false)
@@ -705,7 +703,7 @@ describe('Collection', () => {
       expect(col2.fieldTracking).toBe(true)
     })
 
-    it('should toggle field tracking', () => {
+    it('should toggle field tracking', async () => {
       Collection.setFieldTracking(false)
       const col = new Collection<any>()
       // @ts-expect-error private property
@@ -722,7 +720,7 @@ describe('Collection', () => {
   })
 
   describe('Collection Debug Mode', () => {
-    it('should enable debug mode globally', () => {
+    it('should enable debug mode globally', async () => {
       const col1 = new Collection<any>()
       expect(col1.getDebugMode()).toBe(false)
 
@@ -733,7 +731,7 @@ describe('Collection', () => {
       expect(col2.getDebugMode()).toBe(true)
     })
 
-    it('should toggle debug mode', () => {
+    it('should toggle debug mode', async () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       Collection.debugMode = false
@@ -748,7 +746,7 @@ describe('Collection', () => {
       expect(col.getDebugMode()).toBe(false)
     })
 
-    it('should enable debug mode and emit debug events', () => {
+    it('should enable debug mode and emit debug events', async () => {
       // Create a new collection instance with debug mode enabled
       const col = new Collection<any>({ enableDebugMode: true })
 
@@ -757,7 +755,7 @@ describe('Collection', () => {
 
       // Perform operations to trigger debug events
       const item = { name: 'test' }
-      col.insert(item)
+      await col.insert(item)
       expect(emitSpy.mock.calls.some(call => call[0] === '_debug.insert')).toBe(true)
 
       col.find({ name: 'test' })
@@ -766,17 +764,17 @@ describe('Collection', () => {
       col.findOne({ name: 'test' })
       expect(emitSpy.mock.calls.some(call => call[0] === '_debug.findOne')).toBe(true)
 
-      col.updateOne({ name: 'test' }, { $set: { name: 'updated' } })
+      await col.updateOne({ name: 'test' }, { $set: { name: 'updated' } })
       expect(emitSpy.mock.calls.some(call => call[0] === '_debug.updateOne')).toBe(true)
 
-      col.removeOne({ name: 'updated' })
+      await col.removeOne({ name: 'updated' })
       expect(emitSpy.mock.calls.some(call => call[0] === '_debug.removeOne')).toBe(true)
 
       // Cleanup
       emitSpy.mockRestore()
     })
 
-    it('should not emit debug events when debug mode is disabled', () => {
+    it('should not emit debug events when debug mode is disabled', async () => {
       // Create a new collection instance with debug mode disabled
       const col = new Collection<any>({ enableDebugMode: false })
 
@@ -784,7 +782,7 @@ describe('Collection', () => {
       const emitSpy = vi.spyOn(col, 'emit')
 
       // Perform operations
-      col.insert({ name: 'test' })
+      await col.insert({ name: 'test' })
 
       // Verify that no debug events were emitted
       expect(emitSpy).not.toHaveBeenCalledWith(expect.stringContaining('_debug.insert'), expect.any(String), expect.any(Object))
@@ -821,7 +819,7 @@ describe('Collection', () => {
       }
     }
 
-    it('should validate the schema without errors', () => {
+    it('should validate the schema without errors', async () => {
       const Posts = new SchemaCollection({
         schema: z.object({
           id: z.string(),
@@ -831,39 +829,31 @@ describe('Collection', () => {
         }),
       })
 
-      expect(() => {
-        Posts.insert({
-          id: '1',
-          title: 'Hello',
-          content: 'World',
-        })
-      }).not.toThrowError()
+      expect(() => Posts.insert({
+        id: '1',
+        title: 'Hello',
+        content: 'World',
+      })).not.toThrowError()
 
-      expect(() => {
-        Posts.updateOne({
-          id: '1',
-        }, {
-          $set: { published: true },
-        })
-      }).not.toThrowError()
+      expect(() => Posts.updateOne({
+        id: '1',
+      }, {
+        $set: { published: true },
+      })).not.toThrowError()
 
-      expect(() => {
-        Posts.updateMany({}, {
-          $set: { published: true },
-        })
-      }).not.toThrowError()
+      expect(() => Posts.updateMany({}, {
+        $set: { published: true },
+      })).not.toThrowError()
 
-      expect(() => {
-        Posts.replaceOne({
-          id: '1',
-        }, {
-          title: 'Hello',
-          content: 'World',
-        })
-      }).not.toThrowError()
+      expect(() => Posts.replaceOne({
+        id: '1',
+      }, {
+        title: 'Hello',
+        content: 'World',
+      })).not.toThrowError()
     })
 
-    it('should validate the schema and throw errors', () => {
+    it('should validate the schema and throw errors', async () => {
       const Posts = new SchemaCollection({
         schema: z.object({
           id: z.string(),
@@ -873,50 +863,42 @@ describe('Collection', () => {
         }),
       })
 
-      expect(() => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        Posts.insert({
-          id: '1',
-          content: 'World',
-        } as any)
-      }).toThrowError()
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      expect(() => Posts.insert({
+        id: '1',
+        content: 'World',
+      } as any)).toThrowError()
 
-      expect(() => {
-        Posts.updateOne({
-          id: '1',
-        }, {
-          $set: { foo: true },
-        })
-      }).not.toThrowError()
+      expect(() => Posts.updateOne({
+        id: '1',
+      }, {
+        $set: { foo: true },
+      })).not.toThrowError()
 
-      expect(() => {
-        Posts.updateMany({}, {
-          $set: { bar: true },
-        })
-      }).not.toThrowError()
+      expect(() => Posts.updateMany({}, {
+        $set: { bar: true },
+      })).not.toThrowError()
 
-      expect(() => {
-        Posts.replaceOne({
-          id: '1',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        }, {
-          title: 'Hello',
-          content: 'World',
-          asdf: true,
-        } as any)
-      }).not.toThrowError()
+      expect(() => Posts.replaceOne({
+        id: '1',
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      }, {
+        title: 'Hello',
+        content: 'World',
+        asdf: true,
+      } as any)).not.toThrowError()
     })
   })
 
   describe('misc', () => {
-    it('should get all collections with Collection.getCollections()', () => {
+    it('should get all collections with Collection.getCollections()', async () => {
       const col1 = new Collection<any>()
       const col2 = new Collection<any>()
 
       expect(Collection.getCollections()).toEqual(expect.arrayContaining([col1, col2]))
     })
 
-    it('should call the onCreation hook', () => {
+    it('should call the onCreation hook', async () => {
       const onCreation = vi.fn()
       Collection.onCreation(onCreation)
       const col = new Collection<any>()
@@ -933,23 +915,15 @@ describe('Collection', () => {
       expect(onDispose).toHaveBeenCalledWith(col)
     })
 
-    it('should seed the collection with initial data from the memory adapter', () => {
-      const col = new Collection<{ id: string, name: string }>({
-        memory: createMemoryAdapter([{ id: '1', name: 'John' }]),
-      })
-
-      expect(col.findOne({ id: '1' })).toEqual({ id: '1', name: 'John' })
-    })
-
-    it('should disable indexing temporarily if indices are outdated', () => {
+    it('should disable indexing temporarily if indices are outdated', async () => {
       const col = new Collection<{ id: string, name: string }>({
         indices: [createIndex('name')],
       })
-      col.batch(() => {
-        col.insert({ id: '1', name: 'John' })
-        col.insert({ id: '2', name: 'Jane' })
-        col.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
-        col.removeOne({ id: '2' })
+      await col.batch(async () => {
+        await col.insert({ id: '1', name: 'John' })
+        await col.insert({ id: '2', name: 'Jane' })
+        await col.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
+        await col.removeOne({ id: '2' })
 
         expect(col.find().fetch()).toEqual([{ id: '1', name: 'John Doe' }])
         expect(col.find({ name: 'John Doe' }).fetch()).toEqual([{ id: '1', name: 'John Doe' }])
@@ -958,7 +932,7 @@ describe('Collection', () => {
 
     it('should dipose the collection', async () => {
       const col = new Collection<{ id: string, name: string }>()
-      col.insert({ id: '1', name: 'John' })
+      await col.insert({ id: '1', name: 'John' })
       await col.dispose()
 
       expect(() => col.find()).toThrowError('Collection is disposed')
@@ -994,12 +968,12 @@ describe('Collection', () => {
       expect(unregister).toHaveBeenCalledOnce()
     })
 
-    it('should not fail if id index gets modified during batch operation', () => {
+    it('should not fail if id index gets modified during batch operation', async () => {
       const col = new Collection<{ id: string, name: string }>()
-      col.insert({ id: '1', name: 'John' })
-      col.insert({ id: '2', name: 'Jane' })
-      col.batch(() => {
-        col.removeOne({ id: '1' })
+      await col.insert({ id: '1', name: 'John' })
+      await col.insert({ id: '2', name: 'Jane' })
+      await col.batch(async () => {
+        await col.removeOne({ id: '1' })
 
         expect(col.find({ id: '2' }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
       })
@@ -1040,28 +1014,28 @@ describe('Collection', () => {
         }
         return items
       }
-      col1.insert({ id: '1', name: 'John' })
-      col1.insert({ id: '2', name: 'Jane' })
+      await col1.insert({ id: '1', name: 'John' })
+      await col1.insert({ id: '2', name: 'Jane' })
 
       const col2 = new Collection({ transformAll })
 
-      col2.insert({ id: '1', name: 'John', parent: '1' })
-      col2.insert({ id: '2', name: 'Jane', parent: '2' })
+      await col2.insert({ id: '1', name: 'John', parent: '1' })
+      await col2.insert({ id: '2', name: 'Jane', parent: '2' })
 
       expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
       expect(col2.find({ id: '2' }, { fields: { id: 1, name: 1 } }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
 
-      col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
+      await col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
       expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
   })
 
   describe('Custom Primary Key Generator', () => {
-    it('should use custom primary key generator', () => {
+    it('should use custom primary key generator', async () => {
       const col = new Collection<{ id: string, name: string }>({
         primaryKeyGenerator: () => 'custom-id',
       })
-      col.insert({ name: 'John' })
+      await col.insert({ name: 'John' })
       expect(col.findOne({ id: 'custom-id' })).toEqual({ id: 'custom-id', name: 'John' })
     })
   })
