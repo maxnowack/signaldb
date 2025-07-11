@@ -23,7 +23,6 @@ export { default as Collection, createIndex } from './Collection'
 export { default as AutoFetchCollection } from './AutoFetchCollection'
 export { default as combinePersistenceAdapters } from './persistence/combinePersistenceAdapters'
 export { default as createIndexProvider } from './createIndexProvider'
-export { default as createMemoryAdapter } from './createMemoryAdapter'
 export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
 export { default as createReactivityAdapter } from './createReactivityAdapter'
 
