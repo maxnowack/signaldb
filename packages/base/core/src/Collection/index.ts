@@ -152,9 +152,9 @@ export default class Collection<
    * @param callback - The batch operation to execute.
    * @returns A promise if the callback returns a promise, otherwise `void`.
    */
-  static batch<ReturnType>(
-    callback: () => ReturnType,
-  ): ReturnType extends Promise<any> ? Promise<void> : void {
+  static batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
+  static batch<ReturnType>(callback: () => ReturnType): void
+  static batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
     Collection.batchOperationInProgress = true
 
     const execute = (): ReturnType => {
@@ -173,10 +173,9 @@ export default class Collection<
 
     if (maybePromise instanceof Promise) {
       return maybePromise
-        .then(() => afterBatch()) as ReturnType extends Promise<any> ? Promise<void> : void
+        .then(() => afterBatch())
     } else {
       afterBatch()
-      return undefined as ReturnType extends Promise<any> ? Promise<void> : void
     }
   }
 
@@ -526,9 +525,9 @@ export default class Collection<
    * @param callback - The batch operation to execute.
    * @returns A promise if the callback returns a promise, otherwise void.
    */
-  public batch<ReturnType>(
-    callback: () => ReturnType,
-  ): ReturnType extends Promise<any> ? Promise<void> : void {
+  public batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
+  public batch<ReturnType>(callback: () => ReturnType): void
+  public batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
     const maybePromise = callback()
     this.batchOperationInProgress = true
 
@@ -540,10 +539,9 @@ export default class Collection<
 
     if (maybePromise instanceof Promise) {
       return maybePromise
-        .then(() => afterBatch()) as ReturnType extends Promise<any> ? Promise<void> : void
+        .then(() => afterBatch())
     } else {
       afterBatch()
-      return undefined as ReturnType extends Promise<any> ? Promise<void> : void
     }
   }
 
