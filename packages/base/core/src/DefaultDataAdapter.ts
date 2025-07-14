@@ -89,7 +89,7 @@ export default class DefaultDataAdapter implements DataAdapter {
   private queryEmitters: Record<
     string,
     EventEmitter<{
-      change: (selector: Selector<any>, options: QueryOptions<any>, state: 'active' | 'complete' | 'error') => void,
+      change: (selector: Selector<any>, options: QueryOptions<any> | undefined, state: 'active' | 'complete' | 'error') => void,
     }>
   > = {}
 
@@ -409,7 +409,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       })
     queries.forEach(({ selector, options }) => {
       const emitter = this.queryEmitters[collection.name]
-      emitter.emit('change', selector, options || {}, 'active')
+      emitter.emit('change', selector, options, 'active')
     })
   }
 
@@ -652,7 +652,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         const emitter = this.queryEmitters[collection.name]
         const handler = (
           querySelector: Selector<any>,
-          queryOptions: QueryOptions<any>,
+          queryOptions: QueryOptions<any> | undefined,
           state: 'active' | 'complete' | 'error',
         ) => {
           if (querySelector !== selector || queryOptions !== options) return
