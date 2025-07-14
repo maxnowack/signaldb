@@ -21,7 +21,6 @@ export type {
 export { default as Cursor } from './Collection/Cursor'
 
 export { default as Collection, createIndex } from './Collection'
-export { default as AutoFetchCollection } from './AutoFetchCollection'
 export { default as combinePersistenceAdapters } from './persistence/combinePersistenceAdapters'
 export { default as createIndexProvider } from './createIndexProvider'
 export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
