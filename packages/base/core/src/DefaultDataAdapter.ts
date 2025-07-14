@@ -409,7 +409,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       })
     queries.forEach(({ selector, options }) => {
       const emitter = this.queryEmitters[collection.name]
-      emitter.emit('change', selector, options, 'active')
+      emitter.emit('change', selector, options, 'complete')
     })
   }
 
