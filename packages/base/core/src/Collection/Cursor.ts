@@ -15,9 +15,9 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
 }
 
 export interface CursorOptions<
-  Async extends boolean,
   T extends BaseItem,
   U = T,
+  Async extends boolean = false,
 > extends FindOptions<T, Async> {
   transform?: Transform<T, U>,
   bindEvents?: (requery: () => void) => () => void,
@@ -29,10 +29,10 @@ export interface CursorOptions<
  * @template T - The type of the items in the collection.
  * @template U - The transformed item type after applying transform (default is T).
  */
-export default class Cursor<Async extends boolean, T extends BaseItem, U = T> {
+export default class Cursor<T extends BaseItem, U = T, Async extends boolean = false> {
   private observer: Observer<T> | undefined
   private getItems: Async extends true ? () => Promise<T[]> : () => T[]
-  private options: CursorOptions<Async, T, U>
+  private options: CursorOptions<T, U, Async>
   private onCleanupCallbacks: (() => void)[] = []
 
   /**
@@ -54,7 +54,7 @@ export default class Cursor<Async extends boolean, T extends BaseItem, U = T> {
    */
   constructor(
     getItems: Async extends true ? () => Promise<T[]> : () => T[],
-    options?: CursorOptions<Async, T, U>,
+    options?: CursorOptions<T, U, Async>,
   ) {
     this.getItems = getItems
     this.options = options || {}
