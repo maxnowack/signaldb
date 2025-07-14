@@ -123,7 +123,7 @@ describe('Collection', () => {
 
       await collection.insert(item)
 
-      expect(() => collection.insert(item)).toThrow()
+      await expect(() => collection.insert(item)).rejects.toThrow()
     })
 
     it('should emit "insert" event', async () => {
@@ -145,14 +145,14 @@ describe('Collection', () => {
         { id: '3', name: 'Jack' },
       ]
 
-      const ids = collection.insertMany(items)
+      const ids = await collection.insertMany(items)
 
       expect(ids).toEqual(['1', '2', '3'])
       expect(collection.find({}).fetch()).toEqual(items)
     })
 
     it('should not fail if empty array was passed', async () => {
-      expect(collection.insertMany([])).toEqual([])
+      expect(await collection.insertMany([])).toEqual([])
     })
   })
 
@@ -176,7 +176,7 @@ describe('Collection', () => {
     })
 
     it('should not throw an error if no item matches the selector', async () => {
-      expect(collection.updateOne({
+      expect(await collection.updateOne({
         id: '1',
       }, {
         $set: { name: 'Jane' },
@@ -187,9 +187,15 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      expect(() => collection.updateOne({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
-      expect(() => collection.updateOne({ id: '1' }, { $set: { id: '2' } })).toThrow()
-      expect(() => collection.updateOne({ id: '1' }, { $set: { id: '3' } })).not.toThrow()
+      await expect(() => collection.updateOne({ id: '1' }, {
+        $set: { id: '1' },
+      })).not.rejects.toThrow()
+      await expect(() => collection.updateOne({ id: '1' }, {
+        $set: { id: '2' },
+      })).rejects.toThrow()
+      await expect(() => collection.updateOne({ id: '1' }, {
+        $set: { id: '3' },
+      })).not.rejects.toThrow()
     })
 
     it('should emit "updateOne" event', async () => {
@@ -203,21 +209,21 @@ describe('Collection', () => {
     })
 
     it('should not upsert items if upsert option was not specified', async () => {
-      expect(collection.updateOne({ id: 'asdf' }, {
+      expect(await collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       })).toEqual(0)
       expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
     })
 
     it('should upsert items if upsert option is true', async () => {
-      expect(collection.updateOne({ id: 'asdf' }, {
+      expect(await collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       }, { upsert: true })).toEqual(1)
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
     })
 
     it('should use $setOnInsert if upsert option is true', async () => {
-      expect(collection.updateOne({ id: 'asdf' }, {
+      expect(await collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
         $setOnInsert: {
           upserted: true,
@@ -228,7 +234,7 @@ describe('Collection', () => {
 
     it('should ignore $setOnInsert if item was not upserted', async () => {
       await collection.insert({ id: '1', name: 'John' })
-      expect(collection.updateOne({ id: '1' }, {
+      expect(await collection.updateOne({ id: '1' }, {
         $set: { name: 'Jane' },
         $setOnInsert: { upserted: true },
       }, { upsert: true })).toEqual(1)
@@ -239,10 +245,10 @@ describe('Collection', () => {
     it('should fail if there is an id conflict during upsert', async () => {
       await collection.insert({ id: '1', name: 'John' })
 
-      expect(() => collection.updateOne({ name: 'Jane' }, {
+      await expect(() => collection.updateOne({ name: 'Jane' }, {
         $set: { name: 'Jane' },
         $setOnInsert: { id: '1' },
-      }, { upsert: true })).toThrow()
+      }, { upsert: true })).rejects.toThrow()
     })
   })
 
@@ -278,9 +284,15 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      expect(() => collection.updateMany({ id: '1' }, { $set: { id: '1' } })).not.toThrow()
-      expect(() => collection.updateMany({ id: '1' }, { $set: { id: '2' } })).toThrow()
-      expect(() => collection.updateMany({ id: '1' }, { $set: { id: '3' } })).not.toThrow()
+      await expect(() => collection.updateMany({ id: '1' }, {
+        $set: { id: '1' },
+      })).not.rejects.toThrow()
+      await expect(() => collection.updateMany({ id: '1' }, {
+        $set: { id: '2' },
+      })).rejects.toThrow()
+      await expect(() => collection.updateMany({ id: '1' }, {
+        $set: { id: '3' },
+      })).not.rejects.toThrow()
     })
 
     it('should emit "updateMany" event', async () => {
@@ -314,16 +326,25 @@ describe('Collection', () => {
     })
 
     it('should not throw an error if no item matches the selector', async () => {
-      expect(collection.replaceOne({ id: '1' }, { name: 'Jack' })).toBe(0)
+      expect(await collection.replaceOne({ id: '1' }, { name: 'Jack' })).toBe(0)
     })
 
     it('should throw an error if trying to update the item id to a value that already exists', async () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      expect(() => collection.replaceOne({ id: '1' }, { id: '1', name: 'Jack' })).not.toThrow()
-      expect(() => collection.replaceOne({ id: '1' }, { id: '2', name: 'Jack' })).toThrow()
-      expect(() => collection.replaceOne({ id: '1' }, { id: '3', name: 'Jack' })).not.toThrow()
+      await expect(() => collection.replaceOne({ id: '1' }, {
+        id: '1',
+        name: 'Jack',
+      })).not.rejects.toThrow()
+      await expect(() => collection.replaceOne({ id: '1' }, {
+        id: '2',
+        name: 'Jack',
+      })).rejects.toThrow()
+      await expect(() => collection.replaceOne({ id: '1' }, {
+        id: '3',
+        name: 'Jack',
+      })).not.rejects.toThrow()
     })
 
     it('should emit "replaceOne" event', async () => {
@@ -337,12 +358,12 @@ describe('Collection', () => {
     })
 
     it('should not upsert items if upsert option was not specified', async () => {
-      expect(collection.replaceOne({ id: 'asdf' }, { name: 'Upsert' })).toEqual(0)
+      expect(await collection.replaceOne({ id: 'asdf' }, { name: 'Upsert' })).toEqual(0)
       expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
     })
 
     it('should upsert items if upsert option is true', async () => {
-      expect(collection.replaceOne({ id: 'asdf' }, {
+      expect(await collection.replaceOne({ id: 'asdf' }, {
         name: 'Upsert',
       }, { upsert: true })).toEqual(1)
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
@@ -351,10 +372,10 @@ describe('Collection', () => {
     it('should fail if there is an id conflict during upsert', async () => {
       await collection.insert({ id: '1', name: 'John' })
 
-      expect(() => collection.replaceOne({ name: 'Jane' }, {
+      await expect(() => collection.replaceOne({ name: 'Jane' }, {
         id: '1',
         name: 'Jane',
-      }, { upsert: true })).toThrow()
+      }, { upsert: true })).rejects.toThrow()
     })
   })
 
@@ -405,21 +426,21 @@ describe('Collection', () => {
     })
 
     it('should not upsert items if upsert option was not specified', async () => {
-      expect(collection.updateMany({ id: 'asdf' }, {
+      expect(await collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       })).toEqual(0)
       expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
     })
 
     it('should upsert items if upsert option is true', async () => {
-      expect(collection.updateMany({ id: 'asdf' }, {
+      expect(await collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       }, { upsert: true })).toEqual(1)
       expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
     })
 
     it('should use $setOnInsert if upsert option is true', async () => {
-      expect(collection.updateMany({ id: 'asdf' }, {
+      expect(await collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
         $setOnInsert: {
           upserted: true,
@@ -431,7 +452,7 @@ describe('Collection', () => {
     it('should ignore $setOnInsert if item was not upserted', async () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
-      expect(collection.updateMany({}, {
+      expect(await collection.updateMany({}, {
         $set: { updated: true },
         $setOnInsert: { upserted: true },
       }, { upsert: true })).toEqual(2)
@@ -445,10 +466,10 @@ describe('Collection', () => {
     it('should fail if there is an id conflict during upsert', async () => {
       await collection.insert({ id: '1', name: 'John' })
 
-      expect(() => collection.updateMany({ name: 'Jane' }, {
+      await expect(() => collection.updateMany({ name: 'Jane' }, {
         $set: { name: 'Jane' },
         $setOnInsert: { id: '1' },
-      }, { upsert: true })).toThrow()
+      }, { upsert: true })).rejects.toThrow()
     })
   })
 
