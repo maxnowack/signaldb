@@ -528,8 +528,8 @@ export default class Collection<
   public batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
   public batch<ReturnType>(callback: () => ReturnType): void
   public batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
-    const maybePromise = callback()
     this.batchOperationInProgress = true
+    const maybePromise = callback()
 
     const afterBatch = () => {
       this.batchOperationInProgress = false
