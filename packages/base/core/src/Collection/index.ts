@@ -62,7 +62,7 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'find': <O extends FindOptions<T, Async>, Async extends boolean>(
     selector: Selector<T> | undefined,
     options: O | undefined,
-    cursor: Cursor<Async, E, U>,
+    cursor: Cursor<E, U, Async>,
   ) => void,
   'findOne': <O extends QueryOptions<T>>(
     selector: Selector<T>,
@@ -79,7 +79,7 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'validate': (item: T) => void,
 
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
-  '_debug.find': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<Async, E, U>) => void,
+  '_debug.find': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<E, U, Async>) => void,
   '_debug.findOne': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
   '_debug.insert': (callstack: string, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.updateOne': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
@@ -445,7 +445,7 @@ export default class Collection<
   ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
-    const cursor = new Cursor<Async, E, U>(
+    const cursor = new Cursor<E, U, Async>(
       (() => this.getItems(selector, options || {})) as Async extends true
         ? () => Promise<E[]>
         : () => E[],
