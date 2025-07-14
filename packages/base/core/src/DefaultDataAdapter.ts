@@ -422,7 +422,6 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.queuedQueryUpdates[collection.name].added.push(...changes.added)
     this.queuedQueryUpdates[collection.name].modified.push(...changes.modified)
     this.queuedQueryUpdates[collection.name].removed.push(...changes.removed)
-    if (collection.isBatchOperationInProgress()) return
     this.flushQueuedQueryUpdates(collection)
   }
 
