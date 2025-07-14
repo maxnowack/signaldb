@@ -659,11 +659,11 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const removedItemCount = await this.backend.removeOne(selector)
+    const removedItems = await this.backend.removeOne(selector)
 
     this.emit('removeOne', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
-    return removedItemCount
+    return removedItems.length
   }
 
   /**
@@ -676,10 +676,10 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const removedItemCount = await this.backend.removeMany(selector)
+    const removedItems = await this.backend.removeMany(selector)
 
     this.emit('removeMany', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeMany', callstack, selector))
-    return removedItemCount
+    return removedItems.length
   }
 }
