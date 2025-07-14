@@ -436,6 +436,11 @@ export default class DefaultDataAdapter implements DataAdapter {
       || new EventEmitter<{
         change: (selector: Selector<any>, options: QueryOptions<any>, state: 'active' | 'complete' | 'error') => void,
       }>()
+    this.activeQueries[collection.name] = this.activeQueries[collection.name]
+      || new Set<{
+        selector: Selector<T>,
+        options?: QueryOptions<T>,
+      }>()
 
     this.idIndices[collection.name] = this.idIndices[collection.name]
       || new Map<string | undefined | null, Set<number>>()
