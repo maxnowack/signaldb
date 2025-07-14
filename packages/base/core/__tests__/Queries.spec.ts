@@ -26,7 +26,7 @@ describe('Queries', () => {
     expect(c.find({ type: 'kitten' }).fetch().length).toBe(2)
     expect(c.find({ type: 'cryptographer' }).fetch().length).toBe(2)
 
-    count = c.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
+    count = await c.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
     expect(count).toBe(1)
     expect(c.find().count()).toBe(4)
     expect(c.find({ type: 'kitten' }).count()).toBe(1)
@@ -36,11 +36,11 @@ describe('Queries', () => {
 
     /* eslint-disable @typescript-eslint/ban-ts-comment */
     // @ts-ignore
-    expect(() => c.removeMany(null)).toThrow()
+    await expect(() => c.removeMany(null)).rejects.toThrow()
     // @ts-ignore
-    expect(() => c.removeMany(false)).toThrow()
+    await expect(() => c.removeMany(false)).rejects.toThrow()
     // @ts-ignore
-    expect(() => c.removeMany(undefined)).toThrow()
+    await expect(() => c.removeMany(undefined)).rejects.toThrow()
     /* eslint-enable @typescript-eslint/ban-ts-comment */
     expect(c.find().count()).toBe(4)
 
@@ -49,7 +49,7 @@ describe('Queries', () => {
     await c.removeOne({ id: undefined })
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    expect(() => c.removeMany()).toThrow()
+    await expect(() => c.removeMany()).rejects.toThrow()
     expect(c.find().count()).toBe(4)
 
     count = await c.removeMany({})
@@ -134,7 +134,7 @@ describe('Queries', () => {
     expect(c.find({ type: 'kitten' }).fetch().length).toBe(2)
     expect(c.find({ type: 'cryptographer' }).fetch().length).toBe(2)
 
-    count = c.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
+    count = await c.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
     expect(count).toBe(1)
     expect(c.find().count()).toBe(4)
     expect(c.find({ type: 'kitten' }).count()).toBe(1)
@@ -144,11 +144,11 @@ describe('Queries', () => {
 
     /* eslint-disable @typescript-eslint/ban-ts-comment */
     // @ts-ignore
-    expect(() => c.removeMany(null)).toThrow()
+    await expect(() => c.removeMany(null)).rejects.toThrow()
     // @ts-ignore
-    expect(() => c.removeMany(false)).toThrow()
+    await expect(() => c.removeMany(false)).rejects.toThrow()
     // @ts-ignore
-    expect(() => c.removeMany(undefined)).toThrow()
+    await expect(() => c.removeMany(undefined)).rejects.toThrow()
     /* eslint-enable @typescript-eslint/ban-ts-comment */
     expect(c.find().count()).toBe(4)
 
@@ -157,7 +157,7 @@ describe('Queries', () => {
     await c.removeOne({ id: undefined })
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    expect(() => c.removeMany()).toThrow()
+    await expect(() => c.removeMany()).rejects.toThrow()
     expect(c.find().count()).toBe(4)
 
     count = await c.removeMany({})
@@ -222,7 +222,7 @@ describe('Queries', () => {
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    expect(() => c.insert(null)).toThrow()
+    await expect(() => c.insert(null)).rejects.toThrow()
 
     // Test find with invalid query
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -235,15 +235,15 @@ describe('Queries', () => {
     // Test updateMany with invalid data
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    expect(() => c.updateMany({ id: 1 }, null)).toThrow()
+    await expect(() => c.updateMany({ id: 1 }, null)).rejects.toThrow()
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    expect(() => c.updateMany(null, { $set: { name: 'new name' } })).toThrow()
+    await expect(() => c.updateMany(null, { $set: { name: 'new name' } })).rejects.toThrow()
 
     // Test removeOne with invalid data
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    expect(() => c.removeOne(null)).toThrow()
+    await expect(() => c.removeOne(null)).rejects.toThrow()
   })
 
   it('should handle edge cases', async () => {
@@ -252,16 +252,16 @@ describe('Queries', () => {
     // Test insert, find, updateMany, removeMany, removeOne with empty data
     expect(await c.insert({})).toBeDefined()
     expect(c.find({}).count()).toBe(1)
-    expect(c.updateMany({}, { $set: { name: 'empty' } })).toBe(1)
+    expect(await c.updateMany({}, { $set: { name: 'empty' } })).toBe(1)
     expect(await c.removeMany({})).toBe(1)
     expect(await c.removeOne({})).toBe(0)
 
     // Test insert with same id
     await c.insert({ id: 1, name: 'strawberry' })
-    expect(() => c.insert({ id: 1, name: 'apple' })).toThrow()
+    await expect(() => c.insert({ id: 1, name: 'apple' })).rejects.toThrow()
 
     // Test updateMany with no match
-    expect(c.updateMany({ id: 100 }, { $set: { name: 'new name' } })).toBe(0)
+    expect(await c.updateMany({ id: 100 }, { $set: { name: 'new name' } })).toBe(0)
 
     // Test removeMany with no match
     expect(await c.removeMany({ id: 100 })).toBe(0)
