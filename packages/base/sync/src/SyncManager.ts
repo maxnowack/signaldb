@@ -324,10 +324,13 @@ export default class SyncManager<
         time: Date.now(),
         type: 'insert',
         data: item,
+      }).then(() => {
+        if (this.getCollectionProperties(options.name).syncPaused) return
+        this.schedulePush(options.name)
+      }).catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
-
-      if (this.getCollectionProperties(options.name).syncPaused) return
-      this.schedulePush(options.name)
     }
     const onChanged: SyncListeners<ItemType, IdType>['changed'] = ({ id }, modifier) => {
       if (this.isDisposed) return
@@ -342,10 +345,13 @@ export default class SyncManager<
         time: Date.now(),
         type: 'update',
         data,
+      }).then(() => {
+        if (this.getCollectionProperties(options.name).syncPaused) return
+        this.schedulePush(options.name)
+      }).catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
-
-      if (this.getCollectionProperties(options.name).syncPaused) return
-      this.schedulePush(options.name)
     }
     const onRemoved: SyncListeners<ItemType, IdType>['removed'] = ({ id }) => {
       if (this.isDisposed) return
@@ -359,10 +365,13 @@ export default class SyncManager<
         time: Date.now(),
         type: 'remove',
         data: id,
+      }).then(() => {
+        if (this.getCollectionProperties(options.name).syncPaused) return
+        this.schedulePush(options.name)
+      }).catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
-
-      if (this.getCollectionProperties(options.name).syncPaused) return
-      this.schedulePush(options.name)
     }
 
     collection.on('added', onAdded)
@@ -427,17 +436,17 @@ export default class SyncManager<
             await this.sync(name)
           } else {
             const syncTime = Date.now()
-            const syncId = this.syncOperations.insert({
+            const syncId = await this.syncOperations.insert({
               start: syncTime,
               collectionName: name,
               instanceId: this.instanceId,
               status: 'active',
             })
             await this.syncWithData(name, data)
-              .then(() => {
+              .then(async () => {
                 if (this.isDisposed) return
                 // clean up old sync operations
-                this.syncOperations.removeMany({
+                await this.syncOperations.removeMany({
                   id: { $ne: syncId },
                   collectionName: name,
                   $or: [
@@ -447,15 +456,15 @@ export default class SyncManager<
                 })
 
                 // update sync operation status to done after everthing was finished
-                this.syncOperations.updateOne({ id: syncId }, {
+                await this.syncOperations.updateOne({ id: syncId }, {
                   $set: { status: 'done', end: Date.now() },
                 })
               })
-              .catch((error: Error) => {
+              .catch(async (error: Error) => {
                 if (this.options.onError) {
                   this.options.onError(this.getCollectionProperties(name).options, error)
                 }
-                this.syncOperations.updateOne({ id: syncId }, {
+                await this.syncOperations.updateOne({ id: syncId }, {
                   $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
                 })
                 throw error
@@ -578,7 +587,7 @@ export default class SyncManager<
       }
 
       if (!hasActiveSyncs) {
-        syncId = this.syncOperations.insert({
+        syncId = await this.syncOperations.insert({
           start: syncTime,
           collectionName: name,
           instanceId: this.instanceId,
@@ -594,10 +603,10 @@ export default class SyncManager<
     }
 
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
-      .catch((error: Error) => {
+      .catch(async (error: Error) => {
         if (syncId != null) {
           if (this.options.onError) this.options.onError(collectionOptions, error)
-          this.syncOperations.updateOne({ id: syncId }, {
+          await this.syncOperations.updateOne({ id: syncId }, {
             $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
           })
         }
@@ -606,7 +615,7 @@ export default class SyncManager<
 
     if (syncId != null) {
       // clean up old sync operations
-      this.syncOperations.removeMany({
+      await this.syncOperations.removeMany({
         id: { $ne: syncId },
         collectionName: name,
         $or: [
@@ -616,7 +625,7 @@ export default class SyncManager<
       })
 
       // update sync operation status to done after everthing was finished
-      this.syncOperations.updateOne({ id: syncId }, {
+      await this.syncOperations.updateOne({ id: syncId }, {
         $set: { status: 'done', end: Date.now() },
       })
     }
@@ -674,7 +683,7 @@ export default class SyncManager<
         changes,
         rawChanges: currentChanges,
       }),
-      insert: (item) => {
+      insert: async (item) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
           collectionName: name,
@@ -687,9 +696,9 @@ export default class SyncManager<
         })
 
         // replace the item
-        collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
+        await collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
       },
-      update: (itemId, modifier) => {
+      update: async (itemId, modifier) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
           collectionName: name,
@@ -701,12 +710,12 @@ export default class SyncManager<
           data: { id: itemId, modifier },
         })
 
-        collection.updateOne({ id: itemId } as Selector<any>, {
+        await collection.updateOne({ id: itemId } as Selector<any>, {
           ...modifier,
           $setOnInsert: { id: itemId } as Partial<ItemType>,
         }, { upsert: true })
       },
-      remove: (itemId) => {
+      remove: async (itemId) => {
         const itemExists = !!collection.findOne({
           id: itemId,
         } as Selector<any>, { reactive: false })
@@ -716,11 +725,11 @@ export default class SyncManager<
           type: 'remove',
           data: itemId,
         })
-        collection.removeOne({ id: itemId } as Selector<any>)
+        await collection.removeOne({ id: itemId } as Selector<any>)
       },
-      batch: (fn) => {
-        collection.batch(() => {
-          fn()
+      batch: async (fn) => {
+        return collection.batch(async () => {
+          await fn()
         })
       },
     })
@@ -728,19 +737,19 @@ export default class SyncManager<
         if (this.isDisposed) return
 
         // clean up old snapshots
-        this.snapshots.removeMany({
+        await this.snapshots.removeMany({
           collectionName: name,
           time: { $lte: syncTime },
         } as Selector<any>)
 
         // clean up processed changes
-        this.changes.removeMany({
+        await this.changes.removeMany({
           collectionName: name,
           id: { $in: currentChanges.map(c => c.id) },
         })
 
         // insert new snapshot
-        this.snapshots.insert({
+        await this.snapshots.insert({
           time: syncTime,
           collectionName: name,
           items: snapshot,
@@ -775,9 +784,9 @@ export default class SyncManager<
           reactive: false,
         }).map(item => item.id) as IdType[]
 
-        collection.batch(() => {
+        await collection.batch(async () => {
           // update all items that are in the snapshot
-          snapshot.forEach((item) => {
+          await Promise.all(snapshot.map(async (item) => {
             // add multiple remote changes as we don't know if the item will be updated or inserted during replace
             this.remoteChanges.push({
               collectionName: name,
@@ -790,13 +799,13 @@ export default class SyncManager<
             })
 
             // replace the item
-            collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
-          })
+            await collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
+          }))
 
           // remove all items that are not in the snapshot
-          nonExistingItemIds.forEach((id) => {
-            collection.removeOne({ id } as Selector<any>)
-          })
+          await Promise.all(nonExistingItemIds.map(async (id) => {
+            await collection.removeOne({ id } as Selector<any>)
+          }))
         })
       })
   }

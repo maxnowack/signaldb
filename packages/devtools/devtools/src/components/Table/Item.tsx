@@ -45,10 +45,10 @@ const Textarea = styled.textarea<{ $isValid: boolean }>`
 interface Props<T extends Record<string, any>> {
   item?: T,
   columns?: { name: keyof T, label: string }[],
-  onEdit?: (item: T) => void,
+  onEdit?: (item: T) => Promise<void>,
   onCancel?: () => void,
   editMode?: boolean,
-  onRemove?: () => void,
+  onRemove?: () => Promise<void>,
   hasActions?: boolean,
 }
 
@@ -124,7 +124,8 @@ const Item = <T extends Record<string, any>>({
                     try {
                       const parsedItem = JSON.parse(itemValue) as T
                       onEdit(parsedItem)
-                      setEditMode(false)
+                        .then(() => setEditMode(false))
+                        .catch(() => setIsValid(false))
                     } catch {
                       setIsValid(false)
                     }
@@ -154,7 +155,15 @@ const Item = <T extends Record<string, any>>({
                     ✏️
                   </ActionButton>
                 )}
-                {onRemove && <ActionButton onClick={onRemove}>🗑️</ActionButton>}
+                {onRemove && (
+                  <ActionButton
+                    onClick={() => {
+                      void onRemove()
+                    }}
+                  >
+                    🗑️
+                  </ActionButton>
+                )}
               </>
             )}
         </td>

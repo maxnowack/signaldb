@@ -15,7 +15,7 @@ describe('@signaldb/preact', () => {
       cleanup.mockImplementation(() => cursor.cleanup())
       return () => cleanup()
     })
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })

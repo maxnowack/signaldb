@@ -35,7 +35,7 @@ describe('@signaldb/solid', () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
 
     await new Promise((resolve) => {
       setTimeout(resolve, 0)

@@ -15,7 +15,7 @@ const App: React.FC = () => {
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
             if (text === '') return
-            Todos.insert({
+            void Todos.insert({
               text,
               completed: false,
             })
