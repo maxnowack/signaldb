@@ -135,13 +135,19 @@ export default class DefaultDataAdapter implements DataAdapter {
   ) {
     if (!this.persistenceAdapters[collection.name]) return // no persistence adapter available
 
+    // emit event for initial pull
+    setTimeout(() => collection.emit('persistence.pullStarted'), 0)
+
     let ongoingSaves = 0
     let isInitialized = false
     const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
 
     const loadPersistentData = async (data?: LoadResponse<T>) => {
       if (!this.persistenceAdapters[collection.name]) throw new Error('Persistence adapter not found')
-      collection.emit('persistence.pullStarted')
+
+      // only emit pullStarted if already initialized as the first emit is done during setup
+      if (isInitialized) collection.emit('persistence.pullStarted')
+
       // load items from persistence adapter and push them into memory
       const { items, changes } = data
         ?? await (this.persistenceAdapters[collection.name] as PersistenceAdapter<T, I>).load()

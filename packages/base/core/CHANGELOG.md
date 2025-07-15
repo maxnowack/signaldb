@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The `createMemoryAdapter` method was removed.
 * The `memory` option for a `Collection` was removed.
 * The `AutoFetchCollection` was removed. Use a custom `DataAdapter` instead.
+* `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
 
 ### Added
 
