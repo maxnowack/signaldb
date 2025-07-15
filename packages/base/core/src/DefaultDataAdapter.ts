@@ -539,7 +539,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           if (hasItemWithSameId) {
             throw new Error(`Item with id '${newItem.id as string}' already exists`)
           }
-          await backend.insert(newItem)
+          return [await backend.insert(newItem)]
         }
 
         const changes = items.map((item) => {
