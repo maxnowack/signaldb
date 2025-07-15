@@ -24,7 +24,7 @@ describe('@signaldb/maverickjs', () => {
       callback(collection.find({ name: 'John' }).count())
     })
     tick()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     tick()
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
