@@ -465,7 +465,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         collection.emit('validate', newItem)
 
         if (this.idIndices[collection.name].has(serializeValue(newItem.id))) {
-          throw new Error('Item with same id already exists')
+          throw new Error(`Item with id '${newItem.id as string}' already exists`)
         }
         this.items[collection.name].push(newItem)
         const itemIndex = this.items[collection.name].findIndex(document => document === newItem)
