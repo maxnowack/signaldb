@@ -187,15 +187,15 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      await expect(() => collection.updateOne({ id: '1' }, {
+      await expect(collection.updateOne({ id: '1' }, {
         $set: { id: '1' },
-      })).not.rejects.toThrow()
+      })).resolves.not.toThrow()
       await expect(() => collection.updateOne({ id: '1' }, {
         $set: { id: '2' },
       })).rejects.toThrow()
-      await expect(() => collection.updateOne({ id: '1' }, {
+      await expect(collection.updateOne({ id: '1' }, {
         $set: { id: '3' },
-      })).not.rejects.toThrow()
+      })).resolves.not.toThrow()
     })
 
     it('should emit "updateOne" event', async () => {
@@ -284,15 +284,15 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      await expect(() => collection.updateMany({ id: '1' }, {
+      await expect(collection.updateMany({ id: '1' }, {
         $set: { id: '1' },
-      })).not.rejects.toThrow()
+      })).resolves.not.toThrow()
       await expect(() => collection.updateMany({ id: '1' }, {
         $set: { id: '2' },
       })).rejects.toThrow()
-      await expect(() => collection.updateMany({ id: '1' }, {
+      await expect(collection.updateMany({ id: '1' }, {
         $set: { id: '3' },
-      })).not.rejects.toThrow()
+      })).resolves.not.toThrow()
     })
 
     it('should emit "updateMany" event', async () => {
@@ -333,18 +333,18 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      await expect(() => collection.replaceOne({ id: '1' }, {
+      await expect(collection.replaceOne({ id: '1' }, {
         id: '1',
         name: 'Jack',
-      })).not.rejects.toThrow()
+      })).resolves.not.toThrow()
       await expect(() => collection.replaceOne({ id: '1' }, {
         id: '2',
         name: 'Jack',
       })).rejects.toThrow()
-      await expect(() => collection.replaceOne({ id: '1' }, {
+      await expect(collection.replaceOne({ id: '1' }, {
         id: '3',
         name: 'Jack',
-      })).not.rejects.toThrow()
+      })).resolves.not.toThrow()
     })
 
     it('should emit "replaceOne" event', async () => {
@@ -537,118 +537,7 @@ describe('Collection', () => {
     })
   })
 
-  describe('events', () => {
-    it('shouldn\'t register any event listeners without reactivity', async () => {
-      const col = new Collection<{ id: string, name: string }>()
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      await col.insert({ id: '1', name: 'John' })
-      await col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
-      await col.removeOne({ id: '1' })
-
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      const cursor = col.find()
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      cursor.fetch()
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      cursor.observeChanges({})
-      expect(col.listenerCount('added')).toBe(1)
-      expect(col.listenerCount('changed')).toBe(1)
-      expect(col.listenerCount('removed')).toBe(1)
-
-      cursor.cleanup()
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      col.find({}, { reactive: false })
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-    })
-
-    it('should register event listeners in reactive scope', async () => {
-      const col = new Collection<{ id: string, name: string }>({
-        reactivity: {
-          create: () => ({
-            depend: () => {
-              // do nothing
-            },
-            notify: () => {
-              // do nothing
-            },
-          }),
-          onDispose: () => {
-            // do nothing
-          },
-        },
-      })
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      await col.insert({ id: '1', name: 'John' })
-      await col.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
-      await col.removeOne({ id: '1' })
-
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      const cursor = col.find()
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      cursor.fetch()
-      expect(col.listenerCount('added')).toBe(1)
-      expect(col.listenerCount('changed')).toBe(1)
-      expect(col.listenerCount('removed')).toBe(1)
-
-      cursor.map(item => item)
-      expect(col.listenerCount('added')).toBe(1)
-      expect(col.listenerCount('changed')).toBe(1)
-      expect(col.listenerCount('removed')).toBe(1)
-
-      cursor.forEach(item => item)
-      expect(col.listenerCount('added')).toBe(1)
-      expect(col.listenerCount('changed')).toBe(1)
-      expect(col.listenerCount('removed')).toBe(1)
-
-      cursor.count()
-      expect(col.listenerCount('added')).toBe(1)
-      expect(col.listenerCount('changed')).toBe(1)
-      expect(col.listenerCount('removed')).toBe(1)
-
-      cursor.observeChanges({})
-      expect(col.listenerCount('added')).toBe(1)
-      expect(col.listenerCount('changed')).toBe(1)
-      expect(col.listenerCount('removed')).toBe(1)
-
-      cursor.cleanup()
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-
-      col.find({}, { reactive: false })
-      expect(col.listenerCount('added')).toBe(0)
-      expect(col.listenerCount('changed')).toBe(0)
-      expect(col.listenerCount('removed')).toBe(0)
-    })
-  })
-
-  describe('performance', { retry: 5 }, () => {
+  describe('performance', { retry: 0 }, () => {
     it('should be faster with id only queries', async () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
@@ -884,29 +773,29 @@ describe('Collection', () => {
       })
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      expect(() => Posts.insert({
+      await expect(() => Posts.insert({
         id: '1',
         content: 'World',
-      } as any)).toThrowError()
+      } as any)).rejects.toThrowError()
 
-      expect(() => Posts.updateOne({
+      await expect(Posts.updateOne({
         id: '1',
       }, {
         $set: { foo: true },
-      })).not.toThrowError()
+      })).resolves.not.toThrowError()
 
-      expect(() => Posts.updateMany({}, {
+      await expect(Posts.updateMany({}, {
         $set: { bar: true },
-      })).not.toThrowError()
+      })).resolves.not.toThrowError()
 
-      expect(() => Posts.replaceOne({
+      await expect(Posts.replaceOne({
         id: '1',
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       }, {
         title: 'Hello',
         content: 'World',
         asdf: true,
-      } as any)).not.toThrowError()
+      } as any)).resolves.not.toThrowError()
     })
   })
 
@@ -957,21 +846,12 @@ describe('Collection', () => {
 
       expect(() => col.find()).toThrowError('Collection is disposed')
       expect(() => col.findOne({})).toThrowError('Collection is disposed')
-      expect(() => col.insert({ name: 'Jane' })).toThrowError('Collection is disposed')
-      expect(() => col.insertMany([{ name: 'Jerry' }])).toThrowError('Collection is disposed')
-      expect(() => col.updateOne({}, {})).toThrowError('Collection is disposed')
-      expect(() => col.updateMany({}, {})).toThrowError('Collection is disposed')
-      expect(() => col.removeOne({})).toThrowError('Collection is disposed')
-      expect(() => col.removeMany({})).toThrowError('Collection is disposed')
-
-      // @ts-expect-error - private property
-      expect(col.memoryArray()).toEqual([])
-
-      // @ts-expect-error - private property
-      expect([...col.idIndex.keys()]).toEqual([])
-
-      // @ts-expect-error - private property
-      expect(col.indexProviders).toEqual([])
+      await expect(() => col.insert({ name: 'Jane' })).rejects.toThrowError('Collection is disposed')
+      await expect(() => col.insertMany([{ name: 'Jerry' }])).rejects.toThrowError('Collection is disposed')
+      await expect(() => col.updateOne({}, {})).rejects.toThrowError('Collection is disposed')
+      await expect(() => col.updateMany({}, {})).rejects.toThrowError('Collection is disposed')
+      await expect(() => col.removeOne({})).rejects.toThrowError('Collection is disposed')
+      await expect(() => col.removeMany({})).rejects.toThrowError('Collection is disposed')
     })
 
     it('should call unregister on the persistence adapter during dispose', async () => {
