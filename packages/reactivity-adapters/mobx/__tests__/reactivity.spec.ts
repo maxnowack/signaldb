@@ -21,7 +21,7 @@ describe('@signaldb/mobx', () => {
       const cursor = collection.find({ name: 'John' })
       callback(cursor.count())
     })
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
