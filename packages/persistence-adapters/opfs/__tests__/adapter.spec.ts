@@ -87,7 +87,7 @@ describe('OPFS', () => {
     await persistence.save([], { added: [], removed: [], modified: [] })
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await waitForEvent(collection, 'persistence.transmitted')
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'John' }])
@@ -101,7 +101,7 @@ describe('OPFS', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.removeOne({ id: '1' })
+    await collection.removeOne({ id: '1' })
     await waitForEvent(collection, 'persistence.transmitted')
 
     const items = collection.find().fetch()
@@ -116,7 +116,7 @@ describe('OPFS', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
     await waitForEvent(collection, 'persistence.transmitted')
 
     const items = collection.find().fetch()
@@ -132,7 +132,7 @@ describe('OPFS', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.insert({ id: '2', name: 'Jane' })
+    await collection.insert({ id: '2', name: 'Jane' })
     await waitForEvent(collection, 'persistence.transmitted')
 
     expect(originalItems).toEqual([{ id: '1', name: 'John' }])
@@ -144,11 +144,11 @@ describe('OPFS', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await waitForEvent(collection, 'persistence.transmitted')
-    collection.insert({ id: '2', name: 'Jane' })
+    await collection.insert({ id: '2', name: 'Jane' })
     await waitForEvent(collection, 'persistence.transmitted')
-    collection.removeOne({ id: '1' })
+    await collection.removeOne({ id: '1' })
     await waitForEvent(collection, 'persistence.transmitted')
 
     const items = collection.find().fetch()
@@ -161,10 +161,10 @@ describe('OPFS', () => {
     const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
     await persistence.save([], { added: [], removed: [], modified: [] })
     const collection = new Collection({ persistence })
-    collection.insert({ id: '1', name: 'John' })
-    collection.insert({ id: '2', name: 'Jane' })
-    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-    collection.removeOne({ id: '2' })
+    await collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '2', name: 'Jane' })
+    await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await collection.removeOne({ id: '2' })
     await waitForEvent(collection, 'persistence.init')
 
     const items = collection.find().fetch()
