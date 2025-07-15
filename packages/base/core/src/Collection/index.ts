@@ -420,7 +420,7 @@ export default class Collection<
    * @returns A promise that resolves when the collection is disposed.
    */
   public async dispose() {
-    this.backend.dispose()
+    await this.backend.dispose()
     this.isDisposed = true
     this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
