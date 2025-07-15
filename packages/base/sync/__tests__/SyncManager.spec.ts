@@ -307,8 +307,8 @@ it('should debounce push requests', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  await mockCollection.insert({ id: '2', name: 'First Item' })
-  await mockCollection.insert({ id: '3', name: 'Second Item' })
+  void mockCollection.insert({ id: '2', name: 'First Item' })
+  void mockCollection.insert({ id: '3', name: 'Second Item' })
 
   await new Promise((resolve) => {
     setTimeout(resolve, 50)
@@ -341,8 +341,8 @@ it('should debounce push requests for multiple collections', async () => {
   syncManager.addCollection(collection1, { name: 'test1' })
   syncManager.addCollection(collection2, { name: 'test2' })
 
-  await collection1.insert({ id: '1', name: 'Collection 1 Item' })
-  await collection2.insert({ id: '2', name: 'Collection 2 Item' })
+  void collection1.insert({ id: '1', name: 'Collection 1 Item' })
+  void collection2.insert({ id: '2', name: 'Collection 2 Item' })
 
   // Wait for debounce period to complete
   await new Promise((resolve) => {
@@ -914,11 +914,11 @@ it('should clear all internal data structures on dispose', async () => {
   // @ts-expect-error - private property
   expect(syncManager.syncQueues.size).toBe(0)
   // @ts-expect-error - private property
-  expect(() => syncManager.changes.insert({})).toThrowError('Collection is disposed')
+  await expect(() => syncManager.changes.insert({})).rejects.toThrowError('Collection is disposed')
   // @ts-expect-error - private property
-  expect(() => syncManager.snapshots.insert({})).toThrowError('Collection is disposed')
+  await expect(() => syncManager.snapshots.insert({})).rejects.toThrowError('Collection is disposed')
   // @ts-expect-error - private property
-  expect(() => syncManager.syncOperations.insert({})).toThrowError('Collection is disposed')
+  await expect(() => syncManager.syncOperations.insert({})).rejects.toThrowError('Collection is disposed')
 })
 
 it('should register error handlers for internal persistence adapters', async () => {
@@ -1429,12 +1429,12 @@ it('should trigger sync when using $set on an array to modify an object/item inl
 
   syncManager.addCollection(posts, { name: 'posts' })
 
-  const postId1 = posts.insert({
+  const postId1 = await posts.insert({
     title: 'Foo',
     text: 'Lorem ipsum …',
     meta: { likes: 14 },
   })
-  const postId2 = posts.insert({ title: 'Foo', text: 'Riker ipsum …' })
+  const postId2 = await posts.insert({ title: 'Foo', text: 'Riker ipsum …' })
 
   expect(posts.find().fetch()).toEqual([
     { id: postId1, title: 'Foo', text: 'Lorem ipsum …', meta: { likes: 14 } },
