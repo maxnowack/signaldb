@@ -999,6 +999,17 @@ describe('Collection', () => {
       })
     })
 
+    it('should indicate batch operation during batch operation', async () => {
+      const col = new Collection<{ id: string, name: string }>()
+      const fn = vi.fn().mockResolvedValue(undefined)
+      await col.batch(async () => {
+        await fn()
+        expect(col.isBatchOperationInProgress()).toBe(true)
+      })
+      expect(col.isBatchOperationInProgress()).toBe(false)
+      expect(fn).toHaveBeenCalledOnce()
+    })
+
     it('should wait until a collection is ready', async () => {
       const col1 = new Collection<{ id: string, name: string }>({
         persistence: memoryPersistenceAdapter(),
