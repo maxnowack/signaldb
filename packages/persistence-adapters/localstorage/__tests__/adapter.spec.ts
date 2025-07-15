@@ -44,7 +44,7 @@ describe('Persistence', () => {
       await persistence.save([], { added: [], removed: [], modified: [] })
       const collection = new Collection({ persistence })
       await waitForEvent(collection, 'persistence.init')
-      await collection.insert({ id: '1', name: 'John' })
+      void collection.insert({ id: '1', name: 'John' })
       await waitForEvent(collection, 'persistence.transmitted')
       const items = collection.find().fetch()
       expect(items).toEqual([{ id: '1', name: 'John' }])
@@ -58,7 +58,7 @@ describe('Persistence', () => {
       const collection = new Collection({ persistence })
       await waitForEvent(collection, 'persistence.init')
 
-      await collection.removeOne({ id: '1' })
+      void collection.removeOne({ id: '1' })
       await waitForEvent(collection, 'persistence.transmitted')
 
       const items = collection.find().fetch()
@@ -73,7 +73,7 @@ describe('Persistence', () => {
       const collection = new Collection({ persistence })
       await waitForEvent(collection, 'persistence.init')
 
-      await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+      void collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
       await waitForEvent(collection, 'persistence.transmitted')
 
       const items = collection.find().fetch()
@@ -89,7 +89,7 @@ describe('Persistence', () => {
       const collection = new Collection({ persistence })
       await waitForEvent(collection, 'persistence.init')
 
-      await collection.insert({ id: '2', name: 'Jane' })
+      void collection.insert({ id: '2', name: 'Jane' })
       await waitForEvent(collection, 'persistence.transmitted')
 
       expect(originalItems).toEqual([{ id: '1', name: 'John' }])
@@ -101,11 +101,11 @@ describe('Persistence', () => {
       const collection = new Collection({ persistence })
       await waitForEvent(collection, 'persistence.init')
 
-      await collection.insert({ id: '1', name: 'John' })
+      void collection.insert({ id: '1', name: 'John' })
       await waitForEvent(collection, 'persistence.transmitted')
-      await collection.insert({ id: '2', name: 'Jane' })
+      void collection.insert({ id: '2', name: 'Jane' })
       await waitForEvent(collection, 'persistence.transmitted')
-      await collection.removeOne({ id: '1' })
+      void collection.removeOne({ id: '1' })
       await waitForEvent(collection, 'persistence.transmitted')
 
       const items = collection.find().fetch()
@@ -118,10 +118,10 @@ describe('Persistence', () => {
       const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
       await persistence.save([], { added: [], removed: [], modified: [] })
       const collection = new Collection({ persistence })
-      await collection.insert({ id: '1', name: 'John' })
-      await collection.insert({ id: '2', name: 'Jane' })
-      await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-      await collection.removeOne({ id: '2' })
+      void collection.insert({ id: '1', name: 'John' })
+      void collection.insert({ id: '2', name: 'Jane' })
+      void collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+      void collection.removeOne({ id: '2' })
       await waitForEvent(collection, 'persistence.init')
 
       const items = collection.find().fetch()
