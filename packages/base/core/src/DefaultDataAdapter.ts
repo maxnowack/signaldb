@@ -125,8 +125,13 @@ export default class DefaultDataAdapter implements DataAdapter {
   private rebuildIndicesIfOutdated<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
+    const isOutdated = this.indicesOutdated[collection.name]
     this.indicesOutdated[collection.name] = true
-    if (collection.isBatchOperationInProgress()) return
+    if (collection.isBatchOperationInProgress()) {
+      if (isOutdated) return // if indices are already outdated, rebuilding already scheduled
+      collection.onPostBatch(() => this.rebuildIndicesNow(collection))
+      return
+    }
     this.rebuildIndicesNow(collection)
   }
 
@@ -308,7 +313,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       }
     }
 
-    if (this.indicesOutdated) {
+    if (this.indicesOutdated[collection.name]) {
       return {
         matched: false,
         positions: [],
