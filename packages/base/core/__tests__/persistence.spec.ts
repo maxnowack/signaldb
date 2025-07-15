@@ -255,7 +255,6 @@ describe('Persistence', () => {
       waitForEvent(collection, 'persistence.pullCompleted'),
       waitForEvent(collection, 'persistence.init'),
     ])
-    console.log('Persistence initialized')
 
     const eventsPromise = Promise.all([
       waitForEvent(collection, 'persistence.pushStarted'),
