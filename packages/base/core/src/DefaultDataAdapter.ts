@@ -157,7 +157,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         if (ongoingSaves > 0) return
 
         // push new items to this.memory() and delete old ones
-        this.items[collection.name] = items
+        this.items[collection.name] = [...items]
         this.indicesOutdated[collection.name] = true
         this.rebuildIndicesIfOutdated(collection)
       } else if (changes) {
