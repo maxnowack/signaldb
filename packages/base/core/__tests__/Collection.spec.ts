@@ -528,6 +528,7 @@ describe('Collection', () => {
           save: () => Promise.resolve(),
         },
       })
+      await waitForEvent(col, 'persistence.pullStarted')
       expect(col.isLoading()).toBe(true)
       expect(col.find().fetch()).toEqual([])
       await waitForEvent(col, 'persistence.init')
