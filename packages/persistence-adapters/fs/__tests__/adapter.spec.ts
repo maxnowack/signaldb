@@ -38,7 +38,7 @@ it('should persist changes to filesystem', { retry: 5 }, async () => {
   })
   await waitForEvent(collection, 'persistence.init')
 
-  collection.insert({ id: '1', name: 'John' })
+  await collection.insert({ id: '1', name: 'John' })
   await waitForEvent(collection, 'persistence.transmitted')
 
   const contents = await fs.readFile(file, 'utf8')
@@ -50,10 +50,10 @@ it('should persist data that was modified before persistence.init', { retry: 5 }
   const persistence = createFilesystemAdapter(file)
   await persistence.save([], { added: [], removed: [], modified: [] })
   const collection = new Collection({ persistence })
-  collection.insert({ id: '1', name: 'John' })
-  collection.insert({ id: '2', name: 'Jane' })
-  collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-  collection.removeOne({ id: '2' })
+  await collection.insert({ id: '1', name: 'John' })
+  await collection.insert({ id: '2', name: 'Jane' })
+  await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+  await collection.removeOne({ id: '2' })
   await waitForEvent(collection, 'persistence.init')
 
   const items = collection.find().fetch()
