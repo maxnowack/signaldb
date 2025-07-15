@@ -46,7 +46,7 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   ): () => void,
 
   // lifecycle methods
-  dispose(): void,
+  dispose(): Promise<void>,
   isReady(): Promise<void>,
 }
 
