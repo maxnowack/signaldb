@@ -684,7 +684,19 @@ export default class DefaultDataAdapter implements DataAdapter {
       },
 
       // lifecycle methods
-      dispose() {},
+      dispose: async () => {
+        const adapter = this.persistenceAdapters[collection.name]
+        if (adapter?.unregister) await adapter.unregister()
+        delete this.persistenceAdapters[collection.name]
+        delete this.items[collection.name]
+        delete this.indicesOutdated[collection.name]
+        delete this.idIndices[collection.name]
+        delete this.indices[collection.name]
+        delete this.activeQueries[collection.name]
+        delete this.queryEmitters[collection.name]
+        delete this.queuedQueryUpdates[collection.name]
+        delete this.cachedQueryResults[collection.name]
+      },
       isReady: () => persistenceReadyPromise,
     }
 
