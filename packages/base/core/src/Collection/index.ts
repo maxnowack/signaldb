@@ -155,13 +155,13 @@ export default class Collection<
   static batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
     Collection.batchOperationInProgress = true
 
-    const execute = (): ReturnType => {
-      let result: ReturnType | undefined
-      for (const collection of Collection.collections) {
-        result = collection.batch(callback) as ReturnType
-      }
-      return result as ReturnType
-    }
+    // ugly to please the linter
+    const execute = () => Collection.collections.reduce<
+      () => ReturnType | Promise<ReturnType>
+    >((memo, collection) => () =>
+          collection.batch(memo) as ReturnType | Promise<ReturnType>,
+        callback,
+        )()
 
     const maybePromise = execute()
 
@@ -169,8 +169,8 @@ export default class Collection<
       Collection.batchOperationInProgress = false
     }
 
-    if (maybePromise instanceof Promise) {
-      return maybePromise
+    if (maybePromise && typeof (maybePromise as any).then === 'function') {
+      return (maybePromise as Promise<ReturnType>)
         .then(() => afterBatch())
     } else {
       afterBatch()
@@ -515,6 +515,7 @@ export default class Collection<
   public batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
   public batch<ReturnType>(callback: () => ReturnType): void
   public batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
+    if (this.batchOperationInProgress) return callback() as void | Promise<void>
     this.batchOperationInProgress = true
     const maybePromise = callback()
 
@@ -524,12 +525,20 @@ export default class Collection<
       this.postBatchCallbacks.clear()
     }
 
-    if (maybePromise instanceof Promise) {
-      return maybePromise
-        .then(() => afterBatch())
+    if (maybePromise && typeof (maybePromise as any).then === 'function') {
+      return (maybePromise as Promise<any>).then(() => afterBatch())
     } else {
       afterBatch()
     }
+  }
+
+  public onPostBatch(callback: () => void) {
+    if (this.isDisposed) throw new Error('Collection is disposed')
+    if (this.batchOperationInProgress) {
+      this.postBatchCallbacks.add(callback)
+      return
+    }
+    return callback()
   }
 
   /**
