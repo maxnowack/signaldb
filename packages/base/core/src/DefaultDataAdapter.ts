@@ -413,11 +413,8 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.queuedQueryUpdates[collection.name] = { added: [], modified: [], removed: [] }
 
     const flatItems = [...changes.added, ...changes.modified, ...changes.removed]
-    const queries = this.activeQueries[collection.name]
-      .values()
-      .filter(({ selector }) => {
-        return flatItems.some(item => match(item, selector))
-      })
+    const queries = [...this.activeQueries[collection.name].values()]
+      .filter(({ selector }) => flatItems.some(item => match(item, selector)))
     queries.forEach(({ selector, options }) => {
       const emitter = this.queryEmitters[collection.name]
       emitter.emit('change', selector, options, 'complete')
