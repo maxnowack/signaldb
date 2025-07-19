@@ -25,7 +25,7 @@ describe('@signaldb/vue', () => {
       })
     })
     await nextTick()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await nextTick()
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
