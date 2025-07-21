@@ -13,7 +13,7 @@ export default function useCollectionQueries(collectionName: string) {
     return queries.items
       .filter(q => q.collectionName === collectionName)
       .sort((a, b) => a.time - b.time)
-      .reverse()
+      .toReversed()
       .map(({ collectionName: _, lastTime, ...item }) => ({
         id: item.id,
         collectionName: item.collectionName,
