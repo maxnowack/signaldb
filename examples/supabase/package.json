@@ -19,7 +19,7 @@
     "@supabase/supabase-js": "^2.49.1",
     "@types/node": "24.1.0",
     "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6",
+    "@types/react-dom": "19.1.7",
     "next": "15.4.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
