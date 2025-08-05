@@ -1,6 +1,6 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
-import type { ZodSchema, infer as ZodInfer } from 'zod'
+import type { infer as ZodInfer } from 'zod'
 import type { BaseItem, CollectionOptions } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
@@ -796,7 +796,7 @@ describe('Collection', () => {
 
   describe('Schema Validation', () => {
     interface SchemaCollectionOptions<
-      T extends ZodSchema<BaseItem<I>>,
+      T extends z.ZodType<BaseItem<I>>,
       I,
       U = ZodInfer<T>,
     > extends CollectionOptions<ZodInfer<T>, I, U> {
@@ -804,7 +804,7 @@ describe('Collection', () => {
     }
 
     class SchemaCollection<
-      T extends ZodSchema<BaseItem<I>>,
+      T extends z.ZodType<BaseItem<I>>,
       I = any,
       U = ZodInfer<T>,
     > extends Collection<ZodInfer<T>, I, U> {
