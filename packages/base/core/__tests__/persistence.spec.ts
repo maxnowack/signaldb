@@ -16,8 +16,9 @@ describe('Persistence', () => {
     const persistence = memoryPersistenceAdapter()
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
-    collection.insert({ id: '1', name: 'John' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    const transmittedEvent = waitForEvent(collection, 'persistence.transmitted')
+    await collection.insert({ id: '1', name: 'John' })
+    await transmittedEvent
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'John' }])
     const loadResult = await persistence.load()
@@ -72,8 +73,9 @@ describe('Persistence', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.removeOne({ id: '1' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    const transmittedEvent = waitForEvent(collection, 'persistence.transmitted')
+    await collection.removeOne({ id: '1' })
+    await transmittedEvent
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
@@ -86,8 +88,9 @@ describe('Persistence', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-    await waitForEvent(collection, 'persistence.transmitted')
+    const transmittedEvent = waitForEvent(collection, 'persistence.transmitted')
+    await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await transmittedEvent
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'Johnny' }])
@@ -101,8 +104,9 @@ describe('Persistence', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.insert({ id: '2', name: 'Jane' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    const transmittedEvent = waitForEvent(collection, 'persistence.transmitted')
+    await collection.insert({ id: '2', name: 'Jane' })
+    await transmittedEvent
 
     expect(originalItems).toEqual([{ id: '1', name: 'John' }])
   })
@@ -112,12 +116,15 @@ describe('Persistence', () => {
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
-    collection.insert({ id: '1', name: 'John' })
-    await waitForEvent(collection, 'persistence.transmitted')
-    collection.insert({ id: '2', name: 'Jane' })
-    await waitForEvent(collection, 'persistence.transmitted')
-    collection.removeOne({ id: '1' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    const transmittedEvent1 = waitForEvent(collection, 'persistence.transmitted')
+    await collection.insert({ id: '1', name: 'John' })
+    await transmittedEvent1
+    const transmittedEvent2 = waitForEvent(collection, 'persistence.transmitted')
+    await collection.insert({ id: '2', name: 'Jane' })
+    await transmittedEvent2
+    const transmittedEvent3 = waitForEvent(collection, 'persistence.transmitted')
+    await collection.removeOne({ id: '1' })
+    await transmittedEvent3
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '2', name: 'Jane' }])
@@ -170,13 +177,13 @@ describe('Persistence', () => {
     const fn = vi.fn()
     collection.on('persistence.error', fn)
     await waitForEvent(collection, 'persistence.init')
-    collection.insert({ id: '1' })
+    await collection.insert({ id: '1' })
     await waitForEvent(collection, 'persistence.error')
 
-    collection.updateOne({ id: '1' }, { $set: { name: 'John' } })
+    await collection.updateOne({ id: '1' }, { $set: { name: 'John' } })
     await waitForEvent(collection, 'persistence.error')
 
-    collection.removeOne({ id: '1' })
+    await collection.removeOne({ id: '1' })
     await waitForEvent(collection, 'persistence.error')
 
     expect(fn).toHaveBeenCalledWith(new Error('test'))
@@ -227,13 +234,13 @@ describe('Persistence', () => {
     const fn = vi.fn()
     collection.on('persistence.error', fn)
     await waitForEvent(collection, 'persistence.init')
-    collection.insert({ id: '1' })
+    await collection.insert({ id: '1' })
     await waitForEvent(collection, 'persistence.error')
 
-    collection.updateOne({ id: '1' }, { $set: { name: 'John' } })
+    await collection.updateOne({ id: '1' }, { $set: { name: 'John' } })
     await waitForEvent(collection, 'persistence.error')
 
-    collection.removeOne({ id: '1' })
+    await collection.removeOne({ id: '1' })
     await waitForEvent(collection, 'persistence.error')
 
     expect(fn).toHaveBeenCalledWith(new Error('test'))
@@ -249,12 +256,13 @@ describe('Persistence', () => {
       waitForEvent(collection, 'persistence.init'),
     ])
 
-    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-    await Promise.all([
+    const eventsPromise = Promise.all([
       waitForEvent(collection, 'persistence.pushStarted'),
       waitForEvent(collection, 'persistence.pushCompleted'),
       waitForEvent(collection, 'persistence.transmitted'),
     ])
+    await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await eventsPromise
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'Johnny' }])
@@ -279,11 +287,12 @@ describe('Persistence', () => {
 
     const pushStarted = waitForEvent(collection, 'persistence.pushStarted')
     const pushCompleted = waitForEvent(collection, 'persistence.pushCompleted')
-    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    const updateEvent = collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
     await pushStarted
     expect(collection.isPushing()).toBe(true)
     expect(collection.isLoading()).toBe(true)
     await pushCompleted
+    await updateEvent
     expect(collection.isPushing()).toBe(false)
     expect(collection.isLoading()).toBe(false)
   })
@@ -329,16 +338,16 @@ describe('Persistence', () => {
 
   it('should modify items when persistence adapter is async', async () => {
     const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }], true, 100)
-    const collection = new Collection({ persistence, memory: [{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }] })
+    const collection = new Collection({ persistence })
+    await collection.isReady()
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }])
 
-    collection.insert({ id: '2', name: 'Jane' })
-    collection.updateOne({ id: '1' }, { $set: { name: 'Jack' } })
-    collection.removeOne({ id: 'x' })
-
-    await waitForEvent(collection, 'persistence.transmitted')
-    await waitForEvent(collection, 'persistence.init')
+    const transmittedEvent = waitForEvent(collection, 'persistence.transmitted')
+    await collection.insert({ id: '2', name: 'Jane' })
+    await collection.updateOne({ id: '1' }, { $set: { name: 'Jack' } })
+    await collection.removeOne({ id: 'x' })
+    await transmittedEvent
     expect(collection.find().fetch()).toEqual([
       { id: '1', name: 'Jack' },
       { id: '2', name: 'Jane' },

@@ -44,7 +44,7 @@ describe('angular', () => {
     flushEffects()
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith(0)
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
