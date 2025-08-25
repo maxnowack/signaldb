@@ -157,13 +157,14 @@ export default class Collection<
   static batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
     Collection.batchOperationInProgress = true
 
-    // ugly to please the linter
     const execute = () => Collection.collections.reduce<
       () => ReturnType | Promise<ReturnType>
-    >((memo, collection) => () =>
-          collection.batch(memo) as ReturnType | Promise<ReturnType>,
-        callback,
-        )()
+    >(
+      (memo, collection) => () => {
+        return collection.batch(memo) as ReturnType | Promise<ReturnType>
+      },
+      callback,
+    )()
 
     const maybePromise = execute()
 
