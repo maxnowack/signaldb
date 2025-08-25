@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2025-08-25
+
+### Fixed
+
+* Fixed index info for `$or` queries with mixed indexed and non-indexed fields
+
 ## [1.7.0] - 2025-07-08
 
 ### Added
