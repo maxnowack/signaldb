@@ -97,6 +97,9 @@ export default function getIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
   }
   if (Array.isArray($or)) {
     const $orNew = []
+    const matchedBefore = matched
+    const positionsBefore = positions
+    let hasNonIndexField = false
     for (const sel of $or) {
       const {
         matched: selMatched,
@@ -111,9 +114,16 @@ export default function getIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
         }
       } else {
         $orNew.push(sel)
+        hasNonIndexField = true
       }
     }
     if ($orNew.length > 0) newSelector.$or = $orNew
+
+    if (hasNonIndexField) { // if there was a non-indexed field, we can't optimize the $or away
+      newSelector.$or = $or
+      matched = matchedBefore
+      positions = positionsBefore
+    }
   }
 
   return {
