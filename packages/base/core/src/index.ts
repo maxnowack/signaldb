@@ -1,5 +1,4 @@
 export type { default as ReactivityAdapter } from './types/ReactivityAdapter'
-export type { default as MemoryAdapter } from './types/MemoryAdapter'
 export type {
   default as PersistenceAdapter,
   Changeset,
