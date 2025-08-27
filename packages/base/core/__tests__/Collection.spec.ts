@@ -4,7 +4,7 @@ import type { infer as ZodInfer } from 'zod'
 import type { BaseItem, CollectionOptions, TransformAll } from '../src'
 import { Collection } from '../src'
 import waitForEvent from './helpers/waitForEvent'
-import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
+import memoryStorageAdapter from './helpers/memoryStorageAdapter'
 
 const measureTime = (fn: () => void) => {
   const start = performance.now()
@@ -894,7 +894,7 @@ describe('Collection', () => {
 
     it('should wait until a collection is ready', async () => {
       const col1 = new Collection<{ id: string, name: string }>({
-        persistence: memoryPersistenceAdapter(),
+        persistence: memoryStorageAdapter(),
       })
       let persistenceInit = false
       col1.once('persistence.init', () => {
@@ -909,7 +909,7 @@ describe('Collection', () => {
 
     it('correctly transform entities', async () => {
       const col1 = new Collection({
-        persistence: memoryPersistenceAdapter(),
+        persistence: memoryStorageAdapter(),
       })
 
       interface TestItem {
