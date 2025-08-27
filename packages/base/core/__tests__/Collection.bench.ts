@@ -1,6 +1,6 @@
 /* istanbul ignore file -- @preserve */
 import { bench, describe } from 'vitest'
-import { Collection, createIndex } from '../src'
+import { Collection } from '../src'
 
 describe('Collection benchmarks', () => {
   describe('id index', async () => {
@@ -28,7 +28,7 @@ describe('Collection benchmarks', () => {
 
   describe('named index', async () => {
     const col1 = new Collection<{ id: string, name: string, num: number }>({
-      indices: [createIndex('num')],
+      indices: ['num'],
     })
     const col2 = new Collection<{ id: string, name: string, num: number }>()
 
@@ -55,7 +55,7 @@ describe('Collection benchmarks', () => {
 
   describe('index null and undefined values', async () => {
     const col1 = new Collection<{ id: string, name: string, num?: number | null }>({
-      indices: [createIndex('num')],
+      indices: ['num'],
     })
     const col2 = new Collection<{ id: string, name: string, num?: number | null }>()
 
