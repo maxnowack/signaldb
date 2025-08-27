@@ -43,15 +43,6 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'changed': (item: T, modifier: Modifier<T>) => void,
   'removed': (item: T) => void,
 
-  'persistence.init': () => void,
-  'persistence.error': (error: Error) => void,
-  'persistence.transmitted': () => void,
-  'persistence.received': () => void,
-  'persistence.pullStarted': () => void,
-  'persistence.pullCompleted': () => void,
-  'persistence.pushStarted': () => void,
-  'persistence.pushCompleted': () => void,
-
   'observer.created': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
   'observer.disposed': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
@@ -236,18 +227,7 @@ export default class Collection<
 
     this.isPullingSignal = createSignal(this.options.reactivity, false)
     this.isPushingSignal = createSignal(this.options.reactivity, false)
-    this.on('persistence.pullStarted', () => {
-      this.isPullingSignal.set(true)
-    })
-    this.on('persistence.pullCompleted', () => {
-      this.isPullingSignal.set(false)
-    })
-    this.on('persistence.pushStarted', () => {
-      this.isPushingSignal.set(true)
-    })
-    this.on('persistence.pushCompleted', () => {
-      this.isPushingSignal.set(false)
-    })
+
     this.backend = dataAdapter.createCollectionBackend<T, I, U>(
       this,
       this.options.indices ?? [],
@@ -391,6 +371,7 @@ export default class Collection<
         if (!options?.async) return this.backend.getQueryResult(selector, options)
 
         return new Promise<T[]>((resolve, reject) => {
+          this.isPullingSignal.set(true)
           this.backend.registerQuery(selector, options)
           const cleanup = this.backend.onQueryStateChange(
             selector,
@@ -406,11 +387,23 @@ export default class Collection<
             },
           )
         }).finally(() => {
+          this.isPullingSignal.set(false)
           this.backend.unregisterQuery(selector, options)
         })
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
     ) as Async extends true ? Promise<T[]> : T[]
+  }
+
+  private async withPushState<ReturnType>(
+    asyncFunction: () => Promise<ReturnType>,
+  ): Promise<ReturnType> {
+    this.isPushingSignal.set(true)
+    try {
+      return await asyncFunction()
+    } finally {
+      this.isPushingSignal.set(false)
+    }
   }
 
   /**
@@ -419,7 +412,7 @@ export default class Collection<
    * @returns A promise that resolves when the collection is disposed.
    */
   public async dispose() {
-    await this.backend.dispose()
+    await this.withPushState(() => this.backend.dispose())
     this.isDisposed = true
     this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
@@ -570,7 +563,7 @@ export default class Collection<
     } as T
     this.emit('validate', itemWithId)
 
-    const newItem = await this.backend.insert(itemWithId)
+    const newItem = await this.withPushState(() => this.backend.insert(itemWithId))
 
     this.emit('added', newItem)
     this.emit('insert', newItem)
@@ -637,7 +630,7 @@ export default class Collection<
 
     const modifiedItem = modify(deepClone(item), restModifier)
     this.emit('validate', modifiedItem)
-    const changes = await this.backend.updateOne(selector, modifier)
+    const changes = await this.withPushState(() => this.backend.updateOne(selector, modifier))
     this.emit('changed', modifiedItem, restModifier)
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
@@ -684,7 +677,7 @@ export default class Collection<
       this.emit('validate', modifiedItem)
     })
 
-    const changes = await this.backend.updateMany(selector, modifier)
+    const changes = await this.withPushState(() => this.backend.updateMany(selector, modifier))
     changes.forEach((item) => {
       this.emit('changed', item, restModifier)
     })
@@ -721,7 +714,7 @@ export default class Collection<
     const modifiedItem = { id: item.id, ...replacement } as T
     this.emit('validate', modifiedItem)
 
-    const changes = await this.backend.replaceOne(selector, replacement)
+    const changes = await this.withPushState(() => this.backend.replaceOne(selector, replacement))
 
     this.emit('changed', modifiedItem, replacement as Modifier<T>)
     this.emit('replaceOne', selector, replacement)
@@ -739,7 +732,7 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const removedItems = await this.backend.removeOne(selector)
+    const removedItems = await this.withPushState(() => this.backend.removeOne(selector))
 
     this.emit('removed', removedItems[0])
     this.emit('removeOne', selector)
@@ -757,7 +750,7 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const removedItems = await this.backend.removeMany(selector)
+    const removedItems = await this.withPushState(() => this.backend.removeMany(selector))
 
     removedItems.forEach((item) => {
       this.emit('removed', item)
