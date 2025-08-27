@@ -70,63 +70,71 @@ interface DefaultDataAdapterOptions {
 }
 
 export default class DefaultDataAdapter implements DataAdapter {
-  private items: Record<string, BaseItem[]> = {}
+  private items: Map<string, BaseItem[]> = new Map()
   private options: DefaultDataAdapterOptions
-  private persistenceAdapters: Record<string, PersistenceAdapter<any, any>> = {}
+  private persistenceAdapters: Map<string, PersistenceAdapter<any, any>> = new Map()
 
-  private indicesOutdated: Record<string, boolean> = {}
-  private idIndices: Record<string, Map<string | undefined | null, Set<number>>> = {}
-  private indices: Record<
+  private indicesOutdated: Map<string, boolean> = new Map()
+  private idIndices: Map<string, Map<string | undefined | null, Set<number>>> = new Map()
+  private indices: Map<
     string,
     (IndexProvider<any, any> | LowLevelIndexProvider<any, any>)[]
-  > = {}
+  > = new Map()
 
-  private activeQueries: Record<string, Set<{
+  private activeQueries: Map<string, Set<{
     selector: Selector<any>,
     options?: QueryOptions<any>,
-  }>> = {}
+  }>> = new Map()
 
-  private queryEmitters: Record<
+  private queryEmitters: Map<
     string,
     EventEmitter<{
       change: (selector: Selector<any>, options: QueryOptions<any> | undefined, state: 'active' | 'complete' | 'error') => void,
     }>
-  > = {}
+  > = new Map()
 
-  private queuedQueryUpdates: Record<string, Changeset<any>> = {}
-  private cachedQueryResults: Record<string, Map<{
+  private queuedQueryUpdates: Map<string, Changeset<any>> = new Map()
+  private cachedQueryResults: Map<string, Map<{
     selector: Selector<any>,
     options?: QueryOptions<any>,
-  }, BaseItem[]>> = {}
+  }, BaseItem[]>> = new Map()
 
   constructor(options?: DefaultDataAdapterOptions) {
     this.options = options || {}
   }
 
   private ensurePersistenceAdapter(name: string) {
-    if (this.persistenceAdapters[name]) return // already created
+    if (this.persistenceAdapters.get(name)) return // already created
     if (!this.options.storage) return // no storage function provided
     const adapter = this.options.storage(name)
     if (!adapter) return // no adapter returned
-    this.persistenceAdapters[name] = adapter
+    this.persistenceAdapters.set(name, adapter)
   }
 
   private rebuildIndicesNow<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
-    this.idIndices[collection.name].clear()
-    this.items[collection.name].forEach((item, index) => {
-      this.idIndices[collection.name].set(serializeValue(item.id), new Set([index]))
+    const idIndices = this.idIndices.get(collection.name)
+    if (!idIndices) throw new Error(`ID index not found for collection ${collection.name}`)
+    const items = this.items.get(collection.name)
+    if (!items) throw new Error(`Items not found for collection ${collection.name}`)
+    const indices = this.indices.get(collection.name)
+    if (!indices) throw new Error(`Indices not found for collection ${collection.name}`)
+
+    idIndices.clear()
+    idIndices.clear()
+    items.forEach((item, index) => {
+      idIndices.set(serializeValue(item.id), new Set([index]))
     })
-    this.indices[collection.name].forEach(index => index.rebuild(this.items[collection.name]))
-    this.indicesOutdated[collection.name] = false
+    indices.forEach(index => index.rebuild(items))
+    this.indicesOutdated.set(collection.name, false)
   }
 
   private rebuildIndicesIfOutdated<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
-    const isOutdated = this.indicesOutdated[collection.name]
-    this.indicesOutdated[collection.name] = true
+    const isOutdated = this.indicesOutdated.get(collection.name)
+    this.indicesOutdated.set(collection.name, true)
     if (collection.isBatchOperationInProgress()) {
       if (isOutdated) return // if indices are already outdated, rebuilding already scheduled
       collection.onPostBatch(() => this.rebuildIndicesNow(collection))
@@ -138,7 +146,7 @@ export default class DefaultDataAdapter implements DataAdapter {
   private setupPersistenceAdapter<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
-    if (!this.persistenceAdapters[collection.name]) return // no persistence adapter available
+    if (!this.persistenceAdapters.get(collection.name)) return // no persistence adapter available
 
     // emit event for initial pull
     setTimeout(() => collection.emit('persistence.pullStarted'), 0)
@@ -148,50 +156,57 @@ export default class DefaultDataAdapter implements DataAdapter {
     const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
 
     const loadPersistentData = async (data?: LoadResponse<T>) => {
-      if (!this.persistenceAdapters[collection.name]) throw new Error('Persistence adapter not found')
+      if (!this.persistenceAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
 
       // only emit pullStarted if already initialized as the first emit is done during setup
       if (isInitialized) collection.emit('persistence.pullStarted')
 
       // load items from persistence adapter and push them into memory
       const { items, changes } = data
-        ?? await (this.persistenceAdapters[collection.name] as PersistenceAdapter<T, I>).load()
+        ?? await (this.persistenceAdapters.get(collection.name) as PersistenceAdapter<T, I>).load()
 
       if (items) {
         // as we overwrite all items, we need to discard if there are ongoing saves
         if (ongoingSaves > 0) return
 
         // push new items to this.memory() and delete old ones
-        this.items[collection.name] = [...items]
-        this.indicesOutdated[collection.name] = true
+        this.items.set(collection.name, [...items])
+        this.indicesOutdated.set(collection.name, true)
         this.rebuildIndicesIfOutdated(collection)
       } else if (changes) {
         await collection.batch(async () => {
           changes.added.forEach((item) => {
-            const index = this.items[collection.name].findIndex(document => document.id === item.id)
+            const collectionItems = this.items.get(collection.name) ?? []
+            const index = collectionItems.findIndex(document => document.id === item.id)
             if (index !== -1) { // item already exists; doing upsert
-              this.items[collection.name].splice(index, 1, item)
+              collectionItems.splice(index, 1, item)
+              this.items.set(collection.name, collectionItems)
               return
             }
 
             // item does not exists yet; normal insert
-            this.items[collection.name].push(item)
-            const itemIndex = this.items[collection.name].findIndex(document => document === item)
-            this.idIndices[collection.name].set(serializeValue(item.id), new Set([itemIndex]))
-            this.indicesOutdated[collection.name] = true
+            collectionItems.push(item)
+            const itemIndex = collectionItems.findIndex(document => document === item)
+            this.items.set(collection.name, collectionItems)
+            this.idIndices.get(collection.name)?.set(serializeValue(item.id), new Set([itemIndex]))
+            this.indicesOutdated.set(collection.name, true)
           })
           changes.modified.forEach((item) => {
-            const index = this.items[collection.name].findIndex(document => document.id === item.id)
+            const collectionItems = this.items.get(collection.name) ?? []
+            const index = collectionItems.findIndex(document => document.id === item.id)
             if (index === -1) throw new Error('Cannot resolve index for item')
-            this.items[collection.name].splice(index, 1, item)
-            this.indicesOutdated[collection.name] = true
+            collectionItems.splice(index, 1, item)
+            this.items.set(collection.name, collectionItems)
+            this.indicesOutdated.set(collection.name, true)
           })
           changes.removed.forEach((item) => {
-            const index = this.items[collection.name].findIndex(document => document.id === item.id)
+            const collectionItems = this.items.get(collection.name) ?? []
+            const index = collectionItems.findIndex(document => document.id === item.id)
             if (index === -1) throw new Error('Cannot resolve index for item')
-            this.items[collection.name].splice(index, 1)
-            this.idIndices[collection.name].delete(serializeValue(item.id))
-            this.indicesOutdated[collection.name] = true
+            collectionItems.splice(index, 1)
+            this.items.set(collection.name, collectionItems)
+            this.idIndices.get(collection.name)?.delete(serializeValue(item.id))
+            this.indicesOutdated.set(collection.name, true)
           })
         })
       }
@@ -211,18 +226,18 @@ export default class DefaultDataAdapter implements DataAdapter {
     } as Changeset<T>
     let isFlushing = false
     const flushQueue = () => {
-      if (!this.persistenceAdapters[collection.name]) throw new Error('Persistence adapter not found')
+      if (!this.persistenceAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
       if (ongoingSaves <= 0) collection.emit('persistence.pushStarted')
       if (isFlushing) return
       if (!hasPendingUpdates(saveQueue)) return
       isFlushing = true
       ongoingSaves += 1
-      const currentItems = this.items[collection.name]
+      const currentItems = this.items.get(collection.name) ?? []
       const changes = { ...saveQueue }
       saveQueue.added = []
       saveQueue.modified = []
       saveQueue.removed = []
-      this.persistenceAdapters[collection.name].save(currentItems, changes)
+      this.persistenceAdapters.get(collection.name)?.save(currentItems, changes)
         .then(() => {
           collection.emit('persistence.transmitted')
         }).catch((error) => {
@@ -260,18 +275,21 @@ export default class DefaultDataAdapter implements DataAdapter {
       flushQueue()
     })
 
-    this.persistenceAdapters[collection.name].register(data => loadPersistentData(data))
+    this.persistenceAdapters.get(collection.name)?.register(data => loadPersistentData(data))
       .then(async () => {
-        if (!this.persistenceAdapters[collection.name]) throw new Error('Persistence adapter not found')
-        let currentItems = this.items[collection.name]
+        if (!this.persistenceAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
+        let currentItems = this.items.get(collection.name)
         await loadPersistentData()
         while (hasPendingUpdates(pendingUpdates)) {
           const added = pendingUpdates.added.splice(0)
           const modified = pendingUpdates.modified.splice(0)
           const removed = pendingUpdates.removed.splice(0)
-          currentItems = applyUpdates(this.items[collection.name], { added, modified, removed })
+          currentItems = applyUpdates(
+            this.items.get(collection.name) ?? [],
+            { added, modified, removed },
+          )
 
-          await this.persistenceAdapters[collection.name].save(
+          await this.persistenceAdapters.get(collection.name)?.save(
             currentItems,
             { added, modified, removed },
           ).then(() => {
@@ -300,7 +318,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       && typeof selector.id !== 'object') {
       return {
         matched: true,
-        positions: [...this.idIndices[collection.name].get(serializeValue(selector.id)) || []],
+        positions: [...this.idIndices.get(collection.name)?.get(serializeValue(selector.id)) ?? []],
         optimizedSelector: {},
       }
     }
@@ -313,7 +331,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       }
     }
 
-    if (this.indicesOutdated[collection.name]) {
+    if (this.indicesOutdated.get(collection.name)) {
       return {
         matched: false,
         positions: [],
@@ -321,14 +339,14 @@ export default class DefaultDataAdapter implements DataAdapter {
       }
     }
 
-    return getIndexInfo(this.indices[collection.name], selector)
+    return getIndexInfo(this.indices.get(collection.name) ?? [], selector)
   }
 
   private getItemAndIndex<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
     selector: Selector<T>,
   ) {
-    const memory = this.items[collection.name]
+    const memory = this.items.get(collection.name) ?? []
     const indexInfo = this.getIndexInfo(collection, selector)
     const items = indexInfo.matched
       ? indexInfo.positions.map(index => memory[index])
@@ -348,13 +366,13 @@ export default class DefaultDataAdapter implements DataAdapter {
     id: I,
     index: number,
   ) {
-    this.idIndices[collection.name].delete(serializeValue(id))
+    this.idIndices.get(collection.name)?.delete(serializeValue(id))
 
     // offset all indices after the deleted item -1, but only during batch operations
     if (!collection.isBatchOperationInProgress()) return
-    this.idIndices[collection.name].forEach(([currenIndex], key) => {
+    this.idIndices.get(collection.name)?.forEach(([currenIndex], key) => {
       if (currenIndex > index) {
-        this.idIndices[collection.name].set(key, new Set([currenIndex - 1]))
+        this.idIndices.get(collection.name)?.set(key, new Set([currenIndex - 1]))
       }
     })
   }
@@ -371,7 +389,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       return matches
     }
 
-    const items = this.items[collection.name] as T[]
+    const items = this.items.get(collection.name) as T[]
 
     // no index available, use complete memory
     if (!indexInfo.matched) {
@@ -407,16 +425,17 @@ export default class DefaultDataAdapter implements DataAdapter {
   private flushQueuedQueryUpdates<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
-    if (!this.queuedQueryUpdates[collection.name]) return
-    const changes = this.queuedQueryUpdates[collection.name]
-    if (!hasPendingUpdates(changes)) return
-    this.queuedQueryUpdates[collection.name] = { added: [], modified: [], removed: [] }
+    if (!this.queuedQueryUpdates.get(collection.name)) return
+    const changes = this.queuedQueryUpdates.get(collection.name)
+    if (!changes || !hasPendingUpdates(changes)) return
+    this.queuedQueryUpdates.set(collection.name, { added: [], modified: [], removed: [] })
 
     const flatItems = [...changes.added, ...changes.modified, ...changes.removed]
-    const queries = [...this.activeQueries[collection.name].values()]
+    const queries = [...this.activeQueries.get(collection.name)?.values() ?? []]
       .filter(({ selector }) => flatItems.some(item => match(item, selector)))
     queries.forEach(({ selector, options }) => {
-      const emitter = this.queryEmitters[collection.name]
+      const emitter = this.queryEmitters.get(collection.name)
+      if (!emitter) return
       emitter.emit('change', selector, options, 'complete')
     })
   }
@@ -425,11 +444,13 @@ export default class DefaultDataAdapter implements DataAdapter {
     collection: Collection<T, I, U>,
     changes: Changeset<T>,
   ) {
-    this.queuedQueryUpdates[collection.name] = this.queuedQueryUpdates[collection.name]
-      || { added: [], modified: [], removed: [] }
-    this.queuedQueryUpdates[collection.name].added.push(...changes.added)
-    this.queuedQueryUpdates[collection.name].modified.push(...changes.modified)
-    this.queuedQueryUpdates[collection.name].removed.push(...changes.removed)
+    this.queuedQueryUpdates.set(
+      collection.name,
+      this.queuedQueryUpdates.get(collection.name) || { added: [], modified: [], removed: [] },
+    )
+    this.queuedQueryUpdates.get(collection.name)?.added.push(...changes.added)
+    this.queuedQueryUpdates.get(collection.name)?.modified.push(...changes.modified)
+    this.queuedQueryUpdates.get(collection.name)?.removed.push(...changes.removed)
     this.flushQueuedQueryUpdates(collection)
   }
 
@@ -438,28 +459,34 @@ export default class DefaultDataAdapter implements DataAdapter {
     indices: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = [],
   ): CollectionBackend<T, I> {
     this.ensurePersistenceAdapter(collection.name)
-    this.items[collection.name] = this.items[collection.name] || []
-    this.queryEmitters[collection.name] = this.queryEmitters[collection.name]
-      || new EventEmitter<{
-        change: (selector: Selector<any>, options: QueryOptions<any>, state: 'active' | 'complete' | 'error') => void,
-      }>()
-    this.activeQueries[collection.name] = this.activeQueries[collection.name]
-      || new Set<{
+    this.items.set(collection.name, this.items.get(collection.name) ?? [])
+    this.queryEmitters.set(
+      collection.name,
+      this.queryEmitters.get(collection.name) ?? new EventEmitter<{
+        change: (selector: Selector<any>, options: QueryOptions<any> | undefined, state: 'active' | 'complete' | 'error') => void,
+      }>(),
+    )
+    this.activeQueries.set(
+      collection.name,
+      this.activeQueries.get(collection.name) || new Set<{
         selector: Selector<T>,
         options?: QueryOptions<T>,
-      }>()
+      }>(),
+    )
 
-    this.idIndices[collection.name] = this.idIndices[collection.name]
-      || new Map<string | undefined | null, Set<number>>()
-    this.indices[collection.name] = [
-      createExternalIndex('id', this.idIndices[collection.name]),
+    this.idIndices.set(
+      collection.name,
+      this.idIndices.get(collection.name) || new Map<string | undefined | null, Set<number>>(),
+    )
+    this.indices.set(collection.name, [
+      createExternalIndex('id', this.idIndices.get(collection.name) as Map<string | undefined | null, Set<number>>),
       ...indices,
-    ]
+    ])
 
     this.rebuildIndicesIfOutdated(collection)
 
     const persistenceReadyPromise = new Promise<void>((resolve, reject) => {
-      if (!this.persistenceAdapters[collection.name]) return resolve()
+      if (!this.persistenceAdapters.get(collection.name)) return resolve()
       collection.once('persistence.init', resolve)
       collection.once('persistence.error', reject)
     })
@@ -472,12 +499,16 @@ export default class DefaultDataAdapter implements DataAdapter {
         const newItem = { id: primaryKeyGenerator(item), ...item } as T
         collection.emit('validate', newItem)
 
-        if (this.idIndices[collection.name].has(serializeValue(newItem.id))) {
+        if (this.idIndices.get(collection.name)?.has(serializeValue(newItem.id))) {
           throw new Error(`Item with id '${newItem.id as string}' already exists`)
         }
-        this.items[collection.name].push(newItem)
-        const itemIndex = this.items[collection.name].findIndex(document => document === newItem)
-        this.idIndices[collection.name].set(serializeValue(newItem.id), new Set([itemIndex]))
+        this.items.get(collection.name)?.push(newItem)
+        const itemIndex = this.items.get(collection.name)
+          ?.findIndex(document => document === newItem)
+        if (itemIndex != null) {
+          this.idIndices.get(collection.name)
+            ?.set(serializeValue(newItem.id), new Set([itemIndex]))
+        }
         this.rebuildIndicesIfOutdated(collection)
         this.updateQueries(collection, {
           added: [],
@@ -520,7 +551,7 @@ export default class DefaultDataAdapter implements DataAdapter {
             throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
           }
           collection.emit('validate', modifiedItem)
-          this.items[collection.name].splice(index, 1, modifiedItem)
+          this.items.get(collection.name)?.splice(index, 1, modifiedItem)
           this.rebuildIndicesIfOutdated(collection)
           collection.emit('changed', modifiedItem, restModifier)
           this.updateQueries(collection, {
@@ -566,7 +597,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           }
         })
         changes.forEach(({ item, index }) => {
-          this.items[collection.name].splice(index, 1, item)
+          this.items.get(collection.name)?.splice(index, 1, item)
         })
         this.rebuildIndicesIfOutdated(collection)
         const changedItems = changes.map(({ item }) => item)
@@ -594,13 +625,14 @@ export default class DefaultDataAdapter implements DataAdapter {
           return [] // no item found, and upsert is not enabled
         } else {
           const hasItemWithSameId = item.id !== replacement.id
+            && replacement.id != null
             && this.getItemAndIndex(collection, { id: replacement.id } as Selector<T>).item != null
           if (hasItemWithSameId) {
             throw new Error(`Item with id '${replacement.id as string}' already exists`)
           }
           const modifiedItem = { id: item.id, ...replacement } as T
           collection.emit('validate', modifiedItem)
-          this.items[collection.name].splice(index, 1, modifiedItem)
+          this.items.get(collection.name)?.splice(index, 1, modifiedItem)
           this.rebuildIndicesIfOutdated(collection)
           collection.emit('changed', modifiedItem, replacement as Modifier<T>)
 
@@ -615,7 +647,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       removeOne: async (selector) => {
         const { item, index } = this.getItemAndIndex(collection, selector)
         if (item != null) {
-          this.items[collection.name].splice(index, 1)
+          this.items.get(collection.name)?.splice(index, 1)
           this.deleteFromIdIndex(collection, item.id, index)
           this.rebuildIndicesIfOutdated(collection)
           collection.emit('removed', item)
@@ -631,9 +663,10 @@ export default class DefaultDataAdapter implements DataAdapter {
         const items = backend.getQueryResult(selector)
 
         items.forEach((item) => {
-          const index = this.items[collection.name].findIndex(document => document === item)
-          if (index === -1) throw new Error('Cannot resolve index for item')
-          this.items[collection.name].splice(index, 1)
+          const index = this.items.get(collection.name)
+            ?.findIndex(document => document === item) ?? -1
+          if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
+          this.items.get(collection.name)?.splice(index, 1)
           this.deleteFromIdIndex(collection, item.id, index)
           this.rebuildIndicesIfOutdated(collection)
         })
@@ -652,16 +685,20 @@ export default class DefaultDataAdapter implements DataAdapter {
 
       // methods for registering and unregistering queries that will be called from the collection during find/findOne
       registerQuery: (selector, options) => {
-        this.activeQueries[collection.name] = this.activeQueries[collection.name] || new Set()
-        this.activeQueries[collection.name].add({ selector, options })
+        this.activeQueries.set(
+          collection.name,
+          this.activeQueries.get(collection.name) || new Set(),
+        )
+        this.activeQueries.get(collection.name)?.add({ selector, options })
       },
       unregisterQuery: (selector, options) => {
-        if (!this.activeQueries[collection.name]) return
-        this.activeQueries[collection.name].delete({ selector, options })
+        if (!this.activeQueries.get(collection.name)) return
+        this.activeQueries.get(collection.name)?.delete({ selector, options })
       },
       getQueryState: () => 'complete',
       onQueryStateChange: (selector, options, callback) => {
-        const emitter = this.queryEmitters[collection.name]
+        const emitter = this.queryEmitters.get(collection.name)
+        if (!emitter) throw new Error(`Query emitter not found for collection ${collection.name}`)
         const handler = (
           querySelector: Selector<any>,
           queryOptions: QueryOptions<any> | undefined,
@@ -678,12 +715,17 @@ export default class DefaultDataAdapter implements DataAdapter {
       getQueryError: () => null,
       getQueryResult: (selector, options) => {
         const result = this.executeQuery(collection, selector, options)
-        const isQueryActive = this.activeQueries[collection.name].has({ selector, options })
+        const isQueryActive = this.activeQueries.get(collection.name)?.has({ selector, options })
         if (isQueryActive) {
-          this.cachedQueryResults[collection.name] = this.cachedQueryResults[collection.name]
-            || new Map()
+          this.cachedQueryResults.set(
+            collection.name,
+            this.cachedQueryResults.get(collection.name) || new Map<{
+              selector: Selector<any>,
+              options?: QueryOptions<any>,
+            }, BaseItem[]>(),
+          )
 
-          this.cachedQueryResults[collection.name].set(
+          this.cachedQueryResults.get(collection.name)?.set(
             { selector, options },
             result,
           )
@@ -693,17 +735,17 @@ export default class DefaultDataAdapter implements DataAdapter {
 
       // lifecycle methods
       dispose: async () => {
-        const adapter = this.persistenceAdapters[collection.name]
+        const adapter = this.persistenceAdapters.get(collection.name)
         if (adapter?.unregister) await adapter.unregister()
-        delete this.persistenceAdapters[collection.name]
-        delete this.items[collection.name]
-        delete this.indicesOutdated[collection.name]
-        delete this.idIndices[collection.name]
-        delete this.indices[collection.name]
-        delete this.activeQueries[collection.name]
-        delete this.queryEmitters[collection.name]
-        delete this.queuedQueryUpdates[collection.name]
-        delete this.cachedQueryResults[collection.name]
+        this.persistenceAdapters.delete(collection.name)
+        this.items.delete(collection.name)
+        this.indicesOutdated.delete(collection.name)
+        this.idIndices.delete(collection.name)
+        this.indices.delete(collection.name)
+        this.activeQueries.delete(collection.name)
+        this.queryEmitters.delete(collection.name)
+        this.queuedQueryUpdates.delete(collection.name)
+        this.cachedQueryResults.delete(collection.name)
       },
       isReady: () => persistenceReadyPromise,
     }
