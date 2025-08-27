@@ -1,4 +1,4 @@
-import type { BaseItem, Modifier } from '@signaldb/core'
+import type { BaseItem, Changeset, Modifier } from '@signaldb/core'
 
 interface Insert<T extends BaseItem<I> = BaseItem, I = any> {
   type: 'insert',
@@ -43,3 +43,11 @@ export type SyncOperation = {
   end: number,
   error: any,
 })
+
+export type LoadResponse<T> = {
+  items: T[],
+  changes?: never,
+} | {
+  changes: Changeset<T>,
+  items?: never,
+}
