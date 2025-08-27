@@ -18,18 +18,10 @@ export interface QueryOptions<T extends BaseItem> {
 
 export interface CollectionBackend<T extends BaseItem<I>, I> {
   // CRUD operations will be proxied from the collection to the collection interface of the data layer. The CRUD logic itself will be done inside of the data layer.
-  insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<T>,
-  updateOne(
-    selector: Selector<T>,
-    modifier: Modifier<T>,
-    options?: { upsert?: boolean },
-  ): Promise<T[]>,
-  updateMany(
-    selector: Selector<T>,
-    modifier: Modifier<T>,
-    options?: { upsert?: boolean },
-  ): Promise<T[]>,
-  replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>, options?: { upsert?: boolean }): Promise<T[]>,
+  insert(item: T): Promise<T>,
+  updateOne(selector: Selector<T>, modifier: Modifier<T>): Promise<T[]>,
+  updateMany(selector: Selector<T>, modifier: Modifier<T>): Promise<T[]>,
+  replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<T[]>,
   removeOne(selector: Selector<T>): Promise<T[]>,
   removeMany(selector: Selector<T>): Promise<T[]>,
 
