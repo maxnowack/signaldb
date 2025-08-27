@@ -1,10 +1,10 @@
 import { it, expect, vi } from 'vitest'
-import type { BaseItem, Changeset, LoadResponse, Modifier } from '@signaldb/core'
+import type { BaseItem, Changeset, Modifier } from '@signaldb/core'
 import sync from '../src/sync'
 import computeChanges from '../src/computeChanges'
 import getSnapshot from '../src/getSnapshot'
 import applyChanges from '../src/applyChanges'
-import type { Change } from '../src/types'
+import type { Change, LoadResponse } from '../src/types'
 
 // Example item type
 interface TestItem extends BaseItem<number> {
