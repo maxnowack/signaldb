@@ -6,7 +6,7 @@ import type {
   LoadResponse,
   Selector,
 } from '@signaldb/core'
-import { Collection, randomId, createIndex } from '@signaldb/core'
+import { Collection, randomId } from '@signaldb/core'
 import debounce from './utils/debounce'
 import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'
@@ -135,19 +135,19 @@ export default class SyncManager<
     this.changes = new Collection({
       name: `${this.options.id}-changes`,
       persistence: changesPersistence?.adapter,
-      indices: [createIndex('collectionName')],
+      indices: ['collectionName'],
       reactivity,
     })
     this.snapshots = new Collection({
       name: `${this.options.id}-snapshots`,
       persistence: snapshotsPersistence?.adapter,
-      indices: [createIndex('collectionName')],
+      indices: ['collectionName'],
       reactivity,
     })
     this.syncOperations = new Collection({
       name: `${this.options.id}-sync-operations`,
       persistence: syncOperationsPersistence?.adapter,
-      indices: [createIndex('collectionName'), createIndex('status')],
+      indices: ['collectionName', 'status'],
       reactivity,
     })
     this.changes.on('persistence.error', error => changesPersistence?.handler(error))
