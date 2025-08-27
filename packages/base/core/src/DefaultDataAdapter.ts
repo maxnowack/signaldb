@@ -6,7 +6,6 @@ import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
 import type { LowLevelIndexProvider } from './types/IndexProvider'
 import type IndexProvider from './types/IndexProvider'
-import type Modifier from './types/Modifier'
 import type PersistenceAdapter from './types/PersistenceAdapter'
 import type { Changeset, LoadResponse } from './types/PersistenceAdapter'
 import type Selector from './types/Selector'
@@ -17,7 +16,6 @@ import match from './utils/match'
 import modify from './utils/modify'
 import project from './utils/project'
 import queryId from './utils/queryId'
-import randomId from './utils/randomId'
 import serializeValue from './utils/serializeValue'
 import sortItems from './utils/sortItems'
 
@@ -67,7 +65,6 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
 
 interface DefaultDataAdapterOptions {
   storage?: (name: string) => PersistenceAdapter<any, any>,
-  primaryKeyGenerator?: <T extends BaseItem<I>, I>(item: Omit<T, 'id'>) => I,
 }
 
 export default class DefaultDataAdapter implements DataAdapter {
@@ -492,11 +489,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
     const backend: CollectionBackend<T, I> = {
       // CRUD operations
-      insert: async (item) => {
-        const primaryKeyGenerator = this.options.primaryKeyGenerator ?? randomId
-        const newItem = { id: primaryKeyGenerator(item), ...item } as T
-        collection.emit('validate', newItem)
-
+      insert: async (newItem) => {
         if (this.idIndices.get(collection.name)?.has(serializeValue(newItem.id))) {
           throw new Error(`Item with id '${newItem.id as string}' already exists`)
         }
@@ -515,69 +508,32 @@ export default class DefaultDataAdapter implements DataAdapter {
         })
         return newItem
       },
-      updateOne: async (selector, modifier, options) => {
+      updateOne: async (selector, modifier) => {
         const { $setOnInsert, ...restModifier } = modifier
 
         const { item, index } = this.getItemAndIndex(collection, selector)
-        if (item == null) {
-          if (options?.upsert) {
-            // if upsert is enabled, insert a new item
-            const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-              ...restModifier,
-              $set: {
-                ...$setOnInsert,
-                ...restModifier.$set,
-              },
-            })
-            if (newItem.id != null
-              && this.getItemAndIndex(collection, { id: newItem.id } as Selector<T>).item != null) {
-              throw new Error(`Item with id '${newItem.id as string}' already exists`)
-            }
-            const hasItemWithSameId = newItem.id != null
-              && this.getItemAndIndex(collection, { id: newItem.id } as Selector<T>).item != null
-            if (hasItemWithSameId) {
-              throw new Error(`Item with id '${newItem.id as string}' already exists`)
-            }
-            return [await backend.insert(newItem as T)]
-          }
-          return [] // no item found, and upsert is not enabled
-        } else {
-          const modifiedItem = modify(deepClone(item), restModifier)
-          const hasItemWithSameId = item.id !== modifiedItem.id
-            && this.getItemAndIndex(collection, { id: modifiedItem.id } as Selector<T>).item != null
-          if (hasItemWithSameId) {
-            throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
-          }
-          collection.emit('validate', modifiedItem)
-          this.items.get(collection.name)?.splice(index, 1, modifiedItem)
-          this.rebuildIndicesIfOutdated(collection)
-          collection.emit('changed', modifiedItem, restModifier)
-          this.updateQueries(collection, {
-            added: [],
-            modified: [modifiedItem],
-            removed: [],
-          })
-          return [modifiedItem]
+        if (item == null) return [] // no item found
+
+        const modifiedItem = modify(deepClone(item), restModifier)
+        const hasItemWithSameId = item.id !== modifiedItem.id
+          && this.getItemAndIndex(collection, { id: modifiedItem.id } as Selector<T>).item != null
+        if (hasItemWithSameId) {
+          throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
         }
+
+        this.items.get(collection.name)?.splice(index, 1, modifiedItem)
+        this.rebuildIndicesIfOutdated(collection)
+
+        this.updateQueries(collection, {
+          added: [],
+          modified: [modifiedItem],
+          removed: [],
+        })
+        return [modifiedItem]
       },
-      updateMany: async (selector, modifier, options) => {
+      updateMany: async (selector, modifier) => {
         const { $setOnInsert, ...restModifier } = modifier
         const items = backend.getQueryResult(selector)
-        if (items.length === 0 && options?.upsert) {
-          const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-            ...restModifier,
-            $set: {
-              ...$setOnInsert,
-              ...restModifier.$set,
-            },
-          })
-          const hasItemWithSameId = newItem.id != null
-            && this.getItemAndIndex(collection, { id: newItem.id } as Selector<T>).item != null
-          if (hasItemWithSameId) {
-            throw new Error(`Item with id '${newItem.id as string}' already exists`)
-          }
-          return [await backend.insert(newItem)]
-        }
 
         const changes = items.map((item) => {
           const { index } = this.getItemAndIndex(collection, { id: item.id } as Selector<T>)
@@ -588,7 +544,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           if (hasItemWithSameId) {
             throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
           }
-          collection.emit('validate', modifiedItem)
+
           return {
             item: modifiedItem,
             index,
@@ -606,56 +562,40 @@ export default class DefaultDataAdapter implements DataAdapter {
         })
         return changedItems
       },
-      replaceOne: async (selector, replacement, options) => {
+      replaceOne: async (selector, replacement) => {
         const { item, index } = this.getItemAndIndex(collection, selector)
-        if (item == null) {
-          if (options?.upsert) {
-            // if upsert is enabled, insert a new item
-            const hasItemWithSameId = replacement.id != null && this.getItemAndIndex(
-              collection,
-              { id: replacement.id } as Selector<T>,
-            ).item != null
-            if (hasItemWithSameId) {
-              throw new Error(`Item with id '${replacement.id as string}' already exists`)
-            }
-            return [await backend.insert(replacement)]
-          }
-          return [] // no item found, and upsert is not enabled
-        } else {
-          const hasItemWithSameId = item.id !== replacement.id
-            && replacement.id != null
-            && this.getItemAndIndex(collection, { id: replacement.id } as Selector<T>).item != null
-          if (hasItemWithSameId) {
-            throw new Error(`Item with id '${replacement.id as string}' already exists`)
-          }
-          const modifiedItem = { id: item.id, ...replacement } as T
-          collection.emit('validate', modifiedItem)
-          this.items.get(collection.name)?.splice(index, 1, modifiedItem)
-          this.rebuildIndicesIfOutdated(collection)
-          collection.emit('changed', modifiedItem, replacement as Modifier<T>)
+        if (item == null) return [] // no item found
 
-          this.updateQueries(collection, {
-            added: [],
-            modified: [modifiedItem],
-            removed: [],
-          })
-          return [modifiedItem]
+        const hasItemWithSameId = item.id !== replacement.id
+          && replacement.id != null
+          && this.getItemAndIndex(collection, { id: replacement.id } as Selector<T>).item != null
+        if (hasItemWithSameId) {
+          throw new Error(`Item with id '${replacement.id as string}' already exists`)
         }
+        const modifiedItem = { id: item.id, ...replacement } as T
+
+        this.items.get(collection.name)?.splice(index, 1, modifiedItem)
+        this.rebuildIndicesIfOutdated(collection)
+
+        this.updateQueries(collection, {
+          added: [],
+          modified: [modifiedItem],
+          removed: [],
+        })
+        return [modifiedItem]
       },
       removeOne: async (selector) => {
         const { item, index } = this.getItemAndIndex(collection, selector)
-        if (item != null) {
-          this.items.get(collection.name)?.splice(index, 1)
-          this.deleteFromIdIndex(collection, item.id, index)
-          this.rebuildIndicesIfOutdated(collection)
-          collection.emit('removed', item)
-        }
+        if (item == null) return [] // no item found
+        this.items.get(collection.name)?.splice(index, 1)
+        this.deleteFromIdIndex(collection, item.id, index)
+        this.rebuildIndicesIfOutdated(collection)
         this.updateQueries(collection, {
           added: [],
           modified: [],
-          removed: item == null ? [] : [item],
+          removed: [item],
         })
-        return item == null ? [] : [item]
+        return [item]
       },
       removeMany: async (selector) => {
         const items = backend.getQueryResult(selector)
@@ -667,10 +607,6 @@ export default class DefaultDataAdapter implements DataAdapter {
           this.items.get(collection.name)?.splice(index, 1)
           this.deleteFromIdIndex(collection, item.id, index)
           this.rebuildIndicesIfOutdated(collection)
-        })
-
-        items.forEach((item) => {
-          collection.emit('removed', item)
         })
 
         this.updateQueries(collection, {
