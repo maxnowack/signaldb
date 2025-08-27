@@ -1,4 +1,4 @@
-import { createPersistenceAdapter } from '@signaldb/core'
+import { createStorageAdapter } from '@signaldb/core'
 
 /**
  * Creates a persistence adapter for managing a SignalDB collection using the
@@ -52,7 +52,7 @@ export default function createOPFSAdapter<
     return serializedItems ? deserialize(serializedItems) : []
   }
 
-  return createPersistenceAdapter<T, I>({
+  return createStorageAdapter<T, I>({
     async register(onChange) {
       const opfsRoot = await navigator.storage.getDirectory()
       await opfsRoot.getFileHandle(filename, { create: true })
