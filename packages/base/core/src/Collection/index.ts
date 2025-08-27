@@ -396,6 +396,7 @@ export default class Collection<
         if (!options?.async) return queryItems()
 
         return new Promise<E[]>((resolve, reject) => {
+          this.backend.registerQuery(selector, options)
           const cleanup = this.backend.onQueryStateChange(
             selector,
             options,
@@ -409,6 +410,8 @@ export default class Collection<
               }
             },
           )
+        }).finally(() => {
+          this.backend.unregisterQuery(selector, options)
         })
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
