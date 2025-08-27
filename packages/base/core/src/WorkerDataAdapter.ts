@@ -2,8 +2,6 @@ import type { BaseItem } from './Collection'
 import type Collection from './Collection'
 import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
-import type { LowLevelIndexProvider } from './types/IndexProvider'
-import type IndexProvider from './types/IndexProvider'
 import type Selector from './types/Selector'
 import queryId from './utils/queryId'
 import randomId from './utils/randomId'
@@ -70,7 +68,7 @@ export default class WorkerDataAdapter implements DataAdapter {
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
-    indices: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = [],
+    indices: string[] = [],
   ): CollectionBackend<T, I> {
     this.queries[collection.name] = new Map()
     void this.exec('registerCollection', collection.name, indices)
