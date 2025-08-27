@@ -8,7 +8,7 @@ import type DataAdapter from '../DataAdapter'
 import type { CollectionBackend, QueryOptions } from '../DataAdapter'
 import randomId from '../utils/randomId'
 import DefaultDataAdapter from '../DefaultDataAdapter'
-import type PersistenceAdapter from '../types/PersistenceAdapter'
+import type StorageAdapter from '../types/StorageAdapter'
 import modify from '../utils/modify'
 import deepClone from '../utils/deepClone'
 import Cursor from './Cursor'
@@ -27,7 +27,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
   /**
    * @deprecated Use `DataAdapter` options instead.
    */
-  persistence?: PersistenceAdapter<T, I>,
+  persistence?: StorageAdapter<T, I>,
 
   primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 

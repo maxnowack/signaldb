@@ -1,6 +1,6 @@
 import type {
   BaseItem,
-  PersistenceAdapter,
+  StorageAdapter,
   ReactivityAdapter,
   Changeset,
   LoadResponse,
@@ -52,10 +52,10 @@ interface Options<
   ) => CleanupFunction | Promise<CleanupFunction>,
 
   id?: string,
-  persistenceAdapter?: (
+  storageAdapter?: (
     id: string,
     registerErrorHandler: (handler: (error: Error) => void) => void,
-  ) => PersistenceAdapter<any, any>,
+  ) => StorageAdapter<any, any>,
   reactivity?: ReactivityAdapter,
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 
@@ -122,7 +122,7 @@ export default class SyncManager<
    * @param options.push Function to push data to remote source.
    * @param [options.registerRemoteChange] Function to register a callback for remote changes.
    * @param [options.id] Unique identifier for this sync manager. Only nessesary if you have multiple sync managers.
-   * @param [options.persistenceAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
+   * @param [options.storageAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
    * @param [options.reactivity] Reactivity adapter to use for reactivity.
    * @param [options.onError] Function to handle errors that occur async during syncing.
    * @param [options.autostart] Whether to automatically start syncing new collections.
@@ -136,9 +136,9 @@ export default class SyncManager<
     this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
 
-    const changesPersistence = this.createPersistenceAdapter('changes')
-    const snapshotsPersistence = this.createPersistenceAdapter('snapshots')
-    const syncOperationsPersistence = this.createPersistenceAdapter('sync-operations')
+    const changesPersistence = this.createStorageAdapter('changes')
+    const snapshotsPersistence = this.createStorageAdapter('snapshots')
+    const syncOperationsPersistence = this.createStorageAdapter('sync-operations')
 
     this.changes = new Collection({
       name: `${this.options.id}-changes`,
@@ -175,11 +175,11 @@ export default class SyncManager<
     this.debouncedFlush = debounce(this.flushScheduledPushes, this.options.debounceTime ?? 100)
   }
 
-  protected createPersistenceAdapter(name: string) {
-    if (this.options.persistenceAdapter == null) return
+  protected createStorageAdapter(name: string) {
+    if (this.options.storageAdapter == null) return
 
     let errorHandler: (error: Error) => void = () => { /* noop */ }
-    const adapter = this.options.persistenceAdapter(`${this.id}-${name}`, (handler) => {
+    const adapter = this.options.storageAdapter(`${this.id}-${name}`, (handler) => {
       errorHandler = handler
     })
     return {

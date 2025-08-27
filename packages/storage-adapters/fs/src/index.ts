@@ -1,4 +1,4 @@
-import { createPersistenceAdapter } from '@signaldb/core'
+import { createStorageAdapter } from '@signaldb/core'
 
 /**
  * Creates a persistence adapter for managing a SignalDB collection backed by a filesystem.
@@ -55,7 +55,7 @@ export default function createFilesystemAdapter<
     return serializedItems ? deserialize(serializedItems) : []
   }
 
-  return createPersistenceAdapter<T, I>({
+  return createStorageAdapter<T, I>({
     async register(onChange) {
       // eslint-disable-next-line unicorn/prefer-global-this
       if (typeof window !== 'undefined') throw new Error('Filesystem adapter is not supported in the browser')
