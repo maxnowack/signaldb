@@ -78,14 +78,14 @@ export default class WorkerDataAdapter implements DataAdapter {
       insert: async (item) => {
         return this.exec('insert', collection.name, item)
       },
-      updateOne: async (selector, modifier, options) => {
-        return this.exec('updateOne', collection.name, selector, modifier, options)
+      updateOne: async (selector, modifier) => {
+        return this.exec('updateOne', collection.name, selector, modifier)
       },
-      updateMany: async (selector, modifier, options) => {
-        return this.exec('updateMany', collection.name, selector, modifier, options)
+      updateMany: async (selector, modifier) => {
+        return this.exec('updateMany', collection.name, selector, modifier)
       },
-      replaceOne: async (selector, replacement, options) => {
-        return this.exec('replaceOne', collection.name, selector, replacement, options)
+      replaceOne: async (selector, replacement) => {
+        return this.exec('replaceOne', collection.name, selector, replacement)
       },
       removeOne: async (selector) => {
         return this.exec('removeOne', collection.name, selector)
