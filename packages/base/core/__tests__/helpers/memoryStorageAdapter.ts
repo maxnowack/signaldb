@@ -1,4 +1,4 @@
-import type { StorageAdapter } from '../../src'
+import { createStorageAdapter } from '../../src'
 
 /**
  * Creates a memory-based persistence adapter for testing purposes. This adapter
@@ -7,7 +7,6 @@ import type { StorageAdapter } from '../../src'
  * @template T - The type of the items in the collection.
  * @template I - The type of the unique identifier for the items.
  * @param initialData - An array of initial data items to populate the memory store.
- * @param transmitChanges - A boolean indicating whether to transmit changes instead of the full dataset (default: `false`).
  * @param delay - An optional delay (in milliseconds) for load operations to simulate asynchronous behavior.
  * @returns A memory persistence adapter with additional methods for adding, changing, and removing items.
  * @example
@@ -33,64 +32,65 @@ export default function memoryStorageAdapter<
   I = any,
 >(
   initialData: T[] = [],
-  transmitChanges = false,
   delay?: number,
 ) {
   // not really a "persistence adapter", but it works for testing
   let items = [...initialData]
-  const changes: {
-    added: T[],
-    modified: T[],
-    removed: T[],
-  } = {
-    added: [],
-    modified: [],
-    removed: [],
-  }
-  let onChange: () => void | Promise<void> = () => { /* do nothing */ }
-  return {
-    register: (changeCallback: () => void | Promise<void>) => {
-      onChange = changeCallback
-      return Promise.resolve()
-    },
-    load: async () => {
-      const currentChanges = { ...changes }
-      changes.added = []
-      changes.modified = []
-      changes.removed = []
-      const hasChanges = currentChanges.added.length > 0
-        || currentChanges.modified.length > 0
-        || currentChanges.removed.length > 0
+  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<number>>>()
+
+  return createStorageAdapter<T, I>({
+    setup: () => Promise.resolve(),
+    teardown: () => Promise.resolve(),
+
+    readAll: async () => {
       if (delay != null) await new Promise((resolve) => {
         setTimeout(resolve, delay)
       })
-      if (transmitChanges && hasChanges) {
-        return { changes: currentChanges }
-      }
-      return { items }
+      return items
     },
-    save: (newSnapshot: T[]) => {
-      items = [...newSnapshot]
+    readPositions: positions => Promise.resolve(
+      items.filter((_item, index) => positions.includes(index)),
+    ),
+
+    createIndex: (field) => {
+      if (indexes.has(field)) {
+        throw new Error(`Index on field "${field}" already exists`)
+      }
+      const index = new Map<T[keyof T & string], Set<number>>()
+      indexes.set(field, index)
       return Promise.resolve()
     },
-    addNewItem: (item: T) => {
-      items.push(item)
-      changes.added.push(item)
-      void onChange()
+    dropIndex: (field) => {
+      indexes.delete(field)
+      return Promise.resolve()
     },
-    changeItem: (item: T) => {
-      items = items.map(i => (i.id === item.id ? item : i))
-      changes.modified.push(item)
-      void onChange()
+    readIndex: async (field) => {
+      const index = indexes.get(field)
+      if (index == null) {
+        throw new Error(`Index on field "${field}" does not exist`)
+      }
+      return index
     },
-    removeItem: (item: T) => {
-      items = items.filter(i => i.id !== item.id)
-      changes.removed.push(item)
-      void onChange()
+
+    insert: (newItems) => {
+      items.push(...newItems)
+      return Promise.resolve()
     },
-  } as (StorageAdapter<T, I> & {
-    addNewItem: (item: T) => void,
-    changeItem: (item: T) => void,
-    removeItem: (item: T) => void,
+    replace: (newItems) => {
+      items = items.map((item) => {
+        const newItem = newItems.find(i => i.id === item.id)
+        return newItem || item
+      })
+      return Promise.resolve()
+    },
+    remove: (itemsToRemove) => {
+      const idsToRemove = new Set(itemsToRemove.map(i => i.id))
+      items = items.filter(item => !idsToRemove.has(item.id))
+      return Promise.resolve()
+    },
+    removeAll: () => {
+      items = []
+      return Promise.resolve()
+    },
   })
 }
