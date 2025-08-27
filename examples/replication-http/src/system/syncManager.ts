@@ -23,7 +23,7 @@ function authenticatedFetch(path: string, options?: RequestInit) {
 
 const syncManager = new SyncManager({
   id: 'http-sync-manager',
-  persistenceAdapter: id => createIndexedDBAdapter(id),
+  storageAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

@@ -13,7 +13,7 @@ const database = new TablesDB(client)
 
 const syncManager = new SyncManager<Record<string, any>, { id: string }>({
   id: 'appwrite-sync-manager',
-  persistenceAdapter: id => createIndexedDBAdapter(id),
+  storageAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

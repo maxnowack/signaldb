@@ -2,35 +2,35 @@
 head:
 - - link
   - rel: canonical
-    href: https://signaldb.js.org/reference/core/createpersistenceadapter/
+    href: https://signaldb.js.org/reference/core/createstorageadapter/
 - - meta
   - name: og:type
     content: article
 - - meta
   - name: og:url
-    content: https://signaldb.js.org/reference/core/createpersistenceadapter/
+    content: https://signaldb.js.org/reference/core/createstorageadapter/
 - - meta
   - name: og:title
-    content: createPersistenceAdapter | SignalDB
+    content: createStorageAdapter | SignalDB
 - - meta
   - name: og:description
-    content: Learn how to implement custom persistence adapters for SignalDB to meet specific requirements on a practical example using the File System.
+    content: Learn how to implement custom storage adapters for SignalDB to meet specific requirements on a practical example using the File System.
 - - meta
   - name: description
-    content: Learn how to implement custom persistence adapters for SignalDB to meet specific requirements on a practical example using the File System.
+    content: Learn how to implement custom storage adapters for SignalDB to meet specific requirements on a practical example using the File System.
 - - meta
   - name: keywords
-    content: SignalDB, custom persistence adapters, createPersistenceAdapter, data persistence, File System adapter, JavaScript, TypeScript, data storage, adapter implementation, SignalDB extensions
+    content: SignalDB, custom storage adapters, createStorageAdapter, data storage, File System adapter, JavaScript, TypeScript, data storage, adapter implementation, SignalDB extensions
 ---
-# createPersistenceAdapter
+# createStorageAdapter
 
 ```ts
-import { createPersistenceAdapter } from '@signaldb/core'
+import { createStorageAdapter } from '@signaldb/core'
 ```
 
-While SignalDB comes with a few built-in Persistence Adapters, there may be scenarios where you need to create a custom one to cater to specific requirements.
+While SignalDB comes with a few built-in Storage Adapters, there may be scenarios where you need to create a custom one to cater to specific requirements.
 
-You can create a custom persistene adapter by calling `createPersistenceAdapter` and supplying a `PersistenceAdapter` compatible object as follows:
+You can create a custom persistene adapter by calling `createStorageAdapter` and supplying a `StorageAdapter` compatible object as follows:
 
 ```ts
 interface Changeset<T> {
@@ -44,7 +44,7 @@ type LoadResponse<T> =
     { items:  T[],   changes?: never }
   | { items?: never, changes:  Changeset<T> }
 
-interface PersistenceAdapter<T> {
+interface StorageAdapter<T> {
   register(onChange: (data?: LoadResponse<T>) => void | Promise<void>): Promise<void>,
   load(): Promise<LoadResponse<T>>,
   save(items: T[], changes: Changeset<T>): Promise<void>,
@@ -57,14 +57,14 @@ interface PersistenceAdapter<T> {
 * **save** is called when data was updated, and should save the data.  Both `items` and `changes` are provided so you can chose which one you'd like to use.
 * **unregister?** *(optional)* is called when the `dispose` method of the collection is called. Allows you to clean up things.
 
-Here is a short example how the File system persistence adapter is implemented:
+Here is a short example how the File system storage adapter is implemented:
 
 ```js
 import fs from 'fs'
-import { createPersistenceAdapter } from '@signaldb/core'
+import { createStorageAdapter } from '@signaldb/core'
 
 export default function createFilesystemAdapter(filename: string) {
-  return createPersistenceAdapter({
+  return createStorageAdapter({
     async register(onChange) {
       const exists = await fs.promises.access(filename).then(() => true).catch(() => false)
       if (!exists) await fs.promises.writeFile(filename, '[]')

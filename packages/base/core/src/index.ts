@@ -1,9 +1,9 @@
 export type { default as ReactivityAdapter } from './types/ReactivityAdapter'
 export type {
-  default as PersistenceAdapter,
+  default as StorageAdapter,
   Changeset,
   LoadResponse,
-} from './types/PersistenceAdapter'
+} from './types/StorageAdapter'
 export type { default as Selector } from './types/Selector'
 export type { default as Modifier } from './types/Modifier'
 export type {
@@ -20,9 +20,8 @@ export type {
 export { default as Cursor } from './Collection/Cursor'
 
 export { default as Collection, createIndex } from './Collection'
-export { default as combinePersistenceAdapters } from './persistence/combinePersistenceAdapters'
 export { default as createIndexProvider } from './createIndexProvider'
-export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
+export { default as createStorageAdapter } from './createStorageAdapter'
 export { default as createReactivityAdapter } from './createReactivityAdapter'
 
 export { default as isEqual } from './utils/isEqual'

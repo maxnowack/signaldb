@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import { Collection } from '../src'
 import waitForEvent from './helpers/waitForEvent'
-import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
+import memoryStorageAdapter from './helpers/memoryStorageAdapter'
 
 describe('Persistence', () => {
   it('should load items from persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }])
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
     const items = collection.find().fetch()
@@ -13,7 +13,7 @@ describe('Persistence', () => {
   })
 
   it('should save items to persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter()
+    const persistence = memoryStorageAdapter()
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
     const transmittedEvent = waitForEvent(collection, 'persistence.transmitted')
@@ -26,7 +26,7 @@ describe('Persistence', () => {
   })
 
   it('should get items from persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }])
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
     const items = collection.find().fetch()
@@ -43,7 +43,7 @@ describe('Persistence', () => {
   })
 
   it('should get changes from persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }], true)
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }], true)
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
     const items = collection.find().fetch()
@@ -69,7 +69,7 @@ describe('Persistence', () => {
   })
 
   it('should remove item from persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }])
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }])
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
@@ -84,7 +84,7 @@ describe('Persistence', () => {
   })
 
   it('should update item in persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }])
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
@@ -100,7 +100,7 @@ describe('Persistence', () => {
 
   it('should not modify original items in persistence adapter', async () => {
     const originalItems = [{ id: '1', name: 'John' }]
-    const persistence = memoryPersistenceAdapter(originalItems)
+    const persistence = memoryStorageAdapter(originalItems)
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
@@ -112,7 +112,7 @@ describe('Persistence', () => {
   })
 
   it('should handle multiple operations in order', async () => {
-    const persistence = memoryPersistenceAdapter()
+    const persistence = memoryStorageAdapter()
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
 
@@ -247,7 +247,7 @@ describe('Persistence', () => {
   })
 
   it('should emit all required events', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }])
     const collection = new Collection({ persistence })
     await Promise.all([
       waitForEvent(collection, 'persistence.pullStarted'),
@@ -271,7 +271,7 @@ describe('Persistence', () => {
   })
 
   it('should return correct values from isPulling, isPushing and isLoading', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }])
     const collection = new Collection({ persistence })
 
     const pullStarted = waitForEvent(collection, 'persistence.pullStarted')
@@ -323,7 +323,7 @@ describe('Persistence', () => {
   })
 
   it('should upsert added items from persistence adapter', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }], true)
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }], true)
     const collection = new Collection({ persistence })
     await waitForEvent(collection, 'persistence.init')
     const items = collection.find().fetch()
@@ -337,7 +337,7 @@ describe('Persistence', () => {
   })
 
   it('should modify items when persistence adapter is async', async () => {
-    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }], true, 100)
+    const persistence = memoryStorageAdapter([{ id: '1', name: 'John' }, { id: 'x', name: 'Joe' }], true, 100)
     const collection = new Collection({ persistence })
     await collection.isReady()
     const items = collection.find().fetch()
