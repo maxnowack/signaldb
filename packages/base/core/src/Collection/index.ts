@@ -10,6 +10,8 @@ import type { CollectionBackend, QueryOptions } from '../DataAdapter'
 import randomId from '../utils/randomId'
 import DefaultDataAdapter from '../DefaultDataAdapter'
 import type PersistenceAdapter from '../types/PersistenceAdapter'
+import modify from '../utils/modify'
+import deepClone from '../utils/deepClone'
 import Cursor from './Cursor'
 import type { BaseItem, FieldSpecifier, FindOptions, Transform, TransformAll } from './types'
 
@@ -28,9 +30,6 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
    */
   persistence?: PersistenceAdapter<T, I>,
 
-  /**
-   * @deprecated Use `DataAdapter` options instead.
-   */
   primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 
   reactivity?: ReactivityAdapter,
@@ -232,13 +231,6 @@ export default class Collection<
     const persistence = options.persistence
     const dataAdapter = maybeDataAdapter || new DefaultDataAdapter({
       ...persistence ? { storage: () => persistence } : {},
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      ...options.primaryKeyGenerator
-        ? {
-          // eslint-disable-next-line @typescript-eslint/no-deprecated
-          primaryKeyGenerator: options.primaryKeyGenerator as any,
-        }
-        : {},
     })
 
     Collection.collections.push(this)
@@ -381,21 +373,36 @@ export default class Collection<
     return this.options.transformAll(items, fields)
   }
 
-  private getItems<O extends FindOptions<T, Async>, Async extends boolean>(
+  private getItem<
+    Async extends boolean,
+    O extends Omit<FindOptions<T, Async>, 'limit'> = Omit<FindOptions<T, Async>, 'limit'>,
+  >(
     selector: Selector<T> = {},
     options: O,
-  ): Async extends true ? Promise<E[]> : E[] {
+  ): Async extends true ? Promise<T | undefined> : T | undefined {
+    const itemsOrPromise = this.getItems(selector, { ...options, limit: 1 })
+    if (itemsOrPromise instanceof Promise) {
+      return itemsOrPromise
+        .then(items => items[0]) as Async extends true ? Promise<T | undefined> : T | undefined
+    }
+    return itemsOrPromise[0] as Async extends true ? Promise<T | undefined> : T | undefined
+  }
+
+  private getItems<
+    Async extends boolean,
+    O extends FindOptions<T, Async> = FindOptions<T, Async>,
+  >(
+    selector: Selector<T> = {},
+    options: O,
+  ): Async extends true ? Promise<T[]> : T[] {
     this.emit('getItems', selector)
     return this.profile(
       () => {
-        const queryItems = () => {
-          const items = this.backend.getQueryResult(selector, options)
-          return this.transformAll(items, options.fields)
-        }
+        const queryItems = () => this.backend.getQueryResult(selector, options)
 
         if (!options?.async) return queryItems()
 
-        return new Promise<E[]>((resolve, reject) => {
+        return new Promise<T[]>((resolve, reject) => {
           this.backend.registerQuery(selector, options)
           const cleanup = this.backend.onQueryStateChange(
             selector,
@@ -415,7 +422,7 @@ export default class Collection<
         })
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
-    ) as Async extends true ? Promise<E[]> : E[]
+    ) as Async extends true ? Promise<T[]> : T[]
   }
 
   /**
@@ -448,8 +455,18 @@ export default class Collection<
   ) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
+    const getTransformedItems = () => {
+      const itemsOrPromise = this.getItems(selector, options || {})
+      if (itemsOrPromise instanceof Promise) {
+        return itemsOrPromise.then((items) => {
+          return this.transformAll(items, options?.fields)
+        })
+      }
+      const items = itemsOrPromise
+      return this.transformAll(items, options?.fields)
+    }
     const cursor = new Cursor<E, U, Async>(
-      (() => this.getItems(selector, options || {})) as Async extends true
+      getTransformedItems as Async extends true
         ? () => Promise<E[]>
         : () => E[],
       {
@@ -568,7 +585,14 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!item) throw new Error('Invalid item')
 
-    const newItem = await this.backend.insert(item)
+    const primaryKeyGenerator = this.options.primaryKeyGenerator ?? randomId
+    const itemWithId = {
+      id: primaryKeyGenerator(item) as I,
+      ...item,
+    } as T
+    this.emit('validate', itemWithId)
+
+    const newItem = await this.backend.insert(itemWithId)
 
     this.emit('added', newItem)
     this.emit('insert', newItem)
@@ -616,8 +640,27 @@ export default class Collection<
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
 
-    const changes = await this.backend.updateOne(selector, modifier, options)
+    const { $setOnInsert, ...restModifier } = modifier
+    const item = await this.getItem<true>(selector, { async: true })
+    if (item == null) {
+      if (options?.upsert) {
+        // if upsert is enabled, insert a new item
+        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
+          ...restModifier,
+          $set: {
+            ...$setOnInsert,
+            ...restModifier.$set,
+          },
+        })
+        return [await this.insert(newItem as T)]
+      }
+      return [] // no item found, and upsert is not enabled
+    }
 
+    const modifiedItem = modify(deepClone(item), restModifier)
+    this.emit('validate', modifiedItem)
+    const changes = await this.backend.updateOne(selector, modifier)
+    this.emit('changed', modifiedItem, restModifier)
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return changes.length
@@ -641,8 +684,29 @@ export default class Collection<
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
     const { $setOnInsert, ...restModifier } = modifier
+    const items = await this.getItems<true>(selector, { async: true })
+    if (items.length === 0) {
+      if (options?.upsert) {
+        // if upsert is enabled, insert a new item
+        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
+          ...restModifier,
+          $set: {
+            ...$setOnInsert,
+            ...restModifier.$set,
+          },
+        })
+        await this.insert(newItem as T)
+        return 1
+      }
+      return 0 // no items found, and upsert is not enabled
+    }
 
-    const changes = await this.backend.updateMany(selector, modifier, options)
+    items.forEach((item) => {
+      const modifiedItem = modify(deepClone(item), restModifier)
+      this.emit('validate', modifiedItem)
+    })
+
+    const changes = await this.backend.updateMany(selector, modifier)
     changes.forEach((item) => {
       this.emit('changed', item, restModifier)
     })
@@ -668,8 +732,20 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const changes = await this.backend.replaceOne(selector, replacement, options)
+    const item = await this.getItem<true>(selector, { async: true })
+    if (item == null) {
+      if (options?.upsert) {
+        return [await this.insert(replacement as T)]
+      }
+      return 0 // no item found, and upsert is not enabled
+    }
 
+    const modifiedItem = { id: item.id, ...replacement } as T
+    this.emit('validate', modifiedItem)
+
+    const changes = await this.backend.replaceOne(selector, replacement)
+
+    this.emit('changed', modifiedItem, replacement as Modifier<T>)
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
     return changes.length
@@ -687,6 +763,7 @@ export default class Collection<
 
     const removedItems = await this.backend.removeOne(selector)
 
+    this.emit('removed', removedItems[0])
     this.emit('removeOne', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
     return removedItems.length
@@ -703,6 +780,10 @@ export default class Collection<
     if (!selector) throw new Error('Invalid selector')
 
     const removedItems = await this.backend.removeMany(selector)
+
+    removedItems.forEach((item) => {
+      this.emit('removed', item)
+    })
 
     this.emit('removeMany', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeMany', callstack, selector))
