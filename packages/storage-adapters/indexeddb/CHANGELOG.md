@@ -7,18 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+### BREAKING CHANGES
 
-* Custom deserialize function now works correctly when file is empty (thanks to @krolebord!)
+* Removed compatibility with `@signaldb/core` versions below `2.0.0`
 
-## [1.0.1] - 2025-04-24
-
-### Fixed
-
-* Avoid duplicate ids and unnecessary errors
-
-## [1.0.0] - 2024-12-16
+## [1.1.0] - 2025-05-08
 
 ### Added
 
-* Added JSDoc comments to public API
+* Added support for custom database prefix option (thanks to @pierissimo!)
+
+## [1.0.0] - 2025-01-06
+
+* Initial release
