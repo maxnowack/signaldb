@@ -16,6 +16,7 @@ import isEqual from './utils/isEqual'
 import match from './utils/match'
 import modify from './utils/modify'
 import project from './utils/project'
+import queryId from './utils/queryId'
 import randomId from './utils/randomId'
 import serializeValue from './utils/serializeValue'
 import sortItems from './utils/sortItems'
@@ -81,7 +82,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     (IndexProvider<any, any> | LowLevelIndexProvider<any, any>)[]
   > = new Map()
 
-  private activeQueries: Map<string, Set<{
+  private activeQueries: Map<string, Map<string, {
     selector: Selector<any>,
     options?: QueryOptions<any>,
   }>> = new Map()
@@ -94,10 +95,7 @@ export default class DefaultDataAdapter implements DataAdapter {
   > = new Map()
 
   private queuedQueryUpdates: Map<string, Changeset<any>> = new Map()
-  private cachedQueryResults: Map<string, Map<{
-    selector: Selector<any>,
-    options?: QueryOptions<any>,
-  }, BaseItem[]>> = new Map()
+  private cachedQueryResults: Map<string, Map<string, BaseItem[]>> = new Map()
 
   constructor(options?: DefaultDataAdapterOptions) {
     this.options = options || {}
@@ -468,7 +466,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     )
     this.activeQueries.set(
       collection.name,
-      this.activeQueries.get(collection.name) || new Set<{
+      this.activeQueries.get(collection.name) || new Map<string, {
         selector: Selector<T>,
         options?: QueryOptions<T>,
       }>(),
@@ -687,13 +685,19 @@ export default class DefaultDataAdapter implements DataAdapter {
       registerQuery: (selector, options) => {
         this.activeQueries.set(
           collection.name,
-          this.activeQueries.get(collection.name) || new Set(),
+          this.activeQueries.get(collection.name) || new Map<string, {
+            selector: Selector<T>,
+            options?: QueryOptions<T>,
+          }>(),
         )
-        this.activeQueries.get(collection.name)?.add({ selector, options })
+        this.activeQueries.get(collection.name)?.set(queryId(selector, options), {
+          selector,
+          options,
+        })
       },
       unregisterQuery: (selector, options) => {
         if (!this.activeQueries.get(collection.name)) return
-        this.activeQueries.get(collection.name)?.delete({ selector, options })
+        this.activeQueries.get(collection.name)?.delete(queryId(selector, options))
       },
       getQueryState: () => 'complete',
       onQueryStateChange: (selector, options, callback) => {
@@ -715,18 +719,16 @@ export default class DefaultDataAdapter implements DataAdapter {
       getQueryError: () => null,
       getQueryResult: (selector, options) => {
         const result = this.executeQuery(collection, selector, options)
-        const isQueryActive = this.activeQueries.get(collection.name)?.has({ selector, options })
+        const isQueryActive = this.activeQueries.get(collection.name)
+          ?.has(queryId(selector, options))
         if (isQueryActive) {
           this.cachedQueryResults.set(
             collection.name,
-            this.cachedQueryResults.get(collection.name) || new Map<{
-              selector: Selector<any>,
-              options?: QueryOptions<any>,
-            }, BaseItem[]>(),
+            this.cachedQueryResults.get(collection.name) || new Map<string, BaseItem[]>(),
           )
 
           this.cachedQueryResults.get(collection.name)?.set(
-            { selector, options },
+            queryId(selector, options),
             result,
           )
         }
