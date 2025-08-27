@@ -1,7 +1,7 @@
 /* @vitest-environment happy-dom */
 import { it, expect, vi, onTestFinished } from 'vitest'
-import { Collection, createPersistenceAdapter } from '@signaldb/core'
-import type { BaseItem, LoadResponse, PersistenceAdapter } from '@signaldb/core'
+import { Collection, createStorageAdapter } from '@signaldb/core'
+import type { BaseItem, LoadResponse, StorageAdapter } from '@signaldb/core'
 import { SyncManager } from '../src'
 
 /**
@@ -11,7 +11,7 @@ import { SyncManager } from '../src'
  * @param [delay] - Optional delay for simulating async operations.
  * @returns The memory persistence adapter.
  */
-function memoryPersistenceAdapter<
+function memoryStorageAdapter<
   T extends { id: I } & Record<string, any>,
   I = any,
 >(
@@ -71,7 +71,7 @@ function memoryPersistenceAdapter<
       changes.removed.push(item)
       void onChange()
     },
-  } as (PersistenceAdapter<T, I> & {
+  } as (StorageAdapter<T, I> & {
     addNewItem: (item: T) => void,
     changeItem: (item: T) => void,
     removeItem: (item: T) => void,
@@ -143,7 +143,7 @@ it('should handle pull and apply new changes during sync', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -179,7 +179,7 @@ it('should handle updates correctly during sync', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -210,7 +210,7 @@ it('should push changes when items are added locally', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -247,7 +247,7 @@ it('should push changes when items are updated locally', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -286,7 +286,7 @@ it('should push changes when items are removed locally', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -318,7 +318,7 @@ it('should debounce push requests', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     debounceTime: 25,
@@ -353,7 +353,7 @@ it('should debounce push requests for multiple collections', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     debounceTime: 25,
@@ -391,7 +391,7 @@ it('should handle sync errors and update sync operation status', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -418,7 +418,7 @@ it('should sync all collections', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -444,7 +444,7 @@ it('should handle pull errors and update sync operation status', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -469,7 +469,7 @@ it('should handle pull errors and update sync operation status after first sync'
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -505,7 +505,7 @@ it('should handle push errors and update sync operation status', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -536,7 +536,7 @@ it('should register and apply remote changes with items', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -578,7 +578,7 @@ it('should register and apply remote changes with changes', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -613,7 +613,7 @@ it('should handle error in remote changes without data', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -641,7 +641,7 @@ it('should handle error in remote changes with data', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -673,7 +673,7 @@ it('should sync second time if there were changes during sync', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -711,7 +711,7 @@ it('should sync after a empty remote change was received', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -755,7 +755,7 @@ it('should call onError handler if an async error occurs', async () => {
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -787,7 +787,7 @@ it('should fail if there are errors on syncAll and call onError handler', async 
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -810,7 +810,7 @@ it('should call onError once if there are errors on forced sync', async () => {
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -837,7 +837,7 @@ it('should update items that already exist on insert', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -868,7 +868,7 @@ it('should insert items that not exist on update', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -899,7 +899,7 @@ it('should not fail while removing non existing items', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -919,7 +919,7 @@ it('should not fail while removing non existing items', async () => {
 
 it('should clear all internal data structures on dispose', async () => {
   const syncManager = new SyncManager<any, any>({
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: vi.fn(),
     push: vi.fn(),
   })
@@ -947,16 +947,16 @@ it('should clear all internal data structures on dispose', async () => {
 it('should register error handlers for internal persistence adapters', async () => {
   const errorHandler = vi.fn()
   const syncManager = new SyncManager<any, any>({
-    persistenceAdapter: (name, registerErrorHandler) => {
+    storageAdapter: (name, registerErrorHandler) => {
       registerErrorHandler(errorHandler)
       if (name === 'default-sync-manager-changes') {
-        return createPersistenceAdapter({
+        return createStorageAdapter({
           load: () => Promise.resolve({ items: [] }),
           register: () => Promise.resolve(),
           save: () => Promise.reject(new Error('simulated error')),
         })
       }
-      return memoryPersistenceAdapter([])
+      return memoryStorageAdapter([])
     },
     pull: vi.fn(),
     push: vi.fn(),
@@ -993,7 +993,7 @@ it('should not leave any remote changes after successful pull', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -1031,7 +1031,7 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
 
   const syncManager = new SyncManager({
     onError,
-    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -1076,11 +1076,11 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
 })
 
 it('should start sync after internal collections are ready', async () => {
-  const persistenceAdapter = memoryPersistenceAdapter([], undefined, 100)
-  const mockPersistenceAdapter = createPersistenceAdapter({
-    register: vi.fn(persistenceAdapter.register),
-    load: vi.fn(persistenceAdapter.load),
-    save: vi.fn(persistenceAdapter.save),
+  const storageAdapter = memoryStorageAdapter([], undefined, 100)
+  const mockStorageAdapter = createStorageAdapter({
+    register: vi.fn(storageAdapter.register),
+    load: vi.fn(storageAdapter.load),
+    save: vi.fn(storageAdapter.save),
   })
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -1090,7 +1090,7 @@ it('should start sync after internal collections are ready', async () => {
     .mockResolvedValue()
 
   const syncManager = new SyncManager({
-    persistenceAdapter: () => mockPersistenceAdapter,
+    storageAdapter: () => mockStorageAdapter,
     pull: mockPull,
     push: mockPush,
   })
@@ -1116,22 +1116,22 @@ it('should start sync after internal collections are ready', async () => {
   const collection = new Collection<TestItem, string, any>()
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(mockPersistenceAdapter.load).not.toHaveBeenCalled()
+  expect(mockStorageAdapter.load).not.toHaveBeenCalled()
   expect(mockPull).not.toHaveBeenCalled()
   expect(persistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
   expect(mockPull).toHaveBeenCalled()
-  expect(mockPersistenceAdapter.load).toHaveBeenCalledBefore(mockPull)
+  expect(mockStorageAdapter.load).toHaveBeenCalledBefore(mockPull)
   expect(persistenceInitialized).toBeTruthy()
 })
 
 it('should start sync after collection is ready', async () => {
-  const persistenceAdapter = memoryPersistenceAdapter([], undefined, 100)
-  const mockPersistenceAdapter = createPersistenceAdapter({
-    register: vi.fn(persistenceAdapter.register),
-    load: vi.fn(persistenceAdapter.load),
-    save: vi.fn(persistenceAdapter.save),
+  const storageAdapter = memoryStorageAdapter([], undefined, 100)
+  const mockStorageAdapter = createStorageAdapter({
+    register: vi.fn(storageAdapter.register),
+    load: vi.fn(storageAdapter.load),
+    save: vi.fn(storageAdapter.save),
   })
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -1146,7 +1146,7 @@ it('should start sync after collection is ready', async () => {
   })
 
   const collection = new Collection<TestItem, string, any>({
-    persistence: mockPersistenceAdapter,
+    persistence: mockStorageAdapter,
   })
   let persistenceInitialized = false
   void new Promise<void>((resolve) => {
@@ -1158,21 +1158,21 @@ it('should start sync after collection is ready', async () => {
   syncManager.addCollection(collection, { name: 'test' })
 
   expect(mockPull).not.toHaveBeenCalled()
-  expect(mockPersistenceAdapter.load).not.toHaveBeenCalled()
+  expect(mockStorageAdapter.load).not.toHaveBeenCalled()
   expect(persistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
   expect(mockPull).toHaveBeenCalled()
-  expect(mockPersistenceAdapter.load).toHaveBeenCalledBefore(mockPull)
+  expect(mockStorageAdapter.load).toHaveBeenCalledBefore(mockPull)
   expect(persistenceInitialized).toBeTruthy()
 })
 
 it('should fail if there was a persistence error during initialization', async () => {
-  const persistenceAdapter = memoryPersistenceAdapter([], undefined, 100)
-  const mockPersistenceAdapter = createPersistenceAdapter({
-    register: vi.fn(persistenceAdapter.register),
+  const storageAdapter = memoryStorageAdapter([], undefined, 100)
+  const mockStorageAdapter = createStorageAdapter({
+    register: vi.fn(storageAdapter.register),
     load: vi.fn(() => Promise.reject(new Error('Persistence error'))),
-    save: vi.fn(persistenceAdapter.save),
+    save: vi.fn(storageAdapter.save),
   })
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -1187,7 +1187,7 @@ it('should fail if there was a persistence error during initialization', async (
   })
 
   const collection = new Collection<TestItem, string, any>({
-    persistence: mockPersistenceAdapter,
+    persistence: mockStorageAdapter,
   })
   let persistenceInitialized = false
   void new Promise<void>((resolve) => {

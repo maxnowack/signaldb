@@ -3,7 +3,7 @@ import type { QueryOptions } from './DataAdapter'
 import type { LowLevelIndexProvider } from './types/IndexProvider'
 import type IndexProvider from './types/IndexProvider'
 import type Modifier from './types/Modifier'
-import type PersistenceAdapter from './types/PersistenceAdapter'
+import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import deepClone from './utils/deepClone'
 import match from './utils/match'
@@ -17,7 +17,7 @@ interface WorkerContext {
 
 interface WorkerDataAdapterHostOptions {
   id?: string,
-  storage: (name: string) => PersistenceAdapter<any, any>, // TODO: instroduce new storage adapter
+  storage: (name: string) => StorageAdapter<any, any>, // TODO: instroduce new storage adapter
   onError?: (error: Error) => void,
 }
 
@@ -76,8 +76,8 @@ export default class WorkerDataAdapterHost<
   I = any,
 > {
   private id: string
-  private persistenceAdapters: Map<string, PersistenceAdapter<any, any>> = new Map()
-  private persistenceAdapterReady: Map<string, Promise<void>> = new Map()
+  private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
+  private storageAdapterReady: Map<string, Promise<void>> = new Map()
   private queries: Map<string, Map<string, {
     selector: Selector<any>,
     options?: QueryOptions<any>,
@@ -162,11 +162,11 @@ export default class WorkerDataAdapterHost<
     this.respond(id, { collectionName, selector, options, state, error, items }, null, 'queryUpdate')
   }
 
-  private ensurePersistenceAdapter(name: string) {
-    if (this.persistenceAdapters.has(name)) return // already created
+  private ensureStorageAdapter(name: string) {
+    if (this.storageAdapters.has(name)) return // already created
     const adapter = this.options.storage(name)
     if (!adapter) return // no adapter returned
-    this.persistenceAdapters.set(name, adapter)
+    this.storageAdapters.set(name, adapter)
   }
 
   private async checkQueryUpdates(
@@ -207,14 +207,14 @@ export default class WorkerDataAdapterHost<
   protected registerCollection: CollectionMethods<T, I>['registerCollection'] = async (collectionName) => {
     this.queries.set(collectionName, new Map())
     // TODO: what to do with indices?
-    this.ensurePersistenceAdapter(collectionName)
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    this.ensureStorageAdapter(collectionName)
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    this.persistenceAdapterReady.set(collectionName, persistenceAdapter.register(async (data) => {
+    this.storageAdapterReady.set(collectionName, storageAdapter.register(async (data) => {
       const allChangedItems: T[] = !data || data.items
         // eslint-disable-next-line unicorn/no-await-expression-member
-        ? data?.items ?? (await persistenceAdapter.load()).items ?? []
+        ? data?.items ?? (await storageAdapter.load()).items ?? []
         : [
           ...(data.changes.added ?? []),
           ...(data.changes.modified ?? []),
@@ -223,12 +223,12 @@ export default class WorkerDataAdapterHost<
       await this.checkQueryUpdates(collectionName, allChangedItems, async () => !data || data.items
         ? allChangedItems
         // eslint-disable-next-line unicorn/no-await-expression-member
-        : (await persistenceAdapter.load()).items as T[] ?? [])
+        : (await storageAdapter.load()).items as T[] ?? [])
     }))
   }
 
   protected unregisterCollection: CollectionMethods<T, I>['unregisterCollection'] = async (collectionName) => {
-    this.persistenceAdapters.delete(collectionName)
+    this.storageAdapters.delete(collectionName)
     this.queries.delete(collectionName)
   }
 
@@ -243,9 +243,9 @@ export default class WorkerDataAdapterHost<
   }
 
   protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, newItem) => {
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const allItems = await persistenceAdapter.load()
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const allItems = await storageAdapter.load()
 
     if (allItems.items?.some(i => i.id === newItem.id)) {
       throw new Error(`Item with id ${newItem.id as string} already exists`)
@@ -254,7 +254,7 @@ export default class WorkerDataAdapterHost<
     await this.checkQueryUpdates(collectionName, [newItem], () =>
       Promise.resolve([...(allItems.items ?? []), newItem]))
 
-    await persistenceAdapter.save([...(allItems.items ?? []), newItem], {
+    await storageAdapter.save([...(allItems.items ?? []), newItem], {
       added: [newItem],
       modified: [],
       removed: [],
@@ -264,9 +264,9 @@ export default class WorkerDataAdapterHost<
   }
 
   protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, selector, modifier) => {
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await persistenceAdapter.load()
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const loadResponse = await storageAdapter.load()
     const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
     const { $setOnInsert, ...restModifier } = modifier
@@ -284,7 +284,7 @@ export default class WorkerDataAdapterHost<
     allItems.splice(index, 1, modifiedItem)
     await this.checkQueryUpdates(collectionName, [modifiedItem], () =>
       Promise.resolve(allItems))
-    await persistenceAdapter.save(allItems, {
+    await storageAdapter.save(allItems, {
       added: [],
       modified: [modifiedItem],
       removed: [],
@@ -293,9 +293,9 @@ export default class WorkerDataAdapterHost<
   }
 
   protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, selector, modifier) => {
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await persistenceAdapter.load()
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const loadResponse = await storageAdapter.load()
     // TODO: we have to find a solution and avoid loading all items here and also in the other methods
     const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
@@ -325,7 +325,7 @@ export default class WorkerDataAdapterHost<
     const changedItems = changes.map(({ item }) => item)
     await this.checkQueryUpdates(collectionName, changedItems, () =>
       Promise.resolve(allItems))
-    await persistenceAdapter.save(allItems, {
+    await storageAdapter.save(allItems, {
       added: [],
       modified: changedItems,
       removed: [],
@@ -334,9 +334,9 @@ export default class WorkerDataAdapterHost<
   }
 
   protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, selector, replacement) => {
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await persistenceAdapter.load()
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const loadResponse = await storageAdapter.load()
     const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
     const index = allItems.findIndex(i => match(i, selector))
@@ -358,7 +358,7 @@ export default class WorkerDataAdapterHost<
     allItems.splice(index, 1, modifiedItem)
     await this.checkQueryUpdates(collectionName, [modifiedItem], () =>
       Promise.resolve(allItems))
-    await persistenceAdapter.save(allItems, {
+    await storageAdapter.save(allItems, {
       added: [],
       modified: [modifiedItem],
       removed: [],
@@ -367,9 +367,9 @@ export default class WorkerDataAdapterHost<
   }
 
   protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selector) => {
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await persistenceAdapter.load()
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const loadResponse = await storageAdapter.load()
     const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
     const index = allItems.findIndex(i => match(i, selector))
@@ -381,7 +381,7 @@ export default class WorkerDataAdapterHost<
     allItems.splice(index, 1)
     await this.checkQueryUpdates(collectionName, [item], () =>
       Promise.resolve(allItems))
-    await persistenceAdapter.save(allItems, {
+    await storageAdapter.save(allItems, {
       added: [],
       modified: [],
       removed: [item],
@@ -390,9 +390,9 @@ export default class WorkerDataAdapterHost<
   }
 
   protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selector) => {
-    const persistenceAdapter = this.persistenceAdapters.get(collectionName)
-    if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await persistenceAdapter.load()
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const loadResponse = await storageAdapter.load()
     const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
     const items = allItems.filter(i => match(i, selector))
@@ -408,7 +408,7 @@ export default class WorkerDataAdapterHost<
 
     await this.checkQueryUpdates(collectionName, items, () =>
       Promise.resolve(allItems))
-    await persistenceAdapter.save(allItems, {
+    await storageAdapter.save(allItems, {
       added: [],
       modified: [],
       removed: items,
@@ -417,6 +417,6 @@ export default class WorkerDataAdapterHost<
   }
 
   protected isReady: CollectionMethods<T, I>['isReady'] = async (collectionName) => {
-    return this.persistenceAdapterReady.get(collectionName)
+    return this.storageAdapterReady.get(collectionName)
   }
 }

@@ -22,7 +22,7 @@ All packages are in the `packages` folder. In the folder are some sub-folders to
     - `sync`: Contains `@signaldb/sync`
   - `integrations`: Contains all integrations to frameworks like React for example.
   - `reactivity-adapters`: Contains all reactivity adapters of SignalDB.
-  - `persistence-adapters`: Contains all persistence adapters of SignalDB.
+  - `storage-adapters`: Contains all storage adapters of SignalDB.
 
 ## ✅ Committing your changes
 

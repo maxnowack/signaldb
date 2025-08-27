@@ -1,4 +1,4 @@
-import { createPersistenceAdapter } from '@signaldb/core'
+import { createStorageAdapter } from '@signaldb/core'
 
 /**
  * Creates a persistence adapter for managing a SignalDB collection using browser `localStorage`.
@@ -45,7 +45,7 @@ export default function createLocalStorageAdapter<
     const serializedItems = localStorage.getItem(collectionId)
     return serializedItems ? deserialize(serializedItems) : []
   }
-  return createPersistenceAdapter<T, I>({
+  return createStorageAdapter<T, I>({
     async load() {
       const items = getItems()
       return { items }

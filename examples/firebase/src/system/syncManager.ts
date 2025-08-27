@@ -10,7 +10,7 @@ const database = getDatabase()
 
 const syncManager = new SyncManager({
   id: 'firebase-sync-manager',
-  persistenceAdapter: id => createIndexedDBAdapter(id),
+  storageAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

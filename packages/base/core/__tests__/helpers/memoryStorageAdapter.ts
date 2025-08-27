@@ -1,4 +1,4 @@
-import type { PersistenceAdapter } from '../../src'
+import type { StorageAdapter } from '../../src'
 
 /**
  * Creates a memory-based persistence adapter for testing purposes. This adapter
@@ -11,9 +11,9 @@ import type { PersistenceAdapter } from '../../src'
  * @param delay - An optional delay (in milliseconds) for load operations to simulate asynchronous behavior.
  * @returns A memory persistence adapter with additional methods for adding, changing, and removing items.
  * @example
- * import memoryPersistenceAdapter from './memoryPersistenceAdapter';
+ * import memoryStorageAdapter from './memoryStorageAdapter';
  *
- * const adapter = memoryPersistenceAdapter([{ id: 1, name: 'Test' }], true, 100);
+ * const adapter = memoryStorageAdapter([{ id: 1, name: 'Test' }], true, 100);
  *
  * // Add a new item
  * adapter.addNewItem({ id: 2, name: 'New Item' });
@@ -28,7 +28,7 @@ import type { PersistenceAdapter } from '../../src'
  * const { items } = await adapter.load();
  * console.log(items); // Logs the updated items in memory.
  */
-export default function memoryPersistenceAdapter<
+export default function memoryStorageAdapter<
   T extends { id: I } & Record<string, any>,
   I = any,
 >(
@@ -88,7 +88,7 @@ export default function memoryPersistenceAdapter<
       changes.removed.push(item)
       void onChange()
     },
-  } as (PersistenceAdapter<T, I> & {
+  } as (StorageAdapter<T, I> & {
     addNewItem: (item: T) => void,
     changeItem: (item: T) => void,
     removeItem: (item: T) => void,
