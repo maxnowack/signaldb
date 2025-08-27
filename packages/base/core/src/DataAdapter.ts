@@ -1,7 +1,5 @@
 import type { BaseItem, FieldSpecifier, SortSpecifier } from './Collection'
 import type Collection from './Collection'
-import type { LowLevelIndexProvider } from './types/IndexProvider'
-import type IndexProvider from './types/IndexProvider'
 import type Modifier from './types/Modifier'
 import type Selector from './types/Selector'
 
@@ -49,6 +47,6 @@ export default interface DataAdapter {
     U = T,
   >(
     collection: Collection<T, I, U>,
-    indices?: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[],
+    indices: string[],
   ): CollectionBackend<T, I>,
 }
