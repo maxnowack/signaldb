@@ -2,7 +2,6 @@ import type ReactivityAdapter from '../types/ReactivityAdapter'
 import EventEmitter from '../utils/EventEmitter'
 import type Selector from '../types/Selector'
 import type Modifier from '../types/Modifier'
-import type IndexProvider from '../types/IndexProvider'
 import type Signal from '../types/Signal'
 import createSignal from '../utils/createSignal'
 import type DataAdapter from '../DataAdapter'
@@ -34,7 +33,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
 
   reactivity?: ReactivityAdapter,
   transform?: Transform<T, U>,
-  indices?: IndexProvider<T, I>[],
+  indices?: string[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
 }
@@ -182,7 +181,6 @@ export default class Collection<
   private options: CollectionOptions<T, I, U>
   private isPullingSignal: Signal<boolean>
   private isPushingSignal: Signal<boolean>
-  private idIndex = new Map<string | undefined | null, Set<number>>()
   private debugMode
   private batchOperationInProgress = false
   private isDisposed = false
@@ -252,7 +250,7 @@ export default class Collection<
     })
     this.backend = dataAdapter.createCollectionBackend<T, I, U>(
       this,
-      this.options.indices || [],
+      this.options.indices ?? [],
     )
 
     Collection.onCreationCallbacks.forEach(callback => callback(this))

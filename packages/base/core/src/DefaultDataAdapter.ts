@@ -1,6 +1,6 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
-import { createExternalIndex } from './Collection/createIndex'
+import createIndex, { createExternalIndex } from './Collection/createIndex'
 import getIndexInfo from './Collection/getIndexInfo'
 import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
@@ -451,7 +451,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
-    indices: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = [],
+    indices: string[] = [],
   ): CollectionBackend<T, I> {
     this.ensurePersistenceAdapter(collection.name)
     this.items.set(collection.name, this.items.get(collection.name) ?? [])
@@ -475,7 +475,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     )
     this.indices.set(collection.name, [
       createExternalIndex('id', this.idIndices.get(collection.name) as Map<string | undefined | null, Set<number>>),
-      ...indices,
+      ...indices.map(field => createIndex(field)),
     ])
 
     this.rebuildIndicesIfOutdated(collection)
