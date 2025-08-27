@@ -1,6 +1,6 @@
-import type { BaseItem, Modifier, Changeset, LoadResponse } from '@signaldb/core'
+import type { BaseItem, Modifier, Changeset } from '@signaldb/core'
 import computeChanges from './computeChanges'
-import type { Change } from './types'
+import type { Change, LoadResponse } from './types'
 import getSnapshot from './getSnapshot'
 import applyChanges from './applyChanges'
 

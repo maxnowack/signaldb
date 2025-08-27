@@ -2,7 +2,6 @@ export type { default as ReactivityAdapter } from './types/ReactivityAdapter'
 export type {
   default as StorageAdapter,
   Changeset,
-  LoadResponse,
 } from './types/StorageAdapter'
 export type { default as Selector } from './types/Selector'
 export type { default as Modifier } from './types/Modifier'
@@ -28,3 +27,7 @@ export { default as isEqual } from './utils/isEqual'
 export { default as modify } from './utils/modify'
 export { default as randomId } from './utils/randomId'
 export { default as EventEmitter } from './utils/EventEmitter'
+
+export { default as DefaultDataAdapter } from './DefaultDataAdapter'
+export { default as WorkerDataAdapter } from './WorkerDataAdapter'
+export { default as WorkerDataAdapterHost } from './WorkerDataAdapterHost'

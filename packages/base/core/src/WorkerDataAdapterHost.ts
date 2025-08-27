@@ -1,7 +1,5 @@
 import type { BaseItem } from './Collection'
 import type { QueryOptions } from './DataAdapter'
-import type { LowLevelIndexProvider } from './types/IndexProvider'
-import type IndexProvider from './types/IndexProvider'
 import type Modifier from './types/Modifier'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
@@ -9,6 +7,12 @@ import deepClone from './utils/deepClone'
 import match from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
+import isEqual from './utils/isEqual'
+import getIndexInfo from './Collection/getIndexInfo'
+import getMatchingKeys from './utils/getMatchingKeys'
+import type { FlatSelector } from './types/Selector'
+import sortItems from './utils/sortItems'
+import project from './utils/project'
 
 interface WorkerContext {
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
@@ -24,7 +28,7 @@ interface WorkerDataAdapterHostOptions {
 type CollectionMethods<T extends BaseItem<I>, I = any> = {
   registerCollection: (
     collectionName: string,
-    indices: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[],
+    indices: string[],
   ) => Promise<void>,
   unregisterCollection: (
     collectionName: string,
@@ -78,6 +82,7 @@ export default class WorkerDataAdapterHost<
   private id: string
   private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
   private storageAdapterReady: Map<string, Promise<void>> = new Map()
+  private collectionIndices: Map<string, string[]> = new Map()
   private queries: Map<string, Map<string, {
     selector: Selector<any>,
     options?: QueryOptions<any>,
@@ -130,6 +135,137 @@ export default class WorkerDataAdapterHost<
       })
   }
 
+  private async getIndexInfo(
+    collectionName: string,
+    selector: Selector<T>,
+  ) {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+
+    if (selector != null
+      && Object.keys(selector).length === 1
+      && 'id' in selector
+      && typeof selector.id !== 'object') {
+      const idIndex = await storageAdapter.readIndex('id')
+      return {
+        matched: true,
+        positions: [...idIndex.get(selector.id) ?? []],
+        optimizedSelector: {},
+      }
+    }
+
+    if (selector == null) {
+      return {
+        matched: false,
+        positions: [],
+        optimizedSelector: {},
+      }
+    }
+
+    const indices = this.collectionIndices.get(collectionName) ?? []
+    return getIndexInfo(indices.map(field => async (flatSelector: FlatSelector<T>) => {
+      if (!Object.hasOwnProperty.call(flatSelector, field)) {
+        // If the field is not present in the selector, we can't optimize
+        return { matched: false }
+      }
+
+      const index = await storageAdapter.readIndex(field)
+
+      const fieldSelector = (flatSelector as Record<string, any>)[field]
+      const filteresForNull = fieldSelector == null || fieldSelector.$exists === false
+      const keys = filteresForNull
+        ? { include: null, exclude: [...index.keys()].filter(key => key != null) }
+        : getMatchingKeys<T, I>(field, flatSelector)
+      if (keys.include == null && keys.exclude == null) return { matched: false }
+
+      // Accumulate included positions
+      let includedPositions: number[] = []
+      if (keys.include == null) {
+        for (const set of index.values()) {
+          for (const pos of set) {
+            includedPositions.push(pos)
+          }
+        }
+      } else {
+        for (const key of keys.include) {
+          const posSet = index.get(key)
+          if (posSet) {
+            for (const pos of posSet) {
+              includedPositions.push(pos)
+            }
+          }
+        }
+      }
+
+      // If exclusion is specified, build a single set of all positions to exclude.
+      if (keys.exclude != null) {
+        const excludeSet = new Set<number>()
+        for (const key of keys.exclude) {
+          const posSet = index.get(key)
+          if (posSet) {
+            for (const pos of posSet) {
+              excludeSet.add(pos)
+            }
+          }
+        }
+        // Filter out any position that exists in the exclude set.
+        includedPositions = includedPositions.filter(pos => !excludeSet.has(pos))
+      }
+
+      return {
+        matched: true,
+        positions: includedPositions,
+        fields: [field],
+        keepSelector: filteresForNull,
+      }
+    }), selector)
+  }
+
+  private async queryItems(
+    collectionName: string,
+    selector: Selector<T>,
+  ): Promise<T[]> {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const indexInfo = await this.getIndexInfo(collectionName, selector)
+    const matchItems = (item: T) => {
+      if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
+      if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
+      const matches = match(item, indexInfo.optimizedSelector)
+      return matches
+    }
+
+    if (indexInfo.matched) {
+      const items = await storageAdapter.readPositions(indexInfo.positions)
+      if (isEqual(indexInfo.optimizedSelector, {})) return items
+      return items.filter(matchItems)
+    } else {
+      const allItems = await storageAdapter.readAll()
+      if (isEqual(selector, {})) return allItems
+      return allItems.filter(matchItems)
+    }
+  }
+
+  private async executeQuery(
+    collectionName: string,
+    selector: Selector<T>,
+    options?: QueryOptions<T>,
+  ): Promise<T[]> {
+    const items = await this.queryItems(collectionName, selector || {})
+    const { sort, skip, limit, fields } = options || {}
+    const sorted = sort ? sortItems(items, sort) : items
+    const skipped = skip ? sorted.slice(skip) : sorted
+    const limited = limit ? skipped.slice(0, limit) : skipped
+    const idExcluded = fields && fields.id === 0
+    return limited.map((item) => {
+      if (!fields) return item
+      return {
+        ...idExcluded ? {} : { id: item.id },
+        ...project(item, fields),
+      }
+    })
+  }
+
   private ensureQuery(
     collectionName: string,
     selector: Selector<any>,
@@ -172,7 +308,6 @@ export default class WorkerDataAdapterHost<
   private async checkQueryUpdates(
     collectionName: string,
     items: T[],
-    getAllItems: () => Promise<T[]>,
   ) {
     const queries = this.queries.get(collectionName)
     if (!queries) throw new Error(`Collection ${collectionName} not initialized!`)
@@ -190,9 +325,8 @@ export default class WorkerDataAdapterHost<
       )
     })
 
-    const allItems = await getAllItems()
-    affectedQueries.forEach(({ selector, options }) => {
-      const queryItems = allItems.filter(item => match(item, selector))
+    await Promise.all(affectedQueries.map(async ({ selector, options }) => {
+      const queryItems = await this.executeQuery(collectionName, selector, options)
       this.emitQueryUpdate(
         collectionName,
         selector,
@@ -201,30 +335,27 @@ export default class WorkerDataAdapterHost<
         null,
         queryItems,
       )
-    })
+    }))
   }
 
-  protected registerCollection: CollectionMethods<T, I>['registerCollection'] = async (collectionName) => {
+  protected registerCollection: CollectionMethods<T, I>['registerCollection'] = async (collectionName, indices) => {
+    this.collectionIndices.set(collectionName, indices)
     this.queries.set(collectionName, new Map())
     // TODO: what to do with indices?
     this.ensureStorageAdapter(collectionName)
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    this.storageAdapterReady.set(collectionName, storageAdapter.register(async (data) => {
-      const allChangedItems: T[] = !data || data.items
-        // eslint-disable-next-line unicorn/no-await-expression-member
-        ? data?.items ?? (await storageAdapter.load()).items ?? []
-        : [
-          ...(data.changes.added ?? []),
-          ...(data.changes.modified ?? []),
-          ...(data.changes.removed ?? []),
-        ]
-      await this.checkQueryUpdates(collectionName, allChangedItems, async () => !data || data.items
-        ? allChangedItems
-        // eslint-disable-next-line unicorn/no-await-expression-member
-        : (await storageAdapter.load()).items as T[] ?? [])
-    }))
+    const setupPromise = (async () => {
+      await Promise.all([
+        storageAdapter.createIndex('id'),
+        ...indices.map(index => storageAdapter.createIndex(index)),
+      ])
+      await storageAdapter.setup()
+    })()
+
+    this.storageAdapterReady.set(collectionName, setupPromise)
+    await setupPromise
   }
 
   protected unregisterCollection: CollectionMethods<T, I>['unregisterCollection'] = async (collectionName) => {
@@ -245,20 +376,17 @@ export default class WorkerDataAdapterHost<
   protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, newItem) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const allItems = await storageAdapter.load()
-
-    if (allItems.items?.some(i => i.id === newItem.id)) {
+    const existingItems = await this.executeQuery(
+      collectionName,
+      { id: newItem.id } as Selector<T>,
+      { limit: 1 },
+    )
+    if (existingItems.length > 0) {
       throw new Error(`Item with id ${newItem.id as string} already exists`)
     }
 
-    await this.checkQueryUpdates(collectionName, [newItem], () =>
-      Promise.resolve([...(allItems.items ?? []), newItem]))
-
-    await storageAdapter.save([...(allItems.items ?? []), newItem], {
-      added: [newItem],
-      modified: [],
-      removed: [],
-    })
+    await storageAdapter.insert([newItem])
+    await this.checkQueryUpdates(collectionName, [newItem])
 
     return newItem
   }
@@ -266,153 +394,122 @@ export default class WorkerDataAdapterHost<
   protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, selector, modifier) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await storageAdapter.load()
-    const allItems = loadResponse.items ? loadResponse.items as T[] : []
+    const item = await this.executeQuery(
+      collectionName,
+      selector,
+      { limit: 1 },
+    ).then(items => items[0] ?? null)
 
     const { $setOnInsert, ...restModifier } = modifier
-    const index = allItems.findIndex(i => match(i, selector))
-    const item = index == null || index === -1 ? null : allItems[index] as T | null
     if (item == null) return [] // no item found, nothing to update
 
     const modifiedItem = modify(deepClone(item), restModifier)
-    const hasItemWithSameId = item.id !== modifiedItem.id
-      && allItems.some(i => i.id === modifiedItem.id)
-    if (hasItemWithSameId) {
-      throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+    if (item.id !== modifiedItem.id) {
+      const existingItems = await this.executeQuery(
+        collectionName,
+        { id: modifiedItem.id } as Selector<T>,
+        { limit: 1 },
+      )
+      if (existingItems.length > 0) {
+        throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+      }
     }
-
-    allItems.splice(index, 1, modifiedItem)
-    await this.checkQueryUpdates(collectionName, [modifiedItem], () =>
-      Promise.resolve(allItems))
-    await storageAdapter.save(allItems, {
-      added: [],
-      modified: [modifiedItem],
-      removed: [],
-    })
+    await storageAdapter.replace([modifiedItem])
+    await this.checkQueryUpdates(collectionName, [modifiedItem])
     return [modifiedItem]
   }
 
   protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, selector, modifier) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await storageAdapter.load()
-    // TODO: we have to find a solution and avoid loading all items here and also in the other methods
-    const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
-    const { $setOnInsert, ...restModifier } = modifier
-    const items = allItems.filter(i => match(i, selector))
+    const items = await this.executeQuery(
+      collectionName,
+      selector,
+    )
     if (items.length === 0) return [] // no items found, nothing to update
 
-    const changes = items.map((item) => {
-      const index = allItems.findIndex(i => i.id === item.id)
-      if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
+    const { $setOnInsert, ...restModifier } = modifier
+
+    const changedItems = await Promise.all(items.map(async (item) => {
       const modifiedItem = modify(deepClone(item), restModifier)
-      const hasItemWithSameId = item.id !== modifiedItem.id
-        && allItems.some(i => i.id === modifiedItem.id)
-      if (hasItemWithSameId) {
-        throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
+      if (item.id !== modifiedItem.id) {
+        const existingItems = await this.executeQuery(
+          collectionName,
+          { id: modifiedItem.id } as Selector<T>,
+          { limit: 1 },
+        )
+        if (existingItems.length > 0) {
+          throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+        }
       }
 
-      return {
-        item: modifiedItem,
-        index,
-      }
-    })
+      return modifiedItem
+    }))
 
-    changes.forEach(({ item, index }) => {
-      allItems.splice(index, 1, item)
-    })
-    const changedItems = changes.map(({ item }) => item)
-    await this.checkQueryUpdates(collectionName, changedItems, () =>
-      Promise.resolve(allItems))
-    await storageAdapter.save(allItems, {
-      added: [],
-      modified: changedItems,
-      removed: [],
-    })
+    await storageAdapter.replace(changedItems)
+    await this.checkQueryUpdates(collectionName, changedItems)
     return changedItems
   }
 
   protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, selector, replacement) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await storageAdapter.load()
-    const allItems = loadResponse.items ? loadResponse.items as T[] : []
 
-    const index = allItems.findIndex(i => match(i, selector))
-    const item = index == null || index === -1 ? null : allItems[index] as T | null
+    const item = await this.executeQuery(
+      collectionName,
+      selector,
+      { limit: 1 },
+    ).then(items => items[0] ?? null)
     if (item == null) return [] // no item found, nothing to update
-
-    const hasItemWithSameId = item.id !== replacement.id
-      && replacement.id != null
-      && allItems.some(i => i.id === replacement.id)
-    if (hasItemWithSameId) {
-      throw new Error(`Item with id ${replacement.id as string} already exists`)
-    }
 
     const modifiedItem = {
       ...replacement,
       id: replacement.id ?? item.id,
     } as T
 
-    allItems.splice(index, 1, modifiedItem)
-    await this.checkQueryUpdates(collectionName, [modifiedItem], () =>
-      Promise.resolve(allItems))
-    await storageAdapter.save(allItems, {
-      added: [],
-      modified: [modifiedItem],
-      removed: [],
-    })
+    if (item.id !== modifiedItem.id) {
+      const existingItems = await this.executeQuery(
+        collectionName,
+        { id: modifiedItem.id } as Selector<T>,
+        { limit: 1 },
+      )
+      if (existingItems.length > 0) {
+        throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+      }
+    }
+
+    await storageAdapter.replace([modifiedItem])
+    await this.checkQueryUpdates(collectionName, [modifiedItem])
     return [modifiedItem]
   }
 
   protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selector) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await storageAdapter.load()
-    const allItems = loadResponse.items ? loadResponse.items as T[] : []
+    const item = await this.executeQuery(
+      collectionName,
+      selector,
+      { limit: 1 },
+    ).then(items => items[0] ?? null)
+    if (item == null) return [] // no item found, nothing to remove
 
-    const index = allItems.findIndex(i => match(i, selector))
-    const item = index == null || index === -1 ? null : allItems[index] as T | null
-    if (item == null) {
-      return [] // no item found, nothing to remove
-    }
-
-    allItems.splice(index, 1)
-    await this.checkQueryUpdates(collectionName, [item], () =>
-      Promise.resolve(allItems))
-    await storageAdapter.save(allItems, {
-      added: [],
-      modified: [],
-      removed: [item],
-    })
+    await storageAdapter.remove([item])
+    await this.checkQueryUpdates(collectionName, [item])
     return [item]
   }
 
   protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selector) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const loadResponse = await storageAdapter.load()
-    const allItems = loadResponse.items ? loadResponse.items as T[] : []
+    const items = await this.executeQuery(
+      collectionName,
+      selector,
+    )
+    if (items.length === 0) return [] // no items found, nothing to remove
 
-    const items = allItems.filter(i => match(i, selector))
-    if (items.length === 0) {
-      return [] // no items found, nothing to remove
-    }
-
-    items.forEach((item) => {
-      const index = allItems.findIndex(i => i.id === item.id)
-      if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
-      allItems.splice(index, 1)
-    })
-
-    await this.checkQueryUpdates(collectionName, items, () =>
-      Promise.resolve(allItems))
-    await storageAdapter.save(allItems, {
-      added: [],
-      modified: [],
-      removed: items,
-    })
+    await storageAdapter.remove(items)
+    await this.checkQueryUpdates(collectionName, items)
     return items
   }
 
