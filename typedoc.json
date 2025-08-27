@@ -4,7 +4,7 @@
      "packages/base/core",
      "packages/integrations/*",
      "packages/reactivity-adapters/*",
-     "packages/persistence-adapters/*",
+     "packages/storage-adapters/*",
      "packages/base/*",
    ],
    "entryPointStrategy": "packages",
