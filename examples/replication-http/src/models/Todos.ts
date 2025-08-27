@@ -1,16 +1,17 @@
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 import syncManager from '../system/syncManager'
 
-const Todos = new Collection<{ id: string, text: string, completed: boolean }>({
-  name: 'todos-http',
-  reactivity: maverickjsReactivityAdapter,
-  persistence: createIndexedDBAdapter('todos-http'),
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter,
+  onError: (collectionName, error) => {
+    // eslint-disable-next-line no-console
+    console.error(`DataAdapter Error (${collectionName}):`, error)
+  },
 })
-Todos.on('persistence.error', (error) => {
-  // eslint-disable-next-line no-console
-  console.error('persistence.error', error)
+const Todos = new Collection<{ id: string, text: string, completed: boolean }>('todos-http', dataAdapter, {
+  reactivity: maverickjsReactivityAdapter,
 })
 
 syncManager.addCollection(Todos, { name: 'todos' })

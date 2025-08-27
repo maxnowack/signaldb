@@ -7,7 +7,7 @@ import type { CollectionBackend, QueryOptions } from './DataAdapter'
 import type { LowLevelIndexProvider } from './types/IndexProvider'
 import type IndexProvider from './types/IndexProvider'
 import type StorageAdapter from './types/StorageAdapter'
-import type { Changeset, LoadResponse } from './types/StorageAdapter'
+import type { Changeset } from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import deepClone from './utils/deepClone'
 import EventEmitter from './utils/EventEmitter'
@@ -31,40 +31,9 @@ function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
     || pendingUpdates.removed.length > 0
 }
 
-/**
- * Applies updates (add, modify, remove) to a collection of current items.
- * @template T - The type of the items being updated.
- * @template I - The type of the unique identifier for the items.
- * @param currentItems - The current list of items.
- * @param changeset - The changeset containing added, modified, and removed items.
- * @param changeset.added An array of items to be added to the collection.
- * @param changeset.modified An array of items to replace existing items in the collection. Matching is based on item `id`.
- * @param changeset.removed An array of items to be removed from the collection. Matching is based on item `id`.
- * @returns A new array with the updates applied.
- */
-function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
-  currentItems: T[],
-  { added, modified, removed }: Changeset<T>,
-) {
-  const items = [...currentItems]
-  added.forEach((item) => {
-    items.push(item)
-  })
-  modified.forEach((item) => {
-    const index = items.findIndex(({ id }) => id === item.id)
-    if (index === -1) return
-    items[index] = item
-  })
-  removed.forEach((item) => {
-    const index = items.findIndex(({ id }) => id === item.id)
-    if (index === -1) return
-    items.splice(index, 1)
-  })
-  return items
-}
-
 interface DefaultDataAdapterOptions {
-  storage?: (name: string) => StorageAdapter<any, any>,
+  storage?: (name: string) => StorageAdapter<any, any> | undefined,
+  onError?: (name: string, error: Error) => void,
 }
 
 export default class DefaultDataAdapter implements DataAdapter {
@@ -138,168 +107,29 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.rebuildIndicesNow(collection)
   }
 
-  private setupStorageAdapter<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+  private async setupStorageAdapter<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection: Collection<T, I, E, U>,
   ) {
-    if (!this.storageAdapters.get(collection.name)) return // no persistence adapter available
+    const storageAdapter = this.storageAdapters.get(collection.name)
+    if (!storageAdapter) return // no persistence adapter available
 
-    // emit event for initial pull
-    setTimeout(() => collection.emit('persistence.pullStarted'), 0)
-
-    let ongoingSaves = 0
-    let isInitialized = false
-    const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
-
-    const loadPersistentData = async (data?: LoadResponse<T>) => {
-      if (!this.storageAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
-
-      // only emit pullStarted if already initialized as the first emit is done during setup
-      if (isInitialized) collection.emit('persistence.pullStarted')
-
-      // load items from persistence adapter and push them into memory
-      const { items, changes } = data
-        ?? await (this.storageAdapters.get(collection.name) as StorageAdapter<T, I>).load()
-
-      if (items) {
-        // as we overwrite all items, we need to discard if there are ongoing saves
-        if (ongoingSaves > 0) return
-
-        // push new items to this.memory() and delete old ones
+    return storageAdapter.setup()
+      .then(async () => {
+        const items: T[] = await storageAdapter.readAll()
         this.items.set(collection.name, [...items])
         this.indicesOutdated.set(collection.name, true)
         this.rebuildIndicesIfOutdated(collection)
-      } else if (changes) {
-        await collection.batch(async () => {
-          changes.added.forEach((item) => {
-            const collectionItems = this.items.get(collection.name) ?? []
-            const index = collectionItems.findIndex(document => document.id === item.id)
-            if (index !== -1) { // item already exists; doing upsert
-              collectionItems.splice(index, 1, item)
-              this.items.set(collection.name, collectionItems)
-              return
-            }
-
-            // item does not exists yet; normal insert
-            collectionItems.push(item)
-            const itemIndex = collectionItems.findIndex(document => document === item)
-            this.items.set(collection.name, collectionItems)
-            this.idIndices.get(collection.name)?.set(serializeValue(item.id), new Set([itemIndex]))
-            this.indicesOutdated.set(collection.name, true)
-          })
-          changes.modified.forEach((item) => {
-            const collectionItems = this.items.get(collection.name) ?? []
-            const index = collectionItems.findIndex(document => document.id === item.id)
-            if (index === -1) throw new Error('Cannot resolve index for item')
-            collectionItems.splice(index, 1, item)
-            this.items.set(collection.name, collectionItems)
-            this.indicesOutdated.set(collection.name, true)
-          })
-          changes.removed.forEach((item) => {
-            const collectionItems = this.items.get(collection.name) ?? []
-            const index = collectionItems.findIndex(document => document.id === item.id)
-            if (index === -1) throw new Error('Cannot resolve index for item')
-            collectionItems.splice(index, 1)
-            this.items.set(collection.name, collectionItems)
-            this.idIndices.get(collection.name)?.delete(serializeValue(item.id))
-            this.indicesOutdated.set(collection.name, true)
-          })
-        })
-      }
-      this.rebuildIndicesIfOutdated(collection)
-
-      collection.emit('persistence.received')
-
-      // emit persistence.pullCompleted in next tick to let cursor observers
-      // do the requery before the loading state updates
-      setTimeout(() => collection.emit('persistence.pullCompleted'), 0)
-    }
-
-    const saveQueue = {
-      added: [],
-      modified: [],
-      removed: [],
-    } as Changeset<T>
-    let isFlushing = false
-    const flushQueue = () => {
-      if (!this.storageAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
-      if (ongoingSaves <= 0) collection.emit('persistence.pushStarted')
-      if (isFlushing) return
-      if (!hasPendingUpdates(saveQueue)) return
-      isFlushing = true
-      ongoingSaves += 1
-      const currentItems = this.items.get(collection.name) ?? []
-      const changes = { ...saveQueue }
-      saveQueue.added = []
-      saveQueue.modified = []
-      saveQueue.removed = []
-      this.storageAdapters.get(collection.name)?.save(currentItems, changes)
-        .then(() => {
-          collection.emit('persistence.transmitted')
-        }).catch((error) => {
-          collection.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
-        }).finally(() => {
-          ongoingSaves -= 1
-          isFlushing = false
-          flushQueue()
-          if (ongoingSaves <= 0) collection.emit('persistence.pushCompleted')
-        })
-    }
-
-    collection.on('added', (item) => {
-      if (!isInitialized) {
-        pendingUpdates.added.push(item)
-        return
-      }
-      saveQueue.added.push(item)
-      flushQueue()
-    })
-    collection.on('changed', (item) => {
-      if (!isInitialized) {
-        pendingUpdates.modified.push(item)
-        return
-      }
-      saveQueue.modified.push(item)
-      flushQueue()
-    })
-    collection.on('removed', (item) => {
-      if (!isInitialized) {
-        pendingUpdates.removed.push(item)
-        return
-      }
-      saveQueue.removed.push(item)
-      flushQueue()
-    })
-
-    this.storageAdapters.get(collection.name)?.register(data => loadPersistentData(data))
-      .then(async () => {
-        if (!this.storageAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
-        let currentItems = this.items.get(collection.name)
-        await loadPersistentData()
-        while (hasPendingUpdates(pendingUpdates)) {
-          const added = pendingUpdates.added.splice(0)
-          const modified = pendingUpdates.modified.splice(0)
-          const removed = pendingUpdates.removed.splice(0)
-          currentItems = applyUpdates(
-            this.items.get(collection.name) ?? [],
-            { added, modified, removed },
-          )
-
-          await this.storageAdapters.get(collection.name)?.save(
-            currentItems,
-            { added, modified, removed },
-          ).then(() => {
-            collection.emit('persistence.transmitted')
-          })
-        }
-        await loadPersistentData()
-
-        isInitialized = true
-        // emit persistence.init in next tick to make
-        // data available before the loading state updates
-        setTimeout(() => collection.emit('persistence.init'), 0)
       })
       .catch((error) => {
-        collection.emit('persistence.error', error instanceof Error ? error : new Error(error as string))
+        if (!this.options.onError) {
+          // eslint-disable-next-line no-console
+          console.error(`Error during data persistence operation in collection ${collection.name}`, error)
+          return
+        }
+        this.options.onError(
+          collection.name,
+          error instanceof Error ? error : new Error(error as string),
+        )
       })
   }
 
@@ -334,7 +164,10 @@ export default class DefaultDataAdapter implements DataAdapter {
       }
     }
 
-    return getIndexInfo(this.indices.get(collection.name) ?? [], selector)
+    return getIndexInfo(
+      (this.indices.get(collection.name) ?? []).map(i => i.query.bind(i)),
+      selector,
+    )
   }
 
   private getItemAndIndex<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -480,12 +313,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
     this.rebuildIndicesIfOutdated(collection)
 
-    const persistenceReadyPromise = new Promise<void>((resolve, reject) => {
-      if (!this.storageAdapters.get(collection.name)) return resolve()
-      collection.once('persistence.init', resolve)
-      collection.once('persistence.error', reject)
-    })
-    this.setupStorageAdapter(collection)
+    const persistenceReadyPromise = this.setupStorageAdapter(collection)
 
     const backend: CollectionBackend<T, I> = {
       // CRUD operations
@@ -494,6 +322,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           throw new Error(`Item with id '${newItem.id as string}' already exists`)
         }
         this.items.get(collection.name)?.push(newItem)
+        await this.storageAdapters.get(collection.name)?.insert([newItem])
         const itemIndex = this.items.get(collection.name)
           ?.findIndex(document => document === newItem)
         if (itemIndex != null) {
@@ -522,6 +351,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         }
 
         this.items.get(collection.name)?.splice(index, 1, modifiedItem)
+        await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
         this.rebuildIndicesIfOutdated(collection)
 
         this.updateQueries(collection, {
@@ -553,6 +383,8 @@ export default class DefaultDataAdapter implements DataAdapter {
         changes.forEach(({ item, index }) => {
           this.items.get(collection.name)?.splice(index, 1, item)
         })
+        await this.storageAdapters.get(collection.name)?.replace(changes.map(({ item }) => item))
+
         this.rebuildIndicesIfOutdated(collection)
         const changedItems = changes.map(({ item }) => item)
         this.updateQueries(collection, {
@@ -575,6 +407,8 @@ export default class DefaultDataAdapter implements DataAdapter {
         const modifiedItem = { id: item.id, ...replacement } as T
 
         this.items.get(collection.name)?.splice(index, 1, modifiedItem)
+        await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
+
         this.rebuildIndicesIfOutdated(collection)
 
         this.updateQueries(collection, {
@@ -588,6 +422,8 @@ export default class DefaultDataAdapter implements DataAdapter {
         const { item, index } = this.getItemAndIndex(collection, selector)
         if (item == null) return [] // no item found
         this.items.get(collection.name)?.splice(index, 1)
+        await this.storageAdapters.get(collection.name)?.remove([item])
+
         this.deleteFromIdIndex(collection, item.id, index)
         this.rebuildIndicesIfOutdated(collection)
         this.updateQueries(collection, {
@@ -608,6 +444,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           this.deleteFromIdIndex(collection, item.id, index)
           this.rebuildIndicesIfOutdated(collection)
         })
+        await this.storageAdapters.get(collection.name)?.remove(items)
 
         this.updateQueries(collection, {
           added: [],
@@ -674,7 +511,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       // lifecycle methods
       dispose: async () => {
         const adapter = this.storageAdapters.get(collection.name)
-        if (adapter?.unregister) await adapter.unregister()
+        if (adapter?.teardown) await adapter.teardown()
         this.storageAdapters.delete(collection.name)
         this.items.delete(collection.name)
         this.indicesOutdated.delete(collection.name)
