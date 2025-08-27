@@ -6,8 +6,8 @@ import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
 import type { LowLevelIndexProvider } from './types/IndexProvider'
 import type IndexProvider from './types/IndexProvider'
-import type PersistenceAdapter from './types/PersistenceAdapter'
-import type { Changeset, LoadResponse } from './types/PersistenceAdapter'
+import type StorageAdapter from './types/StorageAdapter'
+import type { Changeset, LoadResponse } from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import deepClone from './utils/deepClone'
 import EventEmitter from './utils/EventEmitter'
@@ -64,13 +64,13 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
 }
 
 interface DefaultDataAdapterOptions {
-  storage?: (name: string) => PersistenceAdapter<any, any>,
+  storage?: (name: string) => StorageAdapter<any, any>,
 }
 
 export default class DefaultDataAdapter implements DataAdapter {
   private items: Map<string, BaseItem[]> = new Map()
   private options: DefaultDataAdapterOptions
-  private persistenceAdapters: Map<string, PersistenceAdapter<any, any>> = new Map()
+  private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
 
   private indicesOutdated: Map<string, boolean> = new Map()
   private idIndices: Map<string, Map<string | undefined | null, Set<number>>> = new Map()
@@ -98,12 +98,12 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.options = options || {}
   }
 
-  private ensurePersistenceAdapter(name: string) {
-    if (this.persistenceAdapters.get(name)) return // already created
+  private ensureStorageAdapter(name: string) {
+    if (this.storageAdapters.get(name)) return // already created
     if (!this.options.storage) return // no storage function provided
     const adapter = this.options.storage(name)
     if (!adapter) return // no adapter returned
-    this.persistenceAdapters.set(name, adapter)
+    this.storageAdapters.set(name, adapter)
   }
 
   private rebuildIndicesNow<T extends BaseItem<I>, I = any, U = T>(
@@ -138,10 +138,10 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.rebuildIndicesNow(collection)
   }
 
-  private setupPersistenceAdapter<T extends BaseItem<I>, I = any, U = T>(
+  private setupStorageAdapter<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
-    if (!this.persistenceAdapters.get(collection.name)) return // no persistence adapter available
+    if (!this.storageAdapters.get(collection.name)) return // no persistence adapter available
 
     // emit event for initial pull
     setTimeout(() => collection.emit('persistence.pullStarted'), 0)
@@ -151,14 +151,14 @@ export default class DefaultDataAdapter implements DataAdapter {
     const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
 
     const loadPersistentData = async (data?: LoadResponse<T>) => {
-      if (!this.persistenceAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
+      if (!this.storageAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
 
       // only emit pullStarted if already initialized as the first emit is done during setup
       if (isInitialized) collection.emit('persistence.pullStarted')
 
       // load items from persistence adapter and push them into memory
       const { items, changes } = data
-        ?? await (this.persistenceAdapters.get(collection.name) as PersistenceAdapter<T, I>).load()
+        ?? await (this.storageAdapters.get(collection.name) as StorageAdapter<T, I>).load()
 
       if (items) {
         // as we overwrite all items, we need to discard if there are ongoing saves
@@ -221,7 +221,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     } as Changeset<T>
     let isFlushing = false
     const flushQueue = () => {
-      if (!this.persistenceAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
+      if (!this.storageAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
       if (ongoingSaves <= 0) collection.emit('persistence.pushStarted')
       if (isFlushing) return
       if (!hasPendingUpdates(saveQueue)) return
@@ -232,7 +232,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       saveQueue.added = []
       saveQueue.modified = []
       saveQueue.removed = []
-      this.persistenceAdapters.get(collection.name)?.save(currentItems, changes)
+      this.storageAdapters.get(collection.name)?.save(currentItems, changes)
         .then(() => {
           collection.emit('persistence.transmitted')
         }).catch((error) => {
@@ -270,9 +270,9 @@ export default class DefaultDataAdapter implements DataAdapter {
       flushQueue()
     })
 
-    this.persistenceAdapters.get(collection.name)?.register(data => loadPersistentData(data))
+    this.storageAdapters.get(collection.name)?.register(data => loadPersistentData(data))
       .then(async () => {
-        if (!this.persistenceAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
+        if (!this.storageAdapters.get(collection.name)) throw new Error('Persistence adapter not found')
         let currentItems = this.items.get(collection.name)
         await loadPersistentData()
         while (hasPendingUpdates(pendingUpdates)) {
@@ -284,7 +284,7 @@ export default class DefaultDataAdapter implements DataAdapter {
             { added, modified, removed },
           )
 
-          await this.persistenceAdapters.get(collection.name)?.save(
+          await this.storageAdapters.get(collection.name)?.save(
             currentItems,
             { added, modified, removed },
           ).then(() => {
@@ -453,7 +453,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     collection: Collection<T, I, U>,
     indices: string[] = [],
   ): CollectionBackend<T, I> {
-    this.ensurePersistenceAdapter(collection.name)
+    this.ensureStorageAdapter(collection.name)
     this.items.set(collection.name, this.items.get(collection.name) ?? [])
     this.queryEmitters.set(
       collection.name,
@@ -481,11 +481,11 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.rebuildIndicesIfOutdated(collection)
 
     const persistenceReadyPromise = new Promise<void>((resolve, reject) => {
-      if (!this.persistenceAdapters.get(collection.name)) return resolve()
+      if (!this.storageAdapters.get(collection.name)) return resolve()
       collection.once('persistence.init', resolve)
       collection.once('persistence.error', reject)
     })
-    this.setupPersistenceAdapter(collection)
+    this.setupStorageAdapter(collection)
 
     const backend: CollectionBackend<T, I> = {
       // CRUD operations
@@ -673,9 +673,9 @@ export default class DefaultDataAdapter implements DataAdapter {
 
       // lifecycle methods
       dispose: async () => {
-        const adapter = this.persistenceAdapters.get(collection.name)
+        const adapter = this.storageAdapters.get(collection.name)
         if (adapter?.unregister) await adapter.unregister()
-        this.persistenceAdapters.delete(collection.name)
+        this.storageAdapters.delete(collection.name)
         this.items.delete(collection.name)
         this.indicesOutdated.delete(collection.name)
         this.idIndices.delete(collection.name)
