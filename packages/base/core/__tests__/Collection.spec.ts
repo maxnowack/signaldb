@@ -1,10 +1,8 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { infer as ZodInfer } from 'zod'
-import type { BaseItem, CollectionOptions } from '../src'
-import { Collection } from '../src'
-import waitForEvent from './helpers/waitForEvent'
-import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import type { BaseItem, CollectionOptions, StorageAdapter } from '../src'
+import { Collection, DefaultDataAdapter } from '../src'
 
 const measureTime = (fn: () => void) => {
   const start = performance.now()
@@ -513,25 +511,23 @@ describe('Collection', () => {
   })
 
   describe('isLoading', () => {
-    it('should ouput the correct value without persistence', async () => {
+    it('should ouput the correct value without storage', async () => {
       const col = new Collection()
       expect(col.isLoading()).toBe(false)
     })
 
-    it('should ouput the correct value with persistence', async () => {
-      const col = new Collection({
-        persistence: {
-          register: () => new Promise((resolve) => {
-            setTimeout(() => resolve(), 100)
+    it('should ouput the correct value with storage', async () => {
+      const dataAdapter = new DefaultDataAdapter({
+        storage: () => ({
+          readAll: () => new Promise((resolve) => {
+            setTimeout(() => resolve([]), 100)
           }),
-          load: () => Promise.resolve({ items: [{ id: '1', name: 'Item 1' }] }),
-          save: () => Promise.resolve(),
-        },
+        }) as StorageAdapter<any, any>,
       })
-      await waitForEvent(col, 'persistence.pullStarted')
+      const col = new Collection('test', dataAdapter)
       expect(col.isLoading()).toBe(true)
       expect(col.find().fetch()).toEqual([])
-      await waitForEvent(col, 'persistence.init')
+      await collection.isReady()
       expect(col.isLoading()).toBe(false)
       expect(col.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
     })
@@ -854,18 +850,18 @@ describe('Collection', () => {
       await expect(() => col.removeMany({})).rejects.toThrowError('Collection is disposed')
     })
 
-    it('should call unregister on the persistence adapter during dispose', async () => {
-      const unregister = vi.fn()
-      const col = new Collection({
-        persistence: {
-          register: () => Promise.resolve(),
-          unregister,
-          load: () => Promise.resolve({ items: [] }),
-          save: () => Promise.resolve(),
-        },
+    it('should call teardown on the storage adapter during dispose', async () => {
+      const teardown = vi.fn()
+      const dataAdapter = new DefaultDataAdapter({
+        storage: () => ({
+          setup: () => Promise.resolve(),
+          readAll: () => Promise.resolve([]),
+          teardown,
+        }) as unknown as StorageAdapter<any, any>,
       })
+      const col = new Collection('test', dataAdapter)
       await col.dispose()
-      expect(unregister).toHaveBeenCalledOnce()
+      expect(teardown).toHaveBeenCalledOnce()
     })
 
     it('should not fail if id index gets modified during batch operation', async () => {
@@ -888,21 +884,6 @@ describe('Collection', () => {
       })
       expect(col.isBatchOperationInProgress()).toBe(false)
       expect(fn).toHaveBeenCalledOnce()
-    })
-
-    it('should wait until a collection is ready', async () => {
-      const col1 = new Collection<{ id: string, name: string }>({
-        persistence: memoryStorageAdapter(),
-      })
-      let persistenceInit = false
-      col1.once('persistence.init', () => {
-        persistenceInit = true
-      })
-      await expect(col1.isReady()).resolves.toBeUndefined()
-      expect(persistenceInit).toBe(true)
-
-      const col2 = new Collection<{ id: string, name: string }>()
-      await expect(col2.isReady()).resolves.toBeUndefined()
     })
   })
 

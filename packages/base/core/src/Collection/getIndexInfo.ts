@@ -1,8 +1,17 @@
-import type IndexProvider from '../types/IndexProvider'
+import type { AsynchronousQueryFunction, IndexResult, SynchronousQueryFunction } from '../types/IndexProvider'
 import type { FlatSelector } from '../types/Selector'
 import type Selector from '../types/Selector'
 import intersection from '../utils/intersection'
 import type { BaseItem } from './types'
+
+type IndexInfo<
+  T extends BaseItem<I> = BaseItem,
+  I = any,
+> = {
+  matched: boolean,
+  positions: number[],
+  optimizedSelector: FlatSelector<T>,
+}
 
 /**
  * Retrieves merged index information for a given flat selector by querying multiple
@@ -10,7 +19,7 @@ import type { BaseItem } from './types'
  * and an optimized selector.
  * @template T - The type of the items in the collection.
  * @template I - The type of the unique identifier for the items.
- * @param indexProviders - An array of index providers to query.
+ * @param queryFunctions - An array of index providers to query.
  * @param selector - The flat selector used to filter items.
  * @returns An object containing:
  *   - `matched`: A boolean indicating if the selector matched any items.
@@ -18,34 +27,89 @@ import type { BaseItem } from './types'
  *   - `optimizedSelector`: A flat selector optimized based on the index results.
  */
 export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
-  indexProviders: IndexProvider<T, I>[],
+  queryFunctions: (SynchronousQueryFunction<T, I> | AsynchronousQueryFunction<T, I>)[],
   selector: FlatSelector<T>,
-) {
-  return indexProviders.reduce<{
-    matched: boolean,
-    positions: number[],
-    optimizedSelector: FlatSelector<T>,
-  }>((memo, indexProvider) => {
-    const info = indexProvider.query(selector)
-    if (!info.matched) return memo
+): IndexInfo<T, I> | Promise<IndexInfo<T, I>> {
+  return queryFunctions.reduce((memoOrPromise, queryFunction) => {
+    const resultOrPromise = queryFunction(selector)
+    const processResult = (memo: IndexInfo<T, I>, result: IndexResult) => {
+      if (!result.matched) return memo
 
-    const optimizedSelector = info.keepSelector
-      ? memo.optimizedSelector
-      : Object.fromEntries(Object.entries(memo.optimizedSelector)
-        .filter(([key]) => !info.fields.includes(key))) as FlatSelector<T>
-
-    return {
-      matched: true,
-      positions: [...new Set(memo.matched
-        ? intersection(memo.positions, info.positions)
-        : info.positions)],
-      optimizedSelector,
+      const optimizedSelector = result.keepSelector
+        ? memo.optimizedSelector
+        : Object.fromEntries(Object.entries(memo.optimizedSelector)
+          .filter(([key]) => !result.fields.includes(key))) as FlatSelector<T>
+      return {
+        matched: true,
+        positions: [...new Set(memo.matched
+          ? intersection(memo.positions, result.positions)
+          : result.positions)],
+        optimizedSelector,
+      }
     }
+
+    if (resultOrPromise instanceof Promise) {
+      return resultOrPromise.then(async (result) => {
+        const memo = memoOrPromise instanceof Promise ? await memoOrPromise : memoOrPromise
+        return processResult(memo, result)
+      })
+    }
+    const memo = memoOrPromise
+    if (memo instanceof Promise) throw new Error('Mixing async and sync index providers is not supported')
+    return processResult(memo, resultOrPromise)
   }, {
     matched: false,
     positions: [],
     optimizedSelector: { ...selector },
-  })
+  } as Promise<IndexInfo<T, I>> | IndexInfo<T, I>)
+}
+
+/**
+ * Optimizes a logic gate ($and/$or) of selectors by querying multiple index providers.
+ * Calls a callback with matched positions for each selector that matches.
+ * @param queryFunctions - An array of index providers to query.
+ * @param logicGate - An array of selectors representing the logic gate.
+ * @param matchedPositionsCallback - A callback function called with matched positions for each selector that matches.
+ * @returns An array of optimized selectors or a promise that resolves to such an array.
+ */
+function optimizeLogicGate<T extends BaseItem<I> = BaseItem, I = any>(
+  queryFunctions: (SynchronousQueryFunction<T> | AsynchronousQueryFunction<T>)[],
+  logicGate: Selector<T>[],
+  matchedPositionsCallback: (positions: number[]) => void,
+): Selector<T>[] | Promise<Selector<T>[]> {
+  return logicGate.reduce((memoOrPromise, sel) => {
+    const getSelector = (indexInfo: IndexInfo<T, I>) => {
+      const {
+        matched: selMatched,
+        positions: selPositions,
+        optimizedSelector,
+      } = indexInfo
+      if (selMatched) {
+        matchedPositionsCallback(selPositions)
+        if (Object.keys(optimizedSelector).length > 0) {
+          return optimizedSelector
+        }
+      } else {
+        return sel
+      }
+    }
+    const indexInfoOrPromise = getIndexInfo(queryFunctions, sel)
+    if (indexInfoOrPromise instanceof Promise) {
+      return indexInfoOrPromise.then(async (indexInfo) => {
+        const memo = memoOrPromise instanceof Promise ? await memoOrPromise : memoOrPromise
+        const optimizedSelector = getSelector(indexInfo)
+        if (optimizedSelector) memo.push(optimizedSelector as FlatSelector<T>)
+        return memo
+      })
+    }
+
+    const memo = memoOrPromise
+    if (memo instanceof Promise) throw new Error('Mixing async and sync index providers is not supported')
+
+    const optimizedSelector = getSelector(indexInfoOrPromise)
+    if (optimizedSelector) memo.push(optimizedSelector as FlatSelector<T>)
+    return memo
+  }, [] as FlatSelector<T>[] | Promise<FlatSelector<T>[]>)
 }
 
 /**
@@ -54,7 +118,7 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
  * optimizes the selector to minimize processing overhead.
  * @template T - The type of the items in the collection.
  * @template I - The type of the unique identifier for the items.
- * @param indexProviders - An array of index providers to query.
+ * @param queryFunctions - An array of index providers to query.
  * @param selector - The complex selector used to filter items.
  * @returns An object containing:
  *   - `matched`: A boolean indicating if the selector matched any items.
@@ -62,73 +126,76 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
  *   - `optimizedSelector`: A selector optimized based on the index results, with unused
  *     conditions removed.
  */
-export default function getIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
-  indexProviders: IndexProvider<T, I>[],
+export default function getIndexInfo<
+  QueryFunction extends SynchronousQueryFunction<T, I> | AsynchronousQueryFunction<T, I>,
+  T extends BaseItem<I> = BaseItem,
+  I = any,
+>(
+  queryFunctions: QueryFunction[],
   selector: Selector<T>,
-) {
+): QueryFunction extends AsynchronousQueryFunction<T, I>
+  ? Promise<IndexInfo<T, I>>
+  : IndexInfo<T, I> {
   if (selector == null || Object.keys(selector).length <= 0) {
-    return { matched: false, positions: [], optimizedSelector: selector }
+    return {
+      matched: false,
+      positions: [],
+      optimizedSelector: selector,
+    } as unknown as QueryFunction extends AsynchronousQueryFunction<T, I>
+      ? Promise<IndexInfo<T, I>>
+      : IndexInfo<T, I>
   }
 
   const { $and, $or, ...rest } = selector
 
-  const flatInfo = getMergedIndexInfo(indexProviders, rest as FlatSelector<T>)
-  let { matched, positions } = flatInfo
-  const newSelector: Selector<T> = flatInfo.optimizedSelector
-  if (Array.isArray($and)) {
-    const $andNew = []
-    for (const sel of $and) {
-      const {
-        matched: selMatched,
-        positions: selPositions,
-        optimizedSelector,
-      } = getIndexInfo(indexProviders, sel)
-      if (selMatched) {
+  const flatInfoOrPromise = getMergedIndexInfo(queryFunctions, rest as FlatSelector<T>)
+  const processFlatInfo = (flatInfo: IndexInfo<T, I>) => {
+    let { matched, positions } = flatInfo
+    const newSelector: Selector<T> = flatInfo.optimizedSelector
+    const $andNewOrPromise = Array.isArray($and)
+      ? optimizeLogicGate(queryFunctions, $and, (selPositions) => {
         positions = matched ? intersection(positions, selPositions) : selPositions
         matched = true
-        if (Object.keys(optimizedSelector).length > 0) {
-          $andNew.push(optimizedSelector)
-        }
-      } else {
-        $andNew.push(sel)
-      }
-    }
-    if ($andNew.length > 0) newSelector.$and = $andNew
-  }
-  if (Array.isArray($or)) {
-    const $orNew = []
-    const matchedBefore = matched
-    const positionsBefore = positions
-    let hasNonIndexField = false
-    for (const sel of $or) {
-      const {
-        matched: selMatched,
-        positions: selPositions,
-        optimizedSelector,
-      } = getIndexInfo(indexProviders, sel)
-      if (selMatched) {
-        positions = [...new Set([...positions, ...selPositions])]
-        matched = true
-        if (Object.keys(optimizedSelector).length > 0) {
-          $orNew.push(optimizedSelector)
-        }
-      } else {
-        $orNew.push(sel)
-        hasNonIndexField = true
-      }
-    }
-    if ($orNew.length > 0) newSelector.$or = $orNew
+      })
+      : undefined
+    const process$and = ($andNew: Selector<T>[] | undefined) => {
+      if ($andNew && $andNew.length > 0) newSelector.$and = $andNew
 
-    if (hasNonIndexField) { // if there was a non-indexed field, we can't optimize the $or away
-      newSelector.$or = $or
-      matched = matchedBefore
-      positions = positionsBefore
-    }
-  }
+      const process$or = ($orNew: Selector<T>[] | undefined) => {
+        if ($orNew && $orNew.length > 0) newSelector.$or = $orNew
 
-  return {
-    matched,
-    positions: positions || [],
-    optimizedSelector: newSelector,
+        return {
+          matched,
+          positions: positions || [],
+          optimizedSelector: newSelector,
+        }
+      }
+
+      const $orNewOrPromise = Array.isArray($or)
+        ? optimizeLogicGate(queryFunctions, $or, (selPositions) => {
+          positions = [...new Set([...positions, ...selPositions])]
+          matched = true
+        })
+        : undefined
+      if ($orNewOrPromise instanceof Promise) {
+        return $orNewOrPromise.then($orNew => process$or($orNew))
+      }
+      return process$or($orNewOrPromise)
+    }
+    if ($andNewOrPromise instanceof Promise) {
+      return $andNewOrPromise.then($andNew => process$and($andNew))
+    }
+    return process$and($andNewOrPromise)
   }
+  if (flatInfoOrPromise instanceof Promise) {
+    return flatInfoOrPromise
+      .then(processFlatInfo) as unknown as QueryFunction extends AsynchronousQueryFunction<T, I>
+      ? Promise<IndexInfo<T, I>>
+      : IndexInfo<T, I>
+  }
+  return processFlatInfo(
+    flatInfoOrPromise,
+  ) as unknown as QueryFunction extends AsynchronousQueryFunction<T, I>
+    ? Promise<IndexInfo<T, I>>
+    : IndexInfo<T, I>
 }

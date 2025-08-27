@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The `AutoFetchCollection` was removed. Use a custom `DataAdapter` instead.
 * `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
 * Indices on a `Collection` are now specified as an array of strings instead of using `IndexProvider` or `LowLevelIndexProvider` instances.
-* `PersistenceAdapter` was renamed to `StorageAdapter`.
+* `PersistenceAdapter` was renamed to `StorageAdapter` and the signature was changed in a non backward compatible way.
 * The `createPersistenceAdapter` method was renamed to `createStorageAdapter`.
 * The `combinePersistenceAdapters` method was removed.
 * All persistence events on the `Collection` were removed.
