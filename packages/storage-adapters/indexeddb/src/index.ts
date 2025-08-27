@@ -1,4 +1,4 @@
-import { createPersistenceAdapter } from '@signaldb/core'
+import { createStorageAdapter } from '@signaldb/core'
 
 /**
  * Creates a persistence adapter for managing a SignalDB collection using IndexedDB.
@@ -51,7 +51,7 @@ export default function createIndexedDBAdapter<
     })
   }
 
-  return createPersistenceAdapter<T, I>({
+  return createStorageAdapter<T, I>({
     async load() {
       const items = await getAllItems()
       return { items }
