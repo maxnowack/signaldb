@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Collection, createIndex } from '../src'
+import { Collection } from '../src'
 
 describe('Queries', () => {
   // thanks to https://github.com/meteor/meteor/blob/devel/packages/minimongo/minimongo_tests_client.js
@@ -111,7 +111,7 @@ describe('Queries', () => {
 
   it('should pass all the basics with indices', async () => {
     const c = new Collection({
-      indices: [createIndex('type')],
+      indices: ['type'],
     })
     let count
 
@@ -271,7 +271,7 @@ describe('Queries', () => {
   })
 
   it('should handle queries for empty values correctly', async () => {
-    const c = new Collection({ indices: [createIndex('name')] })
+    const c = new Collection({ indices: ['name'] })
     await c.insert({ id: 1, name: 'John' })
     await c.insert({ id: 2, name: null })
     await c.insert({ id: 3, name: undefined })
