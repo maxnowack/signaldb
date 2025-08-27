@@ -9,7 +9,6 @@ import deepClone from './utils/deepClone'
 import match from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
-import randomId from './utils/randomId'
 
 interface WorkerContext {
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
@@ -19,7 +18,6 @@ interface WorkerContext {
 interface WorkerDataAdapterHostOptions {
   id?: string,
   storage: (name: string) => PersistenceAdapter<any, any>, // TODO: instroduce new storage adapter
-  primaryKeyGenerator?: <T extends BaseItem<I>, I>(item: Omit<T, 'id'>) => I,
   onError?: (error: Error) => void,
 }
 
@@ -43,25 +41,22 @@ type CollectionMethods<T extends BaseItem<I>, I = any> = {
   ) => Promise<void>,
   insert: (
     collectionName: string,
-    item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
+    item: T,
   ) => Promise<T>,
   updateOne: (
     collectionName: string,
     selector: Selector<T>,
     modifier: Modifier<T>,
-    options?: { upsert?: boolean },
   ) => Promise<T[]>,
   updateMany: (
     collectionName: string,
     selector: Selector<T>,
     modifier: Modifier<T>,
-    options?: { upsert?: boolean },
   ) => Promise<T[]>,
   replaceOne: (
     collectionName: string,
     selector: Selector<T>,
     replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
-    options?: { upsert?: boolean },
   ) => Promise<T[]>,
   removeOne: (
     collectionName: string,
@@ -247,21 +242,15 @@ export default class WorkerDataAdapterHost<
     this.queries.get(collectionName)?.delete(id)
   }
 
-  protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, item) => {
+  protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, newItem) => {
     const persistenceAdapter = this.persistenceAdapters.get(collectionName)
     if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
     const allItems = await persistenceAdapter.load()
 
-    const primaryKeyGenerator = this.options.primaryKeyGenerator ?? randomId
-    const newItem = {
-      id: primaryKeyGenerator(item) as I,
-      ...item,
-    } as T
     if (allItems.items?.some(i => i.id === newItem.id)) {
       throw new Error(`Item with id ${newItem.id as string} already exists`)
     }
 
-    // TODO: we have to think about validation hook and other events before we modify the items
     await this.checkQueryUpdates(collectionName, [newItem], () =>
       Promise.resolve([...(allItems.items ?? []), newItem]))
 
@@ -274,7 +263,7 @@ export default class WorkerDataAdapterHost<
     return newItem
   }
 
-  protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, selector, modifier, options) => {
+  protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, selector, modifier) => {
     const persistenceAdapter = this.persistenceAdapters.get(collectionName)
     if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
     const loadResponse = await persistenceAdapter.load()
@@ -283,25 +272,7 @@ export default class WorkerDataAdapterHost<
     const { $setOnInsert, ...restModifier } = modifier
     const index = allItems.findIndex(i => match(i, selector))
     const item = index == null || index === -1 ? null : allItems[index] as T | null
-    if (item == null) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-          ...restModifier,
-          $set: {
-            ...$setOnInsert,
-            ...restModifier.$set,
-          },
-        })
-        const hasItemWithSameId = newItem.id != null
-          && allItems.some(i => i.id === newItem.id)
-        if (hasItemWithSameId) {
-          throw new Error(`Item with id ${newItem.id as string} already exists`)
-        }
-        return [await this.insert(collectionName, newItem)]
-      }
-      return [] // no item found, nothing to update
-    }
+    if (item == null) return [] // no item found, nothing to update
 
     const modifiedItem = modify(deepClone(item), restModifier)
     const hasItemWithSameId = item.id !== modifiedItem.id
@@ -310,7 +281,6 @@ export default class WorkerDataAdapterHost<
       throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
     }
 
-    // TODO: we have to think about validation hook and other events before we modify the items
     allItems.splice(index, 1, modifiedItem)
     await this.checkQueryUpdates(collectionName, [modifiedItem], () =>
       Promise.resolve(allItems))
@@ -322,7 +292,7 @@ export default class WorkerDataAdapterHost<
     return [modifiedItem]
   }
 
-  protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, selector, modifier, options) => {
+  protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, selector, modifier) => {
     const persistenceAdapter = this.persistenceAdapters.get(collectionName)
     if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
     const loadResponse = await persistenceAdapter.load()
@@ -331,25 +301,7 @@ export default class WorkerDataAdapterHost<
 
     const { $setOnInsert, ...restModifier } = modifier
     const items = allItems.filter(i => match(i, selector))
-    if (items.length === 0) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-          ...restModifier,
-          $set: {
-            ...$setOnInsert,
-            ...restModifier.$set,
-          },
-        })
-        const hasItemWithSameId = newItem.id != null
-          && allItems.some(i => i.id === newItem.id)
-        if (hasItemWithSameId) {
-          throw new Error(`Item with id ${newItem.id as string} already exists`)
-        }
-        return [await this.insert(collectionName, newItem)]
-      }
-      return [] // no items found, nothing to update
-    }
+    if (items.length === 0) return [] // no items found, nothing to update
 
     const changes = items.map((item) => {
       const index = allItems.findIndex(i => i.id === item.id)
@@ -367,7 +319,6 @@ export default class WorkerDataAdapterHost<
       }
     })
 
-    // TODO: we have to think about validation hook and other events before we modify the items
     changes.forEach(({ item, index }) => {
       allItems.splice(index, 1, item)
     })
@@ -382,7 +333,7 @@ export default class WorkerDataAdapterHost<
     return changedItems
   }
 
-  protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, selector, replacement, options) => {
+  protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, selector, replacement) => {
     const persistenceAdapter = this.persistenceAdapters.get(collectionName)
     if (!persistenceAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
     const loadResponse = await persistenceAdapter.load()
@@ -390,18 +341,7 @@ export default class WorkerDataAdapterHost<
 
     const index = allItems.findIndex(i => match(i, selector))
     const item = index == null || index === -1 ? null : allItems[index] as T | null
-    if (item == null) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        const hasItemWithSameId = replacement.id != null
-          && allItems.some(i => i.id === replacement.id)
-        if (hasItemWithSameId) {
-          throw new Error(`Item with id ${replacement.id as string} already exists`)
-        }
-        return [await this.insert(collectionName, replacement)]
-      }
-      return [] // no item found, nothing to update
-    }
+    if (item == null) return [] // no item found, nothing to update
 
     const hasItemWithSameId = item.id !== replacement.id
       && replacement.id != null
@@ -415,7 +355,6 @@ export default class WorkerDataAdapterHost<
       id: replacement.id ?? item.id,
     } as T
 
-    // TODO: we have to think about validation hook and other events before we modify the items
     allItems.splice(index, 1, modifiedItem)
     await this.checkQueryUpdates(collectionName, [modifiedItem], () =>
       Promise.resolve(allItems))
@@ -439,7 +378,6 @@ export default class WorkerDataAdapterHost<
       return [] // no item found, nothing to remove
     }
 
-    // TODO: we have to think about validation hook and other events before we modify the items
     allItems.splice(index, 1)
     await this.checkQueryUpdates(collectionName, [item], () =>
       Promise.resolve(allItems))
@@ -462,7 +400,6 @@ export default class WorkerDataAdapterHost<
       return [] // no items found, nothing to remove
     }
 
-    // TODO: we have to think about validation hook and other events before we modify the items
     items.forEach((item) => {
       const index = allItems.findIndex(i => i.id === item.id)
       if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
