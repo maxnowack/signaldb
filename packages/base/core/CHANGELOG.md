@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `PersistenceAdapter` was renamed to `StorageAdapter`.
 * The `createPersistenceAdapter` method was renamed to `createStorageAdapter`.
 * The `combinePersistenceAdapters` method was removed.
+* All persistence events on the `Collection` were removed.
 
 ### Added
 
