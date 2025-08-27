@@ -2,7 +2,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { infer as ZodInfer } from 'zod'
 import type { BaseItem, CollectionOptions } from '../src'
-import { Collection, createIndex } from '../src'
+import { Collection } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
 
@@ -568,7 +568,7 @@ describe('Collection', () => {
 
     it('should be faster with field indices', async () => {
       const col1 = new Collection<{ id: string, name: string, num: number }>({
-        indices: [createIndex('num')],
+        indices: ['num'],
       })
       const col2 = new Collection<{ id: string, name: string, num: number }>()
 
@@ -826,7 +826,7 @@ describe('Collection', () => {
 
     it('should disable indexing temporarily if indices are outdated', async () => {
       const col = new Collection<{ id: string, name: string }>({
-        indices: [createIndex('name')],
+        indices: ['name'],
       })
       await col.batch(async () => {
         await col.insert({ id: '1', name: 'John' })
