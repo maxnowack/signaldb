@@ -62,7 +62,7 @@ describe('getIndexInfo', () => {
     idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
 
     // without match, flat selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       name: 'John',
       age: 30,
     })).toEqual({
@@ -75,7 +75,7 @@ describe('getIndexInfo', () => {
     })
 
     // without match, $and selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $and: [
         { name: 'John' },
         { age: 30 },
@@ -92,7 +92,7 @@ describe('getIndexInfo', () => {
     })
 
     // without match, $or selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $or: [
         { name: 'John' },
         { age: 30 },
@@ -109,7 +109,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, flat selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       id: '0',
     })).toEqual({
       matched: true,
@@ -118,7 +118,7 @@ describe('getIndexInfo', () => {
     })
 
     // with $in, flat selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       id: { $in: ['0', '1'] },
     })).toEqual({
       matched: true,
@@ -127,7 +127,7 @@ describe('getIndexInfo', () => {
     })
 
     // with $nin, flat selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       id: { $nin: ['0', '1'] },
     })).toEqual({
       matched: true,
@@ -136,7 +136,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, $and selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $and: [
         { id: '0' },
         { id: '1' },
@@ -146,7 +146,7 @@ describe('getIndexInfo', () => {
       positions: [],
       optimizedSelector: {},
     })
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $and: [
         { id: '0' },
         { name: 'John' },
@@ -164,7 +164,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, $or selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $or: [
         { id: '0' },
         { id: '1' },
@@ -174,7 +174,7 @@ describe('getIndexInfo', () => {
       positions: [0, 1],
       optimizedSelector: {},
     })
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $or: [
         { id: '0' },
         { name: 'John' },
@@ -200,7 +200,7 @@ describe('getIndexInfo', () => {
       { id: '3', name: undefined },
       { id: '4' },
     ])
-    expect(getIndexInfo([nameIndex], {
+    expect(getIndexInfo([nameIndex.query], {
       $and: [{
         $or: [
           { name: null },
@@ -244,7 +244,7 @@ describe('getIndexInfo', () => {
     postIndex.rebuild(comments)
 
     // without match, flat selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       title: 'Lorem ipsum',
     })).toEqual({
       matched: false,
@@ -255,7 +255,7 @@ describe('getIndexInfo', () => {
     })
 
     // without match, $and selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $and: [
         { title: 'Lorem ipsum' },
         { id: '0' },
@@ -272,7 +272,7 @@ describe('getIndexInfo', () => {
     })
 
     // without match, $or selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $or: [
         { title: 'Lorem ipsum' },
         { id: '0' },
@@ -289,7 +289,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, flat selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       authorId: '0',
       postId: '0',
     })).toEqual({
@@ -299,7 +299,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, $and selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $and: [
         { authorId: '0' },
         { postId: '1' },
@@ -309,7 +309,7 @@ describe('getIndexInfo', () => {
       positions: [0],
       optimizedSelector: {},
     })
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $and: [
         { postId: '0' },
         { title: 'Lorem ipsum' },
@@ -327,7 +327,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, $or selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $or: [
         { postId: '0' },
         { authorId: '1' },
@@ -337,7 +337,7 @@ describe('getIndexInfo', () => {
       positions: [1, 2],
       optimizedSelector: {},
     })
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $or: [
         { authorId: '0' },
         { name: 'John' },
@@ -356,7 +356,7 @@ describe('getIndexInfo', () => {
     })
 
     // with match, $and and $or selector
-    expect(getIndexInfo([authorIndex, postIndex], {
+    expect(getIndexInfo([authorIndex.query, postIndex.query], {
       $or: [
         {
           $and: [
@@ -406,7 +406,7 @@ describe('getIndexInfo', () => {
     idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
 
     // without match, flat selector
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       id: { $in: ['0', '0', '0'] },
     })).toEqual({
       matched: true,
@@ -419,7 +419,7 @@ describe('getIndexInfo', () => {
     const idIndex = createIndex('id')
     idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
 
-    expect(getIndexInfo([idIndex], {
+    expect(getIndexInfo([idIndex.query], {
       $or: [
         { id: '0' },
         { name: 'John' },

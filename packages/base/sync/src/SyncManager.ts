@@ -3,14 +3,13 @@ import type {
   StorageAdapter,
   ReactivityAdapter,
   Changeset,
-  LoadResponse,
   Selector,
 } from '@signaldb/core'
-import { Collection, randomId } from '@signaldb/core'
+import { DefaultDataAdapter, Collection, randomId } from '@signaldb/core'
 import debounce from './utils/debounce'
 import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'
-import type { Change, Snapshot, SyncOperation } from './types'
+import type { Change, LoadResponse, Snapshot, SyncOperation } from './types'
 
 type SyncOptions<T extends Record<string, any>> = {
   name: string,
@@ -114,7 +113,7 @@ export default class SyncManager<
    * @param options.push Function to push data to remote source.
    * @param [options.registerRemoteChange] Function to register a callback for remote changes.
    * @param [options.id] Unique identifier for this sync manager. Only nessesary if you have multiple sync managers.
-   * @param [options.storageAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
+   * @param [options.storageAdapter] Storage adapter to use for storing changes, snapshots and sync operations.
    * @param [options.reactivity] Reactivity adapter to use for reactivity.
    * @param [options.onError] Function to handle errors that occur async during syncing.
    * @param [options.autostart] Whether to automatically start syncing new collections.
@@ -128,31 +127,36 @@ export default class SyncManager<
     this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
 
-    const changesPersistence = this.createStorageAdapter('changes')
-    const snapshotsPersistence = this.createStorageAdapter('snapshots')
-    const syncOperationsPersistence = this.createStorageAdapter('sync-operations')
+    const changesStorage = this.createStorageAdapter('changes')
+    const snapshotsStorage = this.createStorageAdapter('snapshots')
+    const syncOperationsStorage = this.createStorageAdapter('sync-operations')
+    const dataAdapter = new DefaultDataAdapter({
+      storage: (name) => {
+        if (name === 'changes') return changesStorage?.adapter
+        if (name === 'snapshots') return snapshotsStorage?.adapter
+        if (name === 'sync-operations') return syncOperationsStorage?.adapter
+        throw new Error(`Unknown storage name: ${name}`)
+      },
+      onError: (name, error) => {
+        if (name === 'changes') return changesStorage?.handler(error)
+        if (name === 'snapshots') return snapshotsStorage?.handler(error)
+        if (name === 'sync-operations') return syncOperationsStorage?.handler(error)
+        throw new Error(`Error in unknown storage name: ${name}`, { cause: error })
+      },
+    })
 
-    this.changes = new Collection({
-      name: `${this.options.id}-changes`,
-      persistence: changesPersistence?.adapter,
+    this.changes = new Collection(`${this.options.id}-changes`, dataAdapter, {
       indices: ['collectionName'],
       reactivity,
     })
-    this.snapshots = new Collection({
-      name: `${this.options.id}-snapshots`,
-      persistence: snapshotsPersistence?.adapter,
+    this.snapshots = new Collection(`${this.options.id}-snapshots`, dataAdapter, {
       indices: ['collectionName'],
       reactivity,
     })
-    this.syncOperations = new Collection({
-      name: `${this.options.id}-sync-operations`,
-      persistence: syncOperationsPersistence?.adapter,
+    this.syncOperations = new Collection(`${this.options.id}-sync-operations`, dataAdapter, {
       indices: ['collectionName', 'status'],
       reactivity,
     })
-    this.changes.on('persistence.error', error => changesPersistence?.handler(error))
-    this.snapshots.on('persistence.error', error => snapshotsPersistence?.handler(error))
-    this.syncOperations.on('persistence.error', error => syncOperationsPersistence?.handler(error))
 
     this.persistenceReady = Promise.all([
       this.syncOperations.isReady(),

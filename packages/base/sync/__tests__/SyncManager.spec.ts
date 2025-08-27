@@ -1,80 +1,103 @@
 /* @vitest-environment happy-dom */
 import { it, expect, vi } from 'vitest'
 import { Collection, createStorageAdapter } from '@signaldb/core'
-import type { BaseItem, LoadResponse, StorageAdapter } from '@signaldb/core'
+import type { BaseItem } from '@signaldb/core'
+import { DefaultDataAdapter } from '@signaldb/core/src'
 import { SyncManager } from '../src'
+import type { LoadResponse } from '../src/types'
 
 /**
- * Creates a memory persistence adapter for testing purposes.
- * @param initialData - Initial data to populate the adapter.
- * @param transmitChanges - Whether to transmit changes.
- * @param [delay] - Optional delay for simulating async operations.
- * @returns The memory persistence adapter.
+ * Creates a memory-based persistence adapter for testing purposes. This adapter
+ * mimics the behavior of a SignalDB persistence adapter, allowing in-memory storage
+ * and change tracking with optional transmission of changes and delays.
+ * @template T - The type of the items in the collection.
+ * @template I - The type of the unique identifier for the items.
+ * @param initialData - An array of initial data items to populate the memory store.
+ * @param delay - An optional delay (in milliseconds) for load operations to simulate asynchronous behavior.
+ * @returns A memory persistence adapter with additional methods for adding, changing, and removing items.
+ * @example
+ * import memoryStorageAdapter from './memoryStorageAdapter';
+ *
+ * const adapter = memoryStorageAdapter([{ id: 1, name: 'Test' }], true, 100);
+ *
+ * // Add a new item
+ * adapter.addNewItem({ id: 2, name: 'New Item' });
+ *
+ * // Change an item
+ * adapter.changeItem({ id: 1, name: 'Updated Test' });
+ *
+ * // Remove an item
+ * adapter.removeItem({ id: 2, name: 'New Item' });
+ *
+ * // Load items or changes
+ * const { items } = await adapter.load();
+ * console.log(items); // Logs the updated items in memory.
  */
 function memoryStorageAdapter<
   T extends { id: I } & Record<string, any>,
   I = any,
 >(
   initialData: T[] = [],
-  transmitChanges = false,
   delay?: number,
 ) {
   // not really a "persistence adapter", but it works for testing
   let items = [...initialData]
-  const changes: {
-    added: T[],
-    modified: T[],
-    removed: T[],
-  } = {
-    added: [],
-    modified: [],
-    removed: [],
-  }
-  let onChange: () => void | Promise<void> = () => { /* do nothing */ }
-  return {
-    register: (changeCallback: () => void | Promise<void>) => {
-      onChange = changeCallback
-      return Promise.resolve()
-    },
-    load: async () => {
-      const currentChanges = { ...changes }
-      changes.added = []
-      changes.modified = []
-      changes.removed = []
-      const hasChanges = currentChanges.added.length > 0
-        || currentChanges.modified.length > 0
-        || currentChanges.removed.length > 0
+  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<number>>>()
+
+  return createStorageAdapter<T, I>({
+    setup: () => Promise.resolve(),
+    teardown: () => Promise.resolve(),
+
+    readAll: async () => {
       if (delay != null) await new Promise((resolve) => {
         setTimeout(resolve, delay)
       })
-      if (transmitChanges && hasChanges) {
-        return { changes: currentChanges }
-      }
-      return { items }
+      return items
     },
-    save: (newSnapshot: T[]) => {
-      items = [...newSnapshot]
+    readPositions: positions => Promise.resolve(
+      items.filter((_item, index) => positions.includes(index)),
+    ),
+
+    createIndex: (field) => {
+      if (indexes.has(field)) {
+        throw new Error(`Index on field "${field}" already exists`)
+      }
+      const index = new Map<T[keyof T & string], Set<number>>()
+      indexes.set(field, index)
       return Promise.resolve()
     },
-    addNewItem: (item: T) => {
-      items.push(item)
-      changes.added.push(item)
-      void onChange()
+    dropIndex: (field) => {
+      indexes.delete(field)
+      return Promise.resolve()
     },
-    changeItem: (item: T) => {
-      items = items.map(i => (i.id === item.id ? item : i))
-      changes.modified.push(item)
-      void onChange()
+    readIndex: async (field) => {
+      const index = indexes.get(field)
+      if (index == null) {
+        throw new Error(`Index on field "${field}" does not exist`)
+      }
+      return index
     },
-    removeItem: (item: T) => {
-      items = items.filter(i => i.id !== item.id)
-      changes.removed.push(item)
-      void onChange()
+
+    insert: (newItems) => {
+      items.push(...newItems)
+      return Promise.resolve()
     },
-  } as (StorageAdapter<T, I> & {
-    addNewItem: (item: T) => void,
-    changeItem: (item: T) => void,
-    removeItem: (item: T) => void,
+    replace: (newItems) => {
+      items = items.map((item) => {
+        const newItem = newItems.find(i => i.id === item.id)
+        return newItem || item
+      })
+      return Promise.resolve()
+    },
+    remove: (itemsToRemove) => {
+      const idsToRemove = new Set(itemsToRemove.map(i => i.id))
+      items = items.filter(item => !idsToRemove.has(item.id))
+      return Promise.resolve()
+    },
+    removeAll: () => {
+      items = []
+      return Promise.resolve()
+    },
   })
 }
 
@@ -928,9 +951,17 @@ it('should register error handlers for internal persistence adapters', async () 
       registerErrorHandler(errorHandler)
       if (name === 'default-sync-manager-changes') {
         return createStorageAdapter({
-          load: () => Promise.resolve({ items: [] }),
-          register: () => Promise.resolve(),
-          save: () => Promise.reject(new Error('simulated error')),
+          setup: () => Promise.resolve(),
+          teardown: () => Promise.resolve(),
+          readAll: () => Promise.resolve([]),
+          readPositions: () => Promise.resolve([]),
+          createIndex: () => Promise.resolve(),
+          dropIndex: () => Promise.resolve(),
+          readIndex: () => Promise.resolve(new Map<any, Set<number>>()),
+          insert: () => Promise.reject(new Error('simulated error')),
+          replace: () => Promise.reject(new Error('simulated error')),
+          remove: () => Promise.reject(new Error('simulated error')),
+          removeAll: () => Promise.reject(new Error('simulated error')),
         })
       }
       return memoryStorageAdapter([])
@@ -1053,11 +1084,19 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
 })
 
 it('should start sync after internal collections are ready', async () => {
-  const storageAdapter = memoryStorageAdapter([], undefined, 100)
+  const storageAdapter = memoryStorageAdapter([], 100)
   const mockStorageAdapter = createStorageAdapter({
-    register: vi.fn(storageAdapter.register),
-    load: vi.fn(storageAdapter.load),
-    save: vi.fn(storageAdapter.save),
+    setup: vi.fn(storageAdapter.setup),
+    teardown: vi.fn(storageAdapter.teardown),
+    readAll: vi.fn(storageAdapter.readAll),
+    readPositions: vi.fn(storageAdapter.readPositions),
+    createIndex: vi.fn(storageAdapter.createIndex),
+    dropIndex: vi.fn(storageAdapter.dropIndex),
+    readIndex: vi.fn(storageAdapter.readIndex),
+    insert: vi.fn(storageAdapter.insert),
+    replace: vi.fn(storageAdapter.replace),
+    remove: vi.fn(storageAdapter.remove),
+    removeAll: vi.fn(storageAdapter.removeAll),
   })
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -1093,22 +1132,30 @@ it('should start sync after internal collections are ready', async () => {
   const collection = new Collection<TestItem, string, any>()
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(mockStorageAdapter.load).not.toBeCalled()
+  expect(mockStorageAdapter.readAll).not.toBeCalled()
   expect(mockPull).not.toBeCalled()
   expect(persistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
   expect(mockPull).toBeCalled()
-  expect(mockStorageAdapter.load).toHaveBeenCalledBefore(mockPull)
+  expect(mockStorageAdapter.readAll).toHaveBeenCalledBefore(mockPull)
   expect(persistenceInitialized).toBeTruthy()
 })
 
 it('should start sync after collection is ready', async () => {
-  const storageAdapter = memoryStorageAdapter([], undefined, 100)
+  const storageAdapter = memoryStorageAdapter([], 100)
   const mockStorageAdapter = createStorageAdapter({
-    register: vi.fn(storageAdapter.register),
-    load: vi.fn(storageAdapter.load),
-    save: vi.fn(storageAdapter.save),
+    setup: vi.fn(storageAdapter.setup),
+    teardown: vi.fn(storageAdapter.teardown),
+    readAll: vi.fn(storageAdapter.readAll),
+    readPositions: vi.fn(storageAdapter.readPositions),
+    createIndex: vi.fn(storageAdapter.createIndex),
+    dropIndex: vi.fn(storageAdapter.dropIndex),
+    readIndex: vi.fn(storageAdapter.readIndex),
+    insert: vi.fn(storageAdapter.insert),
+    replace: vi.fn(storageAdapter.replace),
+    remove: vi.fn(storageAdapter.remove),
+    removeAll: vi.fn(storageAdapter.removeAll),
   })
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -1126,30 +1173,36 @@ it('should start sync after collection is ready', async () => {
     persistence: mockStorageAdapter,
   })
   let persistenceInitialized = false
-  void new Promise<void>((resolve) => {
-    collection.once('persistence.init', resolve)
-  }).then(() => {
+  void collection.isReady().then(() => {
     persistenceInitialized = true
   })
 
   syncManager.addCollection(collection, { name: 'test' })
 
   expect(mockPull).not.toBeCalled()
-  expect(mockStorageAdapter.load).not.toBeCalled()
+  expect(mockStorageAdapter.readAll).not.toBeCalled()
   expect(persistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
   expect(mockPull).toBeCalled()
-  expect(mockStorageAdapter.load).toHaveBeenCalledBefore(mockPull)
+  expect(mockStorageAdapter.readAll).toHaveBeenCalledBefore(mockPull)
   expect(persistenceInitialized).toBeTruthy()
 })
 
 it('should fail if there was a persistence error during initialization', async () => {
-  const storageAdapter = memoryStorageAdapter([], undefined, 100)
+  const storageAdapter = memoryStorageAdapter([], 100)
   const mockStorageAdapter = createStorageAdapter({
-    register: vi.fn(storageAdapter.register),
-    load: vi.fn(() => Promise.reject(new Error('Persistence error'))),
-    save: vi.fn(storageAdapter.save),
+    setup: vi.fn(storageAdapter.setup),
+    teardown: vi.fn(storageAdapter.teardown),
+    readAll: vi.fn(() => Promise.reject(new Error('Persistence error'))),
+    readPositions: vi.fn(storageAdapter.readPositions),
+    createIndex: vi.fn(storageAdapter.createIndex),
+    dropIndex: vi.fn(storageAdapter.dropIndex),
+    readIndex: vi.fn(storageAdapter.readIndex),
+    insert: vi.fn(storageAdapter.insert),
+    replace: vi.fn(storageAdapter.replace),
+    remove: vi.fn(storageAdapter.remove),
+    removeAll: vi.fn(storageAdapter.removeAll),
   })
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -1163,20 +1216,17 @@ it('should fail if there was a persistence error during initialization', async (
     push: mockPush,
   })
 
-  const collection = new Collection<TestItem, string, any>({
-    persistence: mockStorageAdapter,
-  })
-  let persistenceInitialized = false
-  void new Promise<void>((resolve) => {
-    collection.once('persistence.init', resolve)
-  }).then(() => {
-    persistenceInitialized = true
-  })
   let persistenceError = false
-  void new Promise<void>((resolve) => {
-    collection.once('persistence.error', () => resolve())
-  }).then(() => {
-    persistenceError = true
+  const dataAdapter = new DefaultDataAdapter({
+    storage: () => mockStorageAdapter,
+    onError: () => {
+      persistenceError = true
+    },
+  })
+  const collection = new Collection<TestItem, string, any>('test', dataAdapter)
+  let persistenceInitialized = false
+  void collection.isReady().then(() => {
+    persistenceInitialized = true
   })
 
   syncManager.addCollection(collection, { name: 'test' })
