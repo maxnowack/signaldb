@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+* Removed compatibility with `@signaldb/core` versions below `2.0.0`
+
 ### Fixed
 
 * Custom deserialize function now works correctly when file is empty (thanks to @krolebord!)

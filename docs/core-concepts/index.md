@@ -70,12 +70,12 @@ You can also create a MemoryAdapter on your own. See the [createMemoryAdapter re
 
 SignalDB only stores the data in memory and it will be lost when the memory is flushed (e.g. page reload).
 
-Normally you don't want to lose data and you want to persist it. This is where persistence adapters come in.
+Normally you don't want to lose data and you want to persist it. This is where storage adapters come in.
 
-Persistence adapters in SignalDB play a critical role in ensuring that your data remains intact across multiple user sessions or application reloads. These adapters facilitate data persistence by providing a standard interface for storing and retrieving data, thereby abstracting from the specifics of the underlying storage mechanism.
+Storage adapters in SignalDB play a critical role in ensuring that your data remains intact across multiple user sessions or application reloads. These adapters facilitate data persistence by providing a standard interface for storing and retrieving data, thereby abstracting from the specifics of the underlying storage mechanism.
 
-A persistence adapter provides the necessary code to interact with a specific storage medium, such as localStorage, IndexedDB, or even a remote server. The role of the adapter is to translate the high-level operations that you perform on your data (such as saving or loading a document) into low-level operations that the storage medium can understand.
+A storage adapter provides the necessary code to interact with a specific storage medium, such as localStorage, IndexedDB, or even a remote server. The role of the adapter is to translate the high-level operations that you perform on your data (such as saving or loading a document) into low-level operations that the storage medium can understand.
 
-The main benefit of using persistence adapters is flexibility. Because they provide an abstraction layer over the storage system, you can switch between different storage systems with minimal impact on the rest of your code.
+The main benefit of using storage adapters is flexibility. Because they provide an abstraction layer over the storage system, you can switch between different storage systems with minimal impact on the rest of your code.
 
-See also the [persistence adapters](/data-persistence/) documentation page.
+See also the [storage adapters](/data-persistence/) documentation page.

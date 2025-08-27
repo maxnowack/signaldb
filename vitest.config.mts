@@ -7,7 +7,7 @@ export default defineConfig({
       'packages/base/*',
       'packages/devtools/*',
       'packages/integrations/*',
-      'packages/persistence-adapters/*',
+      'packages/storage-adapters/*',
       'packages/reactivity-adapters/*',
     ],
     coverage: {
