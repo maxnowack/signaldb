@@ -1,172 +1,170 @@
 // @vitest-environment happy-dom
-import type { EventEmitter } from '@signaldb/core'
-import { describe, it, expect } from 'vitest'
-import { Collection } from '@signaldb/core'
+import { describe, it, expect, beforeEach } from 'vitest'
 import 'fake-indexeddb/auto'
 import createIndexedDBAdapter from '../src'
 
 /**
- * Waits for a specific event to be emitted.
- * @param emitter - The event emitter.
- * @param event - The event to wait for.
- * @param [timeout] - Optional timeout in milliseconds.
- * @returns A promise that resolves with the event value.
+ * Generates a random database name for testing purposes to avoid collisions.
+ * @returns A unique database name string.
  */
-async function waitForEvent<T>(
-  emitter: EventEmitter<any>,
-  event: string,
-  timeout?: number,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = timeout && setTimeout(() => {
-      reject(new Error('waitForEvent timeout'))
-    }, timeout)
-
-    emitter.once(event, (value: T) => {
-      if (timeoutId) clearTimeout(timeoutId)
-      resolve(value)
-    })
-  })
+function generateDatabaseName() {
+  return `db-${Math.floor(Math.random() * 1e17).toString(16)}`
 }
 
-describe('Persistence', () => {
-  describe('IndexedDB', () => {
-    it('should load items from IndexedDB persistence adapter', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'John' }])
+/**
+ * Generats a random collection name for testing purposes to avoid collisions.
+ * @returns A unique collection name string.
+ */
+function collName() {
+  return `coll-${Math.floor(Math.random() * 1e17).toString(16)}`
+}
+
+/**
+ * Sets up an IndexedDB adapter with optional upgrade logic for testing.
+ * @param options - Configuration options for the adapter setup.
+ * @param options.version - The version number for the database (default: 1).
+ * @param options.databaseName - The name of the database (default: randomly generated).
+ * @param options.collectionName - The name of the collection (default: randomly generated).
+ * @param options.preIndex - Array of index names to create before setup.
+ * @param options.preDrop - Array of index names to drop before setup.
+ * @returns An object containing the initialized adapter, the collection name, and database name.
+ */
+async function withAdapter(
+  options?: {
+    version?: number,
+    databaseName?: string,
+    collectionName?: string,
+    preIndex?: string[],
+    preDrop?: string[],
+  },
+) {
+  const name = options?.collectionName ?? collName()
+  const databaseName = options?.databaseName ?? generateDatabaseName()
+  const version = options?.version ?? 1
+
+  const adapter = createIndexedDBAdapter<any, number>(name, {
+    databaseName,
+    version,
+  })
+
+  // Enqueue index mutations BEFORE setup per new API
+  for (const f of options?.preIndex ?? []) {
+    await adapter.createIndex(f)
+  }
+  for (const f of options?.preDrop ?? []) {
+    await adapter.dropIndex(f)
+  }
+
+  await adapter.setup()
+  return { adapter, name, databaseName }
+}
+
+describe('IndexedDB storage adapter (new API)', () => {
+  describe('setup/teardown', () => {
+    it('opens and closes with custom db & version even without upgrade logic', async () => {
+      const { adapter } = await withAdapter({ version: 3 })
+      // No operations; this primarily exercises openDatabase branch without onUpgrade
+      await adapter.teardown()
+      expect(true).toBe(true)
+    })
+  })
+
+  describe('CRUD + indexing', () => {
+    let adapter: ReturnType<typeof createIndexedDBAdapter<any, number>>
+
+    beforeEach(async () => {
+      const setup = await withAdapter()
+      adapter = setup.adapter
     })
 
-    it('should save items to IndexedDB persistence adapter', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-      await collection.insert({ id: '1', name: 'John' })
-      await waitForEvent(collection, 'persistence.transmitted')
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'John' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
+    it('readAll returns [] initially', async () => {
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
     })
 
-    it('should remove item from IndexedDB persistence adapter', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-
-      await collection.removeOne({ id: '1' })
-      await waitForEvent(collection, 'persistence.transmitted')
-
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '2', name: 'Jane' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
+    it('insert writes items and readAll returns raw data only', async () => {
+      await adapter.insert([{ id: 1, name: 'John' }])
+      const items = await adapter.readAll()
+      expect(items).toEqual([{ id: 1, name: 'John' }])
+      await adapter.teardown()
     })
 
-    it('should update item in IndexedDB persistence adapter', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
+    it('createIndex / readIndex / dropIndex work and errors are surfaced', async () => {
+      // Use the SAME db/collection across phases
+      const databaseName = generateDatabaseName()
+      const collectionName = collName()
 
-      await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-      await waitForEvent(collection, 'persistence.transmitted')
+      // Phase 1: no index exists yet → readIndex should throw
+      {
+        const { adapter: databaseAdapter } = await withAdapter({
+          databaseName,
+          collectionName,
+          version: 1,
+        })
+        await expect(databaseAdapter.readIndex('id')).rejects.toThrow('does not exist')
+        await databaseAdapter.teardown()
+      }
 
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
+      // Phase 2: create index (idempotent) before setup; then verify mapping
+      {
+        const { adapter: databaseAdapter } = await withAdapter({
+          databaseName,
+          collectionName,
+          version: 2, // bump version to trigger upgrade
+          preIndex: ['id', 'id'], // idempotent create
+        })
+        await databaseAdapter.insert([{ id: 1, name: 'John' }])
+        const map = await databaseAdapter.readIndex('id')
+        expect(map instanceof Map).toBe(true)
+        expect(map.has(1)).toBe(true)
+        const set = map.get(1)
+        expect(set instanceof Set).toBe(true)
+        await databaseAdapter.teardown()
+      }
+
+      // Phase 3: drop index before setup; verify subsequent reads fail
+      {
+        const { adapter: databaseAdapter } = await withAdapter({
+          databaseName,
+          collectionName,
+          version: 3, // bump again to trigger upgrade
+          preDrop: ['id'],
+        })
+        await expect(databaseAdapter.readIndex('id')).rejects.toThrow('does not exist')
+        await databaseAdapter.teardown()
+      }
     })
 
-    it('should not modify original items in IndexedDB persistence adapter', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      const originalItems = [{ id: '1', name: 'John' }]
-      await persistence.save([], { added: originalItems, removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
+    it('replace is a no-op when id not found; remove is a no-op when id not found', async () => {
+      const { adapter: databaseAdapter } = await withAdapter({ preIndex: ['id'] })
+      await databaseAdapter.insert([{ id: 1, name: 'John' }])
 
-      await collection.insert({ id: '2', name: 'Jane' })
-      await waitForEvent(collection, 'persistence.transmitted')
+      // id 999 is not present; exercises early-return branches in replace/remove
+      await databaseAdapter.replace([{ id: 999, name: 'Ghost' }])
+      await databaseAdapter.remove([{ id: 999 }])
 
-      expect(originalItems).toEqual([{ id: '1', name: 'John' }])
+      const items = await databaseAdapter.readAll()
+      expect(items).toEqual([{ id: 1, name: 'John' }])
+      await databaseAdapter.teardown()
     })
 
-    it('should handle multiple operations in order', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-
-      await collection.insert({ id: '1', name: 'John' })
-      await waitForEvent(collection, 'persistence.transmitted')
-      await collection.insert({ id: '2', name: 'Jane' })
-      await waitForEvent(collection, 'persistence.transmitted')
-      await collection.removeOne({ id: '1' })
-      await waitForEvent(collection, 'persistence.transmitted')
-
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '2', name: 'Jane' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
+    it('removeAll clears the store', async () => {
+      await adapter.insert([
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' },
+      ])
+      await adapter.removeAll()
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
     })
 
-    it('should persist data that was modified before persistence.init on client side', { retry: 5 }, async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await collection.insert({ id: '1', name: 'John' })
-      await collection.insert({ id: '2', name: 'Jane' })
-      await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-      await collection.removeOne({ id: '2' })
-      await waitForEvent(collection, 'persistence.init')
-
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
-    })
-
-    it('should not overwrite persisted data if items is undefined and changeSet is empty.', async () => {
-      const persistence = createIndexedDBAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'John' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
-    })
-
-    it('should use custom prefix when provided in options', async () => {
-      const collectionName = `test-${Math.floor(Math.random() * 1e17).toString(16)}`
-      const customPrefix = 'custom-prefix-'
-      const persistence = createIndexedDBAdapter(collectionName, { prefix: customPrefix })
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-
-      // Verify data was saved with the custom prefix by opening the database directly
-      const openRequest = indexedDB.open(`${customPrefix}${collectionName}`, 1)
-      const database = await new Promise<IDBDatabase>((resolve, reject) => {
-        openRequest.addEventListener('success', () => resolve(openRequest.result))
-        openRequest.addEventListener('error', () => reject(new Error('Failed to open database with custom prefix')))
-      })
-
-      const transaction = database.transaction('items', 'readonly')
-      const store = transaction.objectStore('items')
-      const getAllRequest = store.getAll()
-
-      const items = await new Promise<any[]>((resolve, reject) => {
-        getAllRequest.addEventListener('success', () => resolve(getAllRequest.result))
-        getAllRequest.addEventListener('error', () => reject(new Error('Failed to get items')))
-      })
-
-      expect(items).toEqual([{ id: '1', name: 'John' }])
-      database.close()
+    it('readPositions accepts an array of positions and returns [] when nothing was found', async () => {
+      // We do not know the generated keys; calling with a key that certainly does not exist
+      const result = await adapter.readPositions([123_456_789])
+      expect(result).toEqual([])
+      await adapter.teardown()
     })
   })
 })
