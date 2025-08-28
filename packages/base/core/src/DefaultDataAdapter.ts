@@ -467,6 +467,9 @@ export default class DefaultDataAdapter implements DataAdapter {
           selector,
           options,
         })
+        const emitter = this.queryEmitters.get(collection.name)
+        if (!emitter) throw new Error(`Query emitter not found for collection ${collection.name}`)
+        emitter.emit('change', selector, options, 'complete')
       },
       unregisterQuery: (selector, options) => {
         if (!this.activeQueries.get(collection.name)) return
