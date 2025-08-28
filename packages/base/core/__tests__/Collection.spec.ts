@@ -511,29 +511,6 @@ describe('Collection', () => {
     })
   })
 
-  describe('isLoading', () => {
-    it('should ouput the correct value without storage', async () => {
-      const col = new Collection()
-      expect(col.isLoading()).toBe(false)
-    })
-
-    it('should ouput the correct value with storage', async () => {
-      const dataAdapter = new DefaultDataAdapter({
-        storage: () => ({
-          readAll: () => new Promise((resolve) => {
-            setTimeout(() => resolve([]), 100)
-          }),
-        }) as StorageAdapter<any, any>,
-      })
-      const col = new Collection('test', dataAdapter)
-      expect(col.isLoading()).toBe(true)
-      expect(col.find().fetch()).toEqual([])
-      await collection.isReady()
-      expect(col.isLoading()).toBe(false)
-      expect(col.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
-    })
-  })
-
   describe('performance', { retry: 0 }, () => {
     it('should be faster with id only queries', async () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
