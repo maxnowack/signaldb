@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### BREAKING CHANGES
 
-* Removed compatibility with `@signaldb/core` versions below `2.0.0`
+* Switched to new `StorageAdapter` API.
+* Removed compatibility with `@signaldb/core` versions below `2.0.0`.
 
 ## [1.1.0] - 2025-05-08
 
