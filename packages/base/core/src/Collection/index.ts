@@ -382,7 +382,6 @@ export default class Collection<
 
         return new Promise<T[]>((resolve, reject) => {
           this.isPullingSignal.set(true)
-          this.backend.registerQuery(selector, options)
           const cleanup = this.backend.onQueryStateChange(
             selector,
             options,
@@ -396,6 +395,7 @@ export default class Collection<
               }
             },
           )
+          this.backend.registerQuery(selector, options)
         }).finally(() => {
           this.isPullingSignal.set(false)
           this.backend.unregisterQuery(selector, options)
@@ -422,7 +422,7 @@ export default class Collection<
    * @returns A promise that resolves when the collection is disposed.
    */
   public async dispose() {
-    await this.withPushState(() => this.backend.dispose())
+    await this.backend.dispose()
     this.isDisposed = true
     this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
@@ -643,9 +643,10 @@ export default class Collection<
             ...restModifier.$set,
           },
         })
-        return [await this.insert(newItem as T)]
+        await this.insert(newItem as T)
+        return 1
       }
-      return [] // no item found, and upsert is not enabled
+      return 0 // no item found, and upsert is not enabled
     }
 
     const modifiedItem = modify(deepClone(item), restModifier)
@@ -726,7 +727,8 @@ export default class Collection<
     const item = await this.getItem<true>(selector, { async: true })
     if (item == null) {
       if (options?.upsert) {
-        return [await this.insert(replacement as T)]
+        await this.insert(replacement as T)
+        return 1
       }
       return 0 // no item found, and upsert is not enabled
     }
