@@ -66,16 +66,15 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
 
 /**
  * Optimizes a logic gate ($and/$or) of selectors by querying multiple index providers.
- * Calls a callback with matched positions for each selector that matches.
  * @param queryFunctions - An array of index providers to query.
  * @param logicGate - An array of selectors representing the logic gate.
- * @param matchedPositionsCallback - A callback function called with matched positions for each selector that matches.
+ * @param positionsCallback - A callback function called with matched positions.
  * @returns An array of optimized selectors or a promise that resolves to such an array.
  */
 function optimizeLogicGate<T extends BaseItem<I> = BaseItem, I = any>(
   queryFunctions: (SynchronousQueryFunction<T> | AsynchronousQueryFunction<T>)[],
   logicGate: Selector<T>[],
-  matchedPositionsCallback: (positions: number[]) => void,
+  positionsCallback: (matched: boolean, positions: number[]) => void,
 ): Selector<T>[] | Promise<Selector<T>[]> {
   return logicGate.reduce((memoOrPromise, sel) => {
     const getSelector = (indexInfo: IndexInfo<T, I>) => {
@@ -85,11 +84,12 @@ function optimizeLogicGate<T extends BaseItem<I> = BaseItem, I = any>(
         optimizedSelector,
       } = indexInfo
       if (selMatched) {
-        matchedPositionsCallback(selPositions)
+        positionsCallback(true, selPositions)
         if (Object.keys(optimizedSelector).length > 0) {
           return optimizedSelector
         }
       } else {
+        positionsCallback(false, [])
         return sel
       }
     }
@@ -153,7 +153,8 @@ export default function getIndexInfo<
     let { matched, positions } = flatInfo
     const newSelector: Selector<T> = flatInfo.optimizedSelector
     const $andNewOrPromise = Array.isArray($and)
-      ? optimizeLogicGate(queryFunctions, $and, (selPositions) => {
+      ? optimizeLogicGate(queryFunctions, $and, (match, selPositions) => {
+        if (!match) return
         positions = matched ? intersection(positions, selPositions) : selPositions
         matched = true
       })
@@ -161,8 +162,17 @@ export default function getIndexInfo<
     const process$and = ($andNew: Selector<T>[] | undefined) => {
       if ($andNew && $andNew.length > 0) newSelector.$and = $andNew
 
+      let hasNonIndexField = false
+      const matchedBefore = matched
+      const positionsBefore = positions
       const process$or = ($orNew: Selector<T>[] | undefined) => {
         if ($orNew && $orNew.length > 0) newSelector.$or = $orNew
+
+        if (hasNonIndexField) { // if there was a non-indexed field, we can't optimize the $or away
+          newSelector.$or = $or
+          matched = matchedBefore
+          positions = positionsBefore
+        }
 
         return {
           matched,
@@ -172,9 +182,13 @@ export default function getIndexInfo<
       }
 
       const $orNewOrPromise = Array.isArray($or)
-        ? optimizeLogicGate(queryFunctions, $or, (selPositions) => {
-          positions = [...new Set([...positions, ...selPositions])]
-          matched = true
+        ? optimizeLogicGate(queryFunctions, $or, (match, selPositions) => {
+          if (match) {
+            positions = [...new Set([...positions, ...selPositions])]
+            matched = true
+          } else {
+            hasNonIndexField = true
+          }
         })
         : undefined
       if ($orNewOrPromise instanceof Promise) {
