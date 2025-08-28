@@ -1113,18 +1113,12 @@ it('should start sync after internal collections are ready', async () => {
 
   let persistenceInitialized = false
   void Promise.all([
-    new Promise((resolve) => {
-      // @ts-expect-error - private property
-      syncManager.syncOperations.once('persistence.init', resolve)
-    }),
-    new Promise((resolve) => {
-      // @ts-expect-error - private property
-      syncManager.changes.once('persistence.init', resolve)
-    }),
-    new Promise((resolve) => {
-      // @ts-expect-error - private property
-      syncManager.snapshots.once('persistence.init', resolve)
-    }),
+    // @ts-expect-error - private property
+    syncManager.syncOperations.isReady(),
+    // @ts-expect-error - private property
+    syncManager.changes.isReady(),
+    // @ts-expect-error - private property
+    syncManager.snapshots.isReady(),
   ]).then(() => {
     persistenceInitialized = true
   })
