@@ -21,7 +21,7 @@ interface WorkerContext {
 
 interface WorkerDataAdapterHostOptions {
   id?: string,
-  storage: (name: string) => StorageAdapter<any, any>, // TODO: instroduce new storage adapter
+  storage: (name: string) => StorageAdapter<any, any>,
   onError?: (error: Error) => void,
 }
 
@@ -341,7 +341,6 @@ export default class WorkerDataAdapterHost<
   protected registerCollection: CollectionMethods<T, I>['registerCollection'] = async (collectionName, indices) => {
     this.collectionIndices.set(collectionName, indices)
     this.queries.set(collectionName, new Map())
-    // TODO: what to do with indices?
     this.ensureStorageAdapter(collectionName)
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
