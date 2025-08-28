@@ -466,34 +466,19 @@ describe('Cursor', async () => {
     })
 
     it('should requery only once after batch operation', async () => {
-      const depCreation = vi.fn()
-      const dep = vi.fn()
       const notify = vi.fn()
-      const scopeCheck = vi.fn()
 
-      const reactivity = createReactivityAdapter({
-        create() {
-          depCreation()
-          return {
-            depend() {
-              dep()
-            },
-            notify() {
-              notify()
-            },
-          }
-        },
-        isInScope() {
-          scopeCheck()
-          return true
-        },
-      })
-      const collection2 = new Collection<{ id: string, name: string }>({
-        reactivity,
-      })
+      const collection2 = new Collection<{ id: string, name: string }>()
       const cursor = collection2.find({})
       const result = cursor.fetch()
       expect(result).toHaveLength(0)
+      expect(notify).toHaveBeenCalledTimes(0)
+
+      const stopObserving = cursor.observeChanges({
+        added: () => notify(),
+        changed: () => notify(),
+        removed: () => notify(),
+      }, true)
 
       await collection2.batch(async () => {
         // create items
@@ -503,6 +488,7 @@ describe('Cursor', async () => {
         }
       })
       expect(notify).toHaveBeenCalled()
+      stopObserving()
     })
   })
 })
