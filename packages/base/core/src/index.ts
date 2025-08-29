@@ -26,6 +26,7 @@ export { default as modify } from './utils/modify'
 export { default as randomId } from './utils/randomId'
 export { default as EventEmitter } from './utils/EventEmitter'
 export { default as get } from './utils/get'
+export { default as serializeValue } from './utils/serializeValue'
 
 export { default as DefaultDataAdapter } from './DefaultDataAdapter'
 export { default as WorkerDataAdapter } from './WorkerDataAdapter'
