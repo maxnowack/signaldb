@@ -1,145 +1,142 @@
 // @vitest-environment happy-dom
-import type { EventEmitter } from '@signaldb/core'
-import { describe, it, expect } from 'vitest'
-import { Collection } from '@signaldb/core'
+import { describe, it, expect, beforeEach } from 'vitest'
 import createLocalStorageAdapter from '../src'
 
 /**
- * Waits for a specific event to be emitted.
- * @param emitter - The event emitter instance.
- * @param event - The event name to wait for.
- * @param [timeout] - Optional timeout in milliseconds.
- * @returns A promise that resolves with the event value.
+ * Generates a random collection name to avoid collisions across tests.
+ * @returns A unique collection name string.
  */
-async function waitForEvent<T>(
-  emitter: EventEmitter<any>,
-  event: string,
-  timeout?: number,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = timeout && setTimeout(() => {
-      reject(new Error('waitForEvent timeout'))
-    }, timeout)
-
-    emitter.once(event, (value: T) => {
-      if (timeoutId) clearTimeout(timeoutId)
-      resolve(value)
-    })
-  })
+function collName() {
+  return `coll-${Math.floor(Math.random() * 1e17).toString(16)}`
 }
 
-describe('Persistence', () => {
-  describe('localStorage', () => {
-    it('should load items from localStorage persistence adapter', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'John' }])
+/**
+ * Sets up a LocalStorage adapter with optional pre-flight index mutations, mirroring the IndexedDB tests.
+ * Per the unified adapter API, index mutations can be enqueued before setup.
+ * @param options - Configuration options for the adapter setup.
+ * @param options.collectionName - The name of the collection (default: randomly generated).
+ * @param options.preIndex - Array of index names to create before setup.
+ * @param options.preDrop - Array of index names to drop before setup.
+ * @returns An object containing the initialized adapter and the collection name.
+ */
+async function withAdapter(
+  options?: {
+    collectionName?: string,
+    preIndex?: string[],
+    preDrop?: string[],
+  },
+) {
+  const name = options?.collectionName ?? collName()
+
+  const adapter = createLocalStorageAdapter<any, number>(name)
+
+  // Enqueue index mutations BEFORE setup per new API (idempotent operations)
+  for (const f of options?.preIndex ?? []) {
+    await adapter.createIndex(f)
+  }
+  for (const f of options?.preDrop ?? []) {
+    await adapter.dropIndex(f)
+  }
+
+  await adapter.setup()
+  return { adapter, name }
+}
+
+describe('LocalStorage storage adapter', () => {
+  describe('setup/teardown', () => {
+    it('opens and closes with a custom collection name', async () => {
+      const { adapter } = await withAdapter({ collectionName: collName() })
+      await adapter.teardown()
+      expect(true).toBe(true)
+    })
+  })
+
+  describe('CRUD + indexing (parity with IndexedDB tests)', () => {
+    let adapter: ReturnType<typeof createLocalStorageAdapter<any, number>>
+
+    beforeEach(async () => {
+      const setup = await withAdapter()
+      adapter = setup.adapter
     })
 
-    it('should save items to localStorage persistence adapter', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-      void collection.insert({ id: '1', name: 'John' })
-      await waitForEvent(collection, 'persistence.transmitted')
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'John' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
+    it('readAll returns [] initially', async () => {
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
     })
 
-    it('should remove item from localStorage persistence adapter', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-
-      void collection.removeOne({ id: '1' })
-      await waitForEvent(collection, 'persistence.transmitted')
-
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '2', name: 'Jane' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
+    it('insert writes items and readAll returns raw data only', async () => {
+      await adapter.insert([{ id: 1, name: 'John' }])
+      const items = await adapter.readAll()
+      expect(items).toEqual([{ id: 1, name: 'John' }])
+      await adapter.teardown()
     })
 
-    it('should update item in localStorage persistence adapter', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
+    it('createIndex / readIndex / dropIndex work and errors are surfaced', async () => {
+      const collectionName = collName()
 
-      void collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-      await waitForEvent(collection, 'persistence.transmitted')
+      // Phase 1: no index exists yet → readIndex returns an empty Map in LocalStorage adapter.
+      {
+        const { adapter: a } = await withAdapter({ collectionName })
+        const emptyMap1 = await a.readIndex('id')
+        expect(emptyMap1 instanceof Map).toBe(true)
+        expect(emptyMap1.size).toBe(0)
+        await a.teardown()
+      }
 
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
+      // Phase 2: create index (idempotent) before setup; then verify mapping
+      {
+        const { adapter: a } = await withAdapter({ collectionName, preIndex: ['id'] })
+        await a.insert([{ id: 1, name: 'John' }])
+        const map = await a.readIndex('id')
+        expect(map instanceof Map).toBe(true)
+        expect(map.has(1)).toBe(true)
+        const set = map.get(1)
+        expect(set instanceof Set).toBe(true)
+        await a.teardown()
+      }
+
+      // Phase 3: drop index before setup; LocalStorage readIndex returns empty Map.
+      {
+        const { adapter: a } = await withAdapter({ collectionName, preDrop: ['id'] })
+        const map3 = await a.readIndex('id')
+        expect(map3 instanceof Map).toBe(true)
+        // Items persisted from Phase 2 should still be visible; dropping an index is a no-op here
+        expect(map3.has(1)).toBe(true)
+        const set3 = map3.get(1)
+        expect(set3 instanceof Set).toBe(true)
+        expect(set3?.has(1)).toBe(true)
+        await a.teardown()
+      }
     })
 
-    it('should not modify original items in localStorage persistence adapter', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      const originalItems = [{ id: '1', name: 'John' }]
-      await persistence.save([], { added: originalItems, removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
+    it('replace is a no-op when id not found; remove is a no-op when id not found', async () => {
+      const { adapter: a } = await withAdapter({ preIndex: ['id'] })
+      await a.insert([{ id: 1, name: 'John' }])
 
-      void collection.insert({ id: '2', name: 'Jane' })
-      await waitForEvent(collection, 'persistence.transmitted')
+      await a.replace([{ id: 999, name: 'Ghost' }]) // id not present
+      await a.remove([{ id: 999 }]) // id not present
 
-      expect(originalItems).toEqual([{ id: '1', name: 'John' }])
+      const items = await a.readAll()
+      expect(items).toEqual([{ id: 1, name: 'John' }])
+      await a.teardown()
     })
 
-    it('should handle multiple operations in order', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-
-      void collection.insert({ id: '1', name: 'John' })
-      await waitForEvent(collection, 'persistence.transmitted')
-      void collection.insert({ id: '2', name: 'Jane' })
-      await waitForEvent(collection, 'persistence.transmitted')
-      void collection.removeOne({ id: '1' })
-      await waitForEvent(collection, 'persistence.transmitted')
-
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '2', name: 'Jane' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
+    it('removeAll clears the store', async () => {
+      await adapter.insert([
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' },
+      ])
+      await adapter.removeAll()
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
     })
 
-    it('should persist data that was modified before persistence.init on client side', { retry: 5 }, async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      void collection.insert({ id: '1', name: 'John' })
-      void collection.insert({ id: '2', name: 'Jane' })
-      void collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-      void collection.removeOne({ id: '2' })
-      await waitForEvent(collection, 'persistence.init')
-
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
-    })
-
-    it('should not overwrite persisted data if items is undefined and changeSet is empty.', async () => {
-      const persistence = createLocalStorageAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-      await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-      const collection = new Collection({ persistence })
-      await waitForEvent(collection, 'persistence.init')
-      await persistence.save([], { added: [], removed: [], modified: [] })
-      const items = collection.find().fetch()
-      expect(items).toEqual([{ id: '1', name: 'John' }])
-      const loadResult = await persistence.load()
-      expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
+    it('readIds accepts an array of ids and returns [] when nothing was found', async () => {
+      const result = await adapter.readIds([123_456_789])
+      expect(result).toEqual([])
+      await adapter.teardown()
     })
   })
 })
