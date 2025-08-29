@@ -1,13 +1,13 @@
 import type { BaseItem } from '../Collection'
 import type { FlatSelector } from './Selector'
 
-export type IndexResult = {
-  positions: number[],
+export type IndexResult<IdType> = {
+  ids: IdType[],
   fields: string[],
   keepSelector?: boolean,
   matched: true,
 } | {
-  positions?: never,
+  ids?: never,
   fields?: never,
   keepSelector?: never,
   matched: false,
@@ -15,11 +15,11 @@ export type IndexResult = {
 
 export type SynchronousQueryFunction<T extends BaseItem<I> = BaseItem, I = any> = (
   selector: FlatSelector<T>,
-) => IndexResult
+) => IndexResult<I>
 
 export type AsynchronousQueryFunction<T extends BaseItem<I> = BaseItem, I = any> = (
   selector: FlatSelector<T>,
-) => Promise<IndexResult>
+) => Promise<IndexResult<I>>
 
 interface IndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
   query: SynchronousQueryFunction<T, I>,
@@ -30,7 +30,7 @@ export type LowLevelIndexProvider<
   T extends BaseItem<I> = BaseItem,
   I = any,
 > = IndexProvider<T, I> & {
-  _index: Map<string, Set<number>>,
+  _index: Map<string, Set<I>>,
 }
 
 export default IndexProvider
