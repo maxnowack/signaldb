@@ -184,7 +184,6 @@ export default function createFilesystemAdapter<
       if (!exists) return []
 
       const items = await Promise.all(ids.map(async (id) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const itemFile = path.join(itemsFolder, sharded(id))
         const itemExists = await fs.access(itemFile).then(() => true).catch(() => false)
         if (!itemExists) return null
