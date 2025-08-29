@@ -13,7 +13,7 @@ import type { BaseItem } from './types'
  */
 export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
   field: string,
-  index: Map<string | undefined | null, Set<number>>,
+  index: Map<string | undefined | null, Set<I>>,
 ) {
   return createIndexProvider<T, I>({
     query(selector) {
@@ -30,11 +30,11 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
       if (keys.include == null && keys.exclude == null) return { matched: false }
 
       // Accumulate included positions
-      let includedPositions: number[] = []
+      let includedIds: I[] = []
       if (keys.include == null) {
         for (const set of index.values()) {
           for (const pos of set) {
-            includedPositions.push(pos)
+            includedIds.push(pos)
           }
         }
       } else {
@@ -42,7 +42,7 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
           const posSet = index.get(key)
           if (posSet) {
             for (const pos of posSet) {
-              includedPositions.push(pos)
+              includedIds.push(pos)
             }
           }
         }
@@ -50,22 +50,22 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
 
       // If exclusion is specified, build a single set of all positions to exclude.
       if (keys.exclude != null) {
-        const excludeSet = new Set<number>()
+        const excludeIds = new Set<I>()
         for (const key of keys.exclude) {
           const posSet = index.get(key)
           if (posSet) {
             for (const pos of posSet) {
-              excludeSet.add(pos)
+              excludeIds.add(pos)
             }
           }
         }
         // Filter out any position that exists in the exclude set.
-        includedPositions = includedPositions.filter(pos => !excludeSet.has(pos))
+        includedIds = includedIds.filter(pos => !excludeIds.has(pos))
       }
 
       return {
         matched: true,
-        positions: includedPositions,
+        ids: includedIds,
         fields: [field],
         keepSelector: filteresForNull,
       }
@@ -82,15 +82,15 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
  * @returns an index provider to pass to the `indices` option of the collection constructor
  */
 export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(field: string) {
-  const index = new Map<string | undefined | null, Set<number>>()
+  const index = new Map<string | undefined | null, Set<I>>()
   return {
     ...createExternalIndex<T, I>(field, index),
     rebuild(items) {
       index.clear()
-      items.forEach((item, i) => {
+      items.forEach((item) => {
         const value = serializeValue(get(item, field))
-        const current = index.get(value) || new Set<number>()
-        current.add(i)
+        const current = index.get(value) || new Set<I>()
+        current.add(item.id)
         index.set(value, current)
       })
     },

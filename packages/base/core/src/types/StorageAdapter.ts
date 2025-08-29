@@ -11,12 +11,12 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
 
   // data retrieval methods
   readAll(): Promise<T[]>,
-  readPositions(positions: number[]): Promise<T[]>,
+  readIds(positions: I[]): Promise<T[]>,
 
   // index methods
   createIndex(field: string): Promise<void>,
   dropIndex(field: string): Promise<void>,
-  readIndex(field: string): Promise<Map<any, Set<number>>>,
+  readIndex(field: string): Promise<Map<any, Set<I>>>,
 
   // data manipulation methods
   insert(items: T[]): Promise<void>,
