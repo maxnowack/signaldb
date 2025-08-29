@@ -17,7 +17,7 @@ import type { BaseItem, FieldSpecifier, FindOptions, Transform, TransformAll } f
 export type { BaseItem, Transform, TransformAll, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
-export { default as createIndex } from './createIndex'
+export { default as createIndex } from '../createIndex'
 
 export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem = T, U = E> {
   /**
