@@ -1,8 +1,8 @@
-import type { AsynchronousQueryFunction, IndexResult, SynchronousQueryFunction } from '../types/IndexProvider'
-import type { FlatSelector } from '../types/Selector'
-import type Selector from '../types/Selector'
-import intersection from '../utils/intersection'
-import type { BaseItem } from './types'
+import type { AsynchronousQueryFunction, IndexResult, SynchronousQueryFunction } from './types/IndexProvider'
+import type { FlatSelector } from './types/Selector'
+import type Selector from './types/Selector'
+import intersection from './utils/intersection'
+import type { BaseItem } from './Collection/types'
 
 type IndexInfo<
   T extends BaseItem<I> = BaseItem,
