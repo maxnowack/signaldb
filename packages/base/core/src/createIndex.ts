@@ -1,20 +1,16 @@
-import createIndexProvider from '../createIndexProvider'
-import type IndexProvider from '../types/IndexProvider'
-import get from '../utils/get'
-import getMatchingKeys from '../utils/getMatchingKeys'
-import serializeValue from '../utils/serializeValue'
-import type { BaseItem } from './types'
+import createIndexProvider from './createIndexProvider'
+import get from './utils/get'
+import getMatchingKeys from './utils/getMatchingKeys'
+import serializeValue from './utils/serializeValue'
+import type { BaseItem } from './Collection/types'
 
 /**
- * creates an index for a specific field but uses an external map to store the index
+ * creates an index for a specific field
  * @param field name of the field
- * @param index the external map to use for the index
  * @returns an index provider to pass to the `indices` option of the collection constructor
  */
-export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
-  field: string,
-  index: Map<string | undefined | null, Set<I>>,
-) {
+export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(field: string) {
+  const index = new Map<string | undefined | null, Set<I>>()
   return createIndexProvider<T, I>({
     query(selector) {
       if (!Object.hasOwnProperty.call(selector, field)) {
@@ -70,21 +66,6 @@ export function createExternalIndex<T extends BaseItem<I> = BaseItem, I = any>(
         keepSelector: filteresForNull,
       }
     },
-    rebuild() {
-      // rebuilding is done externally
-    },
-  })
-}
-
-/**
- * creates an index for a specific field
- * @param field name of the field
- * @returns an index provider to pass to the `indices` option of the collection constructor
- */
-export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(field: string) {
-  const index = new Map<string | undefined | null, Set<I>>()
-  return {
-    ...createExternalIndex<T, I>(field, index),
     rebuild(items) {
       index.clear()
       items.forEach((item) => {
@@ -94,5 +75,5 @@ export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(f
         index.set(value, current)
       })
     },
-  } as IndexProvider<T, I>
+  })
 }
