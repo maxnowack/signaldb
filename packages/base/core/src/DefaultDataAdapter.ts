@@ -1,6 +1,6 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
-import createIndex, { createExternalIndex } from './Collection/createIndex'
+import createIndex from './Collection/createIndex'
 import getIndexInfo from './Collection/getIndexInfo'
 import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
@@ -37,12 +37,11 @@ interface DefaultDataAdapterOptions {
 }
 
 export default class DefaultDataAdapter implements DataAdapter {
-  private items: Map<string, BaseItem[]> = new Map()
+  private items: Map<string, Map<string | null, BaseItem>> = new Map()
   private options: DefaultDataAdapterOptions
   private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
 
   private indicesOutdated: Map<string, boolean> = new Map()
-  private idIndices: Map<string, Map<string | undefined | null, Set<number>>> = new Map()
   private indices: Map<
     string,
     (IndexProvider<any, any> | LowLevelIndexProvider<any, any>)[]
@@ -78,19 +77,12 @@ export default class DefaultDataAdapter implements DataAdapter {
   private rebuildIndicesNow<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection: Collection<T, I, E, U>,
   ) {
-    const idIndices = this.idIndices.get(collection.name)
-    if (!idIndices) throw new Error(`ID index not found for collection ${collection.name}`)
     const items = this.items.get(collection.name)
     if (!items) throw new Error(`Items not found for collection ${collection.name}`)
     const indices = this.indices.get(collection.name)
     if (!indices) throw new Error(`Indices not found for collection ${collection.name}`)
 
-    idIndices.clear()
-    idIndices.clear()
-    items.forEach((item, index) => {
-      idIndices.set(serializeValue(item.id), new Set([index]))
-    })
-    indices.forEach(index => index.rebuild(items))
+    indices.forEach(index => index.rebuild([...items.values()]))
     this.indicesOutdated.set(collection.name, false)
   }
 
@@ -116,7 +108,10 @@ export default class DefaultDataAdapter implements DataAdapter {
     return storageAdapter.setup()
       .then(async () => {
         const items: T[] = await storageAdapter.readAll()
-        this.items.set(collection.name, [...items])
+        this.items.set(collection.name, items.reduce((map, item) => {
+          map.set(serializeValue(item.id), item)
+          return map
+        }, new Map<string | null, T>()))
         this.indicesOutdated.set(collection.name, true)
         this.rebuildIndicesIfOutdated(collection)
       })
@@ -143,7 +138,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       && typeof selector.id !== 'object') {
       return {
         matched: true,
-        positions: [...this.idIndices.get(collection.name)?.get(serializeValue(selector.id)) ?? []],
+        ids: [serializeValue(selector.id)],
         optimizedSelector: {},
       }
     }
@@ -151,7 +146,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     if (selector == null) {
       return {
         matched: false,
-        positions: [],
+        ids: [],
         optimizedSelector: {},
       }
     }
@@ -159,7 +154,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     if (this.indicesOutdated.get(collection.name)) {
       return {
         matched: false,
-        positions: [],
+        ids: [],
         optimizedSelector: selector,
       }
     }
@@ -170,39 +165,17 @@ export default class DefaultDataAdapter implements DataAdapter {
     )
   }
 
-  private getItemAndIndex<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+  private getItem<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection: Collection<T, I, E, U>,
     selector: Selector<T>,
   ) {
-    const memory = this.items.get(collection.name) ?? []
+    const memory = this.items.get(collection.name) ?? new Map<string | null, T>()
     const indexInfo = this.getIndexInfo(collection, selector)
     const items = indexInfo.matched
-      ? indexInfo.positions.map(index => memory[index])
-      : memory
+      ? indexInfo.ids.map(id => memory.get(serializeValue(id)) as T).filter(i => i != null)
+      : [...memory.values()]
     const item = items.find(document => match(document, selector)) as T
-    const foundInIndex = indexInfo.matched
-      && indexInfo.positions.find(itemIndex => memory[itemIndex] === item)
-    const index = foundInIndex
-      || memory.findIndex(document => document === item)
-    if (item == null) return { item: null, index: -1 }
-    if (index === -1) throw new Error('Cannot resolve index for item')
-    return { item, index }
-  }
-
-  private deleteFromIdIndex<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
-    collection: Collection<T, I, E, U>,
-    id: I,
-    index: number,
-  ) {
-    this.idIndices.get(collection.name)?.delete(serializeValue(id))
-
-    // offset all indices after the deleted item -1, but only during batch operations
-    if (!collection.isBatchOperationInProgress()) return
-    this.idIndices.get(collection.name)?.forEach(([currenIndex], key) => {
-      if (currenIndex > index) {
-        this.idIndices.get(collection.name)?.set(key, new Set([currenIndex - 1]))
-      }
-    })
+    return item
   }
 
   private queryItems<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -217,15 +190,16 @@ export default class DefaultDataAdapter implements DataAdapter {
       return matches
     }
 
-    const items = this.items.get(collection.name) as T[]
+    const items = this.items.get(collection.name) as Map<string | null, T>
 
     // no index available, use complete memory
     if (!indexInfo.matched) {
-      if (isEqual(selector, {})) return items
-      return items.filter(matchItems)
+      if (isEqual(selector, {})) return [...items.values()]
+      return [...items.values()].filter(matchItems)
     }
 
-    const foundItems = indexInfo.positions.map(index => items[index])
+    const foundItems = indexInfo.ids.map(ids =>
+      items.get(serializeValue(ids)) as T).filter(i => i != null)
     if (isEqual(indexInfo.optimizedSelector, {})) return foundItems
     return foundItems.filter(matchItems)
   }
@@ -287,7 +261,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     indices: string[] = [],
   ): CollectionBackend<T, I> {
     this.ensureStorageAdapter(collection.name)
-    this.items.set(collection.name, this.items.get(collection.name) ?? [])
+    this.items.set(collection.name, this.items.get(collection.name) ?? new Map<string | null, T>())
     this.queryEmitters.set(
       collection.name,
       this.queryEmitters.get(collection.name) ?? new EventEmitter<{
@@ -302,14 +276,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       }>(),
     )
 
-    this.idIndices.set(
-      collection.name,
-      this.idIndices.get(collection.name) || new Map<string | undefined | null, Set<number>>(),
-    )
-    this.indices.set(collection.name, [
-      createExternalIndex('id', this.idIndices.get(collection.name) as Map<string | undefined | null, Set<number>>),
-      ...indices.map(field => createIndex(field)),
-    ])
+    this.indices.set(collection.name, indices.map(field => createIndex(field)))
 
     this.rebuildIndicesIfOutdated(collection)
 
@@ -318,17 +285,13 @@ export default class DefaultDataAdapter implements DataAdapter {
     const backend: CollectionBackend<T, I> = {
       // CRUD operations
       insert: async (newItem) => {
-        if (this.idIndices.get(collection.name)?.has(serializeValue(newItem.id))) {
+        const items = this.items.get(collection.name)
+        if (!items) throw new Error(`Items not found for collection ${collection.name}`)
+        if (items.has(serializeValue(newItem.id))) {
           throw new Error(`Item with id '${newItem.id as string}' already exists`)
         }
-        this.items.get(collection.name)?.push(newItem)
+        this.items.get(collection.name)?.set(serializeValue(newItem.id), newItem)
         await this.storageAdapters.get(collection.name)?.insert([newItem])
-        const itemIndex = this.items.get(collection.name)
-          ?.findIndex(document => document === newItem)
-        if (itemIndex != null) {
-          this.idIndices.get(collection.name)
-            ?.set(serializeValue(newItem.id), new Set([itemIndex]))
-        }
         this.rebuildIndicesIfOutdated(collection)
         this.updateQueries(collection, {
           added: [],
@@ -340,17 +303,17 @@ export default class DefaultDataAdapter implements DataAdapter {
       updateOne: async (selector, modifier) => {
         const { $setOnInsert, ...restModifier } = modifier
 
-        const { item, index } = this.getItemAndIndex(collection, selector)
+        const item = this.getItem(collection, selector)
         if (item == null) return [] // no item found
 
         const modifiedItem = modify(deepClone(item), restModifier)
         const hasItemWithSameId = item.id !== modifiedItem.id
-          && this.getItemAndIndex(collection, { id: modifiedItem.id } as Selector<T>).item != null
+          && this.getItem(collection, { id: modifiedItem.id } as Selector<T>) != null
         if (hasItemWithSameId) {
           throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
         }
 
-        this.items.get(collection.name)?.splice(index, 1, modifiedItem)
+        this.items.get(collection.name)?.set(serializeValue(modifiedItem.id), modifiedItem)
         await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
         this.rebuildIndicesIfOutdated(collection)
 
@@ -365,28 +328,22 @@ export default class DefaultDataAdapter implements DataAdapter {
         const { $setOnInsert, ...restModifier } = modifier
         const items = backend.getQueryResult(selector)
 
-        const changes = items.map((item) => {
-          const { index } = this.getItemAndIndex(collection, { id: item.id } as Selector<T>)
-          if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
+        const changedItems = items.map((item) => {
           const modifiedItem = modify(deepClone(item), restModifier)
           const hasItemWithSameId = item.id !== modifiedItem.id
-            && this.getItemAndIndex(collection, { id: modifiedItem.id } as Selector<T>).item != null
+            && this.getItem(collection, { id: modifiedItem.id } as Selector<T>) != null
           if (hasItemWithSameId) {
             throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
           }
 
-          return {
-            item: modifiedItem,
-            index,
-          }
+          return modifiedItem
         })
-        changes.forEach(({ item, index }) => {
-          this.items.get(collection.name)?.splice(index, 1, item)
+        changedItems.forEach((item) => {
+          this.items.get(collection.name)?.set(serializeValue(item.id), item)
         })
-        await this.storageAdapters.get(collection.name)?.replace(changes.map(({ item }) => item))
+        await this.storageAdapters.get(collection.name)?.replace(changedItems)
 
         this.rebuildIndicesIfOutdated(collection)
-        const changedItems = changes.map(({ item }) => item)
         this.updateQueries(collection, {
           added: [],
           modified: changedItems,
@@ -395,18 +352,18 @@ export default class DefaultDataAdapter implements DataAdapter {
         return changedItems
       },
       replaceOne: async (selector, replacement) => {
-        const { item, index } = this.getItemAndIndex(collection, selector)
+        const item = this.getItem(collection, selector)
         if (item == null) return [] // no item found
 
         const hasItemWithSameId = item.id !== replacement.id
           && replacement.id != null
-          && this.getItemAndIndex(collection, { id: replacement.id } as Selector<T>).item != null
+          && this.getItem(collection, { id: replacement.id } as Selector<T>) != null
         if (hasItemWithSameId) {
           throw new Error(`Item with id '${replacement.id as string}' already exists`)
         }
         const modifiedItem = { id: item.id, ...replacement } as T
 
-        this.items.get(collection.name)?.splice(index, 1, modifiedItem)
+        this.items.get(collection.name)?.set(serializeValue(modifiedItem.id), modifiedItem)
         await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
 
         this.rebuildIndicesIfOutdated(collection)
@@ -419,12 +376,11 @@ export default class DefaultDataAdapter implements DataAdapter {
         return [modifiedItem]
       },
       removeOne: async (selector) => {
-        const { item, index } = this.getItemAndIndex(collection, selector)
+        const item = this.getItem(collection, selector)
         if (item == null) return [] // no item found
-        this.items.get(collection.name)?.splice(index, 1)
+        this.items.get(collection.name)?.delete(serializeValue(item.id))
         await this.storageAdapters.get(collection.name)?.remove([item])
 
-        this.deleteFromIdIndex(collection, item.id, index)
         this.rebuildIndicesIfOutdated(collection)
         this.updateQueries(collection, {
           added: [],
@@ -437,11 +393,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         const items = backend.getQueryResult(selector)
 
         items.forEach((item) => {
-          const index = this.items.get(collection.name)
-            ?.findIndex(document => document === item) ?? -1
-          if (index === -1) throw new Error(`Cannot resolve index for item with id '${item.id as string}'`)
-          this.items.get(collection.name)?.splice(index, 1)
-          this.deleteFromIdIndex(collection, item.id, index)
+          this.items.get(collection.name)?.delete(serializeValue(item.id))
           this.rebuildIndicesIfOutdated(collection)
         })
         await this.storageAdapters.get(collection.name)?.remove(items)
@@ -518,7 +470,6 @@ export default class DefaultDataAdapter implements DataAdapter {
         this.storageAdapters.delete(collection.name)
         this.items.delete(collection.name)
         this.indicesOutdated.delete(collection.name)
-        this.idIndices.delete(collection.name)
         this.indices.delete(collection.name)
         this.activeQueries.delete(collection.name)
         this.queryEmitters.delete(collection.name)
