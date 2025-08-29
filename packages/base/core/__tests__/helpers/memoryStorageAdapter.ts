@@ -35,8 +35,22 @@ export default function memoryStorageAdapter<
   delay?: number,
 ) {
   // not really a "persistence adapter", but it works for testing
-  let items = [...initialData]
-  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<number>>>()
+  let items = new Map<I, T>()
+  initialData.forEach(item => items.set(item.id, item))
+  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<I>>>()
+
+  const rebuildIndexes = () => {
+    indexes.forEach((index, field) => {
+      items.forEach((item) => {
+        index.clear()
+        const fieldValue = item[field]
+        if (!index.has(fieldValue)) {
+          index.set(fieldValue, new Set())
+        }
+        index.get(fieldValue)?.add(item.id)
+      })
+    })
+  }
 
   return createStorageAdapter<T, I>({
     setup: () => Promise.resolve(),
@@ -46,17 +60,22 @@ export default function memoryStorageAdapter<
       if (delay != null) await new Promise((resolve) => {
         setTimeout(resolve, delay)
       })
-      return items
+      return [...items.values()]
     },
-    readPositions: positions => Promise.resolve(
-      items.filter((_item, index) => positions.includes(index)),
-    ),
+    readIds: (ids) => {
+      const result: T[] = []
+      ids.forEach((id) => {
+        const item = items.get(id)
+        if (item) result.push(item)
+      })
+      return Promise.resolve(result)
+    },
 
     createIndex: (field) => {
       if (indexes.has(field)) {
         throw new Error(`Index on field "${field}" already exists`)
       }
-      const index = new Map<T[keyof T & string], Set<number>>()
+      const index = new Map<T[keyof T & string], Set<I>>()
       indexes.set(field, index)
       return Promise.resolve()
     },
@@ -73,23 +92,26 @@ export default function memoryStorageAdapter<
     },
 
     insert: (newItems) => {
-      items.push(...newItems)
+      newItems.forEach((item) => {
+        items.set(item.id, item)
+      })
+      rebuildIndexes()
       return Promise.resolve()
     },
     replace: (newItems) => {
-      items = items.map((item) => {
-        const newItem = newItems.find(i => i.id === item.id)
-        return newItem || item
+      newItems.forEach((item) => {
+        items.set(item.id, item)
       })
       return Promise.resolve()
     },
     remove: (itemsToRemove) => {
-      const idsToRemove = new Set(itemsToRemove.map(i => i.id))
-      items = items.filter(item => !idsToRemove.has(item.id))
+      itemsToRemove.forEach((item) => {
+        items.delete(item.id)
+      })
       return Promise.resolve()
     },
     removeAll: () => {
-      items = []
+      items = new Map()
       return Promise.resolve()
     },
   })
