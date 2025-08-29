@@ -59,7 +59,7 @@ async function withAdapter(
   return { adapter, name, databaseName }
 }
 
-describe('IndexedDB storage adapter (new API)', () => {
+describe('IndexedDB storage adapter', () => {
   describe('setup/teardown', () => {
     it('opens and closes with custom db & version even without upgrade logic', async () => {
       const { adapter } = await withAdapter({ version: 3 })
@@ -112,7 +112,7 @@ describe('IndexedDB storage adapter (new API)', () => {
           databaseName,
           collectionName,
           version: 2, // bump version to trigger upgrade
-          preIndex: ['id', 'id'], // idempotent create
+          preIndex: ['id'], // idempotent create
         })
         await databaseAdapter.insert([{ id: 1, name: 'John' }])
         const map = await databaseAdapter.readIndex('id')
@@ -162,7 +162,7 @@ describe('IndexedDB storage adapter (new API)', () => {
 
     it('readPositions accepts an array of positions and returns [] when nothing was found', async () => {
       // We do not know the generated keys; calling with a key that certainly does not exist
-      const result = await adapter.readPositions([123_456_789])
+      const result = await adapter.readIds([123_456_789])
       expect(result).toEqual([])
       await adapter.teardown()
     })

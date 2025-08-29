@@ -49,11 +49,6 @@ async function openDatabase(
   return databasePromise
 }
 
-type Item<T> = {
-  position: number,
-  data: T,
-}
-
 type IndexedDatabaseAdapterOptions = {
   databaseName?: string,
   version?: number,
@@ -95,19 +90,19 @@ export default function createIndexedDBAdapter<
     if (!store.indexNames.contains(field)) {
       throw new Error(`Index on field "${field}" does not exist`)
     }
-    return new Promise<Map<any, Set<number>>>((resolve, reject) => {
+    return new Promise<Map<any, Set<I>>>((resolve, reject) => {
       const index = store.index(field)
-      const result = new Map<any, Set<number>>()
+      const result = new Map<any, Set<I>>()
       const request = index.openCursor()
       request.addEventListener('success', () => {
         const cursor = request.result
         if (cursor) {
           const key = cursor.key as T[keyof T & string]
-          const position = (cursor.value as Item<T>).position
+          const id = (cursor.value as T).id
           if (!result.has(key)) {
             result.set(key, new Set())
           }
-          result.get(key)?.add(position)
+          result.get(key)?.add(id)
           cursor.continue()
         } else {
           resolve(result)
@@ -132,7 +127,7 @@ export default function createIndexedDBAdapter<
           // Ensure the object store exists; if not, create it within the same upgrade transaction
           if (!database.objectStoreNames.contains(storeName)) {
             database.createObjectStore(storeName, {
-              keyPath: 'position',
+              keyPath: 'id',
               autoIncrement: true,
             })
           }
@@ -145,7 +140,7 @@ export default function createIndexedDBAdapter<
 
           indexesToCreate.forEach((field) => {
             if (store.indexNames.contains(field)) return
-            store.createIndex(field, `data.${field}`, { unique: false })
+            store.createIndex(field, field, { unique: false })
           })
 
           indexesToDrop.forEach((field) => {
@@ -166,19 +161,19 @@ export default function createIndexedDBAdapter<
     // data retrieval methods
     readAll: async () => {
       const store = await getStore()
-      return new Promise<Item<T>[]>((resolve, reject) => {
+      return new Promise<T[]>((resolve, reject) => {
         const request = store.getAll()
-        request.addEventListener('success', () => resolve(request.result as Item<T>[]))
+        request.addEventListener('success', () => resolve(request.result as T[]))
         request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
-      }).then(results => results.map(r => r.data))
+      })
     },
-    readPositions: async (positions) => {
+    readIds: async (ids) => {
       const store = await getStore()
-      return new Promise<Item<T>[]>((resolve, reject) => {
-        const request = store.getAll(IDBKeyRange.only(positions))
-        request.addEventListener('success', () => resolve(request.result as Item<T>[]))
+      return new Promise<T[]>((resolve, reject) => {
+        const request = store.getAll(IDBKeyRange.only(ids))
+        request.addEventListener('success', () => resolve(request.result as T[]))
         request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
-      }).then(results => results.map(r => r.data))
+      })
     },
 
     // index methods
@@ -196,36 +191,26 @@ export default function createIndexedDBAdapter<
     insert: async (newItems) => {
       const store = await getStore(true)
       await Promise.all(newItems.map(item => new Promise<void>((resolve, reject) => {
-        const request = store.add({ data: item })
+        const request = store.add(item)
         request.addEventListener('success', () => resolve())
         request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error inserting item')))
       })))
     },
     replace: async (items) => {
       const store = await getStore(true)
-      const index = await readIndex('id')
-      await Promise.all(items.map(async (item) => {
-        const positions = index.get(item.id)
-        if (!positions) return
-        await Promise.all([...positions].map(position => new Promise<void>((resolve, reject) => {
-          const request = store.put({ position, data: item })
-          request.addEventListener('success', () => resolve())
-          request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error replacing item')))
-        })))
-      }))
+      await Promise.all(items.map(item => new Promise<void>((resolve, reject) => {
+        const request = store.put(item)
+        request.addEventListener('success', () => resolve())
+        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error replacing item')))
+      })))
     },
     remove: async (itemsToRemove) => {
       const store = await getStore(true)
-      const index = await readIndex('id')
-      await Promise.all(itemsToRemove.map(async (item) => {
-        const positions = index.get(item.id)
-        if (!positions) return
-        await Promise.all([...positions].map(position => new Promise<void>((resolve, reject) => {
-          const request = store.delete(position)
-          request.addEventListener('success', () => resolve())
-          request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error removing item')))
-        })))
-      }))
+      await Promise.all(itemsToRemove.map(async item => new Promise<void>((resolve, reject) => {
+        const request = store.delete(item.id)
+        request.addEventListener('success', () => resolve())
+        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error removing item')))
+      })))
     },
     removeAll: async () => {
       const store = await getStore(true)
