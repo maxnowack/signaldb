@@ -146,10 +146,9 @@ export default class WorkerDataAdapterHost<
       && Object.keys(selector).length === 1
       && 'id' in selector
       && typeof selector.id !== 'object') {
-      const idIndex = await storageAdapter.readIndex('id')
       return {
         matched: true,
-        positions: [...idIndex.get(selector.id) ?? []],
+        ids: [selector.id],
         optimizedSelector: {},
       }
     }
@@ -157,7 +156,7 @@ export default class WorkerDataAdapterHost<
     if (selector == null) {
       return {
         matched: false,
-        positions: [],
+        ids: [],
         optimizedSelector: {},
       }
     }
@@ -169,7 +168,7 @@ export default class WorkerDataAdapterHost<
         return { matched: false }
       }
 
-      const index = await storageAdapter.readIndex(field)
+      const index = await storageAdapter.readIndex(field) as Map<string | null, Set<I>>
 
       const fieldSelector = (flatSelector as Record<string, any>)[field]
       const filteresForNull = fieldSelector == null || fieldSelector.$exists === false
@@ -179,19 +178,19 @@ export default class WorkerDataAdapterHost<
       if (keys.include == null && keys.exclude == null) return { matched: false }
 
       // Accumulate included positions
-      let includedPositions: number[] = []
+      let includedIds: I[] = []
       if (keys.include == null) {
         for (const set of index.values()) {
           for (const pos of set) {
-            includedPositions.push(pos)
+            includedIds.push(pos)
           }
         }
       } else {
         for (const key of keys.include) {
-          const posSet = index.get(key)
-          if (posSet) {
-            for (const pos of posSet) {
-              includedPositions.push(pos)
+          const idSet = index.get(key)
+          if (idSet) {
+            for (const id of idSet) {
+              includedIds.push(id)
             }
           }
         }
@@ -199,22 +198,22 @@ export default class WorkerDataAdapterHost<
 
       // If exclusion is specified, build a single set of all positions to exclude.
       if (keys.exclude != null) {
-        const excludeSet = new Set<number>()
+        const excludeIds = new Set<I>()
         for (const key of keys.exclude) {
-          const posSet = index.get(key)
-          if (posSet) {
-            for (const pos of posSet) {
-              excludeSet.add(pos)
+          const idSet = index.get(key)
+          if (idSet) {
+            for (const id of idSet) {
+              excludeIds.add(id)
             }
           }
         }
         // Filter out any position that exists in the exclude set.
-        includedPositions = includedPositions.filter(pos => !excludeSet.has(pos))
+        includedIds = includedIds.filter(pos => !excludeIds.has(pos))
       }
 
       return {
         matched: true,
-        positions: includedPositions,
+        ids: includedIds,
         fields: [field],
         keepSelector: filteresForNull,
       }
@@ -236,7 +235,7 @@ export default class WorkerDataAdapterHost<
     }
 
     if (indexInfo.matched) {
-      const items = await storageAdapter.readPositions(indexInfo.positions)
+      const items = await storageAdapter.readIds(indexInfo.ids)
       if (isEqual(indexInfo.optimizedSelector, {})) return items
       return items.filter(matchItems)
     } else {
