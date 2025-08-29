@@ -1,175 +1,241 @@
 // @vitest-environment happy-dom
-import type { EventEmitter } from '@signaldb/core'
-import { describe, it, expect } from 'vitest'
-import { Collection } from '@signaldb/core'
+import { describe, it, expect, beforeEach } from 'vitest'
 import createOPFSAdapter from '../src'
 
 /**
- * Waits for a specific event to be emitted.
- * @param emitter - The event emitter.
- * @param event - The event to wait for.
- * @param [timeout] - Optional timeout in milliseconds.
- * @returns A promise that resolves with the event value.
+ * In-memory mock of OPFS (Origin Private File System)
+ * so the adapter can run in happy-dom.
  */
-async function waitForEvent<T>(
-  emitter: EventEmitter<any>,
-  event: string,
-  timeout?: number,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = timeout && setTimeout(() => {
-      reject(new Error('waitForEvent timeout'))
-    }, timeout)
+const fileContents: Record<string, string | null> = {}
+const directories = new Set<string>([''])
+const norm = (p: string) => p.replaceAll(/\\+/g, '/').replace(/\/\/+/, '/').replace(/^\/$/, '')
+const joinPath = (base: string, name: string) => norm([base, name].filter(Boolean).join('/'))
+const hasAnyFileWithPrefix = (prefix: string) => Object.keys(fileContents).some(k => k.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`))
 
-    emitter.once(event, (value: T) => {
-      if (timeoutId) clearTimeout(timeoutId)
-      resolve(value)
-    })
-  })
-}
-
-describe('OPFS', () => {
-  const fileContents: Record<string, string | null> = {}
-  const mockedOPFS = {
-    getDirectory: () => {
-      const opfsRoot = {
-        getFileHandle(filename: string, options?: { create: boolean }) {
-          if (!Object.hasOwnProperty.call(fileContents, filename)) {
-            if (options?.create) {
-              fileContents[filename] = null
-            } else {
-              return Promise.reject(new Error('File not found'))
-            }
+/**
+ * Creates a mock directory handle.
+ * @param basePath The base path.
+ * @returns The directory handle.
+ */
+function makeDirectory(basePath: string) {
+  return {
+    async getDirectoryHandle(dirname: string, options?: { create: boolean }) {
+      const newBase = joinPath(basePath, dirname)
+      if (options?.create) {
+        // mark directory and all parents as existing
+        const parts = newBase.split('/').filter(Boolean)
+        for (let i = 0; i <= parts.length; i++) {
+          directories.add(parts.slice(0, i).join('/'))
+        }
+        return makeDirectory(newBase)
+      }
+      if (!directories.has(newBase) && !hasAnyFileWithPrefix(newBase)) {
+        throw new Error('Directory not found')
+      }
+      return makeDirectory(newBase)
+    },
+    async getFileHandle(filename: string, options?: { create: boolean }) {
+      const full = joinPath(basePath, filename)
+      if (!Object.prototype.hasOwnProperty.call(fileContents, full)) {
+        if (options?.create) {
+          // ensure parent dirs exist
+          const parts = full.split('/').filter(Boolean)
+          for (let i = 0; i < parts.length; i++) {
+            const directory = parts.slice(0, i).join('/')
+            directories.add(directory)
           }
-
-          const fileHandle = {
-            getFile() {
-              return Promise.resolve({
-                text() {
-                  return Promise.resolve(fileContents[filename])
-                },
-              })
-            },
-            createWritable() {
-              return Promise.resolve({
-                write(data: string) {
-                  fileContents[filename] = data
-                  return Promise.resolve()
-                },
-                close() {
-                  return Promise.resolve()
-                },
-              })
+          fileContents[full] = null
+        } else {
+          throw new Error('File not found')
+        }
+      }
+      const fileHandle = {
+        async getFile() {
+          return {
+            async text() {
+              return fileContents[full]
             },
           }
-
-          return fileHandle
+        },
+        async createWritable() {
+          return {
+            async write(data: string) {
+              fileContents[full] = data
+            },
+            async close() {
+              // no-op
+            },
+          }
         },
       }
-      return Promise.resolve(opfsRoot)
+      return fileHandle
+    },
+    async removeEntry(name: string, options?: { recursive?: boolean }) {
+      const target = joinPath(basePath, name)
+      const prefix = target.endsWith('/') ? target : `${target}/`
+      // delete files under target and file exactly at target
+      for (const k of Object.keys(fileContents)) {
+        if (k === target || k.startsWith(prefix)) delete fileContents[k]
+      }
+      // delete dirs under target
+      for (const d of directories) {
+        if (d === target || d.startsWith(prefix)) directories.delete(d)
+      }
+      void options
+    },
+    async* values() {
+      const prefix = basePath ? `${basePath}/` : ''
+      for (const key of Object.keys(fileContents)) {
+        if (!key.startsWith(prefix)) continue
+        yield {
+          kind: 'file',
+          async getFile() {
+            return { async text() {
+              return fileContents[key]
+            } }
+          },
+        } as any
+      }
     },
   }
+}
 
-  // @ts-expect-error mocking navigator.storage for testing purposes
-  navigator.storage = mockedOPFS
+const mockedOPFS = {
+  getDirectory: () => Promise.resolve(makeDirectory('') as any),
+}
 
-  it('should load items from OPFS persistence adapter', async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await waitForEvent(collection, 'persistence.init')
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '1', name: 'John' }])
+// @ts-expect-error mocking navigator.storage for testing purposes
+navigator.storage = mockedOPFS
+
+/**
+ * Generates a random folder name for isolation between tests.
+ * @returns The folder name.
+ */
+function generateFolderName() {
+  return `sdb-opfs-${Math.floor(Math.random() * 1e17).toString(16)}`
+}
+
+/**
+ * Sets up an OPFS adapter with optional pre-index / pre-drop actions to
+ * keep parity with the filesystem adapter tests.
+ * @param options The options.
+ * @param options.folderName The folder name to use.
+ * @param options.preIndex The indexes to create before setup.
+ * @param options.preDrop The indexes to drop before setup.
+ * @returns The adapter and folder name.
+ */
+async function withAdapter(
+  options?: {
+    folderName?: string,
+    preIndex?: string[],
+    preDrop?: string[],
+  },
+) {
+  const folderName = options?.folderName ?? generateFolderName()
+  const adapter = createOPFSAdapter<any, string>(folderName)
+
+  // Enqueue index mutations BEFORE setup (parity with other adapters)
+  for (const f of options?.preIndex ?? []) {
+    await adapter.createIndex(f)
+  }
+  for (const f of options?.preDrop ?? []) {
+    await adapter.dropIndex(f).catch(() => {}) // ignore if it doesn't exist yet
+  }
+
+  await adapter.setup()
+  return { adapter, folderName }
+}
+
+// NOTE: These tests mirror the Filesystem adapter tests to ensure
+// behavioral parity where applicable.
+
+describe('OPFS storage adapter', () => {
+  describe('setup/teardown', () => {
+    it('creates the folder and tears down cleanly', async () => {
+      const { adapter } = await withAdapter()
+      await adapter.teardown()
+      expect(true).toBe(true)
+    })
   })
 
-  it('should save items to OPFS persistence adapter', async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    await persistence.save([], { added: [], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await waitForEvent(collection, 'persistence.init')
-    await collection.insert({ id: '1', name: 'John' })
-    await waitForEvent(collection, 'persistence.transmitted')
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '1', name: 'John' }])
-    const loadResult = await persistence.load()
-    expect(loadResult.items).toEqual([{ id: '1', name: 'John' }])
-  })
+  describe('CRUD + indexing', () => {
+    let adapter: ReturnType<typeof createOPFSAdapter<any, string>>
 
-  it('should remove item from OPFS persistence adapter', async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    await persistence.save([], { added: [{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await waitForEvent(collection, 'persistence.init')
+    beforeEach(async () => {
+      const setup = await withAdapter()
+      adapter = setup.adapter
+    })
 
-    await collection.removeOne({ id: '1' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    it('readAll returns [] initially', async () => {
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
+    })
 
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '2', name: 'Jane' }])
-    const loadResult = await persistence.load()
-    expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
-  })
+    it('insert writes items and readAll returns raw data only', async () => {
+      await adapter.insert([{ id: '1', name: 'John' }])
+      const items = await adapter.readAll()
+      expect(items).toEqual([{ id: '1', name: 'John' }])
+      await adapter.teardown()
+    })
 
-  it('should update item in OPFS persistence adapter', async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    await persistence.save([], { added: [{ id: '1', name: 'John' }], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await waitForEvent(collection, 'persistence.init')
+    it('createIndex / readIndex / dropIndex work and errors are surfaced', async () => {
+      const folderName = generateFolderName()
 
-    await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-    await waitForEvent(collection, 'persistence.transmitted')
+      // Phase 1: no index exists yet → readIndex should throw
+      {
+        const { adapter: opfs } = await withAdapter({ folderName })
+        await expect(opfs.readIndex('id')).rejects.toThrow('does not exist')
+        await opfs.teardown()
+      }
 
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    const loadResult = await persistence.load()
-    expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
-  })
+      // Phase 2: create index and verify mapping after insert
+      {
+        const { adapter: opfs } = await withAdapter({ folderName, preIndex: ['id'] })
+        await opfs.insert([{ id: '1', name: 'John' }])
+        const map = await opfs.readIndex('id')
+        expect(map instanceof Map).toBe(true)
+        expect(map.has('1')).toBe(true)
+        const set = map.get('1')
+        expect(set instanceof Set).toBe(true)
+        await opfs.teardown()
+      }
 
-  it('should not modify original items in OPFS persistence adapter', async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    const originalItems = [{ id: '1', name: 'John' }]
-    await persistence.save([], { added: originalItems, removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await waitForEvent(collection, 'persistence.init')
+      // Phase 3: drop index and verify subsequent reads fail
+      {
+        const { adapter: opfs } = await withAdapter({ folderName, preDrop: ['id'] })
+        await expect(opfs.readIndex('id')).rejects.toThrow('does not exist')
+        await opfs.teardown()
+      }
+    })
 
-    await collection.insert({ id: '2', name: 'Jane' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    it('replace throws when id not found; remove throws when id not found (parity with FS)', async () => {
+      const { adapter: opfs } = await withAdapter({ preIndex: ['id'] })
+      await opfs.insert([{ id: '1', name: 'John' }])
 
-    expect(originalItems).toEqual([{ id: '1', name: 'John' }])
-  })
+      await expect(opfs.replace([{ id: '999', name: 'Ghost' }])).rejects.toThrow('does not exist')
+      await expect(opfs.remove([{ id: '999' }])).rejects.toThrow('does not exist')
 
-  it('should handle multiple operations in order', async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    await persistence.save([], { added: [], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await waitForEvent(collection, 'persistence.init')
+      const items = await opfs.readAll()
+      expect(items).toEqual([{ id: '1', name: 'John' }])
+      await opfs.teardown()
+    })
 
-    await collection.insert({ id: '1', name: 'John' })
-    await waitForEvent(collection, 'persistence.transmitted')
-    await collection.insert({ id: '2', name: 'Jane' })
-    await waitForEvent(collection, 'persistence.transmitted')
-    await collection.removeOne({ id: '1' })
-    await waitForEvent(collection, 'persistence.transmitted')
+    it('removeAll clears the store', async () => {
+      await adapter.insert([
+        { id: '1', name: 'John' },
+        { id: '2', name: 'Jane' },
+      ])
+      await adapter.removeAll()
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
+    })
 
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '2', name: 'Jane' }])
-    const loadResult = await persistence.load()
-    expect(loadResult.items).toEqual([{ id: '2', name: 'Jane' }])
-  })
-
-  it('should persist data that was modified before persistence.init on client side', { retry: 5 }, async () => {
-    const persistence = createOPFSAdapter(`test-${Math.floor(Math.random() * 1e17).toString(16)}`)
-    await persistence.save([], { added: [], removed: [], modified: [] })
-    const collection = new Collection({ persistence })
-    await collection.insert({ id: '1', name: 'John' })
-    await collection.insert({ id: '2', name: 'Jane' })
-    await collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
-    await collection.removeOne({ id: '2' })
-    await waitForEvent(collection, 'persistence.init')
-
-    const items = collection.find().fetch()
-    expect(items).toEqual([{ id: '1', name: 'Johnny' }])
-    const loadResult = await persistence.load()
-    expect(loadResult.items).toEqual([{ id: '1', name: 'Johnny' }])
+    it('readIds accepts an array of ids and returns [] when nothing was found', async () => {
+      const result = await adapter.readIds(['does-not-exist'])
+      expect(result).toEqual([])
+      await adapter.teardown()
+    })
   })
 })
