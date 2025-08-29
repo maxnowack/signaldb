@@ -6,7 +6,7 @@ describe('getIndexInfo', () => {
   it('should not match when selector is an empty object', () => {
     expect(getIndexInfo([], {})).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {},
     })
   })
@@ -17,7 +17,7 @@ describe('getIndexInfo', () => {
       age: 30,
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         name: 'John',
         age: 30,
@@ -31,7 +31,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $and: [
           { name: 'John' },
@@ -47,7 +47,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $or: [
           { name: 'John' },
@@ -67,7 +67,7 @@ describe('getIndexInfo', () => {
       age: 30,
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         name: 'John',
         age: 30,
@@ -82,7 +82,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $and: [
           { name: 'John' },
@@ -99,7 +99,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $or: [
           { name: 'John' },
@@ -113,7 +113,7 @@ describe('getIndexInfo', () => {
       id: '0',
     })).toEqual({
       matched: true,
-      positions: [0],
+      ids: ['0'],
       optimizedSelector: {},
     })
 
@@ -122,7 +122,7 @@ describe('getIndexInfo', () => {
       id: { $in: ['0', '1'] },
     })).toEqual({
       matched: true,
-      positions: [0, 1],
+      ids: ['0', '1'],
       optimizedSelector: {},
     })
 
@@ -131,7 +131,7 @@ describe('getIndexInfo', () => {
       id: { $nin: ['0', '1'] },
     })).toEqual({
       matched: true,
-      positions: [2],
+      ids: ['2'],
       optimizedSelector: {},
     })
 
@@ -143,7 +143,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [],
+      ids: [],
       optimizedSelector: {},
     })
     expect(getIndexInfo([idIndex.query], {
@@ -154,7 +154,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [0],
+      ids: ['0'],
       optimizedSelector: {
         $and: [
           { name: 'John' },
@@ -171,7 +171,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [0, 1],
+      ids: ['0', '1'],
       optimizedSelector: {},
     })
     expect(getIndexInfo([idIndex.query], {
@@ -182,7 +182,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $or: [
           { id: '0' },
@@ -209,7 +209,7 @@ describe('getIndexInfo', () => {
       }],
     })).toEqual({
       matched: true,
-      positions: [2, 3, 4],
+      ids: ['2', '3', '4'],
       optimizedSelector: {
         $and: [{
           $or: [
@@ -248,7 +248,7 @@ describe('getIndexInfo', () => {
       title: 'Lorem ipsum',
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         title: 'Lorem ipsum',
       },
@@ -262,7 +262,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $and: [
           { title: 'Lorem ipsum' },
@@ -279,7 +279,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $or: [
           { title: 'Lorem ipsum' },
@@ -294,7 +294,7 @@ describe('getIndexInfo', () => {
       postId: '0',
     })).toEqual({
       matched: true,
-      positions: [1],
+      ids: ['1'],
       optimizedSelector: {},
     })
 
@@ -306,7 +306,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [0],
+      ids: ['0'],
       optimizedSelector: {},
     })
     expect(getIndexInfo([authorIndex.query, postIndex.query], {
@@ -317,7 +317,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [1, 2],
+      ids: ['1', '2'],
       optimizedSelector: {
         $and: [
           { title: 'Lorem ipsum' },
@@ -334,7 +334,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [1, 2],
+      ids: ['1', '2'],
       optimizedSelector: {},
     })
     expect(getIndexInfo([authorIndex.query, postIndex.query], {
@@ -345,7 +345,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $or: [
           { authorId: '0' },
@@ -379,7 +379,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      positions: [1, 2, 0],
+      ids: ['1', '2', '0'],
       optimizedSelector: {
         $and: [
           {
@@ -401,7 +401,7 @@ describe('getIndexInfo', () => {
     })
   })
 
-  it('should return unique positions', () => {
+  it('should return unique ids', () => {
     const idIndex = createIndex('id')
     idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
 
@@ -410,7 +410,7 @@ describe('getIndexInfo', () => {
       id: { $in: ['0', '0', '0'] },
     })).toEqual({
       matched: true,
-      positions: [0],
+      ids: ['0'],
       optimizedSelector: {},
     })
   })
@@ -427,7 +427,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: false,
-      positions: [],
+      ids: [],
       optimizedSelector: {
         $or: [
           { id: '0' },
