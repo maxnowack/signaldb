@@ -1,8 +1,7 @@
 /* @vitest-environment happy-dom */
 import { it, expect, vi } from 'vitest'
-import { Collection, createStorageAdapter } from '@signaldb/core'
+import { Collection, createStorageAdapter, DefaultDataAdapter } from '@signaldb/core'
 import type { BaseItem } from '@signaldb/core'
-import { DefaultDataAdapter } from '@signaldb/core/src'
 import { SyncManager } from '../src'
 import type { LoadResponse } from '../src/types'
 
@@ -33,7 +32,7 @@ import type { LoadResponse } from '../src/types'
  * const { items } = await adapter.load();
  * console.log(items); // Logs the updated items in memory.
  */
-function memoryStorageAdapter<
+export default function memoryStorageAdapter<
   T extends { id: I } & Record<string, any>,
   I = any,
 >(
@@ -41,8 +40,22 @@ function memoryStorageAdapter<
   delay?: number,
 ) {
   // not really a "persistence adapter", but it works for testing
-  let items = [...initialData]
-  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<number>>>()
+  let items = new Map<I, T>()
+  initialData.forEach(item => items.set(item.id, item))
+  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<I>>>()
+
+  const rebuildIndexes = () => {
+    indexes.forEach((index, field) => {
+      items.forEach((item) => {
+        index.clear()
+        const fieldValue = item[field]
+        if (!index.has(fieldValue)) {
+          index.set(fieldValue, new Set())
+        }
+        index.get(fieldValue)?.add(item.id)
+      })
+    })
+  }
 
   return createStorageAdapter<T, I>({
     setup: () => Promise.resolve(),
@@ -52,17 +65,22 @@ function memoryStorageAdapter<
       if (delay != null) await new Promise((resolve) => {
         setTimeout(resolve, delay)
       })
-      return items
+      return [...items.values()]
     },
-    readPositions: positions => Promise.resolve(
-      items.filter((_item, index) => positions.includes(index)),
-    ),
+    readIds: (ids) => {
+      const result: T[] = []
+      ids.forEach((id) => {
+        const item = items.get(id)
+        if (item) result.push(item)
+      })
+      return Promise.resolve(result)
+    },
 
     createIndex: (field) => {
       if (indexes.has(field)) {
         throw new Error(`Index on field "${field}" already exists`)
       }
-      const index = new Map<T[keyof T & string], Set<number>>()
+      const index = new Map<T[keyof T & string], Set<I>>()
       indexes.set(field, index)
       return Promise.resolve()
     },
@@ -79,23 +97,26 @@ function memoryStorageAdapter<
     },
 
     insert: (newItems) => {
-      items.push(...newItems)
+      newItems.forEach((item) => {
+        items.set(item.id, item)
+      })
+      rebuildIndexes()
       return Promise.resolve()
     },
     replace: (newItems) => {
-      items = items.map((item) => {
-        const newItem = newItems.find(i => i.id === item.id)
-        return newItem || item
+      newItems.forEach((item) => {
+        items.set(item.id, item)
       })
       return Promise.resolve()
     },
     remove: (itemsToRemove) => {
-      const idsToRemove = new Set(itemsToRemove.map(i => i.id))
-      items = items.filter(item => !idsToRemove.has(item.id))
+      itemsToRemove.forEach((item) => {
+        items.delete(item.id)
+      })
       return Promise.resolve()
     },
     removeAll: () => {
-      items = []
+      items = new Map()
       return Promise.resolve()
     },
   })
@@ -947,14 +968,14 @@ it('should clear all internal data structures on dispose', async () => {
 it('should register error handlers for internal persistence adapters', async () => {
   const errorHandler = vi.fn()
   const syncManager = new SyncManager<any, any>({
-    storageAdapter: (name, registerErrorHandler) => {
-      registerErrorHandler(errorHandler)
+    onError: errorHandler,
+    storageAdapter: (name) => {
       if (name === 'default-sync-manager-changes') {
         return createStorageAdapter({
           setup: () => Promise.resolve(),
           teardown: () => Promise.resolve(),
           readAll: () => Promise.resolve([]),
-          readPositions: () => Promise.resolve([]),
+          readIds: () => Promise.resolve([]),
           createIndex: () => Promise.resolve(),
           dropIndex: () => Promise.resolve(),
           readIndex: () => Promise.resolve(new Map<any, Set<number>>()),
@@ -981,7 +1002,7 @@ it('should register error handlers for internal persistence adapters', async () 
     setTimeout(resolve, 0)
   })
 
-  expect(errorHandler).toHaveBeenCalledWith(new Error('simulated error'))
+  expect(errorHandler).toHaveBeenCalledWith({ name: 'test' }, new Error('simulated error'))
 })
 
 it('should not leave any remote changes after successful pull', async () => {
@@ -1089,7 +1110,7 @@ it('should start sync after internal collections are ready', async () => {
     setup: vi.fn(storageAdapter.setup),
     teardown: vi.fn(storageAdapter.teardown),
     readAll: vi.fn(storageAdapter.readAll),
-    readPositions: vi.fn(storageAdapter.readPositions),
+    readIds: vi.fn(storageAdapter.readIds),
     createIndex: vi.fn(storageAdapter.createIndex),
     dropIndex: vi.fn(storageAdapter.dropIndex),
     readIndex: vi.fn(storageAdapter.readIndex),
@@ -1142,7 +1163,7 @@ it('should start sync after collection is ready', async () => {
     setup: vi.fn(storageAdapter.setup),
     teardown: vi.fn(storageAdapter.teardown),
     readAll: vi.fn(storageAdapter.readAll),
-    readPositions: vi.fn(storageAdapter.readPositions),
+    readIds: vi.fn(storageAdapter.readIds),
     createIndex: vi.fn(storageAdapter.createIndex),
     dropIndex: vi.fn(storageAdapter.dropIndex),
     readIndex: vi.fn(storageAdapter.readIndex),
@@ -1189,7 +1210,7 @@ it('should fail if there was a persistence error during initialization', async (
     setup: vi.fn(storageAdapter.setup),
     teardown: vi.fn(storageAdapter.teardown),
     readAll: vi.fn(() => Promise.reject(new Error('Persistence error'))),
-    readPositions: vi.fn(storageAdapter.readPositions),
+    readIds: vi.fn(storageAdapter.readIds),
     createIndex: vi.fn(storageAdapter.createIndex),
     dropIndex: vi.fn(storageAdapter.dropIndex),
     readIndex: vi.fn(storageAdapter.readIndex),
@@ -1205,6 +1226,7 @@ it('should fail if there was a persistence error during initialization', async (
   const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
     .mockResolvedValue()
 
+  const errorHandler = vi.fn()
   const syncManager = new SyncManager({
     pull: mockPull,
     push: mockPush,
@@ -1213,8 +1235,9 @@ it('should fail if there was a persistence error during initialization', async (
   let persistenceError = false
   const dataAdapter = new DefaultDataAdapter({
     storage: () => mockStorageAdapter,
-    onError: () => {
+    onError: (name, error) => {
       persistenceError = true
+      errorHandler(name, error)
     },
   })
   const collection = new Collection<TestItem, string, any>('test', dataAdapter)
@@ -1229,10 +1252,12 @@ it('should fail if there was a persistence error during initialization', async (
   expect(persistenceInitialized).toBeFalsy()
   expect(persistenceError).toBeFalsy()
 
-  await expect(syncManager.sync('test')).rejects.toThrowError('Persistence error')
+  await expect(syncManager.sync('test')).resolves.toBeUndefined()
 
-  expect(mockPull).not.toBeCalled()
-  expect(persistenceInitialized).toBeFalsy()
+  expect(errorHandler).toHaveBeenCalledWith('test', new Error('Persistence error'))
+
+  expect(mockPull).toBeCalled()
+  expect(persistenceInitialized).toBeTruthy()
   expect(persistenceError).toBeTruthy()
 })
 
