@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0 # necessary for lastUpdated field for pages
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
+          node-version: '22.19.0'
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache@v4
