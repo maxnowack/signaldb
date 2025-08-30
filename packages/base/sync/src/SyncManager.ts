@@ -132,9 +132,9 @@ export default class SyncManager<
     const syncOperationsStorage = this.createStorageAdapter('sync-operations')
     const dataAdapter = new DefaultDataAdapter({
       storage: (name) => {
-        if (name === 'changes') return changesStorage?.adapter
-        if (name === 'snapshots') return snapshotsStorage?.adapter
-        if (name === 'sync-operations') return syncOperationsStorage?.adapter
+        if (name === `${this.options.id}-changes`) return changesStorage?.adapter
+        if (name === `${this.options.id}-snapshots`) return snapshotsStorage?.adapter
+        if (name === `${this.options.id}-sync-operations`) return syncOperationsStorage?.adapter
         throw new Error(`Unknown storage name: ${name}`)
       },
       onError: (name, error) => {
