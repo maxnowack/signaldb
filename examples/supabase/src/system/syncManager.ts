@@ -49,7 +49,7 @@ const supabase = createClient<Database>(
 
 const syncManager = new SyncManager({
   id: 'supabase-sync-manager',
-  persistenceAdapter: id => createIndexedDBAdapter(id),
+  storageAdapter: id => createIndexedDBAdapter(id),
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

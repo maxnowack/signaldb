@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+* The `insert`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous and return a `Promise<void>`
+* The `createMemoryAdapter` method and `MemoryAdapter` type were removed.
+* The `memory` option for a `Collection` was removed.
+* The `AutoFetchCollection` was removed. Use a custom `DataAdapter` instead.
+* `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
+* Indices on a `Collection` are now specified as an array of strings instead of using `IndexProvider` or `LowLevelIndexProvider` instances.
+* `PersistenceAdapter` was renamed to `StorageAdapter` and the signature was changed in a non backward compatible way.
+* The `createPersistenceAdapter` method was renamed to `createStorageAdapter`.
+* The `combinePersistenceAdapters` method was removed.
+* All persistence events on the `Collection` were removed.
+* Exports for `createIndexProvider` and `createIndex` were removed. Specify indices as strings instead.
+
+### Added
+
+* Introduced support to use a `DataAdapter` with a `Collection` to handle data operations in a more structured way.
+* Added `DefaultDataAdapter` which provides a basic and backward compatible implementation of the `DataAdapter` interface.
+* Added `isBatchOperationInProgress` method to `Collection` to check if a batch operation is currently in progress.
+
 ## [1.7.1] - 2025-08-25
 
 ### Fixed

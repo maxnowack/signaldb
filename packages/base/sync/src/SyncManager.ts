@@ -1,16 +1,15 @@
 import type {
   BaseItem,
-  PersistenceAdapter,
+  StorageAdapter,
   ReactivityAdapter,
   Changeset,
-  LoadResponse,
   Selector,
 } from '@signaldb/core'
-import { Collection, randomId, createIndex } from '@signaldb/core'
+import { DefaultDataAdapter, Collection, randomId } from '@signaldb/core'
 import debounce from './utils/debounce'
 import PromiseQueue from './utils/PromiseQueue'
 import sync from './sync'
-import type { Change, Snapshot, SyncOperation } from './types'
+import type { Change, LoadResponse, Snapshot, SyncOperation } from './types'
 
 type SyncOptions<T extends Record<string, any>> = {
   name: string,
@@ -45,10 +44,10 @@ interface Options<
   ) => CleanupFunction | Promise<CleanupFunction>,
 
   id?: string,
-  persistenceAdapter?: (
+  storageAdapter?: (
     id: string,
     registerErrorHandler: (handler: (error: Error) => void) => void,
-  ) => PersistenceAdapter<any, any>,
+  ) => StorageAdapter<any, any>,
   reactivity?: ReactivityAdapter,
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 
@@ -114,7 +113,7 @@ export default class SyncManager<
    * @param options.push Function to push data to remote source.
    * @param [options.registerRemoteChange] Function to register a callback for remote changes.
    * @param [options.id] Unique identifier for this sync manager. Only nessesary if you have multiple sync managers.
-   * @param [options.persistenceAdapter] Persistence adapter to use for storing changes, snapshots and sync operations.
+   * @param [options.storageAdapter] Storage adapter to use for storing changes, snapshots and sync operations.
    * @param [options.reactivity] Reactivity adapter to use for reactivity.
    * @param [options.onError] Function to handle errors that occur async during syncing.
    * @param [options.autostart] Whether to automatically start syncing new collections.
@@ -128,31 +127,36 @@ export default class SyncManager<
     this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
 
-    const changesPersistence = this.createPersistenceAdapter('changes')
-    const snapshotsPersistence = this.createPersistenceAdapter('snapshots')
-    const syncOperationsPersistence = this.createPersistenceAdapter('sync-operations')
+    const changesStorage = this.createStorageAdapter('changes')
+    const snapshotsStorage = this.createStorageAdapter('snapshots')
+    const syncOperationsStorage = this.createStorageAdapter('sync-operations')
+    const dataAdapter = new DefaultDataAdapter({
+      storage: (name) => {
+        if (name === `${this.options.id}-changes`) return changesStorage?.adapter
+        if (name === `${this.options.id}-snapshots`) return snapshotsStorage?.adapter
+        if (name === `${this.options.id}-sync-operations`) return syncOperationsStorage?.adapter
+        throw new Error(`Unknown storage name: ${name}`)
+      },
+      onError: (name, error) => {
+        if (name === 'changes') return changesStorage?.handler(error)
+        if (name === 'snapshots') return snapshotsStorage?.handler(error)
+        if (name === 'sync-operations') return syncOperationsStorage?.handler(error)
+        throw new Error(`Error in unknown storage name: ${name}`, { cause: error })
+      },
+    })
 
-    this.changes = new Collection({
-      name: `${this.options.id}-changes`,
-      persistence: changesPersistence?.adapter,
-      indices: [createIndex('collectionName')],
+    this.changes = new Collection(`${this.options.id}-changes`, dataAdapter, {
+      indices: ['collectionName'],
       reactivity,
     })
-    this.snapshots = new Collection({
-      name: `${this.options.id}-snapshots`,
-      persistence: snapshotsPersistence?.adapter,
-      indices: [createIndex('collectionName')],
+    this.snapshots = new Collection(`${this.options.id}-snapshots`, dataAdapter, {
+      indices: ['collectionName'],
       reactivity,
     })
-    this.syncOperations = new Collection({
-      name: `${this.options.id}-sync-operations`,
-      persistence: syncOperationsPersistence?.adapter,
-      indices: [createIndex('collectionName'), createIndex('status')],
+    this.syncOperations = new Collection(`${this.options.id}-sync-operations`, dataAdapter, {
+      indices: ['collectionName', 'status'],
       reactivity,
     })
-    this.changes.on('persistence.error', error => changesPersistence?.handler(error))
-    this.snapshots.on('persistence.error', error => snapshotsPersistence?.handler(error))
-    this.syncOperations.on('persistence.error', error => syncOperationsPersistence?.handler(error))
 
     this.persistenceReady = Promise.all([
       this.syncOperations.isReady(),
@@ -167,11 +171,11 @@ export default class SyncManager<
     this.debouncedFlush = debounce(this.flushScheduledPushes, this.options.debounceTime ?? 100)
   }
 
-  protected createPersistenceAdapter(name: string) {
-    if (this.options.persistenceAdapter == null) return
+  protected createStorageAdapter(name: string) {
+    if (this.options.storageAdapter == null) return
 
     let errorHandler: (error: Error) => void = () => { /* noop */ }
-    const adapter = this.options.persistenceAdapter(`${this.id}-${name}`, (handler) => {
+    const adapter = this.options.storageAdapter(`${this.id}-${name}`, (handler) => {
       errorHandler = handler
     })
     return {
@@ -281,10 +285,13 @@ export default class SyncManager<
         time: Date.now(),
         type: 'insert',
         data: item,
+      }).then(() => {
+        if (this.getCollectionProperties(options.name).syncPaused) return
+        this.schedulePush(options.name)
+      }).catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
-
-      if (this.getCollectionProperties(options.name).syncPaused) return
-      this.schedulePush(options.name)
     })
     collection.on('changed', ({ id }, modifier) => {
       const data = { id, modifier }
@@ -298,10 +305,13 @@ export default class SyncManager<
         time: Date.now(),
         type: 'update',
         data,
+      }).then(() => {
+        if (this.getCollectionProperties(options.name).syncPaused) return
+        this.schedulePush(options.name)
+      }).catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
-
-      if (this.getCollectionProperties(options.name).syncPaused) return
-      this.schedulePush(options.name)
     })
     collection.on('removed', ({ id }) => {
       // skip the change if it was a remote change
@@ -314,10 +324,13 @@ export default class SyncManager<
         time: Date.now(),
         type: 'remove',
         data: id,
+      }).then(() => {
+        if (this.getCollectionProperties(options.name).syncPaused) return
+        this.schedulePush(options.name)
+      }).catch((error: Error) => {
+        if (!this.options.onError) return
+        this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
-
-      if (this.getCollectionProperties(options.name).syncPaused) return
-      this.schedulePush(options.name)
     })
 
     if (this.options.autostart) {
@@ -369,16 +382,16 @@ export default class SyncManager<
             await this.sync(name)
           } else {
             const syncTime = Date.now()
-            const syncId = this.syncOperations.insert({
+            const syncId = await this.syncOperations.insert({
               start: syncTime,
               collectionName: name,
               instanceId: this.instanceId,
               status: 'active',
             })
             await this.syncWithData(name, data)
-              .then(() => {
+              .then(async () => {
                 // clean up old sync operations
-                this.syncOperations.removeMany({
+                await this.syncOperations.removeMany({
                   id: { $ne: syncId },
                   collectionName: name,
                   $or: [
@@ -388,15 +401,15 @@ export default class SyncManager<
                 })
 
                 // update sync operation status to done after everthing was finished
-                this.syncOperations.updateOne({ id: syncId }, {
+                await this.syncOperations.updateOne({ id: syncId }, {
                   $set: { status: 'done', end: Date.now() },
                 })
               })
-              .catch((error: Error) => {
+              .catch(async (error: Error) => {
                 if (this.options.onError) {
                   this.options.onError(this.getCollectionProperties(name).options, error)
                 }
-                this.syncOperations.updateOne({ id: syncId }, {
+                await this.syncOperations.updateOne({ id: syncId }, {
                   $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
                 })
                 throw error
@@ -519,7 +532,7 @@ export default class SyncManager<
       }
 
       if (!hasActiveSyncs) {
-        syncId = this.syncOperations.insert({
+        syncId = await this.syncOperations.insert({
           start: syncTime,
           collectionName: name,
           instanceId: this.instanceId,
@@ -535,10 +548,10 @@ export default class SyncManager<
     }
 
     await (options?.force ? doSync() : this.getSyncQueue(name).add(doSync))
-      .catch((error: Error) => {
+      .catch(async (error: Error) => {
         if (syncId != null) {
           if (this.options.onError) this.options.onError(collectionOptions, error)
-          this.syncOperations.updateOne({ id: syncId }, {
+          await this.syncOperations.updateOne({ id: syncId }, {
             $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
           })
         }
@@ -547,7 +560,7 @@ export default class SyncManager<
 
     if (syncId != null) {
       // clean up old sync operations
-      this.syncOperations.removeMany({
+      await this.syncOperations.removeMany({
         id: { $ne: syncId },
         collectionName: name,
         $or: [
@@ -557,7 +570,7 @@ export default class SyncManager<
       })
 
       // update sync operation status to done after everthing was finished
-      this.syncOperations.updateOne({ id: syncId }, {
+      await this.syncOperations.updateOne({ id: syncId }, {
         $set: { status: 'done', end: Date.now() },
       })
     }
@@ -614,7 +627,7 @@ export default class SyncManager<
         changes,
         rawChanges: currentChanges,
       }),
-      insert: (item) => {
+      insert: async (item) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
           collectionName: name,
@@ -627,9 +640,9 @@ export default class SyncManager<
         })
 
         // replace the item
-        collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
+        await collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
       },
-      update: (itemId, modifier) => {
+      update: async (itemId, modifier) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({
           collectionName: name,
@@ -641,12 +654,12 @@ export default class SyncManager<
           data: { id: itemId, modifier },
         })
 
-        collection.updateOne({ id: itemId } as Selector<any>, {
+        await collection.updateOne({ id: itemId } as Selector<any>, {
           ...modifier,
           $setOnInsert: { id: itemId } as Partial<ItemType>,
         }, { upsert: true })
       },
-      remove: (itemId) => {
+      remove: async (itemId) => {
         const itemExists = !!collection.findOne({
           id: itemId,
         } as Selector<any>, { reactive: false })
@@ -656,29 +669,29 @@ export default class SyncManager<
           type: 'remove',
           data: itemId,
         })
-        collection.removeOne({ id: itemId } as Selector<any>)
+        await collection.removeOne({ id: itemId } as Selector<any>)
       },
-      batch: (fn) => {
-        collection.batch(() => {
-          fn()
+      batch: async (fn) => {
+        return collection.batch(async () => {
+          await fn()
         })
       },
     })
       .then(async (snapshot) => {
         // clean up old snapshots
-        this.snapshots.removeMany({
+        await this.snapshots.removeMany({
           collectionName: name,
           time: { $lte: syncTime },
         } as Selector<any>)
 
         // clean up processed changes
-        this.changes.removeMany({
+        await this.changes.removeMany({
           collectionName: name,
           id: { $in: currentChanges.map(c => c.id) },
         })
 
         // insert new snapshot
-        this.snapshots.insert({
+        await this.snapshots.insert({
           time: syncTime,
           collectionName: name,
           items: snapshot,
@@ -713,9 +726,9 @@ export default class SyncManager<
           reactive: false,
         }).map(item => item.id) as IdType[]
 
-        collection.batch(() => {
+        await collection.batch(async () => {
           // update all items that are in the snapshot
-          snapshot.forEach((item) => {
+          await Promise.all(snapshot.map(async (item) => {
             // add multiple remote changes as we don't know if the item will be updated or inserted during replace
             this.remoteChanges.push({
               collectionName: name,
@@ -728,13 +741,13 @@ export default class SyncManager<
             })
 
             // replace the item
-            collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
-          })
+            await collection.replaceOne({ id: item.id } as Selector<any>, item, { upsert: true })
+          }))
 
           // remove all items that are not in the snapshot
-          nonExistingItemIds.forEach((id) => {
-            collection.removeOne({ id } as Selector<any>)
-          })
+          await Promise.all(nonExistingItemIds.map(async (id) => {
+            await collection.removeOne({ id } as Selector<any>)
+          }))
         })
       })
   }
