@@ -1,11 +1,4 @@
-import { createStorageAdapter } from '@signaldb/core'
-
-/**
- * Creates a persistence adapter for managing a SignalDB collection using browser `localStorage`.
- * This implementation mirrors the IndexedDB adapter API (setup/teardown, readAll/readIds,
- * createIndex/dropIndex/readIndex, insert/replace/remove/removeAll) while storing the
- * entire collection as a single JSON array in `localStorage`.
- */
+import { createStorageAdapter, get, serializeValue } from '@signaldb/core'
 
 type LocalStorageAdapterOptions = {
   /** Optional logical database name, used to namespace the localStorage key. */
@@ -23,17 +16,16 @@ export default function createLocalStorageAdapter<
   T extends { id: I } & Record<string, any>,
   I,
 >(name: string, options?: LocalStorageAdapterOptions) {
-  // Use the same variable names and structure as the IndexedDB adapter where possible
   const databaseName = options?.databaseName || 'signaldb'
   const storeName = `${name}`
 
   // We use a single key that namespaces by database and store names
   const storageKey = `${databaseName}-${storeName}`
 
-  // Track setup to mirror the IndexedDB adapter semantics for index lifecycle
-  let setupCalled = false
-  const indexesToCreate = new Set<string>()
-  const indexesToDrop = new Set<string>()
+  const indexKeyFor = (field: string) => `${storageKey}-index-${field}`
+  const indices: string[] = []
+
+  type SafeIndex = Record<string, I[]>
 
   const readFromStorage = (): T[] => {
     const serialized = localStorage.getItem(storageKey)
@@ -52,33 +44,56 @@ export default function createLocalStorageAdapter<
   }
 
   const readIndex = async (field: string) => {
-    const items = readFromStorage()
-    const result = new Map<any, Set<I>>()
-    for (const item of items) {
-      const key = (item as Record<string, any>)[field]
-      const id = (item as { id: I }).id
-      if (!result.has(key)) result.set(key, new Set<I>())
-      result.get(key)?.add(id)
+    const serialized = localStorage.getItem(indexKeyFor(field))
+    if (!serialized) throw new Error(`Index on field "${field}" does not exist`)
+    let data: SafeIndex
+    try {
+      data = JSON.parse(serialized) as SafeIndex
+    } catch {
+      throw new Error(`Corrupted index on field "${field}"`)
     }
-    return result
+    const index = new Map<any, Set<I>>()
+    Object.entries(data).forEach(([key, ids]) => {
+      if (!index.has(key)) index.set(key, new Set())
+      ids.forEach(id => index.get(key)?.add(id))
+    })
+    return index
+  }
+
+  const ensureIndex = async (
+    field: string,
+    items: T[] = readFromStorage(),
+  ) => {
+    const index = new Map<any, Set<I>>()
+    items.forEach((item) => {
+      const fieldValue = get(item, field)
+      if (fieldValue == null) return
+      if (!index.has(fieldValue)) index.set(fieldValue, new Set())
+      index.get(fieldValue)?.add(item.id)
+    })
+    const safeIndex: SafeIndex = {}
+    index.forEach((ids, key) => {
+      const safeKey = String(serializeValue(key))
+      safeIndex[safeKey] = [...ids]
+    })
+    localStorage.setItem(indexKeyFor(field), JSON.stringify(safeIndex))
+  }
+
+  const updateAllIndices = async () => {
+    const items = readFromStorage()
+    await Promise.all(indices.map(field => ensureIndex(field, items)))
   }
 
   return createStorageAdapter<T, I>({
     // lifecycle methods
     setup: async () => {
-      setupCalled = true
       // For localStorage, there is no database to open; we just ensure the key exists
       if (localStorage.getItem(storageKey) == null) {
         writeToStorage([])
       }
-
-      // There is no real index management in localStorage, so we simply acknowledge
-      // any queued index changes without persisting them. This mirrors the timing
-      // constraints (must be called before setup) of the IndexedDB adapter API.
-      // No further action needed.
     },
     teardown: async () => {
-      // Nothing to close for localStorage
+      // no-op
     },
 
     // data retrieval methods
@@ -93,12 +108,19 @@ export default function createLocalStorageAdapter<
 
     // index methods
     createIndex: async (field) => {
-      if (setupCalled) throw new Error('createIndex must be called before setup()')
-      indexesToCreate.add(field)
+      if (!indices.includes(field)) indices.push(field)
+      await ensureIndex(field)
     },
     dropIndex: async (field) => {
-      if (setupCalled) throw new Error('createIndex must be called before setup()')
-      indexesToDrop.add(field)
+      if (indices.includes(field)) {
+        const i = indices.indexOf(field)
+        indices.splice(i, 1)
+      }
+      const key = indexKeyFor(field)
+      if (localStorage.getItem(key) == null) {
+        throw new Error(`Index on field "${field}" does not exist`)
+      }
+      localStorage.removeItem(key)
     },
     readIndex,
 
@@ -107,16 +129,10 @@ export default function createLocalStorageAdapter<
       const items = readFromStorage()
       const byId = new Map<I, T>(items.map(item => [item.id, item]))
       for (const item of newItems) {
-        if (byId.has(item.id)) {
-          // Keep existing if already present to mirror an add-only semantic
-          // (IndexedDB add() would fail if key exists). Here we overwrite to keep
-          // behavior predictable across adapters.
-          byId.set(item.id, item)
-        } else {
-          byId.set(item.id, item)
-        }
+        byId.set(item.id, item)
       }
       writeToStorage([...byId.values()])
+      await updateAllIndices()
     },
     replace: async (itemsToReplace) => {
       const items = readFromStorage()
@@ -125,15 +141,26 @@ export default function createLocalStorageAdapter<
         byId.set(item.id, item)
       }
       writeToStorage([...byId.values()])
+      await updateAllIndices()
     },
     remove: async (itemsToRemove) => {
       const items = readFromStorage()
       const removeSet = new Set<I>(itemsToRemove.map(item => item.id))
       const remaining = items.filter(item => !removeSet.has(item.id))
       writeToStorage(remaining)
+      await updateAllIndices()
     },
     removeAll: async () => {
       writeToStorage([])
+      // remove all index keys for this store
+      const prefix = `${storageKey}-index-`
+      const keysToRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && k.startsWith(prefix)) keysToRemove.push(k)
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k))
+      indices.splice(0)
     },
   })
 }
