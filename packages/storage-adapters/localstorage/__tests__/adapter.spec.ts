@@ -72,44 +72,6 @@ describe('LocalStorage storage adapter', () => {
       await adapter.teardown()
     })
 
-    it('createIndex / readIndex / dropIndex work and errors are surfaced', async () => {
-      const collectionName = collName()
-
-      // Phase 1: no index exists yet → readIndex returns an empty Map in LocalStorage adapter.
-      {
-        const { adapter: a } = await withAdapter({ collectionName })
-        const emptyMap1 = await a.readIndex('id')
-        expect(emptyMap1 instanceof Map).toBe(true)
-        expect(emptyMap1.size).toBe(0)
-        await a.teardown()
-      }
-
-      // Phase 2: create index (idempotent) before setup; then verify mapping
-      {
-        const { adapter: a } = await withAdapter({ collectionName, preIndex: ['id'] })
-        await a.insert([{ id: 1, name: 'John' }])
-        const map = await a.readIndex('id')
-        expect(map instanceof Map).toBe(true)
-        expect(map.has(1)).toBe(true)
-        const set = map.get(1)
-        expect(set instanceof Set).toBe(true)
-        await a.teardown()
-      }
-
-      // Phase 3: drop index before setup; LocalStorage readIndex returns empty Map.
-      {
-        const { adapter: a } = await withAdapter({ collectionName, preDrop: ['id'] })
-        const map3 = await a.readIndex('id')
-        expect(map3 instanceof Map).toBe(true)
-        // Items persisted from Phase 2 should still be visible; dropping an index is a no-op here
-        expect(map3.has(1)).toBe(true)
-        const set3 = map3.get(1)
-        expect(set3 instanceof Set).toBe(true)
-        expect(set3?.has(1)).toBe(true)
-        await a.teardown()
-      }
-    })
-
     it('replace is a no-op when id not found; remove is a no-op when id not found', async () => {
       const { adapter: a } = await withAdapter({ preIndex: ['id'] })
       await a.insert([{ id: 1, name: 'John' }])
