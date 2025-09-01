@@ -154,3 +154,35 @@ it('should handle tasks with long execution times', async () => {
 
   expect(results).toEqual(['Task 1', 'Task 2'])
 })
+
+it('should handle queue edge case with concurrent access', async () => {
+  const queue = new PromiseQueue()
+
+  // Create a scenario that bypasses the length check but has empty queue
+  // Modify the internal queue to simulate a race condition
+  const internalQueue = (queue as any).queue
+
+  // Override Array.shift to return undefined once to test line 48
+  const originalShift = internalQueue.shift
+  let shiftCallCount = 0
+  internalQueue.shift = function () {
+    shiftCallCount++
+    if (shiftCallCount === 1) {
+      // First call returns undefined to simulate empty queue despite length check
+      return
+    }
+    return originalShift.call(this)
+  }
+
+  // Set up a state where dequeue will be called
+  internalQueue.push(() => Promise.resolve('test'))
+
+  // This should trigger the dequeue logic and hit line 48
+  // @ts-expect-error - accessing private method
+  queue.dequeue()
+
+  // Restore original behavior
+  internalQueue.shift = originalShift
+
+  expect(queue.hasPendingPromise()).toBe(false)
+})
