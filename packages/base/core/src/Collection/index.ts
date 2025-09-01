@@ -174,6 +174,7 @@ export default class Collection<
   private options: CollectionOptions<T, I, E, U>
   private isPullingSignal: Signal<boolean>
   private isPushingSignal: Signal<boolean>
+  private readySignal: Signal<boolean>
   private debugMode
   private batchOperationInProgress = false
   private isDisposed = false
@@ -230,11 +231,15 @@ export default class Collection<
 
     this.isPullingSignal = createSignal(this.options.reactivity, false)
     this.isPushingSignal = createSignal(this.options.reactivity, false)
+    this.readySignal = createSignal(this.options.reactivity, false)
 
     this.backend = dataAdapter.createCollectionBackend<T, I, E, U>(
       this,
       this.options.indices ?? [],
     )
+    void this.backend.isReady().then(() => {
+      this.readySignal.set(true)
+    })
 
     Collection.onCreationCallbacks.forEach(callback => callback(this))
   }
@@ -313,8 +318,17 @@ export default class Collection<
    *
    * collection.insert({ name: 'Item 1' })
    */
-  public async isReady() {
+  public async ready() {
     return this.backend.isReady()
+  }
+
+  /**
+   * Checks if the collection is ready.
+   * ⚡️ this function is reactive!
+   * @returns A boolean indicating whether the collection is ready.
+   */
+  public isReady() {
+    return this.readySignal.get() ?? false
   }
 
   private profile<ReturnValue>(
