@@ -4,7 +4,6 @@ import createIndex from './createIndex'
 import getIndexInfo from './getIndexInfo'
 import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
-import type { LowLevelIndexProvider } from './types/IndexProvider'
 import type IndexProvider from './types/IndexProvider'
 import type StorageAdapter from './types/StorageAdapter'
 import type { Changeset } from './types/StorageAdapter'
@@ -44,7 +43,7 @@ export default class DefaultDataAdapter implements DataAdapter {
   private indicesOutdated: Map<string, boolean> = new Map()
   private indices: Map<
     string,
-    (IndexProvider<any, any> | LowLevelIndexProvider<any, any>)[]
+    IndexProvider<any, any>[]
   > = new Map()
 
   private activeQueries: Map<string, Map<string, {
@@ -163,6 +162,44 @@ export default class DefaultDataAdapter implements DataAdapter {
       (this.indices.get(collection.name) ?? []).map(i => i.query.bind(i)),
       selector,
     )
+  }
+
+  private applyIndexDeltas<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
+    changes: {
+      added?: T[],
+      modified?: { oldItem: T, newItem: T }[],
+      removed?: T[],
+    },
+  ) {
+    const indices = this.indices.get(collection.name) ?? []
+    const memory = this.items.get(collection.name) as Map<string | null, T>
+    const allItems = memory ? [...memory.values()] : []
+
+    for (const index of indices) {
+      let usedDelta = false
+
+      if (changes.modified && typeof index.update === 'function') {
+        index.update(changes.modified)
+        usedDelta = true
+      }
+      if (changes.added && changes.added.length > 0 && typeof index.insert === 'function') {
+        index.insert(changes.added)
+        usedDelta = true
+      }
+      if (changes.removed && changes.removed.length > 0 && typeof index.remove === 'function') {
+        index.remove(changes.removed)
+        usedDelta = true
+      }
+
+      // Fallback: if no delta-capable methods are available, rebuild this one index
+      if (!usedDelta) {
+        index.rebuild(allItems)
+      }
+    }
+
+    // Indices are now up-to-date for this collection
+    this.indicesOutdated.set(collection.name, false)
   }
 
   private getItem<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -292,7 +329,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         }
         this.items.get(collection.name)?.set(serializeValue(newItem.id), newItem)
         await this.storageAdapters.get(collection.name)?.insert([newItem])
-        this.rebuildIndicesIfOutdated(collection)
+        this.applyIndexDeltas(collection, { added: [newItem] })
         this.updateQueries(collection, {
           added: [],
           modified: [newItem],
@@ -315,7 +352,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
         this.items.get(collection.name)?.set(serializeValue(modifiedItem.id), modifiedItem)
         await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
-        this.rebuildIndicesIfOutdated(collection)
+        this.applyIndexDeltas(collection, { modified: [{ oldItem: item, newItem: modifiedItem }] })
 
         this.updateQueries(collection, {
           added: [],
@@ -343,7 +380,8 @@ export default class DefaultDataAdapter implements DataAdapter {
         })
         await this.storageAdapters.get(collection.name)?.replace(changedItems)
 
-        this.rebuildIndicesIfOutdated(collection)
+        const pairs = items.map((oldItem, index) => ({ oldItem, newItem: changedItems[index] }))
+        this.applyIndexDeltas(collection, { modified: pairs })
         this.updateQueries(collection, {
           added: [],
           modified: changedItems,
@@ -366,7 +404,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         this.items.get(collection.name)?.set(serializeValue(modifiedItem.id), modifiedItem)
         await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
 
-        this.rebuildIndicesIfOutdated(collection)
+        this.applyIndexDeltas(collection, { modified: [{ oldItem: item, newItem: modifiedItem }] })
 
         this.updateQueries(collection, {
           added: [],
@@ -381,7 +419,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         this.items.get(collection.name)?.delete(serializeValue(item.id))
         await this.storageAdapters.get(collection.name)?.remove([item])
 
-        this.rebuildIndicesIfOutdated(collection)
+        this.applyIndexDeltas(collection, { removed: [item] })
         this.updateQueries(collection, {
           added: [],
           modified: [],
@@ -394,9 +432,9 @@ export default class DefaultDataAdapter implements DataAdapter {
 
         items.forEach((item) => {
           this.items.get(collection.name)?.delete(serializeValue(item.id))
-          this.rebuildIndicesIfOutdated(collection)
         })
         await this.storageAdapters.get(collection.name)?.remove(items)
+        this.applyIndexDeltas(collection, { removed: items })
 
         this.updateQueries(collection, {
           added: [],
