@@ -25,9 +25,9 @@ interface IndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
   query: SynchronousQueryFunction<T, I>,
   rebuild(items: T[]): void,
 
-  insert?(items: T[]): void,
-  remove?(items: T[]): void,
-  update?(pairs: { oldItem: T, newItem: T }[]): void,
+  insert(items: T[]): void,
+  remove(items: T[]): void,
+  update(pairs: { oldItem: T, newItem: T }[]): void,
 }
 
 export default IndexProvider

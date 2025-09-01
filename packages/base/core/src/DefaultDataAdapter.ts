@@ -40,7 +40,6 @@ export default class DefaultDataAdapter implements DataAdapter {
   private options: DefaultDataAdapterOptions
   private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
 
-  private indicesOutdated: Map<string, boolean> = new Map()
   private indices: Map<
     string,
     IndexProvider<any, any>[]
@@ -73,7 +72,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.storageAdapters.set(name, adapter)
   }
 
-  private rebuildIndicesNow<T extends BaseItem<I>, I = any, U = T>(
+  private rebuildIndices<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
   ) {
     const items = this.items.get(collection.name)
@@ -82,20 +81,6 @@ export default class DefaultDataAdapter implements DataAdapter {
     if (!indices) throw new Error(`Indices not found for collection ${collection.name}`)
 
     indices.forEach(index => index.rebuild([...items.values()]))
-    this.indicesOutdated.set(collection.name, false)
-  }
-
-  private rebuildIndicesIfOutdated<T extends BaseItem<I>, I = any, U = T>(
-    collection: Collection<T, I, U>,
-  ) {
-    const isOutdated = this.indicesOutdated.get(collection.name)
-    this.indicesOutdated.set(collection.name, true)
-    if (collection.isBatchOperationInProgress()) {
-      if (isOutdated) return // if indices are already outdated, rebuilding already scheduled
-      collection.onPostBatch(() => this.rebuildIndicesNow(collection))
-      return
-    }
-    this.rebuildIndicesNow(collection)
   }
 
   private async setupStorageAdapter<T extends BaseItem<I>, I = any, U = T>(
@@ -111,8 +96,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           map.set(serializeValue(item.id), item)
           return map
         }, new Map<string | null, T>()))
-        this.indicesOutdated.set(collection.name, true)
-        this.rebuildIndicesIfOutdated(collection)
+        this.rebuildIndices(collection)
       })
       .catch((error) => {
         if (!this.options.onError) {
@@ -150,14 +134,6 @@ export default class DefaultDataAdapter implements DataAdapter {
       }
     }
 
-    if (this.indicesOutdated.get(collection.name)) {
-      return {
-        matched: false,
-        ids: [],
-        optimizedSelector: selector,
-      }
-    }
-
     return getIndexInfo(
       (this.indices.get(collection.name) ?? []).map(i => i.query.bind(i)),
       selector,
@@ -173,33 +149,11 @@ export default class DefaultDataAdapter implements DataAdapter {
     },
   ) {
     const indices = this.indices.get(collection.name) ?? []
-    const memory = this.items.get(collection.name) as Map<string | null, T>
-    const allItems = memory ? [...memory.values()] : []
-
     for (const index of indices) {
-      let usedDelta = false
-
-      if (changes.modified && typeof index.update === 'function') {
-        index.update(changes.modified)
-        usedDelta = true
-      }
-      if (changes.added && changes.added.length > 0 && typeof index.insert === 'function') {
-        index.insert(changes.added)
-        usedDelta = true
-      }
-      if (changes.removed && changes.removed.length > 0 && typeof index.remove === 'function') {
-        index.remove(changes.removed)
-        usedDelta = true
-      }
-
-      // Fallback: if no delta-capable methods are available, rebuild this one index
-      if (!usedDelta) {
-        index.rebuild(allItems)
-      }
+      if (changes.modified) index.update(changes.modified)
+      if (changes.added && changes.added.length > 0) index.insert(changes.added)
+      if (changes.removed && changes.removed.length > 0) index.remove(changes.removed)
     }
-
-    // Indices are now up-to-date for this collection
-    this.indicesOutdated.set(collection.name, false)
   }
 
   private getItem<T extends BaseItem<I>, I = any, U = T>(
@@ -315,7 +269,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
     this.indices.set(collection.name, indices.map(field => createIndex(field)))
 
-    this.rebuildIndicesIfOutdated(collection)
+    this.rebuildIndices(collection)
 
     const persistenceReadyPromise = this.setupStorageAdapter(collection)
 
@@ -507,7 +461,6 @@ export default class DefaultDataAdapter implements DataAdapter {
         if (adapter?.teardown) await adapter.teardown()
         this.storageAdapters.delete(collection.name)
         this.items.delete(collection.name)
-        this.indicesOutdated.delete(collection.name)
         this.indices.delete(collection.name)
         this.activeQueries.delete(collection.name)
         this.queryEmitters.delete(collection.name)
