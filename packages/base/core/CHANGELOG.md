@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The `combinePersistenceAdapters` method was removed.
 * All persistence events on the `Collection` were removed.
 * Exports for `createIndexProvider` and `createIndex` were removed. Specify indices as strings instead.
+* `.isReady()` method on `Collection` was renamed to `.ready()`. A new reactive `.isReady` method was added to check if the collection is ready in a reactive way.
 
 ### Added
 
