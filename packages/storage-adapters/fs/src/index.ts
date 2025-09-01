@@ -1,4 +1,6 @@
-import { createStorageAdapter, get, serializeValue } from '@signaldb/core'
+import { serializeValue } from '@signaldb/core'
+import type { Driver } from '@signaldb/generic-fs'
+import createGenericFSAdapter from '@signaldb/generic-fs'
 
 /**
  * Convert an arbitrary filename into a cross-platform safe filename.
@@ -9,7 +11,7 @@ import { createStorageAdapter, get, serializeValue } from '@signaldb/core'
  * @param input - The input filename to sanitize.
  * @returns A safe filename.
  */
-export function toSafeFilename(input: string): string {
+function toSafeFilename(input: string): string {
   const replacement = '_'
   const max = 255
 
@@ -77,7 +79,7 @@ export function toSafeFilename(input: string): string {
  * // Perform operations on the collection, and changes will be reflected in the file.
  */
 export default function createFilesystemAdapter<
-  T extends { id: I } & Record<string, any>,
+  T extends { id: I } & Record<string, unknown>,
   I,
 >(
   folderName: string,
@@ -86,184 +88,122 @@ export default function createFilesystemAdapter<
     deserialize?: (input: string) => any,
   },
 ) {
+  const serialize = options?.serialize || (data => JSON.stringify(data))
+  const deserialize = options?.deserialize || (input => JSON.parse(input))
+
+  const fsPromise = import('fs')
   // eslint-disable-next-line unicorn/import-style
-  const pathPromise = import('node:path')
-  const fsPromise = import('node:fs').then(fs => fs.promises)
-  const { serialize = JSON.stringify, deserialize = JSON.parse } = options || {}
+  const pathPromise = import('path')
 
-  const indices: string[] = []
-
-  const sharded = (id: I) => {
-    if (typeof id !== 'string' && typeof id !== 'number') return toSafeFilename(serializeValue(id) as string)
-    const idString = typeof id === 'string' ? id : id.toString(16).padStart(4, '0')
-    const firstShard = toSafeFilename(idString.slice(0, 2) || '00')
-    const secondShard = toSafeFilename(idString.slice(2, 4) || '00')
-    return `${firstShard}/${secondShard}/${toSafeFilename(idString)}` // e.g. "ab/cd/abcdef123456..."
-  }
-
-  const readAll = async () => {
-    const [fs, path] = await Promise.all([fsPromise, pathPromise])
-    const itemsFolder = path.join(folderName, 'items')
-    const exists = await fs.access(itemsFolder).then(() => true).catch(() => false)
-    if (!exists) return []
-
-    const files = await fs.readdir(itemsFolder, { recursive: true })
-    const items: T[] = []
-    await Promise.all(files.map(async (file) => {
-      const filePath = path.join(itemsFolder, file)
-      const stat = await fs.stat(filePath)
-      if (!stat.isFile()) return
-
-      const content = await fs.readFile(filePath, 'utf8')
-      const itemsInFile = deserialize(content) as T[]
-      items.push(...itemsInFile)
-    }))
-    return items
-  }
-  const ensureIndex = async (field: string, getItems = readAll()) => {
-    const items = await getItems
-    const [fs, path] = await Promise.all([fsPromise, pathPromise])
-    const indexFolder = path.join(folderName, 'index', toSafeFilename(field))
-
-    const index = new Map<any, Set<I>>()
-    items.forEach((item) => {
-      const fieldValue = get(item, field)
-      if (fieldValue == null) return
-      if (!index.has(fieldValue)) index.set(fieldValue, new Set())
-      index.get(fieldValue)?.add(item.id)
-    })
-    const safeIndex: Record<string, Record<any, I[]>[]> = {}
-    index.forEach((ids, key) => {
-      const safeKey = toSafeFilename(serializeValue(key) as string)
-      if (!safeIndex[safeKey]) safeIndex[safeKey] = []
-      safeIndex[safeKey].push({ [key]: [...ids] })
-    })
-    await Promise.all(Object.entries(safeIndex).map(async ([safeKey, maps]) => {
-      const indexFile = path.join(indexFolder, safeKey)
-      await fs.mkdir(path.dirname(indexFile), { recursive: true })
-      await fs.writeFile(indexFile, serialize(maps))
-    }))
-  }
-  const readIndex = async (field: string) => {
-    const [fs, path] = await Promise.all([fsPromise, pathPromise])
-    const indexFolder = path.join(folderName, 'index', toSafeFilename(field))
-    const exists = await fs.access(indexFolder).then(() => true).catch(() => false)
-    if (!exists) throw new Error(`Index on field "${field}" does not exist`)
-
-    const files = await fs.readdir(indexFolder, { recursive: true })
-    const index = new Map<any, Set<I>>()
-    await Promise.all(files.map(async (file) => {
-      const content = await fs.readFile(path.join(indexFolder, file), 'utf8')
-      const maps = deserialize(content) as Record<any, I[]>[]
-      maps.forEach(map => Object.entries(map).forEach(([key, ids]) => {
-        if (!index.has(key)) index.set(key, new Set())
-        ids.forEach(id => index.get(key)?.add(id))
-      }))
-    }))
-    return index
-  }
-  const updateAllIndices = async () => {
-    const allItemsPromise = readAll()
-    await Promise.all(indices.map(index => ensureIndex(index, allItemsPromise)))
-  }
-
-  return createStorageAdapter<T, I>({
-    setup: async () => {
+  const driver: Driver<T, I> = {
+    fileNameForId: async (id) => {
+      const path = await pathPromise
+      if (typeof id !== 'string' && typeof id !== 'number') return toSafeFilename(serializeValue(id) as string)
+      const idString = typeof id === 'string' ? id : id.toString(16).padStart(4, '0')
+      const firstShard = toSafeFilename(idString.slice(0, 2) || '00')
+      const secondShard = toSafeFilename(idString.slice(2, 4) || '00')
+      return path.join(firstShard, secondShard, toSafeFilename(idString)) // e.g. "ab/cd/abcdef123456..."
+    },
+    fileNameForIndexKey: key => Promise.resolve(toSafeFilename(key)),
+    joinPath: async (...parts) => {
+      const path = await pathPromise
+      return path.join(...parts)
+    },
+    ensureDir: async (directoryPath: string) => {
       const fs = await fsPromise
-      await fs.mkdir(folderName, { recursive: true })
-    },
-    teardown: async () => {
-      // no-op
+      await fs.promises.mkdir(directoryPath, { recursive: true })
     },
 
-    readAll,
-    readIds: async (ids) => {
-      const [fs, path] = await Promise.all([fsPromise, pathPromise])
-      const itemsFolder = path.join(folderName, 'items')
-      const exists = await fs.access(itemsFolder).then(() => true).catch(() => false)
-      if (!exists) return []
-
-      const items = await Promise.all(ids.map(async (id) => {
-        const itemFile = path.join(itemsFolder, sharded(id))
-        const itemExists = await fs.access(itemFile).then(() => true).catch(() => false)
-        if (!itemExists) return null
-
-        const content = await fs.readFile(itemFile, 'utf8')
-        const itemsInFile = deserialize(content) as T[]
-        return itemsInFile.find(i => i.id === id) || null
-      }))
-      return items.filter(item => item != null)
+    fileExists: async (filePath) => {
+      const fs = await fsPromise
+      try {
+        await fs.promises.access(filePath)
+        return true
+      } catch {
+        return false
+      }
     },
 
-    createIndex: async (field) => {
-      indices.push(field)
-      await ensureIndex(field)
+    readObject: async (filePath) => {
+      const fs = await fsPromise
+      try {
+        const text = await fs.promises.readFile(filePath, 'utf8')
+        return deserialize(text)
+      } catch {
+        return null
+      }
     },
-    dropIndex: async (field) => {
-      const [fs, path] = await Promise.all([fsPromise, pathPromise])
-      const indexFolder = path.join(folderName, 'index', toSafeFilename(field))
-      const exists = await fs.access(indexFolder).then(() => true).catch(() => false)
-      if (!exists) throw new Error(`Index on field "${field}" does not exist`)
-      await fs.rmdir(indexFolder, { recursive: true })
+
+    writeObject: async (filePath, value) => {
+      const [fs, path] = await Promise.all([
+        fsPromise,
+        pathPromise,
+      ])
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
+      const text = serialize(value)
+      await fs.promises.writeFile(filePath, text)
     },
-    readIndex,
 
-    insert: async (items) => {
-      const [fs, path] = await Promise.all([fsPromise, pathPromise])
-      const itemsFolder = path.join(folderName, 'items')
-
-      await Promise.all(items.map(async (item) => {
-        const itemFile = path.join(itemsFolder, sharded(item.id))
-        await fs.mkdir(path.dirname(itemFile), { recursive: true })
-        const existing = await fs.readFile(itemFile, 'utf8').then(deserialize).catch(() => []) as T[]
-        if (existing.some(i => i.id === item.id)) {
-          throw new Error(`Item with id "${item.id as string}" already exists`)
-        }
-        existing.push(item)
-        await fs.writeFile(itemFile, serialize(existing))
-        await updateAllIndices()
-      }))
+    readIndexObject: async (filePath) => {
+      const fs = await fsPromise
+      try {
+        const text = await fs.promises.readFile(filePath, 'utf8')
+        return deserialize(text)
+      } catch {
+        return null
+      }
     },
-    replace: async (itemsToReplace) => {
-      const [fs, path] = await Promise.all([fsPromise, pathPromise])
-      const itemsFolder = path.join(folderName, 'items')
 
-      await Promise.all(itemsToReplace.map(async (item) => {
-        const itemFile = path.join(itemsFolder, sharded(item.id))
-        await fs.mkdir(path.dirname(itemFile), { recursive: true })
-        const existing = await fs.readFile(itemFile, 'utf8').then(deserialize).catch(() => []) as T[]
-        const index = existing.findIndex(i => i.id === item.id)
-        if (index === -1) {
-          throw new Error(`Item with id "${item.id as string}" does not exist`)
-        }
-        existing[index] = item
-        await fs.writeFile(itemFile, serialize(existing))
-      }))
-      await updateAllIndices()
+    writeIndexObject: async (filePath, value) => {
+      const [fs, path] = await Promise.all([
+        fsPromise,
+        pathPromise,
+      ])
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
+      const text = serialize(value)
+      await fs.promises.writeFile(filePath, text)
     },
-    remove: async (itemsToRemove) => {
-      const [fs, path] = await Promise.all([fsPromise, pathPromise])
-      const itemsFolder = path.join(folderName, 'items')
 
-      await Promise.all(itemsToRemove.map(async (item) => {
-        const itemFile = path.join(itemsFolder, sharded(item.id))
-        const existing = await fs.readFile(itemFile, 'utf8').then(deserialize).catch(() => []) as T[]
-        const index = existing.findIndex(i => i.id === item.id)
-        if (index === -1) {
-          throw new Error(`Item with id "${item.id as string}" does not exist`)
-        }
-        existing.splice(index, 1)
-        if (existing.length === 0) {
-          await fs.rm(itemFile)
+    listFilesRecursive: async (directoryPath: string): Promise<string[]> => {
+      const [fs, path] = await Promise.all([
+        fsPromise,
+        pathPromise,
+      ])
+
+      const collectedRelativePaths: string[] = []
+
+      const walk = async (absoluteBasePath: string, relativeBasePath: string): Promise<void> => {
+        let entryNames: string[]
+        try {
+          entryNames = await fs.promises.readdir(absoluteBasePath)
+        } catch {
           return
         }
-        await fs.writeFile(itemFile, serialize(existing))
-      }))
-      await updateAllIndices()
+
+        await Promise.all(
+          entryNames.map(async (entryName) => {
+            const absoluteEntryPath = path.join(absoluteBasePath, entryName)
+            const statistics = await fs.promises.stat(absoluteEntryPath)
+            if (statistics.isDirectory()) {
+              const childRelativePath = relativeBasePath ? `${relativeBasePath}/${entryName}` : entryName
+              await walk(absoluteEntryPath, childRelativePath)
+            } else if (statistics.isFile()) {
+              const relativePath = relativeBasePath ? `${relativeBasePath}/${entryName}` : entryName
+              collectedRelativePaths.push(relativePath)
+            }
+          }),
+        )
+      }
+
+      await walk(directoryPath, '')
+      return collectedRelativePaths
     },
-    removeAll: async () => {
+
+    removeEntry: async (path: string, removeOptions?: { recursive?: boolean }): Promise<void> => {
       const fs = await fsPromise
-      await fs.rmdir(folderName, { recursive: true })
+      const recursive = removeOptions?.recursive ?? false
+      await fs.promises.rm(path, { recursive, force: true })
     },
-  })
+  }
+  return createGenericFSAdapter<T, I>(driver, folderName)
 }
