@@ -24,6 +24,10 @@ export default defineConfig({
         'eslint.config.mjs',
         'packages/devtools/devtools',
       ],
+      thresholds: {
+        lines: 100,
+        functions: 100,
+      },
     },
     reporters: process.env.GITHUB_ACTIONS ? ['dot', 'junit', 'github-actions'] : ['dot'],
   },
