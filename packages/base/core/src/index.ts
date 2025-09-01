@@ -30,5 +30,6 @@ export { default as get } from './utils/get'
 export { default as serializeValue } from './utils/serializeValue'
 
 export { default as DefaultDataAdapter } from './DefaultDataAdapter'
+export { default as AsyncDataAdapter } from './AsyncDataAdapter'
 export { default as WorkerDataAdapter } from './WorkerDataAdapter'
 export { default as WorkerDataAdapterHost } from './WorkerDataAdapterHost'
