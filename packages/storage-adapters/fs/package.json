@@ -54,5 +54,8 @@
   ],
   "peerDependencies": {
     "@signaldb/core": "1.x"
+  },
+  "dependencies": {
+    "@signaldb/generic-fs": "^1.0.0"
   }
 }
