@@ -223,4 +223,66 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     // Cover teardown line
     await expect(adapter.teardown()).resolves.toBeUndefined()
   })
+
+  it('readAll handles fileExists error gracefully', async () => {
+    // Create a driver that throws an error on fileExists
+    const errorDriver = new MemDriver<Item, string>()
+    errorDriver.fileExists = vi.fn().mockRejectedValue(new Error('Access denied'))
+
+    const errorAdapter = createGenericFSAdapter<Item, string>(errorDriver, folder) as any
+    await errorAdapter.setup()
+
+    const items = await errorAdapter.readAll()
+    expect(items).toEqual([])
+  })
+
+  it('covers index delta application edge cases', async () => {
+    // Test applyIndexDeltas when index doesn't exist (line 201)
+    const a: Item = { id: 'aa1', status: 'new' }
+    await adapter.insert([a])
+
+    // Create index first
+    await adapter.createIndex('status')
+
+    // Now modify the item to trigger delta application
+    await adapter.replace([{ id: 'aa1', status: 'updated' }])
+
+    const index = await adapter.readIndex('status')
+    expect(index.get('updated')).toEqual(new Set(['aa1']))
+  })
+
+  it('covers removeEntry with non-recursive option', async () => {
+    const a: Item = { id: 'aa1', status: 'new' }
+    await adapter.insert([a])
+
+    // Remove without recursive option (line 88-89)
+    await adapter.remove([a])
+    expect(driver.deletedPaths).toContain('/root/collection/items/aa/aa1')
+  })
+
+  it('covers index bucket removal when empty', async () => {
+    const a: Item = { id: 'aa1', status: 'temp' }
+    await adapter.insert([a])
+    await adapter.createIndex('status')
+
+    // Remove the only item with this status to trigger bucket deletion (line 255)
+    await adapter.remove([a])
+
+    const index = await adapter.readIndex('status')
+    expect(index.get('temp')).toBeUndefined()
+  })
+
+  it('covers edge cases in index management', async () => {
+    const a: Item = { id: 'aa1', status: 'new' }
+    const b: Item = { id: 'bb2', status: 'new' }
+
+    await adapter.insert([a, b])
+    await adapter.createIndex('status')
+
+    // Test the successful bucket removal path
+    await adapter.remove([a])
+
+    const index = await adapter.readIndex('status')
+    expect(index.get('new')).toEqual(new Set(['bb2']))
+  })
 })
