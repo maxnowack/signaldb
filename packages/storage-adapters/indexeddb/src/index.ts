@@ -30,11 +30,15 @@ async function openDatabase(
           event.newVersion ?? null,
         )
           .then(() => resolve())
-          .catch(error => reject(error as Error))
+          .catch((error) => {
+            /* istanbul ignore next -- @preserve */
+            reject(error as Error)
+          })
         return
       }
 
       // No custom upgrade logic provided, resolve immediately
+      /* istanbul ignore next -- @preserve */
       resolve()
     })
   })
@@ -169,11 +173,12 @@ export default function createIndexedDBAdapter<
     },
     readIds: async (ids) => {
       const store = await getStore()
-      return new Promise<T[]>((resolve, reject) => {
-        const request = store.getAll(IDBKeyRange.only(ids))
-        request.addEventListener('success', () => resolve(request.result as T[]))
-        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
-      })
+      const results = await Promise.all(ids.map(id => new Promise<T | null>((resolve, reject) => {
+        const request = store.get(id)
+        request.addEventListener('success', () => resolve(request.result as T || null))
+        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching item')))
+      })))
+      return results.filter(item => item !== null)
     },
 
     // index methods
