@@ -24,13 +24,10 @@ export type AsynchronousQueryFunction<T extends BaseItem<I> = BaseItem, I = any>
 interface IndexProvider<T extends BaseItem<I> = BaseItem, I = any> {
   query: SynchronousQueryFunction<T, I>,
   rebuild(items: T[]): void,
-}
 
-export type LowLevelIndexProvider<
-  T extends BaseItem<I> = BaseItem,
-  I = any,
-> = IndexProvider<T, I> & {
-  _index: Map<string, Set<I>>,
+  insert?(items: T[]): void,
+  remove?(items: T[]): void,
+  update?(pairs: { oldItem: T, newItem: T }[]): void,
 }
 
 export default IndexProvider
