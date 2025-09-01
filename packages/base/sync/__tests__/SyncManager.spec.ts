@@ -1188,7 +1188,7 @@ it('should start sync after collection is ready', async () => {
     persistence: mockStorageAdapter,
   })
   let persistenceInitialized = false
-  void collection.isReady().then(() => {
+  void collection.ready().then(() => {
     persistenceInitialized = true
   })
 
@@ -1242,7 +1242,7 @@ it('should fail if there was a persistence error during initialization', async (
   })
   const collection = new Collection<TestItem, string, any>('test', dataAdapter)
   let persistenceInitialized = false
-  void collection.isReady().then(() => {
+  void collection.ready().then(() => {
     persistenceInitialized = true
   })
 
@@ -1586,7 +1586,7 @@ it('should handle errors with onError handler in event listeners', async () => {
 
 it('should handle storage errors with error handler callback', async () => {
   let storageErrorHandler: ((error: Error) => void) | undefined
-  
+
   const syncManager = new SyncManager({
     id: 'test-sync-manager',
     storageAdapter: (name, onError) => {
@@ -1611,31 +1611,31 @@ it('should handle storage errors with error handler callback', async () => {
   })
 
   await syncManager.isReady()
-  
+
   // Test the error handler callback (line 183)
   if (storageErrorHandler) {
     storageErrorHandler(new Error('Storage error'))
   }
-  
+
   expect(storageErrorHandler).toBeDefined()
 })
 
 it('exercises error handler via intercepted DataAdapter calls', async () => {
   // Intercept DefaultDataAdapter constructor and force calls to exercise lines 138-144,183
   const originalCreateCollectionBackend = DefaultDataAdapter.prototype.createCollectionBackend
-  
+
   let interceptedStorage: ((name: string) => any) | undefined
   let interceptedOnError: ((name: string, error: Error) => void) | undefined
-  
+
   DefaultDataAdapter.prototype.createCollectionBackend = function(collection, indices) {
     // @ts-expect-error - accessing private property for testing
     interceptedStorage = this.options?.storage
-    // @ts-expect-error - accessing private property for testing  
+    // @ts-expect-error - accessing private property for testing
     interceptedOnError = this.options?.onError
-    
+
     return originalCreateCollectionBackend.call(this, collection, indices)
   }
-  
+
   const syncManager = new SyncManager({
     id: 'test-sync-manager',
     storageAdapter: (name) => memoryStorageAdapter([]),
@@ -1644,26 +1644,26 @@ it('exercises error handler via intercepted DataAdapter calls', async () => {
   })
 
   await syncManager.isReady()
-  
+
   // Restore the original method
   DefaultDataAdapter.prototype.createCollectionBackend = originalCreateCollectionBackend
-  
+
   // Now call the intercepted functions to trigger the exact error paths
   if (interceptedStorage) {
     expect(() => interceptedStorage('unknown-storage')).toThrow('Unknown storage name: unknown-storage')
   }
-  
+
   if (interceptedOnError) {
     expect(() => interceptedOnError('unknown-error', new Error('test'))).toThrow('Error in unknown storage name: unknown-error')
   }
-  
+
   expect(interceptedStorage).toBeDefined()
   expect(interceptedOnError).toBeDefined()
 })
 
 it('should handle storage adapter error scenarios', async () => {
   let registeredHandler: ((error: Error) => void) | undefined
-  
+
   const syncManager = new SyncManager({
     storageAdapter: (name, onError) => {
       if (onError) {
@@ -1676,11 +1676,11 @@ it('should handle storage adapter error scenarios', async () => {
   })
 
   await syncManager.isReady()
-  
+
   // Call the registered error handler to exercise the callback path
   if (registeredHandler) {
     registeredHandler(new Error('Storage error'))
   }
-  
+
   expect(registeredHandler).toBeDefined()
 })
