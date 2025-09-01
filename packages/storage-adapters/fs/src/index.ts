@@ -177,6 +177,7 @@ export default function createFilesystemAdapter<
         try {
           entryNames = await fs.promises.readdir(absoluteBasePath)
         } catch {
+          /* istanbul ignore next -- @preserve */
           return
         }
 
