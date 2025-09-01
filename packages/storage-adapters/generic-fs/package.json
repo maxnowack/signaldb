@@ -1,10 +1,10 @@
 {
-  "name": "@signaldb/opfs",
-  "version": "1.0.1",
+  "name": "@signaldb/generic-fs",
+  "version": "1.0.0",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
-    "analyze-bundle": "bundle-analyzer ./dist --upload-token=$BUNDLE_ANALYZER_UPLOAD_TOKEN --bundle-name=@signaldb/opfs",
+    "analyze-bundle": "bundle-analyzer ./dist --upload-token=$BUNDLE_ANALYZER_UPLOAD_TOKEN --bundle-name=@signaldb/fs-primitives",
     "test": "vitest"
   },
   "repository": {
@@ -13,7 +13,8 @@
   },
   "homepage": "https://signaldb.js.org",
   "keywords": [
-    "opfs",
+    "filesystem",
+    "primitives",
     "client-database",
     "client",
     "database",
@@ -54,8 +55,5 @@
   ],
   "peerDependencies": {
     "@signaldb/core": "1.x"
-  },
-  "dependencies": {
-    "@signaldb/generic-fs": "^1.0.0"
   }
 }
