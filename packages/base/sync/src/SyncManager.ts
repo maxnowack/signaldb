@@ -385,7 +385,7 @@ export default class SyncManager<
     this.collections.set(options.name, {
       collection,
       options,
-      readyPromise: collection.isReady(),
+      readyPromise: collection.ready(),
       syncPaused: true, // always start paused as the autostart will start it
       syncListeners: { added: onAdded, changed: onChanged, removed: onRemoved },
     })
