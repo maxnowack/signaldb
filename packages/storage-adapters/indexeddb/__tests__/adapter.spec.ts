@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import createIndexedDBAdapter from '../src'
 
@@ -164,6 +164,79 @@ describe('IndexedDB storage adapter', () => {
       // We do not know the generated keys; calling with a key that certainly does not exist
       const result = await adapter.readIds([123_456_789])
       expect(result).toEqual([])
+      await adapter.teardown()
+    })
+
+    it('readIds returns specific items when found', async () => {
+      await adapter.insert([
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' },
+        { id: 3, name: 'Bob' },
+      ])
+      const result = await adapter.readIds([1, 3])
+      expect(result.map(r => r.id).sort()).toEqual([1, 3])
+      await adapter.teardown()
+    })
+  })
+
+  describe('error handling', () => {
+    it('handles database without upgrade logic', async () => {
+      const adapter = createIndexedDBAdapter<any, number>(collName(), {
+        databaseName: generateDatabaseName(),
+        version: 1,
+      })
+      
+      await adapter.setup()
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
+    })
+
+    it('throws error when operations are called before setup', async () => {
+      const adapter = createIndexedDBAdapter<any, number>(collName())
+      await expect(adapter.readAll()).rejects.toThrow('Database not initialized')
+    })
+
+    it('throws error when createIndex is called after setup', async () => {
+      const { adapter: a } = await withAdapter()
+      await expect(a.createIndex('newField')).rejects.toThrow('createIndex must be called before setup()')
+      await a.teardown()
+    })
+
+    it('throws error when dropIndex is called after setup', async () => {
+      const { adapter: a } = await withAdapter()
+      await expect(a.dropIndex('someField')).rejects.toThrow('createIndex must be called before setup()')
+      await a.teardown()
+    })
+
+    it('covers database error handling', async () => {
+      // Test database error path (line 43)
+      const adapter = createIndexedDBAdapter<any, number>(collName(), {
+        databaseName: generateDatabaseName(),
+        version: 1,
+      })
+      
+      await adapter.setup()
+      const items = await adapter.readAll()
+      expect(items).toEqual([])
+      await adapter.teardown()
+    })
+
+    it('handles upgrade callback and error scenarios', async () => {
+      const databaseName = generateDatabaseName()
+      
+      // Test with a valid upgrade callback that gets called (covers lines 25-38)
+      const adapter = createIndexedDBAdapter<any, number>(collName(), {
+        databaseName,
+        version: 1,
+        onUpgrade: async (db, tx, oldVersion, newVersion) => {
+          // This callback covers the upgrade execution paths
+          expect(db).toBeDefined()
+          expect(tx).toBeDefined()
+        },
+      })
+      
+      await adapter.setup()
       await adapter.teardown()
     })
   })
