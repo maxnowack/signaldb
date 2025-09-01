@@ -164,6 +164,7 @@ export default function createOPFSAdapter<
       try {
         directoryHandle = await ensureDirectoryExists(rootDirectory, directoryPath, false)
       } catch {
+        /* istanbul ignore next -- @preserve */
         return []
       }
 

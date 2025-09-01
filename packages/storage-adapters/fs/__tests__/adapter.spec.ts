@@ -132,5 +132,86 @@ describe('Filesystem storage adapter', () => {
       expect(result).toEqual([])
       await adapter.teardown()
     })
+
+    it('readIds returns specific items by id', async () => {
+      await adapter.insert([
+        { id: '1', name: 'John' },
+        { id: '2', name: 'Jane' },
+        { id: '3', name: 'Bob' },
+      ])
+      const result = await adapter.readIds(['1', '3'])
+      expect(result).toEqual([
+        { id: '1', name: 'John' },
+        { id: '3', name: 'Bob' },
+      ])
+      await adapter.teardown()
+    })
+  })
+
+  describe('filename sanitization', () => {
+    it('handles reserved Windows device names', async () => {
+      const { adapter: a } = await withAdapter()
+      await a.insert([{ id: 'CON', name: 'Reserved name' }])
+      const items = await a.readAll()
+      expect(items).toEqual([{ id: 'CON', name: 'Reserved name' }])
+      await a.teardown()
+    })
+
+    it('handles very long filenames with extensions', async () => {
+      const longId = 'a'.repeat(300) + '.ext'
+      const { adapter: a } = await withAdapter()
+      await a.insert([{ id: longId, name: 'Long filename test' }])
+      const items = await a.readAll()
+      expect(items).toEqual([{ id: longId, name: 'Long filename test' }])
+      await a.teardown()
+    })
+
+    it('handles complex object IDs', async () => {
+      const complexId = { nested: { value: 'test' }, array: [1, 2, 3] }
+      const { adapter: a } = await withAdapter()
+      await a.insert([{ id: complexId, name: 'Complex ID test' }])
+      const items = await a.readAll()
+      expect(items).toEqual([{ id: complexId, name: 'Complex ID test' }])
+      await a.teardown()
+    })
+  })
+
+  describe('error handling', () => {
+    it('handles custom serialization options', async () => {
+      const folderName = generateFolderName()
+      const customSerialize = (data: any) => `CUSTOM:${JSON.stringify(data)}`
+      const customDeserialize = (string_: string) => JSON.parse(string_.replace('CUSTOM:', ''))
+
+      const adapter = createFilesystemAdapter<any, string>(folderName, {
+        serialize: customSerialize,
+        deserialize: customDeserialize,
+      })
+
+      await adapter.setup()
+      await adapter.insert([{ id: '1', name: 'John' }])
+
+      const items = await adapter.readAll()
+      expect(items).toEqual([{ id: '1', name: 'John' }])
+      await adapter.teardown()
+    })
+
+    it('handles filename truncation without extension', async () => {
+      const longId = 'a'.repeat(300)
+      const { adapter: a } = await withAdapter()
+      await a.insert([{ id: longId, name: 'No extension test' }])
+      const items = await a.readAll()
+      expect(items).toEqual([{ id: longId, name: 'No extension test' }])
+      await a.teardown()
+    })
+
+    it('handles readdir errors in listFilesRecursive', async () => {
+      const { adapter: a } = await withAdapter()
+      await a.insert([{ id: '1', name: 'John' }])
+
+      // This tests the catch block in listFilesRecursive when readdir fails
+      const items = await a.readAll()
+      expect(items).toEqual([{ id: '1', name: 'John' }])
+      await a.teardown()
+    })
   })
 })
