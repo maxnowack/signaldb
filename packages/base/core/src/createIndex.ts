@@ -11,6 +11,16 @@ import type { BaseItem } from './Collection/types'
  */
 export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(field: string) {
   const index = new Map<string | undefined | null, Set<I>>()
+
+  const ensureSet = (key: string | undefined | null) => {
+    let set = index.get(key)
+    if (!set) {
+      set = new Set<I>()
+      index.set(key, set)
+    }
+    return set
+  }
+
   return createIndexProvider<T, I>({
     query(selector) {
       if (!Object.hasOwnProperty.call(selector, field)) {
@@ -70,10 +80,40 @@ export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(f
       index.clear()
       items.forEach((item) => {
         const value = serializeValue(get(item, field))
-        const current = index.get(value) || new Set<I>()
-        current.add(item.id)
-        index.set(value, current)
+        ensureSet(value).add(item.id)
       })
+    },
+
+    // NEW: delta methods
+    insert(items) {
+      for (const item of items) {
+        const value = serializeValue(get(item, field))
+        ensureSet(value).add(item.id)
+      }
+    },
+
+    remove(items) {
+      for (const item of items) {
+        const value = serializeValue(get(item, field))
+        const set = index.get(value)
+        if (!set) continue
+        set.delete(item.id)
+        if (set.size === 0) index.delete(value)
+      }
+    },
+
+    update(pairs) {
+      for (const { oldItem, newItem } of pairs) {
+        const oldValue = serializeValue(get(oldItem, field))
+        const newValue = serializeValue(get(newItem, field))
+        if (oldValue === newValue) continue
+        const oldSet = index.get(oldValue)
+        if (oldSet) {
+          oldSet.delete(oldItem.id)
+          if (oldSet.size === 0) index.delete(oldValue)
+        }
+        ensureSet(newValue).add(newItem.id)
+      }
     },
   })
 }
