@@ -837,6 +837,7 @@ describe('Collection', () => {
         }) as unknown as StorageAdapter<any, any>,
       })
       const col = new Collection('test', dataAdapter)
+      await col.isReady()
       await col.dispose()
       expect(teardown).toHaveBeenCalledOnce()
     })
