@@ -107,7 +107,12 @@ export default function createOPFSAdapter<
         await getFileHandleForPath(rootDirectory, path, false)
         return true
       } catch {
-        return false
+        try {
+          await rootDirectory.getDirectoryHandle(path)
+          return true
+        } catch {
+          return false
+        }
       }
     },
 
