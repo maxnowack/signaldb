@@ -89,6 +89,7 @@ function makeDirectory(basePath: string) {
         if (!key.startsWith(prefix)) continue
         yield {
           kind: 'file',
+          name: key.slice(prefix.length),
           async getFile() {
             return { async text() {
               return fileContents[key]
