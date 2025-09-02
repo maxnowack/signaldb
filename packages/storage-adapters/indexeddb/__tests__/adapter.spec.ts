@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import 'fake-indexeddb/auto'
 import createIndexedDBAdapter from '../src'
 
@@ -185,7 +185,7 @@ describe('IndexedDB storage adapter', () => {
         databaseName: generateDatabaseName(),
         version: 1,
       })
-      
+
       await adapter.setup()
       const items = await adapter.readAll()
       expect(items).toEqual([])
@@ -215,7 +215,7 @@ describe('IndexedDB storage adapter', () => {
         databaseName: generateDatabaseName(),
         version: 1,
       })
-      
+
       await adapter.setup()
       const items = await adapter.readAll()
       expect(items).toEqual([])
@@ -224,18 +224,18 @@ describe('IndexedDB storage adapter', () => {
 
     it('handles upgrade callback and error scenarios', async () => {
       const databaseName = generateDatabaseName()
-      
+
       // Test with a valid upgrade callback that gets called (covers lines 25-38)
       const adapter = createIndexedDBAdapter<any, number>(collName(), {
         databaseName,
         version: 1,
-        onUpgrade: async (db, tx, oldVersion, newVersion) => {
+        onUpgrade: async (database, tx) => {
           // This callback covers the upgrade execution paths
-          expect(db).toBeDefined()
+          expect(database).toBeDefined()
           expect(tx).toBeDefined()
         },
       })
-      
+
       await adapter.setup()
       await adapter.teardown()
     })
