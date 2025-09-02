@@ -237,9 +237,11 @@ export default class Collection<
       this,
       this.options.indices ?? [],
     )
-    void this.backend.isReady().then(() => {
-      this.readySignal.set(true)
-    })
+    void this.backend.isReady()
+      .then(() => {
+        this.readySignal.set(true)
+      })
+      .catch(() => { /* initialization failed; keep not-ready state */ })
 
     Collection.onCreationCallbacks.forEach(callback => callback(this))
   }

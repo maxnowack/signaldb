@@ -7,6 +7,24 @@ const wait = () => new Promise((resolve) => {
   setImmediate(resolve)
 })
 
+// Coverage extras for async branches
+describe('Cursor (async) coverage', () => {
+  it('covers forEach/map/count async branches', async () => {
+    const col = new Collection<{ id: string, name: string }>()
+    await col.insert({ id: '1', name: 'a' })
+    await col.insert({ id: '2', name: 'b' })
+
+    const cursor = col.find<true>({}, { async: true })
+    const fetched = await cursor.fetch()
+    expect(fetched.length).toBe(2)
+    const mapped = await cursor.map(i => i.name)
+    expect(mapped.sort()).toEqual(['a', 'b'])
+    const counted = await cursor.count()
+    expect(counted).toBe(2)
+    await cursor.forEach(() => {})
+  })
+})
+
 interface TestItem {
   id: number,
   name: string,
