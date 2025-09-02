@@ -41,8 +41,8 @@ export default function memoryStorageAdapter<
 
   const rebuildIndexes = () => {
     indexes.forEach((index, field) => {
+      index.clear()
       items.forEach((item) => {
-        index.clear()
         const fieldValue = item[field]
         if (!index.has(fieldValue)) {
           index.set(fieldValue, new Set())
@@ -77,6 +77,16 @@ export default function memoryStorageAdapter<
       }
       const index = new Map<T[keyof T & string], Set<I>>()
       indexes.set(field, index)
+
+      // Build index for existing items
+      items.forEach((item) => {
+        const fieldValue = (item as any)[field] as T[keyof T & string]
+        if (!index.has(fieldValue)) {
+          index.set(fieldValue, new Set())
+        }
+        index.get(fieldValue)?.add(item.id)
+      })
+
       return Promise.resolve()
     },
     dropIndex: (field) => {
@@ -102,16 +112,19 @@ export default function memoryStorageAdapter<
       newItems.forEach((item) => {
         items.set(item.id, item)
       })
+      rebuildIndexes()
       return Promise.resolve()
     },
     remove: (itemsToRemove) => {
       itemsToRemove.forEach((item) => {
         items.delete(item.id)
       })
+      rebuildIndexes()
       return Promise.resolve()
     },
     removeAll: () => {
       items = new Map()
+      rebuildIndexes()
       return Promise.resolve()
     },
   })

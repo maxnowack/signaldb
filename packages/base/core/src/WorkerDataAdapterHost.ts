@@ -103,20 +103,31 @@ export default class WorkerDataAdapterHost<
       throw new TypeError('WorkerDataAdapterHost can only be used in a Web Worker context')
     }
 
-    this.workerContext.addEventListener('message', this.handleMessage.bind(this))
+    this.workerContext.addEventListener('message', async (event: MessageEvent) => {
+      try {
+        const { workerId, id, method, args } = event.data as {
+          id: string,
+          workerId: string,
+          method: keyof CollectionMethods<T, I>,
+          args: any[],
+        }
+        await this.processMessage(workerId, id, method, args)
+      } catch (error) {
+        this.onError(error as Error)
+      }
+    })
   }
 
   private respond(id: string, data: any, error: Error | null = null, type: 'response' | 'queryUpdate' = 'response') {
     this.workerContext.postMessage({ id, workerId: this.id, type, data, error })
   }
 
-  private handleMessage(event: MessageEvent) {
-    const { workerId, id, method, args } = event.data as {
-      id: string,
-      workerId: string,
-      method: keyof CollectionMethods<T, I>,
-      args: any[],
-    }
+  private async processMessage(
+    workerId: string,
+    id: string,
+    method: keyof CollectionMethods<T, I>,
+    args: any[],
+  ) {
     if (workerId !== this.id) return
 
     const fn = this[method] as any
@@ -125,14 +136,23 @@ export default class WorkerDataAdapterHost<
       return
     }
 
-    Promise.resolve()
-      .then(() => fn.apply(this, args))
-      .then((result) => {
-        this.respond(id, result)
-      })
-      .catch((error) => {
-        this.respond(id, null, error as Error)
-      })
+    try {
+      const result = await fn.apply(this, args)
+      this.respond(id, result)
+    } catch (error) {
+      this.respond(id, null, error as Error)
+    }
+  }
+
+  public handleMessage(event: MessageEvent) {
+    const { workerId, id, method, args } = event.data as {
+      id: string,
+      workerId: string,
+      method: keyof CollectionMethods<T, I>,
+      args: any[],
+    }
+    // Fire and forget; errors are handled inside processMessage
+    void this.processMessage(workerId, id, method, args)
   }
 
   private async getIndexInfo(

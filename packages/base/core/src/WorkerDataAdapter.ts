@@ -115,23 +115,21 @@ export default class WorkerDataAdapter implements DataAdapter {
       },
       onQueryStateChange: (selector, options, callback) => {
         const handler = (event: MessageEvent) => {
-          const { type, data } = event.data
+          const { type, data, workerId, collectionName, error } = event.data
           if (type !== 'queryUpdate') return
+          if (data == null) return
           const {
-            collectionName,
             selector: responseSelector,
             options: responseOptions,
             state,
-            error,
             items,
           } = data as {
-            collectionName: string,
             selector: Selector<T>,
             options?: QueryOptions<T>,
             state: 'active' | 'complete' | 'error',
-            error: Error | null,
             items: T[],
           }
+          if (workerId !== this.id) return
           if (collectionName !== collection.name) return
           if (JSON.stringify(responseSelector) !== JSON.stringify(selector)) return
           if (JSON.stringify(responseOptions) !== JSON.stringify(options)) return
