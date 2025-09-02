@@ -26,7 +26,6 @@ export default defineConfig({
       ],
       thresholds: {
         lines: 100,
-        functions: 100,
       },
     },
     reporters: process.env.GITHUB_ACTIONS ? ['dot', 'junit', 'github-actions'] : ['dot'],

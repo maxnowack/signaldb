@@ -875,3 +875,80 @@ describe('Collection', () => {
     })
   })
 })
+
+// Coverage extras consolidated from separate files
+describe('Collection coverage extras', () => {
+  it('toggles isPulling and isPushing signals', async () => {
+    const c = new Collection<{ id: string, n?: number }>()
+    await c.ready()
+    const pullingBefore = c.isPulling()
+    const p = c.find<true>({}, { async: true }).fetch()
+    const duringPulling = c.isPulling()
+    await p
+    const pullingAfter = c.isPulling()
+    expect(pullingBefore).toBe(false)
+    expect(duringPulling).toBe(true)
+    expect(pullingAfter).toBe(false)
+
+    const pushingBefore = c.isPushing()
+    const ins = c.insert({ id: '1', n: 1 })
+    const duringPushing = c.isPushing()
+    await ins
+    const pushingAfter = c.isPushing()
+    expect(pushingBefore).toBe(false)
+    expect(duringPushing).toBe(true)
+    expect(pushingAfter).toBe(false)
+  })
+
+  it('profiles getItems when debug mode enabled', async () => {
+    const c = new Collection<{ id: string }>()
+    c.setDebugMode(true)
+    expect(() => c.find({}).fetch()).not.toThrow()
+    await c.ready()
+  })
+
+  it('queues onPostBatch during batch and runs after', async () => {
+    const c = new Collection<{ id: string, n?: number }>()
+    const order: string[] = []
+    await c.batch(async () => {
+      c.onPostBatch(() => order.push('after'))
+      order.push('during')
+      await c.insert({ id: '1', n: 1 })
+    })
+    expect(order).toEqual(['during', 'after'])
+  })
+
+  it('executes onPostBatch immediately outside batch', async () => {
+    const c = new Collection<{ id: string }>()
+    const fn = vi.fn()
+    c.onPostBatch(fn)
+    expect(fn).toHaveBeenCalled()
+  })
+
+  it('returns callback result when nested batch in progress', async () => {
+    const c = new Collection<{ id: string }>()
+    let innerRan = false
+    await c.batch(async () => {
+      await c.batch(async () => {
+        innerRan = true
+      })
+    })
+    expect(innerRan).toBe(true)
+  })
+
+  it('throws on invalid selector for find', () => {
+    const c = new Collection<{ id: string }>()
+    // invalid selector type
+    expect(() => c.find('invalid' as unknown as never)).toThrow('Invalid selector')
+  })
+
+  it('disallows operations after dispose', async () => {
+    const c = new Collection<{ id: string, n?: number }>()
+    await c.insert({ id: '1', n: 1 })
+    await c.dispose()
+    expect(() => c.find({})).toThrow('Collection is disposed')
+    await expect(c.insert({ id: '2' })).rejects.toThrow('Collection is disposed')
+    await expect(c.updateOne({ id: '1' }, { $set: { n: 2 } })).rejects.toThrow('Collection is disposed')
+    await expect(c.removeOne({ id: '1' })).rejects.toThrow('Collection is disposed')
+  })
+})
