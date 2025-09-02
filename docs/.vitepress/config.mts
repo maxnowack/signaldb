@@ -65,6 +65,7 @@ export default withMermaid({
             { text: 'ORM', link: '/orm/' },
             { text: 'Developer Tools', link: '/devtools/' },
             { text: 'Schema Validation', link: '/schema-validation/' },
+            { text: 'Upgrade to v2', link: '/upgrade/v2/' },
             { text: 'Upgrade to v1', link: '/upgrade/v1/' },
           ],
         },
