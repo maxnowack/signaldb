@@ -5,6 +5,8 @@ import sReactivityAdapter from '../src'
 
 describe('@signaldb/sjs', () => {
   it('should be reactive with S.js', async () => {
+    // Suppress S.js reactive scope warning in test output
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const reactivity = sReactivityAdapter
     const originalOnDispose = reactivity.onDispose
     const dispose = vi.fn()
@@ -27,5 +29,6 @@ describe('@signaldb/sjs', () => {
     expect(dispose).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith(1)
+    warnSpy.mockRestore()
   })
 })
