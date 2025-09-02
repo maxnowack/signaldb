@@ -72,7 +72,15 @@ export default class AsyncDataAdapter implements DataAdapter {
     this.queries.set(collection.name, new Map())
     this.ensureStorageAdapter(collection.name)
 
-    const ready = this.setupStorage(collection.name, indices)
+    const ready = (async () => {
+      try {
+        await this.setupStorage(collection.name, indices)
+      } catch (error) {
+        // Handle inside the same async task to avoid unhandled rejections
+        this.onError(error as Error)
+        throw error
+      }
+    })()
     this.storageAdapterReady.set(collection.name, ready)
     // don't block createCollectionBackend; callers can await isReady()
 
