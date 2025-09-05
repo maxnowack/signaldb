@@ -130,7 +130,7 @@ const originalPostMessage = globalThis.postMessage
 describe('WorkerDataAdapterHost', () => {
   let mockWorkerContext: MockWorkerContext
   let mockStorageFactory: (name: string) => MockStorageAdapter
-  let host: WorkerDataAdapterHost<TestItem> // eslint-disable-line @typescript-eslint/no-unused-vars
+  let host: WorkerDataAdapterHost<TestItem>
 
   beforeEach(() => {
     // Mock global worker environment
@@ -684,6 +684,151 @@ describe('WorkerDataAdapterHost', () => {
 
     // The host should use custom error handler (though this test doesn't trigger it directly)
     expect(hostWithErrorHandler).toBeDefined()
+  })
+
+  it('uses default onError when listener throws in constructor', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const context = new MockWorkerContext()
+    new WorkerDataAdapterHost(context, { storage: mockStorageFactory, id: 'err-host' })
+    // Trigger constructor-installed message listener with data getter throwing
+    const handler = (context.addEventListener as any)
+      .mock.calls[0][1] as (eventParameter: MessageEvent) => void
+    const event = {
+      get data() {
+        throw new Error('boom-in-listener')
+      },
+    } as unknown as MessageEvent
+    handler(event)
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('covers getIndexInfo edge paths and queryItems guards', async () => {
+    const messageHandler = mockWorkerContext.addEventListener.mock.calls[0][1]
+    // Register a collection with index to drive getIndexInfo
+    await messageHandler({ data: { id: 'r', workerId: 'test-host', method: 'registerCollection', args: ['edge', ['name']] } })
+    // Insert one item
+    await messageHandler({ data: { id: 'i', workerId: 'test-host', method: 'insert', args: ['edge', { id: '1', name: 'alice' }] } })
+
+    // getIndexInfo: selector == null
+    const infoNull = await (host as any).getIndexInfo('edge', null)
+    expect(infoNull.matched).toBe(false)
+
+    // getIndexInfo: no storage adapter for collection
+    await expect((host as any).getIndexInfo('unknown', { id: 'x' })).rejects.toThrow('No persistence adapter for collection unknown')
+
+    // getIndexInfo: index provider returns matched: false when field missing
+    const infoMissingField = await (host as any).getIndexInfo('edge', { other: 1 })
+    expect(infoMissingField.matched).toBe(false)
+
+    // getIndexInfo: keys.include and keys.exclude both null -> matched false
+    const infoNoKeys = await (host as any).getIndexInfo('edge', { name: { $gt: 1 } } as any)
+    expect(infoNoKeys.matched).toBe(false)
+
+    // queryItems: throws when no storage adapter
+    await expect((host as any).queryItems('unknown', {})).rejects.toThrow('No persistence adapter for collection unknown')
+
+    // queryItems: cover matchItems early returns by stubbing getIndexInfo
+    const original = (host as any).getIndexInfo
+    // optimizedSelector == null
+    ;(host as any).getIndexInfo = async () => ({ matched: false, ids: [], optimizedSelector: null })
+    const all1 = await (host as any).queryItems('edge', { any: 1 } as any)
+    expect(all1.length).toBeGreaterThan(0)
+    // optimizedSelector == {}
+    ;(host as any).getIndexInfo = async () => ({ matched: false, ids: [], optimizedSelector: {} })
+    const all2 = await (host as any).queryItems('edge', { any: 2 } as any)
+    expect(all2.length).toBeGreaterThan(0)
+    // restore
+    ;(host as any).getIndexInfo = original
+  })
+
+  it('covers ensureStorageAdapter branches and emit/checkQueryUpdates guards', async () => {
+    // ensureStorageAdapter: already created -> early return
+    (host as any).storageAdapters.set('exists', mockStorageFactory('exists'))
+    ;(host as any).ensureStorageAdapter('exists')
+
+    // ensureStorageAdapter: no adapter returned
+    const hostNoAdapter = new WorkerDataAdapterHost(mockWorkerContext, {
+      storage: (n: string) => (n === 'none' ? undefined as any : mockStorageFactory(n)),
+    })
+    // @ts-expect-error private method
+    hostNoAdapter.ensureStorageAdapter('none')
+
+    // emitQueryUpdate: throws when collection not initialized
+    expect(() => (host as any).emitQueryUpdate('unknown', {}, undefined, 'active', null)).toThrow('Collection unknown not initialized!')
+
+    // checkQueryUpdates: throws when collection not initialized
+    await expect((host as any).checkQueryUpdates('unknown', [])).rejects.toThrow('Collection unknown not initialized!')
+  })
+
+  it('handle errors for other methods with missing adapters and unregisterQuery error', async () => {
+    const messageHandler = mockWorkerContext.addEventListener.mock.calls[0][1]
+    // registerCollection with storage returning undefined
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const hostNoAdapter = new WorkerDataAdapterHost(mockWorkerContext, {
+      storage: () => undefined as any,
+      id: 'no-adapter-host',
+    })
+    const handler2 = (mockWorkerContext.addEventListener as any)
+      .mock.calls.at(-1)[1] as (event: MessageEvent) => Promise<void>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    await handler2({
+      data: { id: 'rc', workerId: 'no-adapter-host', method: 'registerCollection', args: ['x', []] },
+    } as any)
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'rc', type: 'response', error: expect.any(Error) }))
+
+    // Method errors for updateOne/updateMany/replaceOne/removeOne/removeMany with unknown collection
+    await messageHandler({ data: { id: 'u1', workerId: 'test-host', method: 'updateOne', args: ['unknown', { id: '1' }, { $set: { name: 'x' } }] } })
+    await messageHandler({ data: { id: 'um1', workerId: 'test-host', method: 'updateMany', args: ['unknown', { name: 'x' }, { $set: { name: 'y' } }] } })
+    await messageHandler({ data: { id: 'rp1', workerId: 'test-host', method: 'replaceOne', args: ['unknown', { id: '1' }, { name: 'y' }] } })
+    await messageHandler({ data: { id: 'r1', workerId: 'test-host', method: 'removeOne', args: ['unknown', { id: '1' }] } })
+    await messageHandler({ data: { id: 'rm1', workerId: 'test-host', method: 'removeMany', args: ['unknown', { id: '1' }] } })
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1', type: 'response', error: expect.any(Error) }))
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'um1', type: 'response', error: expect.any(Error) }))
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'rp1', type: 'response', error: expect.any(Error) }))
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1', type: 'response', error: expect.any(Error) }))
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'rm1', type: 'response', error: expect.any(Error) }))
+
+    // unregisterQuery error when collection not initialized
+    await messageHandler({ data: { id: 'uqe', workerId: 'test-host', method: 'unregisterQuery', args: ['unknown', { a: 1 }, {}] } })
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'uqe', type: 'response', error: expect.any(Error) }))
+  })
+
+  it('executeQuery options branches and empty-affected-queries path', async () => {
+    const messageHandler = mockWorkerContext.addEventListener.mock.calls[0][1]
+    await messageHandler({ data: { id: 'reg', workerId: 'test-host', method: 'registerCollection', args: ['exec', []] } })
+    await messageHandler({ data: { id: 'i1', workerId: 'test-host', method: 'insert', args: ['exec', { id: '1', name: 'a' }] } })
+    await messageHandler({ data: { id: 'i2', workerId: 'test-host', method: 'insert', args: ['exec', { id: '2', name: 'b' }] } })
+    await messageHandler({ data: { id: 'i3', workerId: 'test-host', method: 'insert', args: ['exec', { id: '3', name: 'c' }] } })
+    const result = await (host as any).executeQuery('exec', undefined, { sort: { name: 1 }, skip: 1, limit: 1, fields: { id: 0, name: 1 } })
+    expect(result.length).toBe(1)
+    expect(result[0]).toEqual({ name: expect.any(String) })
+
+    // Register a query that won't be affected, then perform update to hit empty affectedQueries return path
+    await messageHandler({ data: { id: 'rq', workerId: 'test-host', method: 'registerQuery', args: ['exec', { name: 'zzz' }] } })
+    mockWorkerContext.postMessage.mockClear()
+    await messageHandler({ data: { id: 'upd', workerId: 'test-host', method: 'updateOne', args: ['exec', { id: '1' }, { $set: { name: 'a' } }] } })
+    // No queryUpdate should be emitted
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'upd', type: 'response' }))
+    const queryUpdateCalls = (mockWorkerContext.postMessage as any).mock.calls.filter((c: any[]) => c?.[0]?.type === 'queryUpdate')
+    expect(queryUpdateCalls.length).toBe(0)
+  })
+
+  it('more empty/no-match early returns', async () => {
+    const messageHandler = mockWorkerContext.addEventListener.mock.calls[0][1]
+    await messageHandler({ data: { id: 'reg', workerId: 'test-host', method: 'registerCollection', args: ['empties', []] } })
+    // updateMany no matches
+    await messageHandler({ data: { id: 'um', workerId: 'test-host', method: 'updateMany', args: ['empties', { name: 'x' }, { $set: { name: 'y' } }] } })
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'um', type: 'response', data: [] }))
+    // replaceOne no match
+    await messageHandler({ data: { id: 'rp', workerId: 'test-host', method: 'replaceOne', args: ['empties', { id: 'no' }, { name: 'y' }] } })
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'rp', type: 'response', data: [] }))
+    // removeOne no match
+    await messageHandler({ data: { id: 'ro', workerId: 'test-host', method: 'removeOne', args: ['empties', { id: 'no' }] } })
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'ro', type: 'response', data: [] }))
+    // removeMany no match
+    await messageHandler({ data: { id: 'rm0', workerId: 'test-host', method: 'removeMany', args: ['empties', { name: 'x' }] } })
+    expect(mockWorkerContext.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id: 'rm0', type: 'response', data: [] }))
   })
 
   it('should handle query updates after mutations', async () => {

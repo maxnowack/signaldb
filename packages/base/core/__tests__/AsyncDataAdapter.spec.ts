@@ -2,6 +2,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import AsyncDataAdapter from '../src/AsyncDataAdapter'
 import Collection from '../src/Collection'
 import type StorageAdapter from '../src/types/StorageAdapter'
+import queryId from '../src/utils/queryId'
 
 interface TestItem {
   id: string,
@@ -688,5 +689,142 @@ describe('AsyncDataAdapter', () => {
 
     // Cleanup
     backend.unregisterQuery({}, fieldsOptions)
+  })
+
+  // Additional edge/coverage tests merged from coverage spec
+  it('invokes default onError (console.error) when a subscriber throws', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory })
+    const localCollection = new Collection<TestItem>('err2', localAdapter)
+    const backend = localAdapter.createCollectionBackend(localCollection, [])
+
+    backend.registerQuery({})
+    const unsubscribe = backend.onQueryStateChange({}, undefined, () => {
+      throw new Error('boom')
+    })
+    await backend.insert({ id: '1', name: 'x' })
+    expect(errorSpy).toHaveBeenCalled()
+    unsubscribe()
+    errorSpy.mockRestore()
+  })
+
+  it('registerQuery throws when registry missing after dispose', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    await backend.dispose()
+    expect(() => backend.registerQuery({})).toThrow('Collection test not initialized!')
+  })
+
+  it('fulfillQuery error paths: missing registry, missing record, and error publish', async () => {
+    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
+    // Access private fulfillQuery
+    const fulfill = (localAdapter as any).fulfillQuery.bind(localAdapter)
+    await expect(fulfill('x', {}, undefined)).rejects.toThrow('Collection x not initialized!')
+
+    // Seed empty registry for collection 'y' so fulfill returns early when record missing
+    ;(localAdapter as any).queries.set('y', new Map())
+    await expect(fulfill('y', {}, undefined)).resolves.toBeUndefined()
+
+    // Seed a record and stub executeQuery to throw for error publish
+    const qid = queryId({}, undefined)
+    ;(localAdapter as any).queries.set('z', new Map([
+      [qid, { selector: {}, options: undefined, state: 'active', error: null, items: [], listeners: new Set() }],
+    ]))
+    const execSpy = vi.spyOn(localAdapter as any, 'executeQuery').mockRejectedValue(new Error('exec-fail'))
+    const publishSpy = vi.spyOn(localAdapter as any, 'publishState')
+    await (localAdapter as any).fulfillQuery('z', {}, undefined)
+    expect(publishSpy).toHaveBeenCalledWith('z', qid, 'error', expect.any(Error))
+    execSpy.mockRestore()
+  })
+
+  it('getIndexInfo error/null selector and non-optimizable cases', async () => {
+    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory })
+    await expect((localAdapter as any).getIndexInfo('nope', {})).rejects.toThrow('No persistence adapter for collection nope')
+
+    // Seed storage and indices
+    ;(localAdapter as any).storageAdapters.set('ci', new MockStorageAdapter('ci'))
+    ;(localAdapter as any).collectionIndices.set('ci', ['name'])
+
+    const infoNull = await (localAdapter as any).getIndexInfo('ci', null)
+    expect(infoNull.matched).toBe(false)
+
+    // Selector missing indexed field
+    const r1 = await (localAdapter as any).getIndexInfo('ci', { other: 1 })
+    expect(r1.matched).toBe(false)
+    // Recognized-but-unsupported operator produces include/exclude null
+    const r2 = await (localAdapter as any).getIndexInfo('ci', { name: { $regex: 'x' } })
+    expect(r2).toBeDefined()
+  })
+
+  it('queryItems early-returns on null/empty optimizedSelector for both matched and unmatched', async () => {
+    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory })
+    const storage = new MockStorageAdapter('q')
+    ;(localAdapter as any).storageAdapters.set('q', storage)
+    const indexSpy = vi.spyOn(localAdapter as any, 'getIndexInfo')
+      .mockResolvedValueOnce({ matched: true, ids: ['1'], optimizedSelector: undefined })
+      .mockResolvedValueOnce({ matched: false, ids: [], optimizedSelector: {} })
+    await storage.insert([{ id: '1', name: 'n' }])
+    await (localAdapter as any).queryItems('q', {})
+    await (localAdapter as any).queryItems('q', { x: 1 })
+    expect(indexSpy).toHaveBeenCalledTimes(2)
+    indexSpy.mockRestore()
+  })
+
+  it('checkQueryUpdates paths: missing registry, no affected, and executeQuery error', async () => {
+    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
+    await expect((localAdapter as any).checkQueryUpdates('nope', [])).rejects.toThrow('Collection nope not initialized!')
+    ;(localAdapter as any).queries.set('c', new Map())
+    await (localAdapter as any).checkQueryUpdates('c', [{ id: '1', name: 'n' }])
+    // Non-matching selector -> empty affected
+    ;(localAdapter as any).queries.get('c').set('na', { selector: { y: 2 }, options: undefined, state: 'active', error: null, items: [], listeners: new Set() })
+    await (localAdapter as any).checkQueryUpdates('c', [{ id: '1', name: 'n' }])
+    // Matching selector, executeQuery throws
+    ;(localAdapter as any).queries.get('c').set('qid', { selector: {}, options: undefined, state: 'active', error: null, items: [], listeners: new Set() })
+    const execSpy = vi.spyOn(localAdapter as any, 'executeQuery').mockRejectedValue(new Error('boom'))
+    await (localAdapter as any).checkQueryUpdates('c', [{ id: '1', name: 'n' }])
+    execSpy.mockRestore()
+  })
+
+  it('private operations throw when storage is missing', async () => {
+    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
+    await expect((localAdapter as any).insert('m', { id: '1' })).rejects.toThrow('No persistence adapter for collection m')
+    await expect((localAdapter as any).updateOne('m', {}, {})).rejects.toThrow('No persistence adapter for collection m')
+    await expect((localAdapter as any).updateMany('m', {}, {})).rejects.toThrow('No persistence adapter for collection m')
+    await expect((localAdapter as any).replaceOne('m', {}, {})).rejects.toThrow('No persistence adapter for collection m')
+    await expect((localAdapter as any).removeOne('m', {})).rejects.toThrow('No persistence adapter for collection m')
+    await expect((localAdapter as any).removeMany('m', {})).rejects.toThrow('No persistence adapter for collection m')
+  })
+
+  it('registerQuery twice merges existing record and still fulfills', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    const selector = { name: 'dup' }
+    backend.registerQuery(selector)
+    // registering again should hit the spread of existing record (lines 96-99)
+    backend.registerQuery(selector)
+    // trigger fulfillment
+    await backend.insert({ id: 'x', name: 'dup' })
+    expect(backend.getQueryState(selector)).toBe('complete')
+  })
+
+  it('onQueryStateChange uses registry bucket and routes callback errors to onError', async () => {
+    const errorSpy = vi.fn()
+    const errorAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: errorSpy })
+    const errorCollection = new Collection<TestItem>('err', errorAdapter)
+    const backend = errorAdapter.createCollectionBackend(errorCollection, [])
+
+    const selector = { name: 'boom' }
+    const unsubscribe = backend.onQueryStateChange(selector, undefined, () => {
+      throw new Error('listener boom')
+    })
+    // This register will fulfill and invoke the throwing listener for 'active' and 'complete'
+    backend.registerQuery(selector)
+    await backend.insert({ id: '1', name: 'boom' })
+    expect(errorSpy).toHaveBeenCalled()
+    unsubscribe()
+  })
+
+  it('onQueryStateChange throws if collection not initialized (after dispose)', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    await backend.dispose() // removes queries registry for the collection
+    expect(() => backend.onQueryStateChange({}, undefined, () => {})).toThrow('Collection test not initialized!')
   })
 })

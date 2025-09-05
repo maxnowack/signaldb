@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import WorkerDataAdapter from '../src/WorkerDataAdapter'
-import Collection from '../src/Collection'
+import type Collection from '../src/Collection'
 
 interface TestItem { id: string, name: string }
 
