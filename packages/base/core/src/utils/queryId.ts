@@ -1,6 +1,5 @@
 import type { QueryOptions } from '../DataAdapter'
 import type Selector from '../types/Selector'
-import objectId from './objectId'
 
 /**
  * Generates a unique identifier for a query based on its selector and options.
@@ -9,8 +8,8 @@ import objectId from './objectId'
  * @returns A unique identifier string for the query.
  */
 export default function queryId(selector: Selector<any>, options?: QueryOptions<any>) {
-  const selectorId = objectId(selector)
-  const optionsId = options == null ? -1 : objectId(options)
+  const selectorId = JSON.stringify(selector)
+  const optionsId = options == null ? -1 : JSON.stringify(options)
 
   return `${selectorId}:${optionsId}`
 }

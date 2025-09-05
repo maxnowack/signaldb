@@ -13,7 +13,10 @@ interface WorkerDataAdapterOptions {
 export default class WorkerDataAdapter implements DataAdapter {
   private id: string
   private isDisposed = false
+  private workerReady: Promise<void>
+  private collectionReady: Map<string, Promise<void>> = new Map()
   private queries: Record<string, Map<string, {
+    listeners: number,
     state: 'active' | 'complete' | 'error',
     error: Error | null,
     items: BaseItem[],
@@ -21,11 +24,32 @@ export default class WorkerDataAdapter implements DataAdapter {
 
   constructor(private worker: Worker, private options: WorkerDataAdapterOptions) {
     this.id = this.options.id || 'default-worker-data-adapter'
+    this.workerReady = new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('WorkerDataAdapter initialization timed out'))
+      }, 5000)
+      const handleMessage = (event: MessageEvent) => {
+        const { type, workerId } = event.data as { type: 'ready', workerId: string }
+        if (workerId !== this.id) return
+        if (type === 'ready') {
+          resolve()
+          clearTimeout(timeoutId)
+          this.worker.removeEventListener('message', handleMessage)
+        }
+      }
+      this.worker.addEventListener('message', handleMessage)
+    })
   }
 
-  private exec<T>(method: string, ...args: any[]): Promise<T> {
+  private async exec<T>(method: string, collectionName: string, ...args: any[]): Promise<T> {
+    await this.workerReady
+    if (method !== 'isReady') {
+      const collectionReady = this.collectionReady.get(collectionName)
+      if (!collectionReady) throw new Error(`Collection "${collectionName}" is not registered in WorkerDataAdapter`)
+      await collectionReady
+    }
     if (this.isDisposed) {
-      return Promise.reject(new Error('WorkerDataAdapter is disposed'))
+      throw new Error('WorkerDataAdapter is disposed')
     }
     return new Promise((resolve, reject) => {
       const messageId = randomId()
@@ -42,28 +66,66 @@ export default class WorkerDataAdapter implements DataAdapter {
         if (id !== messageId) return
         if (error) {
           reject(error)
-          this.worker.removeEventListener('message', handleMessage)
         } else {
           resolve(data as T)
-          this.worker.removeEventListener('message', handleMessage)
         }
+        this.worker.removeEventListener('message', handleMessage)
       }
       this.worker.addEventListener('message', handleMessage)
-      this.worker.postMessage({ id: messageId, workerId: this.id, method, args })
+      this.worker.postMessage({
+        id: messageId,
+        workerId: this.id,
+        method,
+        args: [collectionName, ...args],
+      })
     })
+  }
+
+  private queryListeners(
+    collectionName: string,
+    query: { selector: Selector<any>, options?: QueryOptions<any> },
+  ): number
+
+  private queryListeners(
+    collectionName: string,
+    query: { selector: Selector<any>, options?: QueryOptions<any> },
+    listeners: number,
+  ): void
+
+  private queryListeners(
+    collectionName: string,
+    query: { selector: Selector<any>, options?: QueryOptions<any> },
+    listeners?: number,
+  ) {
+    if (listeners != null) {
+      return this.updateQuery(collectionName, query, { listeners })
+    }
+
+    const id = queryId(query.selector, query.options)
+    const collectionQueries = this.queries[collectionName]
+    if (!collectionQueries) return 0
+    const existing = collectionQueries.get(id)
+    return existing?.listeners || 0
   }
 
   private updateQuery(
     collectionName: string,
     query: { selector: Selector<any>, options?: QueryOptions<any> },
-    update: { state?: 'active' | 'complete' | 'error', error?: Error | null, items?: BaseItem[] },
+    update: { listeners?: number, state?: 'active' | 'complete' | 'error', error?: Error | null, items?: BaseItem[] },
   ) {
     const id = queryId(query.selector, query.options)
     const collectionQueries = this.queries[collectionName]
     if (!collectionQueries) return
     const existing = collectionQueries.get(id)
-    if (!existing) return
-    collectionQueries.set(id, { ...existing, ...update })
+    collectionQueries.set(id, {
+      listeners: 0,
+      state: 'active',
+      error: null,
+      items: [],
+      ...existing,
+      ...update,
+    })
+    this.queries[collectionName] = collectionQueries
   }
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, U = T>(
@@ -72,6 +134,7 @@ export default class WorkerDataAdapter implements DataAdapter {
   ): CollectionBackend<T, I> {
     this.queries[collection.name] = new Map()
     void this.exec('registerCollection', collection.name, indices)
+    this.collectionReady.set(collection.name, this.exec('isReady', collection.name))
     return {
       insert: async (item) => {
         return this.exec('insert', collection.name, item)
@@ -94,12 +157,22 @@ export default class WorkerDataAdapter implements DataAdapter {
 
       // methods for registering and unregistering queries that will be called from the collection during find/findOne
       registerQuery: (selector, options) => {
-        this.updateQuery(collection.name, { selector, options }, { state: 'active', error: null, items: [] })
-        void this.exec('registerQuery', collection.name, selector, options)
+        const listeners = this.queryListeners(collection.name, { selector, options })
+        if (listeners === 0) {
+          this.updateQuery(collection.name, { selector, options }, { state: 'active', error: null, items: [] })
+          void this.exec('registerQuery', collection.name, selector, options)
+        }
+        this.queryListeners(collection.name, { selector, options }, listeners + 1)
       },
       unregisterQuery: (selector, options) => {
-        this.queries[collection.name]?.delete(queryId(selector, options))
-        void this.exec('unregisterQuery', collection.name, selector, options)
+        setTimeout(() => { // delay to allow multiple quick calls to register/unregister to batch
+          const listeners = this.queryListeners(collection.name, { selector, options })
+          const newListeners = Math.max(0, listeners - 1)
+          if (newListeners === 0) {
+            this.queries[collection.name]?.delete(queryId(selector, options))
+            void this.exec('unregisterQuery', collection.name, selector, options)
+          }
+        }, 0)
       },
       getQueryState: (selector, options) => {
         const query = this.queries[collection.name]?.get(queryId(selector, options))
@@ -115,15 +188,17 @@ export default class WorkerDataAdapter implements DataAdapter {
       },
       onQueryStateChange: (selector, options, callback) => {
         const handler = (event: MessageEvent) => {
-          const { type, data, workerId, collectionName, error } = event.data
+          const { type, data, workerId, error } = event.data
           if (type !== 'queryUpdate') return
           if (data == null) return
           const {
+            collectionName,
             selector: responseSelector,
             options: responseOptions,
             state,
             items,
           } = data as {
+            collectionName: string,
             selector: Selector<T>,
             options?: QueryOptions<T>,
             state: 'active' | 'complete' | 'error',
