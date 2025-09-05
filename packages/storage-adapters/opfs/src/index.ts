@@ -107,12 +107,16 @@ export default function createOPFSAdapter<
         await getFileHandleForPath(rootDirectory, path, false)
         return true
       } catch {
-        try {
-          await rootDirectory.getDirectoryHandle(path)
-          return true
-        } catch {
-          return false
+        const parts = path.split('/').filter(Boolean)
+        let directory = rootDirectory
+        for (const part of parts) {
+          try {
+            directory = await directory.getDirectoryHandle(part)
+          } catch {
+            return false
+          }
         }
+        return true
       }
     },
 
