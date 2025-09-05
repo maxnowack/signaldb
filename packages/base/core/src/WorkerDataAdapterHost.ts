@@ -111,18 +111,19 @@ export default class WorkerDataAdapterHost<
           method: keyof CollectionMethods<T, I>,
           args: any[],
         }
-        await this.processMessage(workerId, id, method, args)
+        await this.handleMessage(workerId, id, method, args)
       } catch (error) {
         this.onError(error as Error)
       }
     })
+    this.respond('ready', null, null, 'ready')
   }
 
-  private respond(id: string, data: any, error: Error | null = null, type: 'response' | 'queryUpdate' = 'response') {
+  private respond(id: string, data: any, error: Error | null = null, type: 'response' | 'queryUpdate' | 'ready' = 'response') {
     this.workerContext.postMessage({ id, workerId: this.id, type, data, error })
   }
 
-  private async processMessage(
+  private async handleMessage(
     workerId: string,
     id: string,
     method: keyof CollectionMethods<T, I>,
@@ -142,17 +143,6 @@ export default class WorkerDataAdapterHost<
     } catch (error) {
       this.respond(id, null, error as Error)
     }
-  }
-
-  public handleMessage(event: MessageEvent) {
-    const { workerId, id, method, args } = event.data as {
-      id: string,
-      workerId: string,
-      method: keyof CollectionMethods<T, I>,
-      args: any[],
-    }
-    // Fire and forget; errors are handled inside processMessage
-    void this.processMessage(workerId, id, method, args)
   }
 
   private async getIndexInfo(
@@ -253,7 +243,6 @@ export default class WorkerDataAdapterHost<
       const matches = match(item, indexInfo.optimizedSelector)
       return matches
     }
-
     if (indexInfo.matched) {
       const items = await storageAdapter.readIds(indexInfo.ids)
       if (isEqual(indexInfo.optimizedSelector, {})) return items
@@ -383,6 +372,15 @@ export default class WorkerDataAdapterHost<
 
   protected registerQuery: CollectionMethods<T, I>['registerQuery'] = async (collectionName, selector, options) => {
     this.ensureQuery(collectionName, selector, options)
+    const queryItems = await this.executeQuery(collectionName, selector, options)
+    this.emitQueryUpdate(
+      collectionName,
+      selector,
+      options,
+      'complete',
+      null,
+      queryItems,
+    )
   }
 
   protected unregisterQuery: CollectionMethods<T, I>['unregisterQuery'] = async (collectionName, selector, options) => {

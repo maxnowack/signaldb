@@ -612,6 +612,9 @@ describe('WorkerDataAdapterHost', () => {
   it('should ignore messages for different worker ids', async () => {
     const messageHandler = mockWorkerContext.addEventListener.mock.calls[0][1]
 
+    // Ignore initial ready message from constructor
+    mockWorkerContext.postMessage.mockClear()
+
     await messageHandler({
       data: {
         id: 'msg1',

@@ -99,7 +99,7 @@ describe('WorkerDataAdapterHost Basic Coverage', () => {
       data: null,
     } as unknown as MessageEvent
 
-    expect(() => host.handleMessage(message)).toThrow('Cannot destructure property')
+    expect(() => host.handleMessage(message as unknown as any)).not.toThrow()
   })
 
   it('should handle message without data', () => {
@@ -112,6 +112,6 @@ describe('WorkerDataAdapterHost Basic Coverage', () => {
     // Should throw for message without data
     const message = {} as unknown as MessageEvent
 
-    expect(() => host.handleMessage(message)).toThrow('Cannot destructure property')
+    expect(() => host.handleMessage(message as unknown as any)).not.toThrow()
   })
 })

@@ -376,8 +376,9 @@ export default class Collection<
   ): Async extends true ? Promise<T | undefined> : T | undefined {
     const itemsOrPromise = this.getItems(selector, { ...options, limit: 1 })
     if (itemsOrPromise instanceof Promise) {
-      return itemsOrPromise
-        .then(items => items[0]) as Async extends true ? Promise<T | undefined> : T | undefined
+      return itemsOrPromise.then((items) => {
+        return items[0] || undefined
+      }) as Async extends true ? Promise<T | undefined> : T | undefined
     }
     return itemsOrPromise[0] as Async extends true ? Promise<T | undefined> : T | undefined
   }
