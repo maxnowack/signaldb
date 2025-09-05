@@ -559,8 +559,8 @@ describe('AsyncDataAdapter', () => {
     // Insert matching item
     await backend.insert({ id: '1', name: 'test' })
 
-    // Query should be in active state
-    expect(backend.getQueryState({ name: 'test' })).toBe('active')
+    // Query should have completed after mutation-triggered recompute
+    expect(backend.getQueryState({ name: 'test' })).toBe('complete')
     expect(typeof unsubscribe).toBe('function')
 
     // Cleanup
