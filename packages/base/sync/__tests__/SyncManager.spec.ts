@@ -1700,3 +1700,31 @@ it('should handle storage adapter error scenarios', async () => {
   expect(registeredHandler).toBeDefined()
   logSpy.mockRestore()
 })
+
+it('covers createStorageAdapter() handler invocation (line 183)', async () => {
+  class TestSyncManager extends SyncManager<Record<string, any>, any, any> {
+    public exposeCreate(name: string) {
+      return this.createStorageAdapter(name)
+    }
+  }
+
+  let forwarded: Error | undefined
+  const mgr = new TestSyncManager({
+    id: 'csa',
+    storageAdapter: (_name, registerErrorHandler) => {
+      registerErrorHandler((error) => {
+        forwarded = error
+      })
+      return memoryStorageAdapter([])
+    },
+    pull: vi.fn().mockResolvedValue({ items: [] }),
+    push: vi.fn().mockResolvedValue(undefined),
+  })
+
+  await mgr.isReady()
+  const created = mgr.exposeCreate('changes')
+  expect(created).toBeDefined()
+  const error = new Error('handler-forward')
+  created?.handler(error)
+  expect(forwarded).toBe(error)
+})
