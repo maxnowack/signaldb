@@ -45,6 +45,8 @@ describe('DefaultDataAdapter', () => {
     })
     const adapter = new DefaultDataAdapter({
       storage: name => (name === 'p' ? persistence : undefined),
+      // Suppress expected async teardown-time errors from background setup
+      onError: () => {},
     })
     const c = new Collection<Item, string, Item>('p', adapter, { persistence })
     const backend = adapter.createCollectionBackend<Item, string, Item>(c, [])
