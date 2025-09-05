@@ -16,6 +16,12 @@ class FakeWorker implements Worker {
 
   postMessage = vi.fn((message: any) => {
     this.messages.push(message)
+    // Auto-respond to isReady like a host would
+    if (message.method === 'isReady') {
+      this.listeners.forEach(l => l(new MessageEvent('message', {
+        data: { id: message.id, workerId: message.workerId, type: 'response', data: undefined },
+      } as MessageEventInit)))
+    }
   })
 
   addEventListener = vi.fn(((type: string, listener: (event: MessageEvent) => void) => {
@@ -48,12 +54,18 @@ describe('WorkerDataAdapter extra coverage', () => {
   beforeEach(() => {
     worker = new FakeWorker()
     adapter = new WorkerDataAdapter(worker as unknown as Worker, { id: 'w' })
-    collection = new Collection<TestItem>('items', adapter)
+    collection = { name: 'items' } as unknown as Collection<TestItem>
+    // Simulate worker ready handshake
+    worker.listeners.forEach(l => l(new MessageEvent('message', {
+      data: { type: 'ready', workerId: 'w' },
+    } as MessageEventInit)))
   })
 
   it('rejects exec when worker responds with error', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
     const p = backend.insert({ id: '1', name: 'a' })
+    // wait until a message was posted to the worker
+    await vi.waitFor(() => expect(worker.messages.length).toBeGreaterThan(0))
     const id = lastMessageId(worker)
     // send an error response
     worker.listeners.forEach(l => l(new MessageEvent('message', {
@@ -68,12 +80,12 @@ describe('WorkerDataAdapter extra coverage', () => {
     const options = { limit: 10 }
     backend.registerQuery(selector, options)
 
-    const active = { type: 'queryUpdate', workerId: 'w', collectionName: 'items', data: { selector, options, state: 'active', items: [] } }
+    const active = { type: 'queryUpdate', workerId: 'w', collectionName: 'items', data: { collectionName: 'items', selector, options, state: 'active', items: [] } }
     worker.listeners.forEach(l => l(new MessageEvent('message', { data: active } as MessageEventInit)))
     expect(backend.getQueryState(selector, options)).toBe('active')
 
     const items = [{ id: '1', name: 'a' }]
-    const complete = { type: 'queryUpdate', workerId: 'w', collectionName: 'items', data: { selector, options, state: 'complete', items } }
+    const complete = { type: 'queryUpdate', workerId: 'w', collectionName: 'items', data: { collectionName: 'items', selector, options, state: 'complete', items } }
     worker.listeners.forEach(l => l(new MessageEvent('message', { data: complete } as MessageEventInit)))
     // result caching for worker adapter is minimal; ensure call path does not throw
     void backend.getQueryResult(selector, options)
@@ -90,7 +102,7 @@ describe('WorkerDataAdapter extra coverage', () => {
         type: 'queryUpdate',
         workerId: 'w',
         collectionName: 'items',
-        data: { selector, options: undefined, state: 'active', items: [] },
+        data: { collectionName: 'items', selector, options: undefined, state: 'active', items: [] },
       },
     } as MessageEventInit)))
     expect(callback).toHaveBeenCalled()
@@ -104,7 +116,7 @@ describe('WorkerDataAdapter extra coverage', () => {
         type: 'queryUpdate',
         workerId: 'w',
         collectionName: 'items',
-        data: { selector, options: undefined, state: 'complete', items: [] },
+        data: { collectionName: 'items', selector, options: undefined, state: 'complete', items: [] },
       },
     } as MessageEventInit)))
     expect(callback).not.toHaveBeenCalled()
