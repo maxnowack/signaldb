@@ -319,8 +319,8 @@ export default class WorkerDataAdapterHost<
   ) {
     const queries = this.queries.get(collectionName)
     if (!queries) throw new Error(`Collection ${collectionName} not initialized!`)
-    const affectedQueries = queries.values().filter(({ selector }) =>
-      items.some(item => match(item, selector))).toArray() ?? []
+    const affectedQueries = [...queries.values()].filter(({ selector }) =>
+      items.some(item => match(item, selector))) ?? []
 
     if (affectedQueries.length === 0) return // no active queries affected
     affectedQueries.forEach(({ selector, options }) => {
