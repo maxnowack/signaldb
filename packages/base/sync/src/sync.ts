@@ -1,6 +1,6 @@
-import type { BaseItem, Modifier, Changeset, LoadResponse } from '@signaldb/core'
+import type { BaseItem, Modifier, Changeset } from '@signaldb/core'
 import computeChanges from './computeChanges'
-import type { Change } from './types'
+import type { Change, LoadResponse } from './types'
 import getSnapshot from './getSnapshot'
 import applyChanges from './applyChanges'
 
@@ -37,10 +37,10 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
   push: (changes: Changeset<ItemType> & {
     modifiedFields: Map<IdType, string[]>,
   }) => Promise<void>,
-  insert: (item: ItemType) => void,
-  update: (id: IdType, modifier: Modifier<ItemType>) => void,
-  remove: (id: IdType) => void,
-  batch: (fn: () => void) => void,
+  insert: (item: ItemType) => Promise<void>,
+  update: (id: IdType, modifier: Modifier<ItemType>) => Promise<void>,
+  remove: (id: IdType) => Promise<void>,
+  batch: (fn: () => Promise<void>) => Promise<void>,
 }
 
 /**
@@ -95,10 +95,10 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   const newChanges = newData.changes == null
     ? computeChanges(previousSnapshot, newData.items)
     : newData.changes
-  batch(() => {
-    newChanges.added.forEach(item => insert(item))
-    newChanges.modified.forEach(item => update(item.id, { $set: item }))
-    newChanges.removed.forEach(item => remove(item.id))
+  await batch(async () => {
+    await Promise.all(newChanges.added.map(item => insert(item)))
+    await Promise.all(newChanges.modified.map(item => update(item.id, { $set: item })))
+    await Promise.all(newChanges.removed.map(item => remove(item.id)))
   })
 
   return newSnapshot
