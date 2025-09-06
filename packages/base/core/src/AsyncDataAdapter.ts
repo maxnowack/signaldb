@@ -65,7 +65,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, U = T>(
     collection: Collection<T, I, U>,
-    indices: string[] = [],
+    indices: string[],
   ): CollectionBackend<T, I> {
     // init per-collection state
     this.collectionIndices.set(collection.name, indices)

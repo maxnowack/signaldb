@@ -272,6 +272,37 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     expect(index.get('temp')).toBeUndefined()
   })
 
+  it('removes from a non-empty bucket by rewriting the file (covers line 373)', async () => {
+    // Use a bucketed driver so multiple ids share the same file
+    class BucketDriver<T extends { id: I }, I> extends MemDriver<T, I> {
+      override async fileNameForId(): Promise<string> {
+        // Force all items into a single shard file
+        return 'bucket/shared.json'
+      }
+    }
+
+    const bucketDriver = new BucketDriver<Item, string>()
+    const bucketAdapter = createGenericFSAdapter<Item, string>(bucketDriver, folder) as any
+    await bucketAdapter.setup()
+
+    const a: Item = { id: 'aa1', status: 'keep' }
+    const b: Item = { id: 'bb2', status: 'remove' }
+    // Insert sequentially to avoid concurrent writes clobbering the same shard
+    await bucketAdapter.insert([a])
+    await bucketAdapter.insert([b])
+
+    // Remove only b; since the shard still contains a, the file must be rewritten, not deleted
+    await bucketAdapter.remove([b])
+
+    const shardPath = await bucketDriver.joinPath(folder, 'items', 'bucket/shared.json')
+    // Ensure the file was rewritten (not deleted) and only contains item a
+    const remaining = await bucketDriver.readObject(shardPath)
+    expect(Array.isArray(remaining)).toBe(true)
+    expect((remaining as Item[]).map(x => x.id)).toEqual(['aa1'])
+    // And the delete path was not taken for this shard
+    expect(bucketDriver.deletedPaths.includes(shardPath)).toBe(false)
+  })
+
   it('covers edge cases in index management', async () => {
     const a: Item = { id: 'aa1', status: 'new' }
     const b: Item = { id: 'bb2', status: 'new' }
