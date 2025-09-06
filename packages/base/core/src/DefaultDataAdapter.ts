@@ -249,7 +249,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection: Collection<T, I, E, U>,
-    indices: string[] = [],
+    indices: string[],
   ): CollectionBackend<T, I> {
     this.ensureStorageAdapter(collection.name)
     this.items.set(collection.name, this.items.get(collection.name) ?? new Map<string | null, T>())
