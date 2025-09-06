@@ -363,7 +363,7 @@ export default class Collection<
     Async extends boolean,
     O extends Omit<FindOptions<T, Async>, 'limit'> = Omit<FindOptions<T, Async>, 'limit'>,
   >(
-    selector: Selector<T> = {},
+    selector: Selector<T>,
     options: O,
   ): Async extends true ? Promise<T | undefined> : T | undefined {
     const itemsOrPromise = this.getItems(selector, { ...options, limit: 1 })
@@ -379,7 +379,7 @@ export default class Collection<
     Async extends boolean,
     O extends FindOptions<T, Async> = FindOptions<T, Async>,
   >(
-    selector: Selector<T> = {},
+    selector: Selector<T>,
     options: O,
   ): Async extends true ? Promise<T[]> : T[] {
     this.emit('getItems', selector)
