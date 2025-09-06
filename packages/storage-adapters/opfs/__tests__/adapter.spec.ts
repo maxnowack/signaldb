@@ -306,6 +306,34 @@ describe('OPFS storage adapter', () => {
       await adapter.teardown()
     })
 
+    it('creates an index with empty field name (covers toSafeFilename unnamed + fileExists directory fallback)', async () => {
+      const { adapter: a } = await withAdapter()
+      // Create an index for empty field path -> fileNameForIndexKey('') => 'unnamed'
+      await a.createIndex('')
+      const map = await a.readIndex('')
+      expect(map instanceof Map).toBe(true)
+      expect([...map.entries()].length).toBe(0)
+      await a.teardown()
+    })
+
+    it('supports numeric ids and hex sharding (covers lines 92-93)', async () => {
+      const folderName = generateFolderName()
+      type NumberItem = { id: number, name: string }
+      const a = createOPFSAdapter<NumberItem, number>(folderName)
+      await a.setup()
+      await a.insert([{ id: 0x12_34, name: 'Hex' }])
+      const items = await a.readIds([0x12_34])
+      expect(items).toEqual([{ id: 0x12_34, name: 'Hex' }])
+      await a.teardown()
+    })
+
+    it('removeAll with empty folder name triggers invalid path error (covers 188-192)', async () => {
+      const a = createOPFSAdapter<any, string>('')
+      await a.setup()
+      await expect(a.removeAll()).rejects.toThrow('Invalid path')
+      await a.teardown().catch(() => {})
+    })
+
     it('handles directory checks in fileExists', async () => {
       const { adapter: a } = await withAdapter()
 

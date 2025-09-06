@@ -30,10 +30,12 @@ async function openDatabase(
           event.newVersion ?? null,
         )
           .then(() => resolve())
-          .catch((error) => {
+          .catch(
             /* istanbul ignore next -- @preserve */
-            reject(error as Error)
-          })
+            (error) => {
+              reject(error as Error)
+            },
+          )
         return
       }
 
