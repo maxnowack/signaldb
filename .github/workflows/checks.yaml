@@ -104,10 +104,13 @@ jobs:
           path: |
             **/node_modules
           key: ${{ runner.OS }}-modules-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
-      - name: unit testing
+      - name: prebuild packages
         run: |
           npm run build -w packages/base/core
+          npm run build -w packages/storage-adapters/generic-fs
           npm run build -w packages/devtools/devtools
+      - name: unit testing
+        run: |
           npm test -- --coverage --outputFile=test-report.junit.xml run
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
