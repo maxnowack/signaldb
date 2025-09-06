@@ -63,7 +63,7 @@ export default function createOPFSAdapter<
   const ensureDirectoryExists = async (
     rootDirectory: FileSystemDirectoryHandle,
     directoryPath: string,
-    createIfMissing = true,
+    createIfMissing: boolean,
   ) => {
     const parts = directoryPath.split('/').filter(Boolean)
     let current = rootDirectory
@@ -76,7 +76,7 @@ export default function createOPFSAdapter<
   const getFileHandleForPath = async (
     rootDirectory: FileSystemDirectoryHandle,
     fullPath: string,
-    createIfMissing = true,
+    createIfMissing: boolean,
   ): Promise<FileSystemFileHandle> => {
     const parts = fullPath.split('/').filter(Boolean)
     const fileName = parts.pop() as string
