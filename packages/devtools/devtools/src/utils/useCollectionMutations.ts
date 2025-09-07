@@ -12,7 +12,7 @@ export default function useCollectionMutations(collectionName: string) {
     if (!mutations) return []
     return mutations.items
       .filter(q => q.collectionName === collectionName)
-      .sort((a, b) => a.time - b.time)
+      .toSorted((a, b) => a.time - b.time)
       .toReversed()
       .map(({ collectionName: _, time, ...item }) => ({
         id: item.id,
