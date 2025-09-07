@@ -12,7 +12,7 @@ export default function useCollectionMeasuredTimes(collectionName: string) {
     if (!measuredTimes) return []
     return measuredTimes.items
       .filter(q => q.collectionName === collectionName)
-      .sort((a, b) => a.measuredTime - b.measuredTime)
+      .toSorted((a, b) => a.measuredTime - b.measuredTime)
       .toReversed()
       .map(({ collectionName: _, time, ...item }) => ({
         id: item.id,

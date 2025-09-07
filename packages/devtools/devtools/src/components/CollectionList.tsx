@@ -24,7 +24,7 @@ const CollectionList = ({
 }: Props) => {
   const collectionsItem = dataStore.useItem('collections')
   const collections = useMemo(() => ((collectionsItem?.items || []) as Collection<any>[])
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (a.name < b.name) return -1
       if (a.name > b.name) return 1
       return 0
