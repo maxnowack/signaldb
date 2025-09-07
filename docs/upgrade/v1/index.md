@@ -265,9 +265,9 @@ The `ReplicatedCollection` class has been removed. If your application is using 
 
 Take a look at the [SyncManager documentation](https://signaldb.js.org/sync/) to see how to use it.
 
-## Remove options parameter from [`combinePersistenceAdapters`](/reference/core/combinepersistenceadapters/)
+## Remove options parameter from `combinePersistenceAdapters`
 
-The [`combinePersistenceAdapters`](/reference/core/combinepersistenceadapters/) function no longer accepts an options parameter. If your application is using it, you need to remove it. The options had allowed to switch the sequence of the arguemnts, but this is no longer necessary. The first argument is the primary adapter and the second argument is the secondary adapter.
+The `combinePersistenceAdapters` function no longer accepts an options parameter. If your application is using it, you need to remove it. The options had allowed to switch the sequence of the arguemnts, but this is no longer necessary. The first argument is the primary adapter and the second argument is the secondary adapter.
 
 ## Switch to new [`IndexProviders`](/reference/core/createindexprovider/)
 
