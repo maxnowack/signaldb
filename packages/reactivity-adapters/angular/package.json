@@ -54,6 +54,6 @@
   ],
   "peerDependencies": {
     "@angular/core": "16.x.x || 17.x.x || 18.x || 19.x || 20.x",
-    "@signaldb/core": "1.x"
+    "@signaldb/core": "2.0.0-beta.0"
   }
 }
