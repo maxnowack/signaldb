@@ -383,7 +383,7 @@ describe('AutoFetchDataAdapter', () => {
     await backend.insert({ id: 'b', title: 'b', type: 'k' })
     await backend.insert({ id: 'c', title: 'c', type: 'k' })
     const rm2 = await backend.removeMany({ type: 'k' })
-    expect(rm2.map((i: any) => i.id).sort()).toEqual(['b', 'c'])
+    expect(rm2.map((i: any) => i.id).toSorted()).toEqual(['b', 'c'])
   })
 
   it('getIndexInfo filtersForNull ($exists:false) and excludes non-null keys', async () => {
