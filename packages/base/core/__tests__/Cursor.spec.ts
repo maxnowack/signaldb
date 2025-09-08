@@ -18,7 +18,7 @@ describe('Cursor (async) coverage', () => {
     const fetched = await cursor.fetch()
     expect(fetched.length).toBe(2)
     const mapped = await cursor.map(i => i.name)
-    expect(mapped.sort()).toEqual(['a', 'b'])
+    expect(mapped.toSorted()).toEqual(['a', 'b'])
     const counted = await cursor.count()
     expect(counted).toBe(2)
     await cursor.forEach(() => {})
