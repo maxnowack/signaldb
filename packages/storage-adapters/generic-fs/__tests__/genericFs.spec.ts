@@ -92,7 +92,7 @@ describe('generic-fs adapter', () => {
 
     // readAll and readIds
     const all = await adapter.readAll()
-    expect(all.map(i => i.id).sort()).toEqual(['1', '2'])
+    expect(all.map(i => i.id).toSorted()).toEqual(['1', '2'])
     const byIds = await adapter.readIds(['2'])
     expect(byIds).toEqual([{ id: '2', name: 'b' }])
 
