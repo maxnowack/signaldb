@@ -53,9 +53,10 @@
   ],
   "peerDependencies": {
     "@preact/signals-core": "1.x.x",
-    "@signaldb/core": "1.x"
+    "@signaldb/core": "2.x"
   },
   "devDependencies": {
-    "@preact/signals-core": "^1.14.4"
+    "@preact/signals-core": "^1.14.4",
+    "@signaldb/core": "2.0.0-beta.0"
   }
 }
