@@ -174,7 +174,7 @@ describe('IndexedDB storage adapter', () => {
         { id: 3, name: 'Bob' },
       ])
       const result = await adapter.readIds([1, 3])
-      expect(result.map(r => r.id).sort()).toEqual([1, 3])
+      expect(result.map(r => r.id).toSorted()).toEqual([1, 3])
       await adapter.teardown()
     })
   })
