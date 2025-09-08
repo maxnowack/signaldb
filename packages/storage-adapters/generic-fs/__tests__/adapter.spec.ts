@@ -73,7 +73,7 @@ class MemDriver<T extends { id: I }, I> {
       }
     }
     // de-dup and sort for determinism
-    return [...new Set(out)].sort()
+    return [...new Set(out)].toSorted()
   }
 
   async removeEntry(path: string, options?: { recursive?: boolean }): Promise<void> {
@@ -121,10 +121,10 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     await adapter.insert([a, b])
 
     const all = await adapter.readAll()
-    expect(all.map(x => x.id).sort()).toEqual(['aa1', 'bb2'])
+    expect(all.map(x => x.id).toSorted()).toEqual(['aa1', 'bb2'])
 
     const ids = await adapter.readIds(['aa1', 'missing', 'bb2'])
-    expect(ids.map(x => x.id).sort()).toEqual(['aa1', 'bb2'])
+    expect(ids.map(x => x.id).toSorted()).toEqual(['aa1', 'bb2'])
 
     // readIds ignores non-array file content
     const weirdIdPath = await driver.joinPath(itemsDirectory, await driver.fileNameForId('xx9'))
@@ -164,7 +164,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     const indexPath = await driver.joinPath(indexRoot, await driver.fileNameForIndexKey('status'))
     driver.files.set(await driver.joinPath(indexPath, 'junk'), 456) // non-array -> skipped
     const index2 = await adapter.readIndex('status')
-    expect([...index2.get('new') ?? []].sort()).toEqual(['aa1', 'bb2'])
+    expect([...index2.get('new') ?? []].toSorted()).toEqual(['aa1', 'bb2'])
 
     // Drop missing index -> error
     await expect(adapter.dropIndex('nonexistent')).rejects.toThrow('Index on field "nonexistent" does not exist')
