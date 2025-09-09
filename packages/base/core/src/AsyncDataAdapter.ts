@@ -196,10 +196,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    await Promise.all([
-      storage.createIndex('id'),
-      ...indices.map(index => storage.createIndex(index)),
-    ])
+    await Promise.all(indices.map(index => storage.createIndex(index)))
     await storage.setup()
   }
 
