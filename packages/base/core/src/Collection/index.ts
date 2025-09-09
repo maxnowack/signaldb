@@ -387,26 +387,11 @@ export default class Collection<
       () => {
         if (!options?.async) return this.backend.getQueryResult(selector, options)
 
-        return new Promise<T[]>((resolve, reject) => {
-          this.isPullingSignal.set(true)
-          const cleanup = this.backend.onQueryStateChange(
-            selector,
-            options,
-            (state) => {
-              if (state === 'error') {
-                cleanup()
-                reject(this.backend.getQueryError(selector, options) || new Error('Unknown error'))
-              } else if (state === 'complete') {
-                cleanup()
-                resolve(this.backend.getQueryResult(selector, options) || [])
-              }
-            },
-          )
-          this.backend.registerQuery(selector, options)
-        }).finally(() => {
-          this.isPullingSignal.set(false)
-          this.backend.unregisterQuery(selector, options)
-        })
+        this.isPullingSignal.set(true)
+        return this.backend.executeQuery(selector, options)
+          .finally(() => {
+            this.isPullingSignal.set(false)
+          })
       },
       measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
     ) as Async extends true ? Promise<T[]> : T[]
@@ -597,9 +582,7 @@ export default class Collection<
   public async insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!items) throw new Error('Invalid items')
-    if (items.length === 0) {
-      return []
-    }
+    if (items.length === 0) return []
 
     const ids: I[] = []
     await this.batch(async () => {

@@ -29,6 +29,7 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   getQueryState<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): 'active' | 'complete' | 'error',
   getQueryError<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): Error | null,
   getQueryResult<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): T[],
+  executeQuery<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): Promise<T[]>,
   onQueryStateChange<O extends QueryOptions<T>>(
     selector: Selector<T> | undefined,
     options: O | undefined,
