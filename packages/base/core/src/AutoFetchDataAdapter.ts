@@ -288,6 +288,13 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       getQueryError,
       getQueryResult,
       onQueryStateChange,
+      executeQuery: async (selector, options) => {
+        await ready
+        registerQuery(selector, options)
+        const result = getQueryResult(selector, options)
+        unregisterQuery(selector, options)
+        return result
+      },
 
       dispose: async () => {
         this.storageAdapters.delete(collection.name)
