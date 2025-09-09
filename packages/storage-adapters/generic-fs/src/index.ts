@@ -326,6 +326,7 @@ export default function createGenericFSAdapter<
     },
 
     createIndex: async (fieldPath) => {
+      if (fieldPath === 'id') throw new Error('Cannot create index on id field')
       indicesToMaintain.push(fieldPath)
       await ensureIndex(fieldPath)
     },
