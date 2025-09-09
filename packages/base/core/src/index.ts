@@ -16,6 +16,8 @@ export type {
   FindOptions,
   CollectionOptions,
 } from './Collection'
+export type { default as DataAdapter } from './DataAdapter'
+
 export { default as Cursor } from './Collection/Cursor'
 
 export { default as Collection } from './Collection'
