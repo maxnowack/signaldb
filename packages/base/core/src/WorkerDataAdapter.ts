@@ -219,6 +219,7 @@ export default class WorkerDataAdapter implements DataAdapter {
           this.worker.removeEventListener('message', handler)
         }
       },
+      executeQuery: (selector, options) => this.exec('executeQuery', collection.name, selector, options),
 
       // lifecycle methods
       dispose: async () => {
