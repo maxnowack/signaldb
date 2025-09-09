@@ -404,10 +404,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    await Promise.all([
-      storage.createIndex('id'),
-      ...indices.map(field => storage.createIndex(field)),
-    ])
+    await Promise.all(indices.map(field => storage.createIndex(field)))
     await storage.setup()
   }
 
