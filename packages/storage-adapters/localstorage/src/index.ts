@@ -256,6 +256,7 @@ export default function createLocalStorageAdapter<
 
     // index methods
     createIndex: async (field) => {
+      if (field === 'id') throw new Error('Cannot create index on id field')
       if (!indices.includes(field)) indices.push(field)
       await ensureIndex(field)
     },
