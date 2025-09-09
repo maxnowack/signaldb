@@ -317,7 +317,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       },
       updateMany: async (selector, modifier) => {
         const { $setOnInsert, ...restModifier } = modifier
-        const items = backend.getQueryResult(selector)
+        const items = this.executeQuery(collection, selector, {})
 
         const changedItems = items.map((item) => {
           const modifiedItem = modify(deepClone(item), restModifier)
@@ -454,6 +454,9 @@ export default class DefaultDataAdapter implements DataAdapter {
         }
         return result
       },
+
+      executeQuery: (selector, options) =>
+        Promise.resolve(this.executeQuery(collection, selector, options)),
 
       // lifecycle methods
       dispose: async () => {
