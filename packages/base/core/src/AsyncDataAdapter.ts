@@ -177,6 +177,13 @@ export default class AsyncDataAdapter implements DataAdapter {
       getQueryError,
       getQueryResult,
       onQueryStateChange,
+      executeQuery: async (selector, options) => {
+        await ready
+        registerQuery(selector, options)
+        const result = getQueryResult(selector, options)
+        unregisterQuery(selector, options)
+        return result
+      },
 
       dispose: async () => {
         // mirror host.unregisterCollection semantics
@@ -272,16 +279,26 @@ export default class AsyncDataAdapter implements DataAdapter {
     collectionName: string,
     selector: Selector<T>,
   ) {
-    const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    // Fast path: { id: <scalar> }
-    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector && typeof selector.id !== 'object') {
-      return { matched: true, ids: [selector.id], optimizedSelector: {} }
+    if (selector != null
+      && Object.keys(selector).length === 1
+      && 'id' in selector
+      && typeof selector.id !== 'object') {
+      return {
+        matched: true,
+        ids: [selector.id].filter(Boolean),
+        optimizedSelector: {},
+      }
     }
 
     if (selector == null) {
-      return { matched: false, ids: [], optimizedSelector: {} }
+      return {
+        matched: false,
+        ids: [],
+        optimizedSelector: {},
+      }
     }
 
     const indices = this.collectionIndices.get(collectionName) ?? []
