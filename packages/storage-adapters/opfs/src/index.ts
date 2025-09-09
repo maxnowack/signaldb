@@ -85,15 +85,7 @@ export default function createOPFSAdapter<
   }
 
   const driver: Driver<T, I> = {
-    fileNameForId: (id) => {
-      if (typeof id !== 'string' && typeof id !== 'number') {
-        return Promise.resolve(toSafeFilename(serializeValue(id) as string))
-      }
-      const idString = typeof id === 'string' ? id : id.toString(16).padStart(4, '0')
-      const firstShard = toSafeFilename(idString.slice(0, 2) || '00')
-      const secondShard = toSafeFilename(idString.slice(2, 4) || '00')
-      return Promise.resolve(`${firstShard}/${secondShard}/${toSafeFilename(idString)}`)
-    },
+    fileNameForId: id => Promise.resolve(toSafeFilename(serializeValue(id) as string)),
     fileNameForIndexKey: key => Promise.resolve(toSafeFilename(key)),
     joinPath: (...parts) => Promise.resolve(parts.join('/')),
     ensureDir: async (directoryPath) => {
