@@ -1,6 +1,6 @@
 import type {
   BaseItem,
-  StorageAdapter,
+  DataAdapter,
   ReactivityAdapter,
   Changeset,
   Selector,
@@ -44,10 +44,7 @@ interface Options<
   ) => CleanupFunction | Promise<CleanupFunction>,
 
   id?: string,
-  storageAdapter?: (
-    id: string,
-    registerErrorHandler: (handler: (error: Error) => void) => void,
-  ) => StorageAdapter<any, any>,
+  dataAdapter?: DataAdapter,
   reactivity?: ReactivityAdapter,
   onError?: (collectionOptions: SyncOptions<CollectionOptions>, error: Error) => void,
 
@@ -101,7 +98,7 @@ export default class SyncManager<
   protected scheduledPushes: Set<string> = new Set()
   protected remoteChanges: Omit<Change, 'id' | 'time'>[] = []
   protected syncQueues: Map<string, PromiseQueue> = new Map()
-  protected persistenceReady: Promise<void>
+  protected collectionsReady: Promise<void>
   protected isDisposed = false
   protected instanceId = randomId()
   protected id: string
@@ -126,25 +123,7 @@ export default class SyncManager<
     }
     this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
-
-    const changesStorage = this.createStorageAdapter('changes')
-    const snapshotsStorage = this.createStorageAdapter('snapshots')
-    const syncOperationsStorage = this.createStorageAdapter('sync-operations')
-    const dataAdapter = new DefaultDataAdapter({
-      storage: (name) => {
-        if (name === `${this.options.id}-changes`) return changesStorage?.adapter
-        if (name === `${this.options.id}-snapshots`) return snapshotsStorage?.adapter
-        if (name === `${this.options.id}-sync-operations`) return syncOperationsStorage?.adapter
-        throw new Error(`Unknown storage name: ${name}`)
-      },
-      onError: (name, error) => {
-        if (name === 'changes') return changesStorage?.handler(error)
-        if (name === 'snapshots') return snapshotsStorage?.handler(error)
-        if (name === 'sync-operations') return syncOperationsStorage?.handler(error)
-        throw new Error(`Error in unknown storage name: ${name}`, { cause: error })
-      },
-    })
-
+    const dataAdapter = this.options.dataAdapter ?? new DefaultDataAdapter()
     this.changes = new Collection(`${this.options.id}-changes`, dataAdapter, {
       indices: ['collectionName'],
       reactivity,
@@ -158,7 +137,7 @@ export default class SyncManager<
       reactivity,
     })
 
-    this.persistenceReady = Promise.all([
+    this.collectionsReady = Promise.all([
       this.syncOperations.isReady(),
       this.changes.isReady(),
       this.snapshots.isReady(),
@@ -169,19 +148,6 @@ export default class SyncManager<
     this.syncOperations.setMaxListeners(1000)
 
     this.debouncedFlush = debounce(this.flushScheduledPushes, this.options.debounceTime ?? 100)
-  }
-
-  protected createStorageAdapter(name: string) {
-    if (this.options.storageAdapter == null) return
-
-    let errorHandler: (error: Error) => void = () => { /* noop */ }
-    const adapter = this.options.storageAdapter(`${this.id}-${name}`, (handler) => {
-      errorHandler = handler
-    })
-    return {
-      adapter,
-      handler: (error: Error) => errorHandler(error),
-    }
   }
 
   protected getSyncQueue(name: string) {
@@ -482,7 +448,7 @@ export default class SyncManager<
    * @returns A promise that resolves when the sync manager is ready to sync.
    */
   public async isReady() {
-    await this.persistenceReady
+    await this.collectionsReady
   }
 
   /**
