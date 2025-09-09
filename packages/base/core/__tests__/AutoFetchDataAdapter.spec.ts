@@ -406,7 +406,6 @@ describe('AutoFetchDataAdapter', () => {
 
   it('queryItems matched fast-id path returns readIds directly (optimizedSelector empty)', async () => {
     const storage = memoryStorageAdapter<Post>([])
-    await storage.createIndex('id')
     await storage.insert([{ id: 'z', title: 'Z' }])
     const adapter = new AutoFetchDataAdapter({
       storage: () => storage,
@@ -556,7 +555,6 @@ describe('AutoFetchDataAdapter', () => {
 
   it('fulfillQuery publishes complete with items and publishState no-op when missing record', async () => {
     const storage = memoryStorageAdapter<Post>([])
-    await storage.createIndex('id')
     await storage.insert([{ id: 'f1', title: 'F' }])
     const adapter = new AutoFetchDataAdapter({
       storage: () => storage, fetchQueryItems: async () => [],

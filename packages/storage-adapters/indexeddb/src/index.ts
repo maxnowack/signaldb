@@ -186,6 +186,7 @@ export default function createIndexedDBAdapter<
     // index methods
     createIndex: async (field) => {
       if (setupCalled) throw new Error('createIndex must be called before setup()')
+      if (field === 'id') throw new Error('Cannot create index on id field')
       indexesToCreate.add(field)
     },
     dropIndex: async (field) => {
