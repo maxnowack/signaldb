@@ -16,7 +16,6 @@ export default class WorkerDataAdapter implements DataAdapter {
   private workerReady: Promise<void>
   private collectionReady: Map<string, Promise<void>> = new Map()
   private queries: Record<string, Map<string, {
-    listeners: number,
     state: 'active' | 'complete' | 'error',
     error: Error | null,
     items: BaseItem[],
@@ -81,33 +80,6 @@ export default class WorkerDataAdapter implements DataAdapter {
     })
   }
 
-  private queryListeners(
-    collectionName: string,
-    query: { selector: Selector<any>, options?: QueryOptions<any> },
-  ): number
-
-  private queryListeners(
-    collectionName: string,
-    query: { selector: Selector<any>, options?: QueryOptions<any> },
-    listeners: number,
-  ): void
-
-  private queryListeners(
-    collectionName: string,
-    query: { selector: Selector<any>, options?: QueryOptions<any> },
-    listeners?: number,
-  ) {
-    if (listeners != null) {
-      return this.updateQuery(collectionName, query, { listeners })
-    }
-
-    const id = queryId(query.selector, query.options)
-    const collectionQueries = this.queries[collectionName]
-    if (!collectionQueries) return 0
-    const existing = collectionQueries.get(id)
-    return existing?.listeners || 0
-  }
-
   private updateQuery(
     collectionName: string,
     query: { selector: Selector<any>, options?: QueryOptions<any> },
@@ -157,22 +129,12 @@ export default class WorkerDataAdapter implements DataAdapter {
 
       // methods for registering and unregistering queries that will be called from the collection during find/findOne
       registerQuery: (selector, options) => {
-        const listeners = this.queryListeners(collection.name, { selector, options })
-        if (listeners === 0) {
-          this.updateQuery(collection.name, { selector, options }, { state: 'active', error: null, items: [] })
-          void this.exec('registerQuery', collection.name, selector, options)
-        }
-        this.queryListeners(collection.name, { selector, options }, listeners + 1)
+        this.updateQuery(collection.name, { selector, options }, { state: 'active', error: null, items: [] })
+        void this.exec('registerQuery', collection.name, selector, options)
       },
       unregisterQuery: (selector, options) => {
-        setTimeout(() => { // delay to allow multiple quick calls to register/unregister to batch
-          const listeners = this.queryListeners(collection.name, { selector, options })
-          const newListeners = Math.max(0, listeners - 1)
-          if (newListeners === 0) {
-            this.queries[collection.name]?.delete(queryId(selector, options))
-            void this.exec('unregisterQuery', collection.name, selector, options)
-          }
-        }, 0)
+        this.queries[collection.name]?.delete(queryId(selector, options))
+        void this.exec('unregisterQuery', collection.name, selector, options)
       },
       getQueryState: (selector, options) => {
         const query = this.queries[collection.name]?.get(queryId(selector, options))

@@ -11,6 +11,7 @@ import DefaultDataAdapter from '../DefaultDataAdapter'
 import type StorageAdapter from '../types/StorageAdapter'
 import modify from '../utils/modify'
 import deepClone from '../utils/deepClone'
+import queryId from '../utils/queryId'
 import Cursor from './Cursor'
 import type { BaseItem, FieldSpecifier, FindOptions, Transform, TransformAll } from './types'
 
@@ -180,6 +181,7 @@ export default class Collection<
   private isDisposed = false
   private postBatchCallbacks = new Set<() => void>()
   private fieldTracking = false
+  private queryListenersMap: Map<string, number> = new Map()
 
   /**
    * Initializes a new instance of the `Collection` class with optional configuration.
@@ -416,6 +418,26 @@ export default class Collection<
     }
   }
 
+  private queryListeners(
+    query: { selector: Selector<T>, options?: QueryOptions<T> },
+  ): number
+
+  private queryListeners(
+    query: { selector: Selector<T>, options?: QueryOptions<T> },
+    listeners: number,
+  ): void
+
+  private queryListeners(
+    query: { selector: Selector<T>, options?: QueryOptions<T> },
+    listeners?: number,
+  ) {
+    const id = queryId(query.selector, query.options)
+    if (listeners != null) {
+      return this.queryListenersMap.set(id, listeners)
+    }
+    return this.queryListenersMap.get(id) ?? 0
+  }
+
   /**
    * Disposes the collection, unregisters persistence adapters, clears memory, and
    * cleans up all resources used by the collection.
@@ -474,7 +496,11 @@ export default class Collection<
             requery()
           }
 
-          this.backend.registerQuery(selector, options)
+          // register query if not yet registered
+          const listeners = this.queryListeners({ selector, options })
+          if (listeners === 0) this.backend.registerQuery(selector, options)
+          this.queryListeners({ selector, options }, listeners + 1)
+
           const queryStateChangeCleanup = this.backend.onQueryStateChange(
             selector,
             options,
@@ -485,9 +511,15 @@ export default class Collection<
           )
           this.emit('observer.created', selector, options)
           return () => {
-            this.backend.unregisterQuery(selector, options)
-            queryStateChangeCleanup()
-            this.emit('observer.disposed', selector, options)
+            setTimeout(() => { // delay to allow multiple quick calls to register/unregister to batch
+              // unregister query if no more listeners
+              const newListeners = Math.max(0, this.queryListeners({ selector, options }) - 1)
+              if (newListeners === 0) this.backend.unregisterQuery(selector, options)
+              this.queryListeners({ selector, options }, newListeners)
+
+              queryStateChangeCleanup()
+              this.emit('observer.disposed', selector, options)
+            }, 0)
           }
         },
       })
