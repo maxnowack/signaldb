@@ -166,7 +166,6 @@ it('should handle pull and apply new changes during sync', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -202,7 +201,6 @@ it('should handle updates correctly during sync', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -231,7 +229,6 @@ it('should push changes when items are added locally', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -270,7 +267,6 @@ it('should push changes when items are updated locally', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -310,7 +306,6 @@ it('should push changes when items are removed locally', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -341,7 +336,6 @@ it('should debounce push requests', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     debounceTime: 25,
@@ -373,7 +367,6 @@ it('should debounce push requests for multiple collections', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     debounceTime: 25,
@@ -410,7 +403,6 @@ it('should handle sync errors and update sync operation status', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -437,7 +429,6 @@ it('should sync all collections', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -463,7 +454,6 @@ it('should handle pull errors and update sync operation status', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -488,7 +478,6 @@ it('should handle pull errors and update sync operation status after first sync'
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -524,7 +513,6 @@ it('should handle push errors and update sync operation status', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -555,7 +543,6 @@ it('should register and apply remote changes with items', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -597,7 +584,6 @@ it('should register and apply remote changes with changes', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -632,7 +618,6 @@ it('should handle error in remote changes without data', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -660,7 +645,6 @@ it('should handle error in remote changes with data', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -692,7 +676,6 @@ it('should sync second time if there were changes during sync', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -730,7 +713,6 @@ it('should sync after a empty remote change was received', async () => {
   const onError = vi.fn()
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     registerRemoteChange: (_options, onRemoteChange) => {
@@ -775,7 +757,6 @@ it('should call onError handler if an async error occurs', async () => {
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -808,7 +789,6 @@ it('should fail if there are errors on syncAll and call onError handler', async 
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -831,7 +811,6 @@ it('should call onError once if there are errors on forced sync', async () => {
 
   const onError = vi.fn()
   const syncManager = new SyncManager({
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
     onError,
@@ -858,7 +837,6 @@ it('should update items that already exist on insert', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -889,7 +867,6 @@ it('should insert items that not exist on update', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -920,7 +897,6 @@ it('should not fail while removing non existing items', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -940,7 +916,6 @@ it('should not fail while removing non existing items', async () => {
 
 it('should clear all internal data structures on dispose', async () => {
   const syncManager = new SyncManager<any, any>({
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: vi.fn(),
     push: vi.fn(),
   })
@@ -967,9 +942,8 @@ it('should clear all internal data structures on dispose', async () => {
 
 it('should register error handlers for internal persistence adapters', async () => {
   const errorHandler = vi.fn()
-  const syncManager = new SyncManager<any, any>({
-    onError: errorHandler,
-    storageAdapter: (name) => {
+  const dataAdapter = new DefaultDataAdapter({
+    storage: (name) => {
       if (name === 'default-sync-manager-changes') {
         return createStorageAdapter({
           setup: () => Promise.resolve(),
@@ -987,6 +961,10 @@ it('should register error handlers for internal persistence adapters', async () 
       }
       return memoryStorageAdapter([])
     },
+  })
+  const syncManager = new SyncManager<any, any>({
+    onError: errorHandler,
+    dataAdapter,
     pull: vi.fn(),
     push: vi.fn(),
   })
@@ -1022,7 +1000,6 @@ it('should not leave any remote changes after successful pull', async () => {
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -1060,7 +1037,6 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
 
   const syncManager = new SyncManager({
     onError,
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: mockPull,
     push: mockPush,
   })
@@ -1126,8 +1102,11 @@ it('should start sync after internal collections are ready', async () => {
   const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
     .mockResolvedValue()
 
+  const dataAdapter = new DefaultDataAdapter({
+    storage: () => mockStorageAdapter,
+  })
   const syncManager = new SyncManager({
-    storageAdapter: () => mockStorageAdapter,
+    dataAdapter,
     pull: mockPull,
     push: mockPush,
   })
@@ -1538,9 +1517,8 @@ it('should handle errors with onError handler in event listeners', async () => {
 
   const onError = vi.fn()
 
-  // Create SyncManager WITH onError handler to test lines 313 and 332
-  const syncManager = new SyncManager({
-    storageAdapter: (name) => {
+  const dataAdapter = new DefaultDataAdapter({
+    storage: (name) => {
       if (name === 'default-sync-manager-changes') {
         // Make the changes adapter fail on insert to trigger error handling
         return createStorageAdapter({
@@ -1559,6 +1537,9 @@ it('should handle errors with onError handler in event listeners', async () => {
       }
       return memoryStorageAdapter([])
     },
+  })
+  const syncManager = new SyncManager({
+    dataAdapter,
     pull: mockPull,
     push: mockPush,
     onError, // This should trigger lines 313 and 332 when errors occur
@@ -1590,19 +1571,8 @@ it('should handle storage errors with error handler callback', async () => {
   const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   let storageErrorHandler: ((error: Error) => void) | undefined
 
-  const syncManager = new SyncManager({
-    id: 'test-sync-manager',
-    storageAdapter: (name, registerErrorHandler) => {
-      // Capture the error handler callback for line 183 coverage
-      registerErrorHandler((error_) => {
-        // eslint-disable-next-line no-console
-        console.log('Storage error for', name, ':', error_, error_)
-      })
-      // Set the handler for testing
-      storageErrorHandler = (error) => {
-        // eslint-disable-next-line no-console
-        console.log('Test storage error:', error)
-      }
+  const dataAdapter = new DefaultDataAdapter({
+    storage: () => {
       return createStorageAdapter({
         insert: vi.fn().mockResolvedValue(undefined),
         readAll: vi.fn().mockResolvedValue([]),
@@ -1617,6 +1587,10 @@ it('should handle storage errors with error handler callback', async () => {
         teardown: vi.fn().mockResolvedValue(undefined),
       })
     },
+  })
+  const syncManager = new SyncManager({
+    id: 'test-sync-manager',
+    dataAdapter,
     pull: vi.fn().mockResolvedValue({ items: [] }),
     push: vi.fn().mockResolvedValue(undefined),
   })
@@ -1651,7 +1625,6 @@ it('exercises error handler via intercepted DataAdapter calls', async () => {
 
   const syncManager = new SyncManager({
     id: 'test-sync-manager',
-    storageAdapter: () => memoryStorageAdapter([]),
     pull: vi.fn().mockResolvedValue({ items: [] }),
     push: vi.fn().mockResolvedValue(undefined),
   })
@@ -1667,64 +1640,4 @@ it('exercises error handler via intercepted DataAdapter calls', async () => {
 
   expect(() => (interceptedStorage as any)('unknown-storage')).toThrow('Unknown storage name: unknown-storage')
   expect(() => (interceptedOnError as any)('unknown-error', new Error('test'))).toThrow('Error in unknown storage name: unknown-error')
-})
-
-it('should handle storage adapter error scenarios', async () => {
-  const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-  let registeredHandler: ((error: Error) => void) | undefined
-
-  const syncManager = new SyncManager({
-    storageAdapter: (name, registerErrorHandler) => {
-      registerErrorHandler((error_) => {
-        // eslint-disable-next-line no-console
-        console.log('Storage error for', name, ':', error_, error_)
-      })
-      // Set the handler for testing
-      registeredHandler = (error) => {
-        // eslint-disable-next-line no-console
-        console.log('Test registered handler:', error)
-      }
-      return memoryStorageAdapter([])
-    },
-    pull: vi.fn().mockResolvedValue({ items: [] }),
-    push: vi.fn().mockResolvedValue(undefined),
-  })
-
-  await syncManager.isReady()
-
-  // Call the registered error handler to exercise the callback path
-  if (registeredHandler) {
-    registeredHandler(new Error('Storage error'))
-  }
-
-  expect(registeredHandler).toBeDefined()
-  logSpy.mockRestore()
-})
-
-it('covers createStorageAdapter() handler invocation (line 183)', async () => {
-  class TestSyncManager extends SyncManager<Record<string, any>, any, any> {
-    public exposeCreate(name: string) {
-      return this.createStorageAdapter(name)
-    }
-  }
-
-  let forwarded: Error | undefined
-  const mgr = new TestSyncManager({
-    id: 'csa',
-    storageAdapter: (_name, registerErrorHandler) => {
-      registerErrorHandler((error) => {
-        forwarded = error
-      })
-      return memoryStorageAdapter([])
-    },
-    pull: vi.fn().mockResolvedValue({ items: [] }),
-    push: vi.fn().mockResolvedValue(undefined),
-  })
-
-  await mgr.isReady()
-  const created = mgr.exposeCreate('changes')
-  expect(created).toBeDefined()
-  const error = new Error('handler-forward')
-  created?.handler(error)
-  expect(forwarded).toBe(error)
 })
