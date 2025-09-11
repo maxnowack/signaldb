@@ -306,7 +306,7 @@ export default class AsyncDataAdapter implements DataAdapter {
       indices.map(field => async (flatSelector: FlatSelector<T>) => {
         if (!Object.hasOwnProperty.call(flatSelector, field)) return { matched: false }
 
-        const index = await storage.readIndex(field) as Map<string | null, Set<I>>
+        const index = await storageAdapter.readIndex(field) as Map<string | null, Set<I>>
         const fieldSelector = (flatSelector as Record<string, any>)[field]
         const filtersForNull = fieldSelector == null || fieldSelector.$exists === false
 
