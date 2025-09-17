@@ -13,6 +13,7 @@ import getMatchingKeys from './utils/getMatchingKeys'
 import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
 import project from './utils/project'
+import compact from './utils/compact'
 
 interface WorkerContext {
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
@@ -43,33 +44,35 @@ type CollectionMethods<T extends BaseItem<I>, I = any> = {
     selector: Selector<T>,
     options?: O,
   ) => Promise<void>,
+  executeQuery: <O extends QueryOptions<T>>(
+    collectionName: string,
+    selector: Selector<T>,
+    options?: O,
+  ) => Promise<T[]>,
   insert: (
     collectionName: string,
-    item: T,
-  ) => Promise<T>,
+    items: [T][],
+  ) => Promise<(T | Error)[]>,
   updateOne: (
     collectionName: string,
-    selector: Selector<T>,
-    modifier: Modifier<T>,
-  ) => Promise<T[]>,
+    args: [Selector<T>, Modifier<T>][],
+  ) => Promise<(T[] | Error)[]>,
   updateMany: (
     collectionName: string,
-    selector: Selector<T>,
-    modifier: Modifier<T>,
-  ) => Promise<T[]>,
+    args: [Selector<T>, Modifier<T>][],
+  ) => Promise<(T[] | Error)[]>,
   replaceOne: (
     collectionName: string,
-    selector: Selector<T>,
-    replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
-  ) => Promise<T[]>,
+    args: [Selector<T>, Omit<T, 'id'> & Partial<Pick<T, 'id'>>][],
+  ) => Promise<(T[] | Error)[]>,
   removeOne: (
     collectionName: string,
-    selector: Selector<T>,
-  ) => Promise<T[]>,
+    selectors: [Selector<T>][],
+  ) => Promise<(T[] | Error)[]>,
   removeMany: (
     collectionName: string,
-    selector: Selector<T>,
-  ) => Promise<T[]>,
+    selectors: [Selector<T>][],
+  ) => Promise<(T[] | Error)[]>,
   isReady: (
     collectionName: string,
   ) => Promise<void>,
@@ -137,6 +140,8 @@ export default class WorkerDataAdapterHost<
       return
     }
 
+    // wait for the storage adapter to be ready
+    await this.isReady(args[0] as string)
     try {
       const result = await fn.apply(this, args)
       this.respond(id, result)
@@ -158,7 +163,7 @@ export default class WorkerDataAdapterHost<
       && typeof selector.id !== 'object') {
       return {
         matched: true,
-        ids: [selector.id],
+        ids: compact([selector.id]),
         optimizedSelector: {},
       }
     }
@@ -386,65 +391,43 @@ export default class WorkerDataAdapterHost<
     this.queries.get(collectionName)?.delete(id)
   }
 
-  protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, newItem) => {
+  protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, input) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
     const existingItems = await this.executeQuery(
       collectionName,
-      { id: newItem.id } as Selector<T>,
-      { limit: 1 },
+      { id: { $in: input.map(i => i[0].id) } } as Selector<any>,
     )
-    if (existingItems.length > 0) {
-      throw new Error(`Item with id ${newItem.id as string} already exists`)
-    }
-
-    await storageAdapter.insert([newItem])
-    await this.checkQueryUpdates(collectionName, [newItem])
-
-    return newItem
-  }
-
-  protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, selector, modifier) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const item = await this.executeQuery(
-      collectionName,
-      selector,
-      { limit: 1 },
-    ).then(items => items[0] ?? null)
-
-    const { $setOnInsert, ...restModifier } = modifier
-    if (item == null) return [] // no item found, nothing to update
-
-    const modifiedItem = modify(deepClone(item), restModifier)
-    if (item.id !== modifiedItem.id) {
-      const existingItems = await this.executeQuery(
-        collectionName,
-        { id: modifiedItem.id } as Selector<T>,
-        { limit: 1 },
-      )
-      if (existingItems.length > 0) {
-        throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+    const result = input.map(([item]) => {
+      if (item.id == null) throw new Error('Item must have an id')
+      if (existingItems.some(existing => existing.id === item.id)) {
+        return new Error(`Item with id ${item.id as string} already exists`)
       }
-    }
-    await storageAdapter.replace([modifiedItem])
-    await this.checkQueryUpdates(collectionName, [modifiedItem])
-    return [modifiedItem]
+      return item
+    })
+
+    const newItems = result.filter(item => !(item instanceof Error)) as T[]
+    await storageAdapter.insert(newItems)
+    await this.checkQueryUpdates(collectionName, newItems)
+
+    return result
   }
 
-  protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, selector, modifier) => {
+  protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const previousItems: T[] = []
+    const result = await Promise.all(parameters.map(async ([selector, modifier]) => {
+      const item = await this.executeQuery(
+        collectionName,
+        selector,
+        { limit: 1 },
+      ).then(items => items[0] ?? null)
 
-    const items = await this.executeQuery(
-      collectionName,
-      selector,
-    )
-    if (items.length === 0) return [] // no items found, nothing to update
+      const { $setOnInsert, ...restModifier } = modifier
+      if (item == null) return []
 
-    const { $setOnInsert, ...restModifier } = modifier
-
-    const changedItems = await Promise.all(items.map(async (item) => {
+      previousItems.push(item)
       const modifiedItem = modify(deepClone(item), restModifier)
       if (item.id !== modifiedItem.id) {
         const existingItems = await this.executeQuery(
@@ -453,77 +436,143 @@ export default class WorkerDataAdapterHost<
           { limit: 1 },
         )
         if (existingItems.length > 0) {
-          throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+          return new Error(`Item with id ${modifiedItem.id as string} already exists`)
         }
       }
-
-      return modifiedItem
+      return [modifiedItem]
     }))
 
-    await storageAdapter.replace(changedItems)
-    await this.checkQueryUpdates(collectionName, changedItems)
-    return changedItems
-  }
-
-  protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, selector, replacement) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-
-    const item = await this.executeQuery(
-      collectionName,
-      selector,
-      { limit: 1 },
-    ).then(items => items[0] ?? null)
-    if (item == null) return [] // no item found, nothing to update
-
-    const modifiedItem = {
-      ...replacement,
-      id: replacement.id ?? item.id,
-    } as T
-
-    if (item.id !== modifiedItem.id) {
-      const existingItems = await this.executeQuery(
-        collectionName,
-        { id: modifiedItem.id } as Selector<T>,
-        { limit: 1 },
-      )
-      if (existingItems.length > 0) {
-        throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
-      }
+    const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
+    if (modifiedItems.length > 0) {
+      await storageAdapter.replace(modifiedItems)
+      await this.checkQueryUpdates(collectionName, [...modifiedItems, ...previousItems])
     }
-
-    await storageAdapter.replace([modifiedItem])
-    await this.checkQueryUpdates(collectionName, [modifiedItem])
-    return [modifiedItem]
+    return result
   }
 
-  protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selector) => {
+  protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const item = await this.executeQuery(
-      collectionName,
-      selector,
-      { limit: 1 },
-    ).then(items => items[0] ?? null)
-    if (item == null) return [] // no item found, nothing to remove
 
-    await storageAdapter.remove([item])
-    await this.checkQueryUpdates(collectionName, [item])
-    return [item]
+    const previousItems: T[] = []
+    const result = await Promise.all(parameters.map(async ([selector, modifier]) => {
+      const items = await this.executeQuery(
+        collectionName,
+        selector,
+      )
+      if (items.length === 0) return [] // no items found, nothing to update
+
+      const { $setOnInsert, ...restModifier } = modifier
+
+      try {
+        const changedItems = await Promise.all(items.map(async (item) => {
+          const modifiedItem = modify(deepClone(item), restModifier)
+          if (item.id !== modifiedItem.id) {
+            const existingItems = await this.executeQuery(
+              collectionName,
+              { id: modifiedItem.id } as Selector<T>,
+              { limit: 1 },
+            )
+            if (existingItems.length > 0) {
+              throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+            }
+          }
+
+          previousItems.push(item)
+          return modifiedItem
+        }))
+        return changedItems
+      } catch (error) {
+        return error as Error
+      }
+    }))
+
+    const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
+    if (modifiedItems.length > 0) {
+      await storageAdapter.replace(modifiedItems)
+      await this.checkQueryUpdates(collectionName, [...modifiedItems, ...previousItems])
+    }
+    return result
   }
 
-  protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selector) => {
+  protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
-    const items = await this.executeQuery(
+
+    const previousItems: T[] = []
+    const result = await Promise.all(parameters.map(async ([
+      selector,
+      replacement,
+    ]) => {
+      const item = await this.executeQuery(
+        collectionName,
+        selector,
+        { limit: 1 },
+      ).then(items => items[0] ?? null)
+      if (item == null) return [] // no item found, nothing to update
+
+      previousItems.push(item)
+      const modifiedItem = {
+        ...replacement,
+        id: replacement.id ?? item.id,
+      } as T
+
+      if (item.id !== modifiedItem.id) {
+        const existingItems = await this.executeQuery(
+          collectionName,
+          { id: modifiedItem.id } as Selector<T>,
+          { limit: 1 },
+        )
+        if (existingItems.length > 0) {
+          return new Error(`Item with id ${modifiedItem.id as string} already exists`)
+        }
+      }
+      return [modifiedItem]
+    }))
+
+    const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
+    if (modifiedItems.length > 0) {
+      await storageAdapter.replace(modifiedItems)
+      await this.checkQueryUpdates(collectionName, [...modifiedItems, ...previousItems])
+    }
+    return result
+  }
+
+  protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selectors) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const result = await Promise.all(selectors.map(async ([selector]) => {
+      const item = await this.executeQuery(
+        collectionName,
+        selector,
+        { limit: 1 },
+      ).then(items => items[0] ?? null)
+      if (item == null) return [] // no item found, nothing to remove
+      return [item]
+    }))
+
+    const items = result.flat()
+    if (items.length > 0) {
+      await storageAdapter.remove(items)
+      await this.checkQueryUpdates(collectionName, items)
+    }
+    return result
+  }
+
+  protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selectors) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    const result = await Promise.all(selectors.map(async ([selector]) => this.executeQuery(
       collectionName,
       selector,
-    )
-    if (items.length === 0) return [] // no items found, nothing to remove
+    )))
 
-    await storageAdapter.remove(items)
-    await this.checkQueryUpdates(collectionName, items)
-    return items
+    const items = result.flat()
+    if (items.length > 0) {
+      await storageAdapter.remove(items)
+      await this.checkQueryUpdates(collectionName, items)
+    }
+    return result
   }
 
   protected isReady: CollectionMethods<T, I>['isReady'] = async (collectionName) => {
