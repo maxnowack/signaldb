@@ -259,6 +259,10 @@ export default class DefaultDataAdapter implements DataAdapter {
         change: (selector: Selector<any>, options: QueryOptions<any> | undefined, state: 'active' | 'complete' | 'error') => void,
       }>(),
     )
+
+    // we might have many active queries
+    this.queryEmitters.get(collection.name)?.setMaxListeners(Infinity)
+
     this.activeQueries.set(
       collection.name,
       this.activeQueries.get(collection.name) || new Map<string, {
