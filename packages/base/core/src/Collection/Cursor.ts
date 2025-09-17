@@ -95,8 +95,11 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
         | ((notify: () => void) => NonNullable<ObserveCallbacks<T>[P]>)
     },
   ) {
+    if (this.options?.async) return
+    if (!isInReactiveScope(this.options.reactive)) {
+      console.warn('Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope')
+    }
     if (!this.options.reactive) return
-    if (!isInReactiveScope(this.options.reactive)) return
     const signal = this.options.reactive.create()
     signal.depend()
     const notify = () => signal.notify()
