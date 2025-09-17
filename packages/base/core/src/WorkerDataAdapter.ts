@@ -5,6 +5,7 @@ import type { CollectionBackend, QueryOptions } from './DataAdapter'
 import type Selector from './types/Selector'
 import queryId from './utils/queryId'
 import randomId from './utils/randomId'
+import batchOnNextTick from './utils/batchOnNextTick'
 
 interface WorkerDataAdapterOptions {
   id?: string,
@@ -15,6 +16,7 @@ export default class WorkerDataAdapter implements DataAdapter {
   private isDisposed = false
   private workerReady: Promise<void>
   private collectionReady: Map<string, Promise<void>> = new Map()
+  private batchExecutionHelpers: Map<string, ReturnType<typeof batchOnNextTick<string>>> = new Map()
   private queries: Record<string, Map<string, {
     state: 'active' | 'complete' | 'error',
     error: Error | null,
@@ -80,23 +82,30 @@ export default class WorkerDataAdapter implements DataAdapter {
     })
   }
 
+  private enqueueBatched<T>(collectionName: string, method: string, args: any[]): Promise<T> {
+    const helper = this.batchExecutionHelpers.get(collectionName)
+    if (!helper) throw new Error(`Collection "${collectionName}" is not registered in WorkerDataAdapter`)
+    return helper.enqueue(method, args)
+  }
+  // ---------- end batching integration ----------
+
   private updateQuery(
     collectionName: string,
     query: { selector: Selector<any>, options?: QueryOptions<any> },
-    update: { listeners?: number, state?: 'active' | 'complete' | 'error', error?: Error | null, items?: BaseItem[] },
+    update: { state?: 'active' | 'complete' | 'error', error?: Error | null, items?: BaseItem[] },
   ) {
     const id = queryId(query.selector, query.options)
     const collectionQueries = this.queries[collectionName]
     if (!collectionQueries) return
     const existing = collectionQueries.get(id)
-    collectionQueries.set(id, {
-      listeners: 0,
-      state: 'active',
+    const newState = {
+      state: 'active' as const,
       error: null,
       items: [],
       ...existing,
       ...update,
-    })
+    }
+    collectionQueries.set(id, newState)
     this.queries[collectionName] = collectionQueries
   }
 
@@ -107,24 +116,28 @@ export default class WorkerDataAdapter implements DataAdapter {
     this.queries[collection.name] = new Map()
     void this.exec('registerCollection', collection.name, indices)
     this.collectionReady.set(collection.name, this.exec('isReady', collection.name))
+    this.batchExecutionHelpers.set(
+      collection.name,
+      batchOnNextTick<string>(async (method, args) => this.exec(method, collection.name, args)),
+    )
     return {
       insert: async (item) => {
-        return this.exec('insert', collection.name, item)
+        return this.enqueueBatched<T>(collection.name, 'insert', [item])
       },
       updateOne: async (selector, modifier) => {
-        return this.exec('updateOne', collection.name, selector, modifier)
+        return this.enqueueBatched<T[]>(collection.name, 'updateOne', [selector, modifier])
       },
       updateMany: async (selector, modifier) => {
-        return this.exec('updateMany', collection.name, selector, modifier)
+        return this.enqueueBatched<T[]>(collection.name, 'updateMany', [selector, modifier])
       },
       replaceOne: async (selector, replacement) => {
-        return this.exec('replaceOne', collection.name, selector, replacement)
+        return this.enqueueBatched<T[]>(collection.name, 'replaceOne', [selector, replacement])
       },
       removeOne: async (selector) => {
-        return this.exec('removeOne', collection.name, selector)
+        return this.enqueueBatched<T[]>(collection.name, 'removeOne', [selector])
       },
       removeMany: async (selector) => {
-        return this.exec('removeMany', collection.name, selector)
+        return this.enqueueBatched<T[]>(collection.name, 'removeMany', [selector])
       },
 
       // methods for registering and unregistering queries that will be called from the collection during find/findOne
