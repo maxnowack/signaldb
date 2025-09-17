@@ -97,6 +97,7 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
   ) {
     if (this.options?.async) return
     if (!isInReactiveScope(this.options.reactive)) {
+      // eslint-disable-next-line no-console
       console.warn('Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope')
     }
     if (!this.options.reactive) return
