@@ -5,6 +5,7 @@
   },
   "exclude": [],
   "include": [
+    ".scripts/build-all.js",
     ".eslintrc.js",
     "docs/.vitepress/config.mts",
     "docs/.vitepress/theme/**/*.ts",
