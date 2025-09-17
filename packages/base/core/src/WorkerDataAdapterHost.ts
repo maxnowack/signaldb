@@ -24,6 +24,7 @@ interface WorkerDataAdapterHostOptions {
   id?: string,
   storage: (name: string) => StorageAdapter<any, any>,
   onError?: (error: Error) => void,
+  log?: (message: string, ...args: any[]) => void,
 }
 
 type CollectionMethods<T extends BaseItem<I>, I = any> = {
@@ -83,6 +84,7 @@ export default class WorkerDataAdapterHost<
   I = any,
 > {
   private id: string
+  private log: (message: string, ...args: any[]) => void = () => {}
   private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
   private storageAdapterReady: Map<string, Promise<void>> = new Map()
   private collectionIndices: Map<string, string[]> = new Map()
@@ -101,6 +103,7 @@ export default class WorkerDataAdapterHost<
     if (this.options.onError) {
       this.onError = this.options.onError
     }
+    if (this.options.log) this.log = this.options.log
 
     if (typeof addEventListener === 'undefined' || typeof postMessage === 'undefined') {
       throw new TypeError('WorkerDataAdapterHost can only be used in a Web Worker context')
@@ -139,6 +142,9 @@ export default class WorkerDataAdapterHost<
       this.respond(id, null, new Error(`Method ${method} not found`))
       return
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.log(method, ...args)
 
     // wait for the storage adapter to be ready
     await this.isReady(args[0] as string)
