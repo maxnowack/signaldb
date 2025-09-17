@@ -21,6 +21,11 @@ export default function createLocalStorageAdapter<
   },
 
 ) {
+  const localStorage = globalThis.localStorage
+  if (localStorage == null) {
+    throw new Error('localStorage is not available in this environment')
+  }
+
   const serialize = options?.serialize || (data => JSON.stringify(data))
   const deserialize = options?.deserialize || (input => JSON.parse(input))
   const databaseName = options?.databaseName || 'signaldb'
