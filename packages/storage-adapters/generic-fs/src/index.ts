@@ -48,7 +48,7 @@ export default function createGenericFSAdapter<
 
     await Promise.all(relativeFiles.map(async (relativePath) => {
       const fullPath = await driver.joinPath(await itemsDirectoryPathPromise, relativePath)
-      const itemsInFile = await driver.readObject(fullPath)
+      const itemsInFile = await driver.readObject(fullPath).catch(() => null)
       if (!Array.isArray(itemsInFile)) return
       aggregatedItems.push(...itemsInFile)
     }))
@@ -108,7 +108,7 @@ export default function createGenericFSAdapter<
     await Promise.all(
       relativeFiles.map(async (relativePath) => {
         const fullPath = await driver.joinPath(indexPath, relativePath)
-        const maps = await driver.readIndexObject(fullPath)
+        const maps = await driver.readIndexObject(fullPath).catch(() => null)
         if (!Array.isArray(maps)) return
         for (const entry of maps) {
           for (const [key, identifiers] of Object.entries(entry)) {
@@ -218,7 +218,7 @@ export default function createGenericFSAdapter<
         await Promise.all(
           [...touchedBuckets].map(async (bucket) => {
             const filePath = await driver.joinPath(indexPath, bucket)
-            const data = await driver.readIndexObject(filePath)
+            const data = await driver.readIndexObject(filePath).catch(() => null)
 
             // Rehydrate only this bucket into a map of rawKey -> Set<I>
             const bucketIndex = new Map<string, Set<I>>()
@@ -281,18 +281,19 @@ export default function createGenericFSAdapter<
           await itemsDirectoryPathPromise,
           await driver.fileNameForId(item.id),
         )
-        const existing = await driver.readObject(filePath)
-        const array = Array.isArray(existing) ? existing : []
-        const index = array.findIndex(x => x.id === item.id)
+        const existing = await driver.fileExists(filePath)
+          ? (await driver.readObject(filePath).catch(() => [])) ?? []
+          : []
+        const index = existing.findIndex(x => x.id === item.id)
 
         if (mode === 'insert') {
           if (index !== -1) throw new Error(`Item with id "${String(item.id)}" already exists`)
           accumulateUpsertDelta(deltas, undefined, item)
-          await driver.writeObject(filePath, [...array, item])
+          await driver.writeObject(filePath, [...existing, item])
         } else {
           if (index === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
-          accumulateUpsertDelta(deltas, array[index], item)
-          const updated = [...array]
+          accumulateUpsertDelta(deltas, existing[index], item)
+          const updated = [...existing]
           updated[index] = item
           await driver.writeObject(filePath, updated)
         }
@@ -318,7 +319,7 @@ export default function createGenericFSAdapter<
           await itemsDirectoryPathPromise,
           await driver.fileNameForId(identifier),
         )
-        const itemsInFile = await driver.readObject(filePath)
+        const itemsInFile = (await driver.readObject(filePath).catch(() => [])) ?? []
         if (!Array.isArray(itemsInFile)) return null
         return itemsInFile.find(item => item.id === identifier) ?? null
       }))
@@ -360,7 +361,9 @@ export default function createGenericFSAdapter<
             await itemsDirectoryPathPromise,
             await driver.fileNameForId(item.id),
           )
-          const existing = await driver.readObject(filePath)
+          const existing = await driver.fileExists(filePath)
+            ? await driver.readObject(filePath).catch(() => []) ?? []
+            : []
           const array = Array.isArray(existing) ? existing : []
           const index = array.findIndex(x => x.id === item.id)
           if (index === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
