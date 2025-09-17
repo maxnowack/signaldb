@@ -22,6 +22,18 @@ function toSafeFilename(input: string): string {
 }
 
 /**
+ * Acquire a lock for a specific file path to ensure exclusive access during read/write operations.
+ * @param path - The file path to lock.
+ * @param fn - The asynchronous function to execute while holding the lock.
+ * @returns The result of the function `fn`.
+ */
+async function withPathLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
+  const lockName = `opfs:${path}`
+  // Use exclusive mode so reads cannot interleave with writes
+  return navigator.locks.request(lockName, { mode: 'exclusive' }, fn)
+}
+
+/**
  * Creates a persistence adapter for managing a SignalDB collection using the
  * Origin Private File System (OPFS). This adapter allows data to be stored and managed
  * directly in the browser's file system with support for customizable serialization
@@ -58,7 +70,10 @@ export default function createOPFSAdapter<
     deserialize?: (input: string) => any,
   },
 ) {
-  const { serialize = JSON.stringify, deserialize = JSON.parse } = options || {}
+  const {
+    serialize = JSON.stringify,
+    deserialize = JSON.parse,
+  } = options || {}
 
   const ensureDirectoryExists = async (
     rootDirectory: FileSystemDirectoryHandle,
@@ -112,57 +127,63 @@ export default function createOPFSAdapter<
       }
     },
 
-    readObject: async (path) => {
+    readObject: async path => withPathLock(path, async () => {
       const rootDirectory = await navigator.storage.getDirectory()
-      try {
-        const handle = await getFileHandleForPath(rootDirectory, path, false)
-        const file = await handle.getFile()
-        const text = await file.text()
-        return deserialize(text)
-      } catch {
-        return null
-      }
-    },
+      const handle = await getFileHandleForPath(rootDirectory, path, false)
+      const file = await handle.getFile()
+      const text = await file.text()
+      return deserialize(text)
+    }),
 
-    writeObject: async (path, value) => {
+    writeObject: async (path, value) => withPathLock(path, async () => {
       const rootDirectory = await navigator.storage.getDirectory()
       const handle = await getFileHandleForPath(rootDirectory, path, true)
-      const writableStream = await handle.createWritable()
       const text = serialize(value)
-      await writableStream.write(text)
-      await writableStream.close()
-    },
-
-    readIndexObject: async (path) => {
-      const rootDirectory = await navigator.storage.getDirectory()
-      try {
-        const handle = await getFileHandleForPath(rootDirectory, path, false)
-        const file = await handle.getFile()
-        const text = await file.text()
-        return deserialize(text)
-      } catch {
-        return null
+      if (typeof text !== 'string') {
+        throw new TypeError('serialize() must return a string')
       }
-    },
+      const writableStream = await handle.createWritable()
+      try {
+        const encoded = new TextEncoder().encode(text)
+        await writableStream.write({ type: 'write', position: 0, data: encoded })
+        await writableStream.truncate(encoded.byteLength)
+        await writableStream.close()
+      } catch (error) {
+        await writableStream.abort()
+        throw error
+      }
+    }),
 
-    writeIndexObject: async (path, value) => {
+    readIndexObject: async path => withPathLock(path, async () => {
+      const rootDirectory = await navigator.storage.getDirectory()
+      const handle = await getFileHandleForPath(rootDirectory, path, false)
+      const file = await handle.getFile()
+      const text = await file.text()
+      return deserialize(text)
+    }),
+
+    writeIndexObject: async (path, value) => withPathLock(path, async () => {
       const rootDirectory = await navigator.storage.getDirectory()
       const handle = await getFileHandleForPath(rootDirectory, path, true)
-      const writableStream = await handle.createWritable()
       const text = serialize(value)
-      await writableStream.write(text)
-      await writableStream.close()
-    },
+      if (typeof text !== 'string') {
+        throw new TypeError('serialize() must return a string')
+      }
+      const writableStream = await handle.createWritable()
+      try {
+        const encoded = new TextEncoder().encode(text)
+        await writableStream.write({ type: 'write', position: 0, data: encoded })
+        await writableStream.truncate(encoded.byteLength)
+        await writableStream.close()
+      } catch (error) {
+        await writableStream.abort()
+        throw error
+      }
+    }),
 
     listFilesRecursive: async (directoryPath) => {
       const rootDirectory = await navigator.storage.getDirectory()
-      let directoryHandle: FileSystemDirectoryHandle
-      try {
-        directoryHandle = await ensureDirectoryExists(rootDirectory, directoryPath, false)
-      } catch {
-        /* istanbul ignore next -- @preserve */
-        return []
-      }
+      const directoryHandle = await ensureDirectoryExists(rootDirectory, directoryPath, false)
 
       const files: string[] = []
       // @ts-expect-error -- for-await-of on FileSystemDirectoryHandle is not in types yet
