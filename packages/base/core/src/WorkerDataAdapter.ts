@@ -9,12 +9,14 @@ import batchOnNextTick from './utils/batchOnNextTick'
 
 interface WorkerDataAdapterOptions {
   id?: string,
+  log?: (message: string, ...args: any[]) => void,
 }
 
 export default class WorkerDataAdapter implements DataAdapter {
   private id: string
   private isDisposed = false
   private workerReady: Promise<void>
+  private log: (message: string, ...args: any[]) => void = () => {}
   private collectionReady: Map<string, Promise<void>> = new Map()
   private batchExecutionHelpers: Map<string, ReturnType<typeof batchOnNextTick<string>>> = new Map()
   private queries: Record<string, Map<string, {
@@ -25,6 +27,7 @@ export default class WorkerDataAdapter implements DataAdapter {
 
   constructor(private worker: Worker, private options: WorkerDataAdapterOptions) {
     this.id = this.options.id || 'default-worker-data-adapter'
+    if (this.options.log) this.log = this.options.log
     this.workerReady = new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error('WorkerDataAdapter initialization timed out'))
@@ -65,6 +68,8 @@ export default class WorkerDataAdapter implements DataAdapter {
         if (workerId !== this.id) return
         if (type !== 'response') return
         if (id !== messageId) return
+
+        this.log(method, 'result', data ?? error)
         if (error) {
           reject(error)
         } else {
@@ -181,8 +186,8 @@ export default class WorkerDataAdapter implements DataAdapter {
           }
           if (workerId !== this.id) return
           if (collectionName !== collection.name) return
-          if (JSON.stringify(responseSelector) !== JSON.stringify(selector)) return
-          if (JSON.stringify(responseOptions) !== JSON.stringify(options)) return
+          if (queryId(responseSelector, responseOptions) !== queryId(selector, options)) return
+          this.log('queryUpdate', responseSelector, responseOptions, state, data ?? error)
           this.updateQuery(collection.name, {
             selector: responseSelector,
             options: responseOptions,
