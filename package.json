@@ -9,7 +9,7 @@
     "bench": "vitest bench",
     "typedoc": "typedoc",
     "coverage": "vitest run --coverage",
-    "build": "(cd packages/base/core && npm run build) && (cd packages/storage-adapters/generic-fs && npm run build) && npm run build -w packages/base && npm run build -w packages/devtools && npm run build -w packages/integrations && npm run build -w packages/storage-adapters && npm run build -w packages/reactivity-adapters",
+    "build": "node .scripts/build-all.js",
     "analyze-bundle": "npm run analyze-bundle -w packages/base && npm run analyze-bundle -w packages/devtools && npm run analyze-bundle -w packages/integrations && npm run analyze-bundle -w packages/storage-adapters && npm run analyze-bundle -w packages/reactivity-adapters",
     "type-check": "tsc --noEmit",
     "docs:dev": "vitepress dev docs",
