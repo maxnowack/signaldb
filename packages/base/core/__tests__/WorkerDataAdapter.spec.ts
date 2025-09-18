@@ -721,7 +721,7 @@ describe('WorkerDataAdapter', () => {
     const callback = vi.fn()
     const selector = { name: 'test' }
 
-    backend.onQueryStateChange(selector, undefined, callback)
+    backend.onQueryStateChange(selector, {}, callback)
 
     mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
       if (typeof handler !== 'function') return
@@ -732,7 +732,7 @@ describe('WorkerDataAdapter', () => {
           collection: 'different-collection',
           collectionName: 'different-collection',
           selector,
-          options: undefined,
+          options: {},
           state: 'complete',
           error: null,
           items: [],
@@ -748,7 +748,7 @@ describe('WorkerDataAdapter', () => {
     const callback = vi.fn()
     const selector = { name: 'test' }
 
-    backend.onQueryStateChange(selector, undefined, callback)
+    backend.onQueryStateChange(selector, {}, callback)
 
     // Simulate queryUpdate for different selector
     mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
