@@ -95,7 +95,7 @@ describe('WorkerDataAdapter extra coverage', () => {
     const backend = adapter.createCollectionBackend(collection, [])
     const callback = vi.fn()
     const selector = { name: 'x' }
-    const unsubscribe = backend.onQueryStateChange(selector, undefined, callback)
+    const unsubscribe = backend.onQueryStateChange(selector, {}, callback)
     // first update -> should call
     worker.listeners.forEach(l => l(new MessageEvent('message', {
       data: {

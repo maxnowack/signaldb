@@ -24,15 +24,15 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   removeMany(selector: Selector<T>): Promise<T[]>,
 
   // methods for registering and unregistering queries that will be called from the collection during find/findOne
-  registerQuery<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): void,
-  unregisterQuery<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): void,
-  getQueryState<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): 'active' | 'complete' | 'error',
-  getQueryError<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): Error | null,
-  getQueryResult<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): T[],
-  executeQuery<O extends QueryOptions<T>>(selector: Selector<T>, options?: O): Promise<T[]>,
+  registerQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
+  unregisterQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
+  getQueryState<O extends QueryOptions<T>>(selector: Selector<T>, options: O): 'active' | 'complete' | 'error',
+  getQueryError<O extends QueryOptions<T>>(selector: Selector<T>, options: O): Error | null,
+  getQueryResult<O extends QueryOptions<T>>(selector: Selector<T>, options: O): T[],
+  executeQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): Promise<T[]>,
   onQueryStateChange<O extends QueryOptions<T>>(
     selector: Selector<T>,
-    options: O | undefined,
+    options: O,
     callback: (state: 'active' | 'complete' | 'error') => void,
   ): () => void,
 
