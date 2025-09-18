@@ -12,20 +12,20 @@ describe('DefaultDataAdapter', () => {
     const col = new Collection<Item, string, Item>('def', adapter)
     const backend = adapter.createCollectionBackend<Item, string, Item>(col, [])
 
-    expect(backend.getQueryState({}, undefined)).toBe('complete')
-    expect(backend.getQueryError({}, undefined)).toBeNull()
+    expect(backend.getQueryState({}, {})).toBe('complete')
+    expect(backend.getQueryError({}, {})).toBeNull()
 
     const calls: string[] = []
     const sel: Selector<Item> = {} as unknown as Selector<Item>
-    const unsubscribe = backend.onQueryStateChange(sel, undefined, (state) => {
+    const unsubscribe = backend.onQueryStateChange(sel, {}, (state) => {
       calls.push(state)
     })
-    backend.registerQuery(sel, undefined)
+    backend.registerQuery(sel, {})
     expect(calls.pop()).toBe('complete')
     unsubscribe()
 
     ;(adapter as any)['queryEmitters'].delete('def')
-    expect(() => backend.onQueryStateChange({}, undefined, () => {})).toThrow('Query emitter not found for collection def')
+    expect(() => backend.onQueryStateChange({}, {}, () => {})).toThrow('Query emitter not found for collection def')
   })
 
   it('calls teardown on persistence and clears internal maps', async () => {
@@ -107,7 +107,7 @@ describe('DefaultDataAdapter', () => {
     const backend = adapter.createCollectionBackend<Item, string, Item>(c, [])
     await backend.isReady()
     // Verify that data was read by checking query result
-    const result = backend.getQueryResult({}, undefined)
+    const result = backend.getQueryResult({}, {})
     expect(result).toEqual([{ id: 'i1', x: 1 }])
   })
 
@@ -154,12 +154,12 @@ describe('DefaultDataAdapter', () => {
       const originalGetIndexInfo = adapter.getIndexInfo
       // @ts-expect-error - override private method for targeted coverage
       adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: null })
-      const result = backend.getQueryResult({ any: 1 } as unknown as Selector<Item>)
+      const result = backend.getQueryResult({ any: 1 } as unknown as Selector<Item>, {})
       expect(result.length).toBe(1)
       // Now force optimizedSelector to be empty object to hit second early-return
       // @ts-expect-error - override private method for targeted coverage
       adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: {} as any })
-      const result2 = backend.getQueryResult({ other: 1 } as unknown as Selector<Item>)
+      const result2 = backend.getQueryResult({ other: 1 } as unknown as Selector<Item>, {})
       expect(result2.length).toBe(1)
       // @ts-expect-error - restore private method
       adapter.getIndexInfo = originalGetIndexInfo
@@ -177,7 +177,7 @@ describe('DefaultDataAdapter', () => {
 
     // Register a query, then remove emitter and perform a change to queue updates
     const sel: Selector<Item> = { id: 'q1' } as unknown as Selector<Item>
-    backend.registerQuery(sel, undefined)
+    backend.registerQuery(sel, {})
     // Remove emitter so flush hits the missing-emitter return inside loop
     // @ts-expect-error - access private state
     adapter.queryEmitters.delete('flush')
@@ -213,12 +213,12 @@ describe('DefaultDataAdapter', () => {
     // Remove emitter to trigger registerQuery error path
     // @ts-expect-error - access private state
     adapter.queryEmitters.delete('reg-unreg')
-    expect(() => backend.registerQuery({}, undefined)).toThrow('Query emitter not found for collection reg-unreg')
+    expect(() => backend.registerQuery({}, {})).toThrow('Query emitter not found for collection reg-unreg')
 
     // Remove activeQueries map to cover early return in unregisterQuery
     // @ts-expect-error - access private state
     adapter.activeQueries.delete('reg-unreg')
     // Should not throw
-    backend.unregisterQuery({}, undefined)
+    backend.unregisterQuery({}, {})
   })
 })

@@ -480,12 +480,12 @@ export default class Collection<
 
           // register query if not yet registered
           const listeners = this.queryListeners({ selector, options })
-          if (listeners === 0) this.backend.registerQuery(selector, options)
+          if (listeners === 0) this.backend.registerQuery(selector, options || {})
           this.queryListeners({ selector, options }, listeners + 1)
 
           const queryStateChangeCleanup = this.backend.onQueryStateChange(
             selector,
-            options,
+            options || {},
             (state) => {
               if (state !== 'complete') return
               handleRequery()
@@ -496,7 +496,7 @@ export default class Collection<
             setTimeout(() => { // delay to allow multiple quick calls to register/unregister to batch
               // unregister query if no more listeners
               const newListeners = Math.max(0, this.queryListeners({ selector, options }) - 1)
-              if (newListeners === 0) this.backend.unregisterQuery(selector, options)
+              if (newListeners === 0) this.backend.unregisterQuery(selector, options || {})
               this.queryListeners({ selector, options }, newListeners)
 
               queryStateChangeCleanup()

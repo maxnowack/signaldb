@@ -473,16 +473,16 @@ describe('AsyncDataAdapter', () => {
     const selector = { id: '1' }
 
     // Query should start in active state
-    expect(backend.getQueryState(selector)).toBe('active')
+    expect(backend.getQueryState(selector, {})).toBe('active')
 
     // Query result should be empty initially
-    expect(backend.getQueryResult(selector)).toEqual([])
+    expect(backend.getQueryResult(selector, {})).toEqual([])
 
     // Should be able to register and unregister queries
-    backend.registerQuery(selector)
-    backend.unregisterQuery(selector)
+    backend.registerQuery(selector, {})
+    backend.unregisterQuery(selector, {})
 
-    expect(backend.getQueryState(selector)).toBe('active')
+    expect(backend.getQueryState(selector, {})).toBe('active')
   })
 
   it('should handle null selector', async () => {
@@ -493,14 +493,14 @@ describe('AsyncDataAdapter', () => {
     await backend.insert({ id: '2', name: 'test2' })
 
     // Register a query with null selector
-    backend.registerQuery({} as TestItem)
+    backend.registerQuery({} as TestItem, {})
 
     // Query should be registered
-    expect(backend.getQueryState({} as TestItem)).toBe('active')
-    expect(backend.getQueryResult({} as TestItem)).toEqual([])
+    expect(backend.getQueryState({} as TestItem, {})).toBe('active')
+    expect(backend.getQueryResult({} as TestItem, {})).toEqual([])
 
     // Cleanup
-    backend.unregisterQuery({} as TestItem)
+    backend.unregisterQuery({} as TestItem, {})
   })
 
   it('should handle empty selector', async () => {
@@ -514,16 +514,16 @@ describe('AsyncDataAdapter', () => {
     await backend.insert({ id: '2', name: 'test2' })
 
     // Register a query with empty selector
-    backend.registerQuery({})
+    backend.registerQuery({}, {})
 
     // Query should be registered and have initial state
-    expect(backend.getQueryState({})).toBe('active')
-    expect(backend.getQueryResult({})).toEqual([])
-    expect(backend.getQueryError({})).toBeNull()
+    expect(backend.getQueryState({}, {})).toBe('active')
+    expect(backend.getQueryResult({}, {})).toEqual([])
+    expect(backend.getQueryError({}, {})).toBeNull()
 
     // Can unregister query
-    backend.unregisterQuery({})
-    expect(backend.getQueryState({})).toBe('active') // Still active after unregister
+    backend.unregisterQuery({}, {})
+    expect(backend.getQueryState({}, {})).toBe('active') // Still active after unregister
   })
 
   it('should handle indexed queries', async () => {
@@ -538,15 +538,15 @@ describe('AsyncDataAdapter', () => {
     await backend.insert({ id: '3', name: 'alice' })
 
     // Register indexed query
-    backend.registerQuery({ name: 'alice' })
+    backend.registerQuery({ name: 'alice' }, {})
 
     // Query should be registered and have initial state
-    expect(backend.getQueryState({ name: 'alice' })).toBe('active')
-    expect(backend.getQueryResult({ name: 'alice' })).toEqual([])
-    expect(backend.getQueryError({ name: 'alice' })).toBeNull()
+    expect(backend.getQueryState({ name: 'alice' }, {})).toBe('active')
+    expect(backend.getQueryResult({ name: 'alice' }, {})).toEqual([])
+    expect(backend.getQueryError({ name: 'alice' }, {})).toBeNull()
 
     // Can unregister query
-    backend.unregisterQuery({ name: 'alice' })
+    backend.unregisterQuery({ name: 'alice' }, {})
   })
 
   it('should handle query updates after mutations', async () => {
@@ -554,19 +554,19 @@ describe('AsyncDataAdapter', () => {
     const callback = vi.fn()
 
     // Register query and listener
-    const unsubscribe = backend.onQueryStateChange({ name: 'test' }, undefined, callback)
-    backend.registerQuery({ name: 'test' })
+    const unsubscribe = backend.onQueryStateChange({ name: 'test' }, {}, callback)
+    backend.registerQuery({ name: 'test' }, {})
 
     // Insert matching item
     await backend.insert({ id: '1', name: 'test' })
 
     // Query should have completed after mutation-triggered recompute
-    expect(backend.getQueryState({ name: 'test' })).toBe('complete')
+    expect(backend.getQueryState({ name: 'test' }, {})).toBe('complete')
     expect(typeof unsubscribe).toBe('function')
 
     // Cleanup
     unsubscribe()
-    backend.unregisterQuery({ name: 'test' })
+    backend.unregisterQuery({ name: 'test' }, {})
   })
 
   it('should handle errors during operation execution', async () => {
@@ -698,8 +698,8 @@ describe('AsyncDataAdapter', () => {
     const localCollection = new Collection<TestItem>('err2', localAdapter)
     const backend = localAdapter.createCollectionBackend(localCollection, [])
 
-    backend.registerQuery({})
-    const unsubscribe = backend.onQueryStateChange({}, undefined, () => {
+    backend.registerQuery({}, {})
+    const unsubscribe = backend.onQueryStateChange({}, {}, () => {
       throw new Error('boom')
     })
     await backend.insert({ id: '1', name: 'x' })
@@ -711,7 +711,7 @@ describe('AsyncDataAdapter', () => {
   it('registerQuery throws when registry missing after dispose', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
     await backend.dispose()
-    expect(() => backend.registerQuery({})).toThrow('Collection test not initialized!')
+    expect(() => backend.registerQuery({}, {})).toThrow('Collection test not initialized!')
   })
 
   it('fulfillQuery error paths: missing registry, missing record, and error publish', async () => {
@@ -797,12 +797,12 @@ describe('AsyncDataAdapter', () => {
   it('registerQuery twice merges existing record and still fulfills', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
     const selector = { name: 'dup' }
-    backend.registerQuery(selector)
+    backend.registerQuery(selector, {})
     // registering again should hit the spread of existing record (lines 96-99)
-    backend.registerQuery(selector)
+    backend.registerQuery(selector, {})
     // trigger fulfillment
     await backend.insert({ id: 'x', name: 'dup' })
-    expect(backend.getQueryState(selector)).toBe('complete')
+    expect(backend.getQueryState(selector, {})).toBe('complete')
   })
 
   it('onQueryStateChange uses registry bucket and routes callback errors to onError', async () => {
@@ -812,11 +812,11 @@ describe('AsyncDataAdapter', () => {
     const backend = errorAdapter.createCollectionBackend(errorCollection, [])
 
     const selector = { name: 'boom' }
-    const unsubscribe = backend.onQueryStateChange(selector, undefined, () => {
+    const unsubscribe = backend.onQueryStateChange(selector, {}, () => {
       throw new Error('listener boom')
     })
     // This register will fulfill and invoke the throwing listener for 'active' and 'complete'
-    backend.registerQuery(selector)
+    backend.registerQuery(selector, {})
     await backend.insert({ id: '1', name: 'boom' })
     expect(errorSpy).toHaveBeenCalled()
     unsubscribe()
@@ -825,6 +825,6 @@ describe('AsyncDataAdapter', () => {
   it('onQueryStateChange throws if collection not initialized (after dispose)', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
     await backend.dispose() // removes queries registry for the collection
-    expect(() => backend.onQueryStateChange({}, undefined, () => {})).toThrow('Collection test not initialized!')
+    expect(() => backend.onQueryStateChange({}, {}, () => {})).toThrow('Collection test not initialized!')
   })
 })
