@@ -37,8 +37,6 @@ export default function createLocalStorageAdapter<
   const indexKeyFor = (field: string) => `${storageKey}-index-${field}`
   const indices: string[] = []
 
-  type SafeIndex = Record<string, I[]>
-
   const readFromStorage = (): T[] => {
     const serialized = localStorage.getItem(storageKey)
     if (!serialized) return []
@@ -58,9 +56,9 @@ export default function createLocalStorageAdapter<
   const readIndex = async (field: string) => {
     const serialized = localStorage.getItem(indexKeyFor(field))
     if (!serialized) throw new Error(`Index on field "${field}" does not exist`)
-    let data: SafeIndex
+    let data: Record<string, I[]>
     try {
-      data = deserialize(serialized) as SafeIndex
+      data = deserialize(serialized)
     } catch {
       throw new Error(`Corrupted index on field "${field}"`)
     }
@@ -70,6 +68,14 @@ export default function createLocalStorageAdapter<
       ids.forEach(id => index.get(key)?.add(id))
     })
     return index
+  }
+
+  const saveIndexMap = (field: string, index: Map<any, Set<I>>) => {
+    const safeIndex: Record<string, I[]> = {}
+    index.forEach((ids, key) => {
+      safeIndex[String(serializeValue(key))] = [...ids]
+    })
+    localStorage.setItem(indexKeyFor(field), serialize(safeIndex))
   }
 
   const ensureIndex = async (
@@ -83,12 +89,7 @@ export default function createLocalStorageAdapter<
       if (!index.has(fieldValue)) index.set(fieldValue, new Set())
       index.get(fieldValue)?.add(item.id)
     })
-    const safeIndex: SafeIndex = {}
-    index.forEach((ids, key) => {
-      const safeKey = String(serializeValue(key))
-      safeIndex[safeKey] = [...ids]
-    })
-    localStorage.setItem(indexKeyFor(field), serialize(safeIndex))
+    saveIndexMap(field, index)
   }
 
   // --- Delta indexing helpers ---
@@ -97,9 +98,9 @@ export default function createLocalStorageAdapter<
   const loadIndexMap = (field: string): Map<string, Set<I>> | undefined => {
     const serialized = localStorage.getItem(indexKeyFor(field))
     if (!serialized) return undefined
-    let data: SafeIndex
+    let data: Record<string, I[]>
     try {
-      data = deserialize(serialized) as SafeIndex
+      data = deserialize(serialized)
     } catch {
       throw new Error(`Corrupted index on field "${field}"`)
     }
@@ -108,14 +109,6 @@ export default function createLocalStorageAdapter<
       index.set(key, new Set(ids))
     })
     return index
-  }
-
-  const saveIndexMap = (field: string, index: Map<string, Set<I>>) => {
-    const safeIndex: SafeIndex = {}
-    index.forEach((ids, key) => {
-      safeIndex[key] = [...ids]
-    })
-    localStorage.setItem(indexKeyFor(field), serialize(safeIndex))
   }
 
   type IndexDelta = {
