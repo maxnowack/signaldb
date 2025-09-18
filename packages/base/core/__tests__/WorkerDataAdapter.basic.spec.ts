@@ -77,7 +77,7 @@ describe('WorkerDataAdapter Basic Coverage', () => {
     const backend = adapter.createCollectionBackend(collection, [])
 
     const callback = () => {}
-    const unsubscribe = backend.onQueryStateChange({ name: 'test' }, undefined, callback)
+    const unsubscribe = backend.onQueryStateChange({ name: 'test' }, {}, callback)
 
     expect(typeof unsubscribe).toBe('function')
     unsubscribe()

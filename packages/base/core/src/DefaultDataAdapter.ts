@@ -418,7 +418,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         return [item]
       },
       removeMany: async (selector) => {
-        const items = backend.getQueryResult(selector)
+        const items = backend.getQueryResult(selector, {})
 
         items.forEach((item) => {
           this.items.get(collection.name)?.delete(serializeValue(item.id))
