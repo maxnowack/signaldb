@@ -38,20 +38,79 @@ export default function createGenericFSAdapter<
   const itemsDirectoryPathPromise = driver.joinPath(folderName, 'items')
   const indexRootPathPromise = driver.joinPath(folderName, 'index')
 
+  const safeFileExists = async (path: string): Promise<boolean> =>
+    driver.fileExists(path).catch(() => false)
+
+  const safeRemoveEntry = async (path: string, options?: { recursive?: boolean }) =>
+    driver.removeEntry(path, options).catch(() => { /* ignore */ })
+
+  const toItemsFilePath = async (identifier: I): Promise<string> =>
+    driver.joinPath(await itemsDirectoryPathPromise, await driver.fileNameForId(identifier))
+
+  const toIndexPathForField = async (fieldPath: string): Promise<string> =>
+    driver.joinPath(await indexRootPathPromise, await driver.fileNameForIndexKey(fieldPath))
+
+  const toIndexBucketFilePath = async (indexPath: string, rawKey: string): Promise<string> => {
+    const bucketFileName = await driver.fileNameForIndexKey(rawKey)
+    return driver.joinPath(indexPath, bucketFileName)
+  }
+
+  const readItemsArrayOrEmpty = async (filePath: string): Promise<T[]> => {
+    const exists = await safeFileExists(filePath)
+    if (!exists) return []
+    const data = await driver.readObject(filePath).catch(() => [])
+    return Array.isArray(data) ? data : []
+  }
+
+  const loadBucketIndexFromData = <K extends string>(
+    data: Record<K, I[]>[] | null,
+  ): Map<string, Set<I>> => {
+    const bucketIndex = new Map<string, Set<I>>()
+    if (!Array.isArray(data)) return bucketIndex
+    for (const entry of data) {
+      for (const [rawKey, identifierList] of Object.entries(entry)) {
+        bucketIndex.set(rawKey, new Set(identifierList as I[]))
+      }
+    }
+    return bucketIndex
+  }
+
+  const writeBucketIndex = async (
+    filePath: string,
+    bucketIndex: Map<string, Set<I>>,
+  ) => {
+    if (bucketIndex.size === 0) {
+      const exists = await safeFileExists(filePath)
+      if (exists) await safeRemoveEntry(filePath)
+      return
+    }
+    const output: Record<string, I[]>[] = []
+    bucketIndex.forEach((identifierSet, rawKey) => {
+      output.push({ [rawKey]: [...identifierSet] as I[] })
+    })
+    await driver.writeIndexObject(filePath, output)
+  }
+
+  const readBucketIndex = async (filePath: string): Promise<Map<string, Set<I>>> => {
+    const data = await driver.readIndexObject(filePath).catch(() => null)
+    return loadBucketIndexFromData(data)
+  }
+
   const readAll = async (): Promise<T[]> => {
-    const directoryExists = await driver.fileExists(await itemsDirectoryPathPromise)
-      .catch(() => false)
+    const itemsDirectoryPath = await itemsDirectoryPathPromise
+    const directoryExists = await safeFileExists(itemsDirectoryPath)
     if (!directoryExists) return []
 
-    const relativeFiles = await driver.listFilesRecursive(await itemsDirectoryPathPromise)
+    const relativeFiles = await driver.listFilesRecursive(itemsDirectoryPath)
     const aggregatedItems: T[] = []
 
-    await Promise.all(relativeFiles.map(async (relativePath) => {
-      const fullPath = await driver.joinPath(await itemsDirectoryPathPromise, relativePath)
-      const itemsInFile = await driver.readObject(fullPath).catch(() => null)
-      if (!Array.isArray(itemsInFile)) return
-      aggregatedItems.push(...itemsInFile)
-    }))
+    await Promise.all(
+      relativeFiles.map(async (relativePath) => {
+        const fullPath = await driver.joinPath(itemsDirectoryPath, relativePath)
+        const itemsInFile = await driver.readObject(fullPath).catch(() => null)
+        if (Array.isArray(itemsInFile)) aggregatedItems.push(...itemsInFile)
+      }),
+    )
 
     return aggregatedItems
   }
@@ -61,45 +120,40 @@ export default function createGenericFSAdapter<
     itemsPromise: Promise<T[]> = readAll(),
   ): Promise<void> => {
     const allItems = await itemsPromise
-    const indexPath = await driver.joinPath(
-      await indexRootPathPromise,
-      await driver.fileNameForIndexKey(fieldPath),
-    )
-    await driver.removeEntry(indexPath, { recursive: true }).catch(() => { /* ignore */ })
+    const indexPath = await toIndexPathForField(fieldPath)
+
+    await safeRemoveEntry(indexPath, { recursive: true })
     await driver.ensureDir(indexPath)
 
-    // Map<fieldValue, Set<identifier>>
-    const indexMap = new Map<unknown, Set<I>>()
+    // Build value -> Set<identifier>
+    const indexMap = new Map<string, Set<I>>()
     for (const item of allItems) {
       const fieldValue = get(item, fieldPath)
       if (fieldValue == null) continue
-      if (!indexMap.has(fieldValue)) indexMap.set(fieldValue, new Set<I>())
-      indexMap.get(fieldValue)?.add(item.id)
+      const keyString = String(fieldValue)
+      if (!indexMap.has(keyString)) indexMap.set(keyString, new Set<I>())
+      indexMap.get(keyString)?.add(item.id)
     }
 
-    // Persist as files keyed by safe value; keep original value stringified for lookup parity.
+    // Group entries by bucket file name, then persist each bucket
     const buckets: Record<string, Record<string, I[]>[]> = {}
-    for (const [rawKey, identifiers] of indexMap) {
-      const rawKeyString = String(rawKey)
-      const key = await driver.fileNameForIndexKey(rawKeyString)
-      if (!buckets[key]) buckets[key] = []
-      buckets[key].push({ [rawKeyString]: [...identifiers] })
+    for (const [rawKeyString, identifierSet] of indexMap) {
+      const bucketFileName = await driver.fileNameForIndexKey(rawKeyString)
+      if (!buckets[bucketFileName]) buckets[bucketFileName] = []
+      buckets[bucketFileName].push({ [rawKeyString]: [...identifierSet] })
     }
 
     await Promise.all(
-      Object.entries(buckets).map(async ([key, maps]) => {
-        const filePath = await driver.joinPath(indexPath, key)
-        await driver.writeIndexObject(filePath, maps)
+      Object.entries(buckets).map(async ([bucketFileName, records]) => {
+        const filePath = await driver.joinPath(indexPath, bucketFileName)
+        await driver.writeIndexObject(filePath, records)
       }),
     )
   }
 
   const readIndex = async (fieldPath: string) => {
-    const indexPath = await driver.joinPath(
-      await indexRootPathPromise,
-      await driver.fileNameForIndexKey(fieldPath),
-    )
-    const indexExists = await driver.fileExists(indexPath).catch(() => false)
+    const indexPath = await toIndexPathForField(fieldPath)
+    const indexExists = await safeFileExists(indexPath)
     if (!indexExists) throw new Error(`Index on field "${fieldPath}" does not exist`)
 
     const relativeFiles = await driver.listFilesRecursive(indexPath)
@@ -111,11 +165,10 @@ export default function createGenericFSAdapter<
         const maps = await driver.readIndexObject(fullPath).catch(() => null)
         if (!Array.isArray(maps)) return
         for (const entry of maps) {
-          for (const [key, identifiers] of Object.entries(entry)) {
-            if (!resultIndex.has(key)) resultIndex.set(key, new Set<I>())
-            for (const identifier of identifiers) {
-              resultIndex.get(key)?.add(identifier)
-            }
+          for (const [rawKey, identifierList] of Object.entries(entry)) {
+            if (!resultIndex.has(rawKey)) resultIndex.set(rawKey, new Set<I>())
+            const target = resultIndex.get(rawKey)
+            for (const identifier of identifierList) target?.add(identifier)
           }
         }
       }),
@@ -124,6 +177,7 @@ export default function createGenericFSAdapter<
     return resultIndex
   }
 
+  // Track which field paths should be kept up-to-date incrementally.
   const indicesToMaintain: string[] = []
 
   type IndexDelta = {
@@ -133,59 +187,65 @@ export default function createGenericFSAdapter<
 
   const addToDelta = (
     deltas: Map<string, IndexDelta>,
-    field: string,
-    kind: 'add' | 'remove',
+    fieldPath: string,
+    changeKind: 'add' | 'remove',
     rawKey: string,
-    id: I,
+    identifier: I,
   ) => {
-    if (!deltas.has(field)) deltas.set(field, { adds: new Map(), removes: new Map() })
-    const delta = deltas.get(field)
+    if (!deltas.has(fieldPath)) deltas.set(fieldPath, { adds: new Map(), removes: new Map() })
+    const delta = deltas.get(fieldPath)
     if (!delta) return
-    const target = kind === 'add' ? delta.adds : delta.removes
+    const target = changeKind === 'add' ? delta.adds : delta.removes
     if (!target.has(rawKey)) target.set(rawKey, new Set<I>())
-    target.get(rawKey)?.add(id)
+    target.get(rawKey)?.add(identifier)
   }
 
   const addDeltaForChange = (
     deltas: Map<string, IndexDelta>,
-    field: string,
+    fieldPath: string,
     oldValue: any,
     newValue: any,
-    id: I,
+    identifier: I,
   ) => {
     const oldKey = oldValue == null ? undefined : String(oldValue)
     const newKey = newValue == null ? undefined : String(newValue)
     if (oldKey === newKey) return
-    if (oldKey != null) addToDelta(deltas, field, 'remove', oldKey, id)
-    if (newKey != null) addToDelta(deltas, field, 'add', newKey, id)
+    if (oldKey != null) addToDelta(deltas, fieldPath, 'remove', oldKey, identifier)
+    if (newKey != null) addToDelta(deltas, fieldPath, 'add', newKey, identifier)
   }
 
   const accumulateUpsertDelta = (
     deltas: Map<string, IndexDelta>,
-    existing: T | undefined,
-    next: T,
+    existingItem: T | undefined,
+    nextItem: T,
   ) => {
-    if (existing) {
-      for (const field of indicesToMaintain) {
-        addDeltaForChange(deltas, field, get(existing, field), get(next, field), next.id)
+    if (existingItem) {
+      for (const fieldPath of indicesToMaintain) {
+        addDeltaForChange(
+          deltas,
+          fieldPath,
+          get(existingItem, fieldPath),
+          get(nextItem, fieldPath),
+          nextItem.id,
+        )
       }
     } else {
-      for (const field of indicesToMaintain) {
-        const value = get(next, field)
+      for (const fieldPath of indicesToMaintain) {
+        const value = get(nextItem, fieldPath)
         if (value == null) continue
-        addToDelta(deltas, field, 'add', String(value), next.id)
+        addToDelta(deltas, fieldPath, 'add', String(value), nextItem.id)
       }
     }
   }
 
   const accumulateRemoveDelta = (
     deltas: Map<string, IndexDelta>,
-    existing: T,
+    existingItem: T,
   ) => {
-    for (const field of indicesToMaintain) {
-      const value = get(existing, field)
+    for (const fieldPath of indicesToMaintain) {
+      const value = get(existingItem, fieldPath)
       if (value == null) continue
-      addToDelta(deltas, field, 'remove', String(value), existing.id)
+      addToDelta(deltas, fieldPath, 'remove', String(value), existingItem.id)
     }
   }
 
@@ -193,11 +253,8 @@ export default function createGenericFSAdapter<
     // For each indexed field with changes, touch only the affected bucket files
     await Promise.all(
       [...deltas.entries()].map(async ([fieldPath, delta]) => {
-        const indexPath = await driver.joinPath(
-          await indexRootPathPromise,
-          await driver.fileNameForIndexKey(fieldPath),
-        )
-        const indexExists = await driver.fileExists(indexPath).catch(() => false)
+        const indexPath = await toIndexPathForField(fieldPath)
+        const indexExists = await safeFileExists(indexPath)
         if (!indexExists) return // Only update indices that exist
         await driver.ensureDir(indexPath)
 
@@ -207,68 +264,103 @@ export default function createGenericFSAdapter<
           ...delta.removes.keys(),
         ])
 
-        const rawKeyToBucket = new Map<string, string>()
+        const rawKeyToBucketFileName = new Map<string, string>()
         await Promise.all(
           [...touchedRawKeys].map(async (rawKey) => {
-            rawKeyToBucket.set(rawKey, await driver.fileNameForIndexKey(rawKey))
+            rawKeyToBucketFileName.set(rawKey, await driver.fileNameForIndexKey(rawKey))
           }),
         )
-        const touchedBuckets = new Set<string>(rawKeyToBucket.values())
+
+        const touchedBucketFileNames = new Set<string>(rawKeyToBucketFileName.values())
 
         await Promise.all(
-          [...touchedBuckets].map(async (bucket) => {
-            const filePath = await driver.joinPath(indexPath, bucket)
-            const data = await driver.readIndexObject(filePath).catch(() => null)
-
-            // Rehydrate only this bucket into a map of rawKey -> Set<I>
-            const bucketIndex = new Map<string, Set<I>>()
-            if (Array.isArray(data)) {
-              for (const entry of data) {
-                for (const [rawKey, ids] of Object.entries(entry)) {
-                  bucketIndex.set(rawKey, new Set(ids))
-                }
-              }
-            }
+          [...touchedBucketFileNames].map(async (bucketFileName) => {
+            const filePath = await driver.joinPath(indexPath, bucketFileName)
+            const bucketIndex = await readBucketIndex(filePath)
 
             // Apply removals for keys that map to this bucket
-            delta.removes.forEach((ids, rawKey) => {
-              if (rawKeyToBucket.get(rawKey) !== bucket) return
-              const set = bucketIndex.get(rawKey)
-              if (!set) return
-              ids.forEach(id => set.delete(id))
-              if (set.size === 0) bucketIndex.delete(rawKey)
+            delta.removes.forEach((identifierSet, rawKey) => {
+              if (rawKeyToBucketFileName.get(rawKey) !== bucketFileName) return
+              const setForKey = bucketIndex.get(rawKey)
+              if (!setForKey) return
+              identifierSet.forEach(identifier => setForKey.delete(identifier))
+              if (setForKey.size === 0) bucketIndex.delete(rawKey)
             })
 
             // Apply additions
-            delta.adds.forEach((ids, rawKey) => {
-              if (rawKeyToBucket.get(rawKey) !== bucket) return
-              let set = bucketIndex.get(rawKey)
-              if (!set) {
-                set = new Set<I>()
-                bucketIndex.set(rawKey, set)
-              }
-              ids.forEach(id => set.add(id))
+            delta.adds.forEach((identifierSet, rawKey) => {
+              if (rawKeyToBucketFileName.get(rawKey) !== bucketFileName) return
+              const setForKey = bucketIndex.get(rawKey) ?? new Set<I>()
+              identifierSet.forEach(identifier => setForKey.add(identifier))
+              bucketIndex.set(rawKey, setForKey)
             })
 
-            if (bucketIndex.size === 0) {
-              const exists = await driver.fileExists(filePath).catch(() => false)
-              if (exists) await driver.removeEntry(filePath).catch(() => { /* ignore */ })
-              return
-            }
-
-            // Persist this bucket only
-            const out: Record<string, I[]>[] = []
-            bucketIndex.forEach((set, rawKey) => {
-              out.push({ [rawKey]: [...set] as I[] })
-            })
-            await driver.writeIndexObject(filePath, out)
+            await writeBucketIndex(filePath, bucketIndex)
           }),
         )
       }),
     )
   }
 
-  // Shared item operations using the delta helpers
+  const removeIdFromIndex = async (fieldPath: string, identifier: I) => {
+    const indexPath = await toIndexPathForField(fieldPath)
+    const indexExists = await safeFileExists(indexPath)
+    if (!indexExists) return
+
+    const relativeFiles = await driver.listFilesRecursive(indexPath)
+    await Promise.all(
+      relativeFiles.map(async (relativePath) => {
+        const filePath = await driver.joinPath(indexPath, relativePath)
+        const data = await driver.readIndexObject(filePath).catch(() => null)
+        if (!Array.isArray(data)) return
+
+        let changed = false
+        const bucketIndex = new Map<string, Set<I>>()
+        for (const entry of data) {
+          for (const [rawKey, identifierList] of Object.entries(entry)) {
+            const set = new Set<I>(identifierList)
+            const before = set.size
+            set.delete(identifier)
+            if (set.size !== before) changed = true
+            if (set.size > 0) bucketIndex.set(rawKey, set)
+          }
+        }
+
+        if (!changed) return
+        await writeBucketIndex(filePath, bucketIndex)
+      }),
+    )
+  }
+
+  const addIdToIndex = async (fieldPath: string, value: any, identifier: I) => {
+    if (value == null) return
+    const rawKey = String(value)
+
+    const indexPath = await toIndexPathForField(fieldPath)
+    const indexExists = await safeFileExists(indexPath)
+    if (!indexExists) return
+    await driver.ensureDir(indexPath)
+
+    const filePath = await toIndexBucketFilePath(indexPath, rawKey)
+    const bucketIndex = await readBucketIndex(filePath)
+
+    const setForKey = bucketIndex.get(rawKey) ?? new Set<I>()
+    setForKey.add(identifier)
+    bucketIndex.set(rawKey, setForKey)
+
+    await writeBucketIndex(filePath, bucketIndex)
+  }
+
+  const updateIndexForReplace = async (oldItem: T, nextItem: T) => {
+    await Promise.all(
+      indicesToMaintain.map(async (fieldPath) => {
+        await removeIdFromIndex(fieldPath, oldItem.id)
+        const newValue = get(nextItem, fieldPath)
+        await addIdToIndex(fieldPath, newValue, nextItem.id)
+      }),
+    )
+  }
+
   const upsertItems = async (
     items: T[],
     mode: 'insert' | 'replace',
@@ -277,36 +369,36 @@ export default function createGenericFSAdapter<
 
     await Promise.all(
       items.map(async (item) => {
-        const filePath = await driver.joinPath(
-          await itemsDirectoryPathPromise,
-          await driver.fileNameForId(item.id),
-        )
-        const existing = await driver.fileExists(filePath)
-          ? (await driver.readObject(filePath).catch(() => [])) ?? []
-          : []
-        const index = existing.findIndex(x => x.id === item.id)
+        const filePath = await toItemsFilePath(item.id)
+        const existingArray = await readItemsArrayOrEmpty(filePath)
+        const indexOfItem = existingArray.findIndex(existing => existing.id === item.id)
 
         if (mode === 'insert') {
-          if (index !== -1) throw new Error(`Item with id "${String(item.id)}" already exists`)
+          if (indexOfItem !== -1) throw new Error(`Item with id "${String(item.id)}" already exists`)
           accumulateUpsertDelta(deltas, undefined, item)
-          await driver.writeObject(filePath, [...existing, item])
+          await driver.writeObject(filePath, [...existingArray, item])
         } else {
-          if (index === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
-          accumulateUpsertDelta(deltas, existing[index], item)
-          const updated = [...existing]
-          updated[index] = item
-          await driver.writeObject(filePath, updated)
+          if (indexOfItem === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
+          const updatedArray = [...existingArray]
+          const oldItem = updatedArray[indexOfItem]
+          updatedArray[indexOfItem] = item
+          await driver.writeObject(filePath, updatedArray)
+          await updateIndexForReplace(oldItem, item)
         }
       }),
     )
 
-    await applyIndexDeltas(deltas)
+    // Only apply deltas for inserts (replace handled by direct purge+add)
+    if (deltas.size > 0) {
+      await applyIndexDeltas(deltas)
+    }
   }
 
   return createStorageAdapter<T, I>({
     setup: async () => {
       await driver.ensureDir(folderName)
     },
+
     teardown: async () => {
       // no-op
     },
@@ -314,15 +406,14 @@ export default function createGenericFSAdapter<
     readAll,
 
     readIds: async (identifiers) => {
-      const results: (T | null)[] = await Promise.all(identifiers.map(async (identifier) => {
-        const filePath = await driver.joinPath(
-          await itemsDirectoryPathPromise,
-          await driver.fileNameForId(identifier),
-        )
-        const itemsInFile = (await driver.readObject(filePath).catch(() => [])) ?? []
-        if (!Array.isArray(itemsInFile)) return null
-        return itemsInFile.find(item => item.id === identifier) ?? null
-      }))
+      const results: (T | null)[] = await Promise.all(
+        identifiers.map(async (identifier) => {
+          const filePath = await toItemsFilePath(identifier)
+          const itemsInFile = await driver.readObject(filePath).catch(() => []) ?? []
+          if (!Array.isArray(itemsInFile)) return null
+          return itemsInFile.find(item => item.id === identifier) ?? null
+        }),
+      )
       return results.filter((value): value is T => value != null)
     },
 
@@ -333,11 +424,8 @@ export default function createGenericFSAdapter<
     },
 
     dropIndex: async (fieldPath) => {
-      const pathToDrop = await driver.joinPath(
-        await indexRootPathPromise,
-        await driver.fileNameForIndexKey(fieldPath),
-      )
-      const exists = await driver.fileExists(pathToDrop).catch(() => false)
+      const pathToDrop = await toIndexPathForField(fieldPath)
+      const exists = await safeFileExists(pathToDrop)
       if (!exists) throw new Error(`Index on field "${fieldPath}" does not exist`)
       await driver.removeEntry(pathToDrop, { recursive: true })
     },
@@ -357,24 +445,18 @@ export default function createGenericFSAdapter<
 
       await Promise.all(
         itemsToRemove.map(async (item) => {
-          const filePath = await driver.joinPath(
-            await itemsDirectoryPathPromise,
-            await driver.fileNameForId(item.id),
-          )
-          const existing = await driver.fileExists(filePath)
-            ? await driver.readObject(filePath).catch(() => []) ?? []
-            : []
-          const array = Array.isArray(existing) ? existing : []
-          const index = array.findIndex(x => x.id === item.id)
-          if (index === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
+          const filePath = await toItemsFilePath(item.id)
+          const existingArray = await readItemsArrayOrEmpty(filePath)
+          const indexOfItem = existingArray.findIndex(existing => existing.id === item.id)
+          if (indexOfItem === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
 
-          accumulateRemoveDelta(deltas, array[index])
+          accumulateRemoveDelta(deltas, existingArray[indexOfItem])
 
-          const updated = [...array]
-          updated.splice(index, 1)
-          await (updated.length === 0
-            ? driver.removeEntry(filePath)
-            : driver.writeObject(filePath, updated))
+          const updatedArray = [...existingArray]
+          updatedArray.splice(indexOfItem, 1)
+          await (updatedArray.length === 0
+            ? driver.removeEntry(filePath).catch(() => { /* ignore */ })
+            : driver.writeObject(filePath, updatedArray))
         }),
       )
 
@@ -382,7 +464,7 @@ export default function createGenericFSAdapter<
     },
 
     removeAll: async () => {
-      const exists = await driver.fileExists(folderName).catch(() => false)
+      const exists = await safeFileExists(folderName)
       if (!exists) return
       await driver.removeEntry(folderName, { recursive: true })
     },
