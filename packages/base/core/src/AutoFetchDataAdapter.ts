@@ -27,6 +27,15 @@ function defaultMergeItems<T extends BaseItem<any>>(a: T, b: T): T {
 }
 
 /**
+ * Generates a stable key for a selector
+ * @param selector - the selector
+ * @returns the key
+ */
+function selectorId<T extends BaseItem>(selector: Selector<T>) {
+  return JSON.stringify(selector ?? {})
+}
+
+/**
  * AutoFetchDataAdapterOptions
  *
  * Merges the core options required to talk to a per-collection StorageAdapter with
@@ -168,7 +177,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       })
 
       // auto-fetch lifecycle
-      const key = this.selectorKey(selector)
+      const key = selectorId(selector)
       const perColObservers = this.activeObservers.get(collection.name)
       const current = perColObservers?.get(key)?.count ?? 0
       perColObservers?.set(key, { selector, count: current + 1 })
@@ -192,7 +201,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       const registry = this.queries.get(collection.name)
       registry?.delete(qid)
 
-      const key = this.selectorKey(selector)
+      const key = selectorId(selector)
       const perColObservers = this.activeObservers.get(collection.name)
       const current = perColObservers?.get(key)?.count ?? 0
       const remaining = Math.max(0, current - 1)
@@ -252,7 +261,9 @@ export default class AutoFetchDataAdapter implements DataAdapter {
         })
       }
       registry.get(qid)?.listeners.add(callback)
-      return () => registry.get(qid)?.listeners.delete(callback)
+      return () => {
+        registry.get(qid)?.listeners.delete(callback)
+      }
     }
 
     return {
@@ -291,6 +302,14 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       executeQuery: async (selector, options) => {
         await ready
         registerQuery(selector, options)
+        await new Promise<void>((resolve) => {
+          let stop = () => {}
+          stop = onQueryStateChange(selector, options, (state) => {
+            if (state === 'active') return
+            resolve()
+            stop()
+          })
+        })
         const result = getQueryResult(selector, options)
         unregisterQuery(selector, options)
         return result
@@ -315,10 +334,6 @@ export default class AutoFetchDataAdapter implements DataAdapter {
   }
 
   // ===== Auto-fetch mechanics =====
-
-  private selectorKey<T extends BaseItem>(selector: Selector<T>) {
-    return JSON.stringify(selector ?? {})
-  }
 
   private async forceRefetchAll() {
     const tasks: Promise<void>[] = []
@@ -346,7 +361,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       const ids = items.map(i => i.id)
 
       // Track selector->ids for purge calculations
-      const selectorKey = this.selectorKey(selector)
+      const selectorKey = selectorId(selector)
       const selMap = this.selectorIds.get(collectionName)
       const previous = selMap?.get(selectorKey) ?? new Set<I>()
       ids.forEach(id => previous.add(id))
@@ -367,7 +382,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     collectionName: string,
     selector: Selector<T>,
   ) {
-    const selectorKey = this.selectorKey(selector)
+    const selectorKey = selectorId(selector)
     const selMap = this.selectorIds.get(collectionName)
     const ids = selMap?.get(selectorKey)
     selMap?.delete(selectorKey)
@@ -434,15 +449,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     for (const query of registry.values()) {
       // We only toggle state for records with an equal selector
       if (!isEqual(query.selector, selector)) continue
-      query.state = state
-      query.error = error
-      for (const callback of query.listeners) {
-        try {
-          callback(state)
-        } catch (error_) {
-          this.onError(error_ as Error)
-        }
-      }
+      this.publishState(collectionName, queryId(query.selector, query.options), state, error)
     }
   }
 
@@ -452,11 +459,11 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     state: QueryState,
     error: Error | null,
   ) {
-    const rec = this.queries.get(collectionName)?.get(qid)
-    if (!rec) return
-    rec.state = state
-    rec.error = error
-    for (const callback of rec.listeners) {
+    const query = this.queries.get(collectionName)?.get(qid)
+    if (!query) return
+    query.state = state
+    query.error = error
+    for (const callback of query.listeners) {
       try {
         callback(state)
       } catch (error_) {
@@ -466,9 +473,10 @@ export default class AutoFetchDataAdapter implements DataAdapter {
   }
 
   private publishResult<T>(collectionName: string, qid: string, items: T[]) {
-    const rec = this.queries.get(collectionName)?.get(qid)
-    if (!rec) return
-    rec.items = items as any[]
+    const query = this.queries.get(collectionName)?.get(qid)
+    if (!query) return
+    query.items = items as any[]
+    this.queries.get(collectionName)?.set(qid, query)
   }
 
   private async fulfillQuery<T extends BaseItem<I>, I = any>(
@@ -678,7 +686,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     }
 
     await storage.replace([modified])
-    await this.checkQueryUpdates(collectionName, [modified])
+    await this.checkQueryUpdates(collectionName, [item, modified])
     return [modified]
   }
 
@@ -707,7 +715,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       return modified
     }))
     await storage.replace(changed)
-    await this.checkQueryUpdates(collectionName, changed)
+    await this.checkQueryUpdates(collectionName, [...items, ...changed])
     return changed
   }
 
@@ -734,7 +742,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     }
 
     await storage.replace([modified])
-    await this.checkQueryUpdates(collectionName, [modified])
+    await this.checkQueryUpdates(collectionName, [item, modified])
     return [modified]
   }
 
