@@ -224,13 +224,45 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.queuedQueryUpdates.set(collection.name, { added: [], modified: [], removed: [] })
 
     const flatItems = [...changes.added, ...changes.modified, ...changes.removed]
-    const queries = [...this.activeQueries.get(collection.name)?.values() ?? []]
-      .filter(({ selector }) => flatItems.some(item => match(item, selector)))
-    queries.forEach(({ selector, options }) => {
-      const emitter = this.queryEmitters.get(collection.name)
-      if (!emitter) return
-      emitter.emit('change', selector, options, 'complete')
+    const itemIds = new Set(flatItems.map(i => i.id))
+    const queries = [
+      ...this.activeQueries.get(collection.name)?.values() ?? [],
+    ].filter(({ selector, options }) => {
+      const idsInQuery = this.cachedQueryResults.get(collection.name)
+        ?.get(queryId(selector, options))
+        ?.map(i => i.id) ?? []
+
+      // update queries that contained changed items previously
+      if (idsInQuery.some(id => itemIds.has(id))) return true
+
+      return flatItems.some(item => match(item, selector))
     })
+
+    queries.forEach(({ selector, options }) => {
+      this.executeAndCacheQuery(collection, selector, options)
+    })
+  }
+
+  private executeAndCacheQuery<T extends BaseItem<I>, I = any, U = T>(
+    collection: Collection<T, I, U>,
+    selector: Selector<T>,
+    options?: QueryOptions<T>,
+  ) {
+    const result = this.executeQuery(collection, selector, options)
+    this.cachedQueryResults.set(
+      collection.name,
+      this.cachedQueryResults.get(collection.name) || new Map<string, BaseItem[]>(),
+    )
+
+    this.cachedQueryResults.get(collection.name)?.set(
+      queryId(selector, options),
+      result as BaseItem[],
+    )
+
+    const emitter = this.queryEmitters.get(collection.name)
+    if (!emitter) return
+
+    emitter.emit('change', selector, options, 'complete')
   }
 
   private updateQueries<T extends BaseItem<I>, I = any, U = T>(
@@ -415,9 +447,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           selector,
           options,
         })
-        const emitter = this.queryEmitters.get(collection.name)
-        if (!emitter) throw new Error(`Query emitter not found for collection ${collection.name}`)
-        emitter.emit('change', selector, options, 'complete')
+        this.executeAndCacheQuery(collection, selector, options)
       },
       unregisterQuery: (selector, options) => {
         if (!this.activeQueries.get(collection.name)) return
@@ -432,7 +462,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           queryOptions: QueryOptions<any> | undefined,
           state: 'active' | 'complete' | 'error',
         ) => {
-          if (querySelector !== selector || queryOptions !== options) return
+          if (queryId(querySelector, queryOptions) !== queryId(selector, options)) return
           callback(state)
         }
         emitter.on('change', handler)
@@ -442,21 +472,14 @@ export default class DefaultDataAdapter implements DataAdapter {
       },
       getQueryError: () => null,
       getQueryResult: (selector, options) => {
-        const result = this.executeQuery(collection, selector, options)
         const isQueryActive = this.activeQueries.get(collection.name)
           ?.has(queryId(selector, options))
         if (isQueryActive) {
-          this.cachedQueryResults.set(
-            collection.name,
-            this.cachedQueryResults.get(collection.name) || new Map<string, BaseItem[]>(),
-          )
-
-          this.cachedQueryResults.get(collection.name)?.set(
-            queryId(selector, options),
-            result,
-          )
+          return (this.cachedQueryResults
+            .get(collection.name)
+            ?.get(queryId(selector, options)) ?? []) as T[]
         }
-        return result
+        return this.executeQuery(collection, selector, options)
       },
 
       executeQuery: (selector, options) =>
