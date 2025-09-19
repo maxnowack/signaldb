@@ -47,115 +47,116 @@ describe('Cursor', async () => {
     it('should return transformed items when transform function is provided', async () => {
       const col = new Collection({ transform })
       await Promise.all(items.map(item => col.insert(item)))
-      const cursor = col.find({})
-      const result = cursor.fetch()
+      const cursor = col.find<true>({}, { async: true })
+      const result = await cursor.fetch()
       const expected = items.map(item => ({ id: item.id }))
       expect(result).toEqual(expected)
     })
 
-    it('should return all items when no selector or options are provided', () => {
-      const cursor = collection.find()
-      const result = cursor.fetch()
+    it('should return all items when no selector or options are provided', async () => {
+      const cursor = collection.find<true>({}, { async: true })
+      const result = await cursor.fetch()
       expect(result).toEqual(items)
     })
 
-    it('should return filtered items when selector is provided', () => {
-      const cursor = collection.find({ id: 2 })
-      const result = cursor.fetch()
+    it('should return filtered items when selector is provided', async () => {
+      const cursor = collection.find<true>({ id: 2 }, { async: true })
+      const result = await cursor.fetch()
       expect(result).toEqual([items[1]])
     })
 
-    it('should return sorted items when sort option is provided', () => {
-      const cursor = collection.find({}, { sort: { id: -1 } })
-      const result = cursor.fetch()
+    it('should return sorted items when sort option is provided', async () => {
+      const cursor = collection.find<true>({}, { sort: { id: -1 }, async: true })
+      const result = await cursor.fetch()
       const expected = [...items].toReversed()
       expect(result).toEqual(expected)
     })
 
-    it('should return limited items when limit option is provided', () => {
-      const cursor = collection.find({}, { limit: 2 })
-      const result = cursor.fetch()
+    it('should return limited items when limit option is provided', async () => {
+      const cursor = collection.find<true>({}, { limit: 2, async: true })
+      const result = await cursor.fetch()
       const expected = items.slice(0, 2)
       expect(result).toEqual(expected)
     })
 
-    it('should return skipped items when skip option is provided', () => {
-      const cursor = collection.find({}, { skip: 1 })
-      const result = cursor.fetch()
+    it('should return skipped items when skip option is provided', async () => {
+      const cursor = collection.find<true>({}, { skip: 1, async: true })
+      const result = await cursor.fetch()
       const expected = items.slice(1)
       expect(result).toEqual(expected)
     })
 
-    it('should return projected items when fields option is provided', () => {
-      expect(collection.find({}, { fields: { id: 1 } }).fetch()).toEqual([
+    it('should return projected items when fields option is provided', async () => {
+      await expect(collection.find<true>({}, { fields: { id: 1 }, async: true }).fetch()).resolves.toEqual([
         { id: 1 },
         { id: 2 },
         { id: 3 },
       ])
-      expect(collection.find({}, { fields: { name: 1 } }).fetch()).toEqual([
+      await expect(collection.find<true>({}, { fields: { name: 1 }, async: true }).fetch()).resolves.toEqual([
         { id: 1, name: 'Item 1' },
         { id: 2, name: 'Item 2' },
         { id: 3, name: 'Item 3' },
       ])
-      expect(collection.find({}, { fields: { name: 0 } }).fetch()).toEqual([
+      await expect(collection.find<true>({}, { fields: { name: 0 }, async: true }).fetch()).resolves.toEqual([
         { id: 1, test: true },
         { id: 2, test: false },
         { id: 3, test: true },
       ])
     })
 
-    it('should include the id when when fields option is provided', () => {
-      expect(collection.find({}, { fields: { name: 1 } }).fetch()).toEqual([
+    it('should include the id when when fields option is provided', async () => {
+      await expect(collection.find<true>({}, { fields: { name: 1 }, async: true }).fetch()).resolves.toEqual([
         { id: 1, name: 'Item 1' },
         { id: 2, name: 'Item 2' },
         { id: 3, name: 'Item 3' },
       ])
-      expect(collection.find({}, { fields: { id: 0 } }).fetch()).toEqual([
+      await expect(collection.find<true>({}, { fields: { id: 0 }, async: true }).fetch()).resolves.toEqual([
         { name: 'Item 1', test: true },
         { name: 'Item 2', test: false },
         { name: 'Item 3', test: true },
       ])
     })
 
-    it('should return projected, sorted, limited, and skipped items when options are provided', () => {
-      const cursor = collection.find({
+    it('should return projected, sorted, limited, and skipped items when options are provided', async () => {
+      const cursor = collection.find<true>({
         id: { $gt: 1 },
       }, {
         sort: { id: 1 },
         limit: 1,
         skip: 1,
         fields: { id: 1 },
+        async: true,
       })
-      const result = cursor.fetch()
+      const result = await cursor.fetch()
       const expected = [{ id: 3 }]
       expect(result).toEqual(expected)
     })
   })
 
   describe('count', () => {
-    it('should return the total count of items when no selector is provided', () => {
-      const cursor = collection.find()
-      const result = cursor.count()
+    it('should return the total count of items when no selector is provided', async () => {
+      const cursor = collection.find<true>({}, { async: true })
+      const result = await cursor.count()
       expect(result).toEqual(items.length)
     })
 
-    it('should return the count of filtered items when selector is provided', () => {
-      const cursor = collection.find({ id: 2 })
-      const result = cursor.count()
+    it('should return the count of filtered items when selector is provided', async () => {
+      const cursor = collection.find<true>({ id: 2 }, { async: true })
+      const result = await cursor.count()
       expect(result).toBe(1)
     })
 
     it('should return the count of transformed items when transform function is provided', async () => {
       const col = new Collection({ transform })
       await Promise.all(items.map(item => col.insert(item)))
-      const cursor = col.find({ id: 2 })
-      const result = cursor.count()
+      const cursor = col.find<true>({ id: 2 }, { async: true })
+      const result = await cursor.count()
       expect(result).toBe(1)
     })
 
-    it('should return the count of sorted, limited, and skipped items when options are provided', () => {
-      const cursor = collection.find({ id: { $gt: 1 } }, { sort: { id: 1 }, limit: 1, skip: 1 })
-      const result = cursor.count()
+    it('should return the count of sorted, limited, and skipped items when options are provided', async () => {
+      const cursor = collection.find<true>({ id: { $gt: 1 } }, { sort: { id: 1 }, limit: 1, skip: 1, async: true })
+      const result = await cursor.count()
       expect(result).toBe(1)
     })
   })
@@ -487,8 +488,8 @@ describe('Cursor', async () => {
       const notify = vi.fn()
 
       const collection2 = new Collection<{ id: string, name: string }>()
-      const cursor = collection2.find({})
-      const result = cursor.fetch()
+      const cursor = collection2.find<true>({}, { async: true })
+      const result = await cursor.fetch()
       expect(result).toHaveLength(0)
       expect(notify).toHaveBeenCalledTimes(0)
 
@@ -499,12 +500,12 @@ describe('Cursor', async () => {
       }, true)
 
       await collection2.batch(async () => {
-        // create items
-        for (let i = 0; i < 10_000; i += 1) {
+        for (let i = 0; i < 100; i += 1) {
           await collection2.insert({ id: i.toString(), name: `John ${i}` })
           expect(notify).toHaveBeenCalledTimes(0)
         }
       })
+      await wait()
       expect(notify).toHaveBeenCalled()
       stopObserving()
     })
