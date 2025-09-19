@@ -21,7 +21,7 @@ describe('@signaldb/reactively', () => {
       callback(cursor.count())
     })
     exec.get()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
