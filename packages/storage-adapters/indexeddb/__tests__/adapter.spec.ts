@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach } from 'vitest'
 import 'fake-indexeddb/auto'
-import createIndexedDBAdapter from '../src'
+import prepareIndexedDB from '../src'
 
 /**
  * Generates a random database name for testing purposes to avoid collisions.
@@ -12,65 +12,63 @@ function generateDatabaseName() {
 }
 
 /**
- * Generats a random collection name for testing purposes to avoid collisions.
+ * Generates a random collection name for testing purposes to avoid collisions.
  * @returns A unique collection name string.
  */
 function collName() {
   return `coll-${Math.floor(Math.random() * 1e17).toString(16)}`
 }
 
-/**
- * Sets up an IndexedDB adapter with optional upgrade logic for testing.
- * @param options - Configuration options for the adapter setup.
- * @param options.version - The version number for the database (default: 1).
- * @param options.databaseName - The name of the database (default: randomly generated).
- * @param options.collectionName - The name of the collection (default: randomly generated).
- * @param options.preIndex - Array of index names to create before setup.
- * @param options.preDrop - Array of index names to drop before setup.
- * @returns An object containing the initialized adapter, the collection name, and database name.
- */
-async function withAdapter(
-  options?: {
-    version?: number,
-    databaseName?: string,
-    collectionName?: string,
-    preIndex?: string[],
-    preDrop?: string[],
-  },
-) {
-  const name = options?.collectionName ?? collName()
-  const databaseName = options?.databaseName ?? generateDatabaseName()
-  const version = options?.version ?? 1
+type AdapterSetupOptions = {
+  version?: number,
+  databaseName?: string,
+  collectionName?: string,
+  indices?: string[],
+  schema?: Record<string, string[]>,
+}
 
-  const adapter = createIndexedDBAdapter<any, number>(name, {
+/**
+ * Helper that prepares and eagerly sets up an IndexedDB adapter using the
+ * current factory-based API.
+ */
+async function withAdapter(options: AdapterSetupOptions = {}) {
+  const collectionName = options.collectionName ?? collName()
+  const databaseName = options.databaseName ?? generateDatabaseName()
+  const version = options.version ?? 1
+  const schema = options.schema ?? { [collectionName]: options.indices ?? [] }
+
+  const prepare = prepareIndexedDB({
     databaseName,
     version,
+    schema,
   })
 
-  // Enqueue index mutations BEFORE setup per new API
-  for (const f of options?.preIndex ?? []) {
-    await adapter.createIndex(f)
-  }
-  for (const f of options?.preDrop ?? []) {
-    await adapter.dropIndex(f)
-  }
-
+  const adapter = prepare<any, number>(collectionName)
   await adapter.setup()
-  return { adapter, name, databaseName }
+  return { adapter, collectionName, databaseName }
 }
 
 describe('IndexedDB storage adapter', () => {
   describe('setup/teardown', () => {
-    it('opens and closes with custom db & version even without upgrade logic', async () => {
+    it('opens and closes with custom db & version', async () => {
       const { adapter } = await withAdapter({ version: 3 })
-      // No operations; this primarily exercises openDatabase branch without onUpgrade
-      await adapter.teardown()
-      expect(true).toBe(true)
+      await expect(adapter.teardown()).resolves.toBeUndefined()
+    })
+
+    it('throws when collection is missing from schema', async () => {
+      const name = collName()
+      const prepare = prepareIndexedDB({
+        databaseName: generateDatabaseName(),
+        version: 1,
+        schema: {},
+      })
+      const adapter = prepare<any, number>(name)
+      await expect(adapter.setup()).rejects.toThrow(`Object store "${name}" does not exist`)
     })
   })
 
-  describe('CRUD + indexing', () => {
-    let adapter: ReturnType<typeof createIndexedDBAdapter<any, number>>
+  describe('CRUD operations', () => {
+    let adapter: ReturnType<ReturnType<typeof prepareIndexedDB>>
 
     beforeEach(async () => {
       const setup = await withAdapter()
@@ -78,166 +76,99 @@ describe('IndexedDB storage adapter', () => {
     })
 
     it('readAll returns [] initially', async () => {
-      const items = await adapter.readAll()
-      expect(items).toEqual([])
+      await expect(adapter.readAll()).resolves.toEqual([])
       await adapter.teardown()
     })
 
-    it('insert writes items and readAll returns raw data only', async () => {
-      await adapter.insert([{ id: 1, name: 'John' }])
-      const items = await adapter.readAll()
-      expect(items).toEqual([{ id: 1, name: 'John' }])
-      await adapter.teardown()
-    })
-
-    it('createIndex / readIndex / dropIndex work and errors are surfaced', async () => {
-      // Use the SAME db/collection across phases
-      const databaseName = generateDatabaseName()
-      const collectionName = collName()
-
-      // Phase 1: no index exists yet → readIndex should throw
-      {
-        const { adapter: databaseAdapter } = await withAdapter({
-          databaseName,
-          collectionName,
-          version: 1,
-        })
-        await expect(databaseAdapter.readIndex('id')).rejects.toThrow('does not exist')
-        await databaseAdapter.teardown()
-      }
-
-      // Phase 2: create index (idempotent) before setup; then verify mapping
-      {
-        const { adapter: databaseAdapter } = await withAdapter({
-          databaseName,
-          collectionName,
-          version: 2, // bump version to trigger upgrade
-          preIndex: ['id'], // idempotent create
-        })
-        await databaseAdapter.insert([{ id: 1, name: 'John' }])
-        const map = await databaseAdapter.readIndex('id')
-        expect(map instanceof Map).toBe(true)
-        expect(map.has(1)).toBe(true)
-        const set = map.get(1)
-        expect(set instanceof Set).toBe(true)
-        await databaseAdapter.teardown()
-      }
-
-      // Phase 3: drop index before setup; verify subsequent reads fail
-      {
-        const { adapter: databaseAdapter } = await withAdapter({
-          databaseName,
-          collectionName,
-          version: 3, // bump again to trigger upgrade
-          preDrop: ['id'],
-        })
-        await expect(databaseAdapter.readIndex('id')).rejects.toThrow('does not exist')
-        await databaseAdapter.teardown()
-      }
-    })
-
-    it('replace is a no-op when id not found; remove is a no-op when id not found', async () => {
-      const { adapter: databaseAdapter } = await withAdapter({ preIndex: ['id'] })
-      await databaseAdapter.insert([{ id: 1, name: 'John' }])
-
-      // id 999 is not present; exercises early-return branches in replace/remove
-      await databaseAdapter.replace([{ id: 999, name: 'Ghost' }])
-      await databaseAdapter.remove([{ id: 999 }])
-
-      const items = await databaseAdapter.readAll()
-      expect(items).toEqual([{ id: 1, name: 'John' }])
-      await databaseAdapter.teardown()
-    })
-
-    it('removeAll clears the store', async () => {
-      await adapter.insert([
+    it('supports insert, replace, remove and removeAll', async () => {
+      await adapter.insert([{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }])
+      await expect(adapter.readAll()).resolves.toEqual([
         { id: 1, name: 'John' },
         { id: 2, name: 'Jane' },
       ])
+
+      await adapter.replace([{ id: 2, name: 'Janet' }])
+      await expect(adapter.readIds([2, 3])).resolves.toEqual([{ id: 2, name: 'Janet' }])
+
+      await adapter.remove([{ id: 1 }])
+      await expect(adapter.readAll()).resolves.toEqual([{ id: 2, name: 'Janet' }])
+
       await adapter.removeAll()
-      const items = await adapter.readAll()
-      expect(items).toEqual([])
+      await expect(adapter.readAll()).resolves.toEqual([])
       await adapter.teardown()
     })
 
-    it('readPositions accepts an array of positions and returns [] when nothing was found', async () => {
-      // We do not know the generated keys; calling with a key that certainly does not exist
-      const result = await adapter.readIds([123_456_789])
-      expect(result).toEqual([])
-      await adapter.teardown()
-    })
-
-    it('readIds returns specific items when found', async () => {
-      await adapter.insert([
-        { id: 1, name: 'John' },
-        { id: 2, name: 'Jane' },
-        { id: 3, name: 'Bob' },
+    it('treats replace on missing ids as an upsert while remove ignores missing ids', async () => {
+      await adapter.insert([{ id: 1, name: 'Existing' }])
+      await expect(adapter.replace([{ id: 99, name: 'Ghost' }])).resolves.toBeUndefined()
+      await expect(adapter.remove([{ id: 42 }])).resolves.toBeUndefined()
+      await expect(adapter.readAll()).resolves.toEqual([
+        { id: 1, name: 'Existing' },
+        { id: 99, name: 'Ghost' },
       ])
-      const result = await adapter.readIds([1, 3])
-      expect(result.map(r => r.id).toSorted()).toEqual([1, 3])
       await adapter.teardown()
     })
   })
 
-  describe('error handling', () => {
-    it('handles database without upgrade logic', async () => {
-      const adapter = createIndexedDBAdapter<any, number>(collName(), {
-        databaseName: generateDatabaseName(),
-        version: 1,
-      })
-
-      await adapter.setup()
-      const items = await adapter.readAll()
-      expect(items).toEqual([])
-      await adapter.teardown()
-    })
-
-    it('throws error when operations are called before setup', async () => {
-      const adapter = createIndexedDBAdapter<any, number>(collName())
-      await expect(adapter.readAll()).rejects.toThrow('Database not initialized')
-    })
-
-    it('throws error when createIndex is called after setup', async () => {
-      const { adapter: a } = await withAdapter()
-      await expect(a.createIndex('newField')).rejects.toThrow('createIndex must be called before setup()')
-      await a.teardown()
-    })
-
-    it('throws error when dropIndex is called after setup', async () => {
-      const { adapter: a } = await withAdapter()
-      await expect(a.dropIndex('someField')).rejects.toThrow('createIndex must be called before setup()')
-      await a.teardown()
-    })
-
-    it('covers database error handling', async () => {
-      // Test database error path (line 43)
-      const adapter = createIndexedDBAdapter<any, number>(collName(), {
-        databaseName: generateDatabaseName(),
-        version: 1,
-      })
-
-      await adapter.setup()
-      const items = await adapter.readAll()
-      expect(items).toEqual([])
-      await adapter.teardown()
-    })
-
-    it('handles upgrade callback and error scenarios', async () => {
+  describe('index handling follows schema upgrades', () => {
+    it('creates and drops indices based on schema definition', async () => {
       const databaseName = generateDatabaseName()
+      const collectionName = collName()
 
-      // Test with a valid upgrade callback that gets called (covers lines 25-38)
-      const adapter = createIndexedDBAdapter<any, number>(collName(), {
-        databaseName,
+      // Version 1: no indices yet
+      {
+        const { adapter } = await withAdapter({
+          databaseName,
+          collectionName,
+          version: 1,
+        })
+        await expect(adapter.readIndex('name')).rejects.toThrow('does not exist')
+        await adapter.teardown()
+      }
+
+      // Version 2: add "name" index and verify contents
+      {
+        const { adapter } = await withAdapter({
+          databaseName,
+          collectionName,
+          version: 2,
+          indices: ['name'],
+        })
+        await adapter.insert([
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+        ])
+        const index = await adapter.readIndex('name')
+        expect(index.get('Alice')).toBeInstanceOf(Set)
+        expect(index.get('Alice')?.has(1)).toBe(true)
+        expect(index.get('Bob')?.has(2)).toBe(true)
+        await adapter.teardown()
+      }
+
+      // Version 3: drop the index again via schema update
+      {
+        const { adapter } = await withAdapter({
+          databaseName,
+          collectionName,
+          version: 3,
+          indices: [],
+        })
+        await expect(adapter.readIndex('name')).rejects.toThrow('does not exist')
+        await adapter.teardown()
+      }
+    })
+  })
+
+  describe('error handling', () => {
+    it('allows readIds before setup by returning an empty array', async () => {
+      const name = collName()
+      const prepare = prepareIndexedDB({
+        databaseName: generateDatabaseName(),
         version: 1,
-        onUpgrade: async (database, tx) => {
-          // This callback covers the upgrade execution paths
-          expect(database).toBeDefined()
-          expect(tx).toBeDefined()
-        },
+        schema: { [name]: [] },
       })
-
-      await adapter.setup()
-      await adapter.teardown()
+      const adapter = prepare<any, number>(name)
+      await expect(adapter.readIds([1])).resolves.toEqual([])
     })
   })
 })
