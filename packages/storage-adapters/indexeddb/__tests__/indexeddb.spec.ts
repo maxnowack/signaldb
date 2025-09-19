@@ -1,25 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @stylistic/brace-style, @stylistic/max-statements-per-line, unicorn/prevent-abbreviations */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach } from 'vitest'
-import createIndexedDBAdapter from '../src'
+import prepareIndexedDB from '../src'
 
 type Item = { id: number, name?: string }
 
 // Minimal in-memory IndexedDB mock sufficient for adapter paths
 class Store {
   data = new Map<number, Item>()
+  private indexNamesSet = new Set<string>()
 
-  private names = new Set<string>()
-
-  indexNames = {
-    contains: (name: string) => this.names.has(name),
+  get indexNames() {
+    const names = [...this.indexNamesSet]
+    return {
+      contains: (name: string) => this.indexNamesSet.has(name),
+      item: (index: number) => names[index] ?? null,
+      length: names.length,
+    }
   }
 
   createIndex(name: string) {
-    this.names.add(name)
+    this.indexNamesSet.add(name)
   }
 
   deleteIndex(name: string) {
-    this.names.delete(name)
+    this.indexNamesSet.delete(name)
   }
 
   private makeRequest(init: () => void, resultGetter?: () => any) {
@@ -66,7 +70,7 @@ class Store {
   index(field: string) {
     const entries = [...this.data.values()].map(v => ({ key: (v as any)[field], value: v }))
     return {
-      openCursor() {
+      openCursor: () => {
         const listeners: Record<string, ((e: any) => void)[]> = {}
         let current: any = null
         const req: any = {
@@ -79,12 +83,11 @@ class Store {
         const emitSuccess = () => {
           if (i < entries.length) {
             const cur = entries[i++]
-            const cursor = {
+            current = {
               key: cur.key,
               value: cur.value,
               continue: () => queueMicrotask(emitSuccess),
             }
-            current = cursor
           } else {
             current = null
           }
@@ -98,31 +101,40 @@ class Store {
 }
 
 class FakeDB {
+  private storeMap = new Map<string, Store>()
   private names = new Set<string>()
 
-  objectStoreNames = {
-    contains: (name: string) => this.names.has(name),
+  get objectStoreNames() {
+    const names = [...this.names]
+    return {
+      contains: (name: string) => this.names.has(name),
+      item: (index: number) => names[index] ?? null,
+      length: names.length,
+    }
   }
-
-  private store = new Store()
-
-  close() {}
 
   createObjectStore(name: string) {
     this.names.add(name)
-    return this.store
+    if (!this.storeMap.has(name)) this.storeMap.set(name, new Store())
+    return this.storeMap.get(name) as Store
   }
 
-  transaction(_name: string, _mode: 'readonly' | 'readwrite') {
-    return { objectStore: () => this.store } as any
+  transaction(name: string, _mode: 'readonly' | 'readwrite') {
+    if (!this.storeMap.has(name)) this.createObjectStore(name)
+    return { objectStore: () => this.storeMap.get(name) as Store } as any
   }
 
-  getStore() { return this.store }
+  close() {}
+
+  getStore(name: string) {
+    if (!this.storeMap.has(name)) this.createObjectStore(name)
+    return this.storeMap.get(name) as Store
+  }
 }
 
 class OpenRequest {
   result!: FakeDB
-
+  transaction!: { objectStore: (name: string) => Store }
   private listeners: Record<string, ((e: any) => void)[]> = {}
 
   addEventListener(type: string, callback: (e: any) => void) {
@@ -143,7 +155,9 @@ beforeEach(() => {
     const req = new OpenRequest()
     queueMicrotask(() => {
       req.result = db
-      ;(req as any).transaction = { objectStore: () => db.getStore() }
+      req.transaction = {
+        objectStore: (name: string) => db.getStore(name),
+      }
       req.dispatch('upgradeneeded', { oldVersion: 0, newVersion: 1 })
       req.dispatch('success', {})
     })
@@ -154,30 +168,62 @@ beforeEach(() => {
 })
 
 describe('indexeddb adapter', () => {
-  it('covers setup, CRUD and index paths', async () => {
-    const adapter = createIndexedDBAdapter<Item, number>('items', { databaseName: 'signaldb' })
+  it('sets up schema and performs CRUD with index reads', async () => {
+    const prepare = prepareIndexedDB({
+      databaseName: 'signaldb',
+      version: 1,
+      schema: { items: ['name'] },
+    })
+    const adapter = prepare<Item, number>('items')
 
-    // define indexes before setup
-    await adapter.createIndex('name')
-    await adapter.dropIndex('tag')
     await adapter.setup()
+    await adapter.insert([
+      { id: 1, name: 'alice' },
+      { id: 2, name: 'bob' },
+    ])
 
-    // CRD + readAll/Ids
-    await adapter.insert([{ id: 1, name: 'a' }, { id: 2, name: 'b' }])
-    await adapter.replace([{ id: 2, name: 'bb' }])
     const all = await adapter.readAll()
-    expect(all.length).toBe(2)
-    const ids = await adapter.readIds([2])
-    expect(ids.map(i => i.id)).toEqual([2])
+    expect(all.map(i => i.id)).toEqual([1, 2])
 
-    // index read (uses openCursor)
-    const idx = await adapter.readIndex('name')
-    expect(idx.get('a')).toBeDefined()
-    expect(idx.get('bb')).toBeDefined()
+    const index = await adapter.readIndex('name')
+    expect(index.get('alice')?.has(1)).toBe(true)
+    expect(index.get('bob')?.has(2)).toBe(true)
 
-    await adapter.remove([{ id: 1 } as Item])
+    await adapter.remove([{ id: 1 }])
     await adapter.removeAll()
-
     await adapter.teardown()
+  })
+
+  it('removes indexes that disappear from schema on upgrade', async () => {
+    const dbName = 'signaldb-upgrade'
+    const coll = 'items'
+
+    // Initial schema with index
+    {
+      const prepare = prepareIndexedDB({
+        databaseName: dbName,
+        version: 1,
+        schema: { [coll]: ['name'] },
+      })
+      const adapter = prepare<Item, number>(coll)
+      await adapter.setup()
+      await adapter.insert([{ id: 1, name: 'alice' }])
+      const index = await adapter.readIndex('name')
+      expect(index.get('alice')?.has(1)).toBe(true)
+      await adapter.teardown()
+    }
+
+    // Upgrade without index should drop prior index files
+    {
+      const prepare = prepareIndexedDB({
+        databaseName: dbName,
+        version: 2,
+        schema: { [coll]: [] },
+      })
+      const adapter = prepare<Item, number>(coll)
+      await adapter.setup()
+      await expect(adapter.readIndex('name')).rejects.toThrow('does not exist')
+      await adapter.teardown()
+    }
   })
 })
