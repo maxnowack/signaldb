@@ -37,7 +37,7 @@
     "@typescript-eslint/parser": "8.44.0",
     "@vitest/coverage-istanbul": "3.2.4",
     "@vitest/eslint-plugin": "^1.3.9",
-    "eslint": "9.35.0",
+    "eslint": "9.36.0",
     "eslint-import-resolver-typescript": "4.4.4",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jsdoc": "^59.0.0",
