@@ -80,32 +80,32 @@ describe('Filesystem storage adapter', () => {
       // Phase 1: no index exists yet → readIndex should throw
       {
         const { adapter: fsAdapter } = await withAdapter({ folderName })
-        await expect(fsAdapter.readIndex('id')).rejects.toThrow('does not exist')
+        await expect(fsAdapter.readIndex('name')).rejects.toThrow('does not exist')
         await fsAdapter.teardown()
       }
 
       // Phase 2: create index and verify mapping after insert
       {
-        const { adapter: fsAdapter } = await withAdapter({ folderName, preIndex: ['id'] })
+        const { adapter: fsAdapter } = await withAdapter({ folderName, preIndex: ['name'] })
         await fsAdapter.insert([{ id: '1', name: 'John' }])
-        const map = await fsAdapter.readIndex('id')
+        const map = await fsAdapter.readIndex('name')
         expect(map instanceof Map).toBe(true)
-        expect(map.has('1')).toBe(true)
-        const set = map.get('1')
+        expect(map.has('John')).toBe(true)
+        const set = map.get('John')
         expect(set instanceof Set).toBe(true)
         await fsAdapter.teardown()
       }
 
       // Phase 3: drop index and verify subsequent reads fail
       {
-        const { adapter: fsAdapter } = await withAdapter({ folderName, preDrop: ['id'] })
-        await expect(fsAdapter.readIndex('id')).rejects.toThrow('does not exist')
+        const { adapter: fsAdapter } = await withAdapter({ folderName, preDrop: ['name'] })
+        await expect(fsAdapter.readIndex('name')).rejects.toThrow('does not exist')
         await fsAdapter.teardown()
       }
     })
 
     it('replace throws when id not found; remove throws when id not found (stricter than IDB)', async () => {
-      const { adapter: fsAdapter } = await withAdapter({ preIndex: ['id'] })
+      const { adapter: fsAdapter } = await withAdapter({ preIndex: ['name'] })
       await fsAdapter.insert([{ id: '1', name: 'John' }])
 
       await expect(fsAdapter.replace([{ id: '999', name: 'Ghost' }])).rejects.toThrow('does not exist')

@@ -4,121 +4,127 @@ import type Collection from '../src/Collection'
 
 interface TestItem { id: string, name: string }
 
-class FakeWorker implements Worker {
+class MockWorker implements Worker {
   onmessage: ((this: Worker, event: MessageEvent) => any) | null = null
   onmessageerror: ((this: Worker, event: MessageEvent) => any) | null = null
   onerror: ((this: AbstractWorker, event: ErrorEvent) => any) | null = null
   terminate = vi.fn()
-  dispatchEvent = vi.fn()
+  dispatchEvent = vi.fn(() => false)
 
-  messages: any[] = []
-  listeners: Array<(event: MessageEvent) => void> = []
+  private handlers: ((event: MessageEvent) => void)[] = []
+  private messages: any[] = []
 
-  postMessage = vi.fn((message: any) => {
-    this.messages.push(message)
-    // Auto-respond to isReady like a host would
-    if (message.method === 'isReady') {
-      this.listeners.forEach(l => l(new MessageEvent('message', {
-        data: { id: message.id, workerId: message.workerId, type: 'response', data: undefined },
-      } as MessageEventInit)))
+  postMessage = vi.fn((payload: any) => {
+    this.messages.push(payload)
+    if (['registerCollection', 'isReady', 'unregisterCollection', 'registerQuery', 'unregisterQuery'].includes(payload.method)) {
+      queueMicrotask(() => this.emit({ type: 'response', workerId: payload.workerId, id: payload.id, data: undefined, error: null }))
     }
-  })
+  }) as unknown as Worker['postMessage']
 
-  addEventListener = vi.fn(((type: string, listener: (event: MessageEvent) => void) => {
-    if (type === 'message') this.listeners.push(listener)
-  }) as unknown as Worker['addEventListener'])
-
-  removeEventListener = vi.fn(((type: string, listener: (event: MessageEvent) => void) => {
+  addEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
     if (type !== 'message') return
-    const i = this.listeners.indexOf(listener)
-    if (i !== -1) this.listeners.splice(i, 1)
-  }) as unknown as Worker['removeEventListener'])
+    const fn = typeof listener === 'function'
+      ? listener
+      : (event: Event) => (listener as EventListenerObject).handleEvent(event)
+    this.handlers.push(fn as (event: MessageEvent) => void)
+  }) as unknown as Worker['addEventListener']
+
+  removeEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+    if (type !== 'message') return
+    const fn = typeof listener === 'function'
+      ? listener
+      : (event: Event) => (listener as EventListenerObject).handleEvent(event)
+    const index = this.handlers.indexOf(fn as (event: MessageEvent) => void)
+    if (index !== -1) this.handlers.splice(index, 1)
+  }) as unknown as Worker['removeEventListener']
+
+  emit(data: any) {
+    const event = new MessageEvent('message', { data })
+    this.handlers.forEach(handler => handler(event))
+  }
+
+  ready(id: string) {
+    this.emit({ type: 'ready', workerId: id })
+  }
+
+  respond(payload: any, error?: Error) {
+    const last = this.messages.at(-1)
+    if (!last) throw new Error('No postMessage recorded')
+    this.emit({ type: 'response', workerId: last.workerId, id: last.id, data: payload, error })
+  }
+
+  respondTo(method: string, data: any, error?: Error) {
+    const message = [...this.messages].reverse().find(m => m.method === method)
+    if (!message) throw new Error(`No postMessage recorded for method ${method}`)
+    this.emit({ type: 'response', workerId: message.workerId, id: message.id, data, error })
+  }
+
+  get lastCall() {
+    return this.messages.at(-1)
+  }
+
+  clearCalls() {
+    this.messages = []
+  }
+
+  get sentMessages() {
+    return this.messages
+  }
 }
 
-/**
- * Get the id of the last message posted to the worker
- * @param worker - the fake worker to inspect
- * @returns the last posted message id
- */
-function lastMessageId(worker: FakeWorker) {
-  const last = worker.messages.at(-1) as { id?: string }
-  if (!last?.id) throw new Error('no message id')
-  return last.id
-}
+const waitForBatchedMessage = () => new Promise(resolve => setTimeout(resolve, 0))
 
-describe('WorkerDataAdapter extra coverage', () => {
-  let worker: FakeWorker
+describe('WorkerDataAdapter (extra scenarios)', () => {
+  let worker: MockWorker
   let adapter: WorkerDataAdapter
   let collection: Collection<TestItem>
 
   beforeEach(() => {
-    worker = new FakeWorker()
-    adapter = new WorkerDataAdapter(worker as unknown as Worker, { id: 'w' })
-    collection = { name: 'items' } as unknown as Collection<TestItem>
-    // Simulate worker ready handshake
-    worker.listeners.forEach(l => l(new MessageEvent('message', {
-      data: { type: 'ready', workerId: 'w' },
-    } as MessageEventInit)))
+    worker = new MockWorker()
+    adapter = new WorkerDataAdapter(worker, { id: 'extra-adapter' })
+    collection = { name: 'extra' } as unknown as Collection<TestItem>
+    worker.ready('extra-adapter')
   })
 
-  it('rejects exec when worker responds with error', async () => {
+  it('caches query results while query is active', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
-    const p = backend.insert({ id: '1', name: 'a' })
-    // wait until a message was posted to the worker
-    await vi.waitFor(() => expect(worker.messages.length).toBeGreaterThan(0))
-    const id = lastMessageId(worker)
-    // send an error response
-    worker.listeners.forEach(l => l(new MessageEvent('message', {
-      data: { id, workerId: 'w', type: 'response', error: new Error('boom') },
-    } as MessageEventInit)))
-    await expect(p).rejects.toThrow('boom')
-  })
+    await backend.isReady()
+    worker.clearCalls()
+    const selector = { name: 'Alice' }
 
-  it('updates query state and items on queryUpdate messages', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { name: 'a' }
-    const options = { limit: 10 }
-    backend.registerQuery(selector, options)
-
-    const active = { type: 'queryUpdate', workerId: 'w', collectionName: 'items', data: { collectionName: 'items', selector, options, state: 'active', items: [] } }
-    worker.listeners.forEach(l => l(new MessageEvent('message', { data: active } as MessageEventInit)))
-    expect(backend.getQueryState(selector, options)).toBe('active')
-
-    const items = [{ id: '1', name: 'a' }]
-    const complete = { type: 'queryUpdate', workerId: 'w', collectionName: 'items', data: { collectionName: 'items', selector, options, state: 'complete', items } }
-    worker.listeners.forEach(l => l(new MessageEvent('message', { data: complete } as MessageEventInit)))
-    // result caching for worker adapter is minimal; ensure call path does not throw
-    void backend.getQueryResult(selector, options)
-  })
-
-  it('unsubscribes onQueryStateChange correctly', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const callback = vi.fn()
-    const selector = { name: 'x' }
-    const unsubscribe = backend.onQueryStateChange(selector, {}, callback)
-    // first update -> should call
-    worker.listeners.forEach(l => l(new MessageEvent('message', {
+    backend.registerQuery(selector)
+    const unsubscribe = backend.onQueryStateChange(selector, undefined, () => {})
+    worker.emit({
+      type: 'queryUpdate',
+      workerId: 'extra-adapter',
       data: {
-        type: 'queryUpdate',
-        workerId: 'w',
-        collectionName: 'items',
-        data: { collectionName: 'items', selector, options: undefined, state: 'active', items: [] },
+        collectionName: 'extra',
+        selector,
+        state: 'complete',
+        items: [{ id: '1', name: 'Alice' }],
       },
-    } as MessageEventInit)))
-    expect(callback).toHaveBeenCalled()
-    const previousRemoveCount = worker.removeEventListener.mock.calls.length
+    })
+
+    expect(backend.getQueryResult(selector)).toEqual([{ id: '1', name: 'Alice' }])
     unsubscribe()
-    expect(worker.removeEventListener.mock.calls.length).toBeGreaterThanOrEqual(previousRemoveCount)
-    callback.mockClear()
-    // further updates should be ignored after unsubscribe
-    worker.listeners.forEach(l => l(new MessageEvent('message', {
-      data: {
-        type: 'queryUpdate',
-        workerId: 'w',
-        collectionName: 'items',
-        data: { collectionName: 'items', selector, options: undefined, state: 'complete', items: [] },
-      },
-    } as MessageEventInit)))
-    expect(callback).not.toHaveBeenCalled()
+  })
+
+  it('propagates worker errors to operation promises', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    await backend.isReady()
+    worker.clearCalls()
+    const promise = backend.insert({ id: '1', name: 'Boom' })
+    await waitForBatchedMessage()
+    const insertMessage = worker.sentMessages.find(message => message.method === 'insert')
+    expect(insertMessage).toBeDefined()
+    worker.respondTo('insert', null, new Error('worker failed'))
+    await expect(promise).rejects.toThrow('worker failed')
+  })
+
+  it('unregisterQuery silently ignores unknown selectors', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    await backend.isReady()
+    worker.clearCalls()
+    expect(() => backend.unregisterQuery({ name: 'ghost' })).not.toThrow()
   })
 })

@@ -210,10 +210,11 @@ describe('DefaultDataAdapter', () => {
     const col = new Collection<Item, string, Item>('reg-unreg', adapter)
     const backend = adapter.createCollectionBackend<Item, string, Item>(col, [])
 
-    // Remove emitter to trigger registerQuery error path
+    backend.registerQuery({}, {})
+    // Remove emitter to trigger onQueryStateChange error path
     // @ts-expect-error - access private state
     adapter.queryEmitters.delete('reg-unreg')
-    expect(() => backend.registerQuery({}, {})).toThrow('Query emitter not found for collection reg-unreg')
+    expect(() => backend.onQueryStateChange({}, {}, () => {})).toThrow('Query emitter not found for collection reg-unreg')
 
     // Remove activeQueries map to cover early return in unregisterQuery
     // @ts-expect-error - access private state

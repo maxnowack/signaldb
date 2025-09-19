@@ -73,7 +73,7 @@ describe('LocalStorage storage adapter', () => {
     })
 
     it('replace is a no-op when id not found; remove is a no-op when id not found', async () => {
-      const { adapter: a } = await withAdapter({ preIndex: ['id'] })
+      const { adapter: a } = await withAdapter({ preIndex: ['name'] })
       await a.insert([{ id: 1, name: 'John' }])
 
       await a.replace([{ id: 999, name: 'Ghost' }]) // id not present
