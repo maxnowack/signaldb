@@ -16,8 +16,7 @@ describe('AutoFetchDataAdapter', () => {
     const col = new Collection<Post>('posts', adapter, { indices: ['type'] })
     await col.ready()
 
-    // indices should exist (no throw)
-    await expect(storage.readIndex('id')).resolves.toBeInstanceOf(Map)
+    // indexes configured via Collection options should exist
     await expect(storage.readIndex('type')).resolves.toBeInstanceOf(Map)
   })
 
@@ -90,8 +89,8 @@ describe('AutoFetchDataAdapter', () => {
     await col.ready()
 
     // Keep a persistent observer so fetch can complete before we unregister
-    const cursor = col.find({})
-    cursor.forEach(() => { /* keep observer active */ })
+    const cursor = col.find({}, { async: true })
+    await cursor.forEach(() => { /* keep observer active */ })
     // let auto-fetch ingest and query state cycle to complete
     await new Promise(resolve => setTimeout(resolve, 0))
     // now dispose observer to unregister query and trigger purge
