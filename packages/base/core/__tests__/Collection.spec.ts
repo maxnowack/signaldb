@@ -31,7 +31,7 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      const item = collection.findOne({ name: 'John' })
+      const item = await collection.findOne<true>({ name: 'John' }, { async: true })
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
@@ -39,7 +39,7 @@ describe('Collection', () => {
     it('should return undefined if no item matches the selector', async () => {
       await collection.insert({ id: '1', name: 'John' })
 
-      const item = collection.findOne({ name: 'Jane' })
+      const item = await collection.findOne<true>({ name: 'Jane' }, { async: true })
 
       expect(item).toBeUndefined()
     })
@@ -48,7 +48,7 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'John' })
 
-      const item = collection.findOne({ name: 'John' })
+      const item = await collection.findOne<true>({ name: 'John' }, { async: true })
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
@@ -60,9 +60,9 @@ describe('Collection', () => {
       const eventHandler = vi.fn()
       collection.on('findOne', eventHandler)
 
-      collection.findOne({ name: 'John' }, { fields: { id: 1 } })
+      await collection.findOne<true>({ name: 'John' }, { fields: { id: 1 }, async: true })
 
-      expect(eventHandler).toHaveBeenCalledWith({ name: 'John' }, { fields: { id: 1 } }, { id: '1' })
+      expect(eventHandler).toHaveBeenCalledWith({ name: 'John' }, { fields: { id: 1 }, async: true }, { id: '1' })
     })
   })
 
@@ -72,7 +72,7 @@ describe('Collection', () => {
       await collection.insert({ id: '2', name: 'Jane' })
       await collection.insert({ id: '3', name: 'John' })
 
-      const items = collection.find({ name: 'John' }).fetch()
+      const items = await collection.find<true>({ name: 'John' }, { async: true }).fetch()
 
       expect(items).toEqual([
         { id: '1', name: 'John' },
@@ -83,7 +83,7 @@ describe('Collection', () => {
     it('should return an empty array if no items match the selector', async () => {
       await collection.insert({ id: '1', name: 'John' })
 
-      const items = collection.find({ name: 'Jane' }).fetch()
+      const items = await collection.find<true>({ name: 'Jane' }, { async: true }).fetch()
 
       expect(items).toEqual([])
     })
@@ -94,15 +94,17 @@ describe('Collection', () => {
 
       const eventHandler = vi.fn().mockImplementation((selector, options, cursor) => {
         expect(selector).toEqual({ name: 'John' })
-        expect(options).toEqual({ fields: { id: 1 } })
-        expect(cursor.fetch()).toEqual([{ id: '1' }])
+        expect(options).toEqual({ fields: { id: 1 }, async: true })
+        return cursor
       })
 
       collection.on('find', eventHandler)
 
-      collection.find({ name: 'John' }, { fields: { id: 1 } })
+      await collection.find<true>({ name: 'John' }, { fields: { id: 1 }, async: true }).fetch()
 
       expect(eventHandler).toHaveBeenCalled()
+      const [, , cursor] = eventHandler.mock.calls[0]
+      await expect(cursor.fetch()).resolves.toEqual([{ id: '1' }])
     })
   })
 
@@ -112,7 +114,7 @@ describe('Collection', () => {
 
       await collection.insert(item)
 
-      expect(collection.findOne({ id: '1' })).toEqual(item)
+      await expect(collection.findOne<true>({ id: '1' }, { async: true })).resolves.toEqual(item)
     })
 
     it('should emit "added" event when an item is inserted', async () => {
@@ -155,7 +157,7 @@ describe('Collection', () => {
       const ids = await collection.insertMany(items)
 
       expect(ids).toEqual(['1', '2', '3'])
-      expect(collection.find({}).fetch()).toEqual(items)
+      await expect(collection.find<true>({}, { async: true }).fetch()).resolves.toEqual(items)
     })
 
     it('should not fail if empty array was passed', async () => {
@@ -169,7 +171,7 @@ describe('Collection', () => {
 
       await collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
 
-      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jane' })
+      await expect(collection.findOne<true>({ id: '1' }, { async: true })).resolves.toEqual({ id: '1', name: 'Jane' })
     })
 
     it('should emit "changed" event when an item is updated', async () => {
@@ -219,14 +221,14 @@ describe('Collection', () => {
       expect(await collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       })).toEqual(0)
-      expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toBeUndefined()
     })
 
     it('should upsert items if upsert option is true', async () => {
       expect(await collection.updateOne({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       }, { upsert: true })).toEqual(1)
-      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toMatchObject({ name: 'Upsert' })
     })
 
     it('should use $setOnInsert if upsert option is true', async () => {
@@ -236,7 +238,7 @@ describe('Collection', () => {
           upserted: true,
         },
       }, { upsert: true })).toEqual(1)
-      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert', upserted: true })
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toMatchObject({ name: 'Upsert', upserted: true })
     })
 
     it('should ignore $setOnInsert if item was not upserted', async () => {
@@ -246,7 +248,7 @@ describe('Collection', () => {
         $setOnInsert: { upserted: true },
       }, { upsert: true })).toEqual(1)
 
-      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jane' })
+      await expect(collection.findOne<true>({ id: '1' }, { async: true })).resolves.toEqual({ id: '1', name: 'Jane' })
     })
 
     it('should fail if there is an id conflict during upsert', async () => {
@@ -267,7 +269,7 @@ describe('Collection', () => {
 
       await collection.updateMany({ name: 'John' }, { $set: { name: 'Jay' } })
 
-      expect(collection.find({ name: 'Jay' }).fetch()).toEqual([
+      await expect(collection.find<true>({ name: 'Jay' }, { async: true }).fetch()).resolves.toEqual([
         { id: '1', name: 'Jay' },
         { id: '3', name: 'Jay' },
       ])
@@ -319,7 +321,7 @@ describe('Collection', () => {
 
       await collection.replaceOne({ id: '1' }, { name: 'Jack' })
 
-      expect(collection.findOne({ id: '1' })).toEqual({ id: '1', name: 'Jack' })
+      await expect(collection.findOne<true>({ id: '1' }, { async: true })).resolves.toEqual({ id: '1', name: 'Jack' })
     })
 
     it('should emit "changed" event when an item was replaced', async () => {
@@ -366,14 +368,14 @@ describe('Collection', () => {
 
     it('should not upsert items if upsert option was not specified', async () => {
       expect(await collection.replaceOne({ id: 'asdf' }, { name: 'Upsert' })).toEqual(0)
-      expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toBeUndefined()
     })
 
     it('should upsert items if upsert option is true', async () => {
       expect(await collection.replaceOne({ id: 'asdf' }, {
         name: 'Upsert',
       }, { upsert: true })).toEqual(1)
-      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toMatchObject({ name: 'Upsert' })
     })
 
     it('should fail if there is an id conflict during upsert', async () => {
@@ -394,7 +396,7 @@ describe('Collection', () => {
 
       await collection.removeOne({ name: 'John' })
 
-      expect(collection.find({ name: 'John' }).fetch()).toEqual([{ id: '3', name: 'John' }])
+      await expect(collection.find<true>({ name: 'John' }, { async: true }).fetch()).resolves.toEqual([{ id: '3', name: 'John' }])
     })
 
     it('should emit "removed" event for the removed item', async () => {
@@ -413,13 +415,13 @@ describe('Collection', () => {
     it('should remove the index if the item is removed', async () => {
       const id = 'test'
       await collection.insert({ id, name: 'John' })
-      expect(collection.findOne({ id })).toEqual({ id, name: 'John' })
+      await expect(collection.findOne<true>({ id }, { async: true })).resolves.toEqual({ id, name: 'John' })
 
       await collection.removeOne({ id })
-      expect(collection.findOne({ id })).toBeUndefined()
+      await expect(collection.findOne<true>({ id }, { async: true })).resolves.toBeUndefined()
 
       await collection.insert({ id, name: 'Jane' })
-      expect(collection.findOne({ id })).toEqual({ id, name: 'Jane' })
+      await expect(collection.findOne<true>({ id }, { async: true })).resolves.toEqual({ id, name: 'Jane' })
     })
 
     it('should emit "removeOne" event', async () => {
@@ -436,14 +438,14 @@ describe('Collection', () => {
       expect(await collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       })).toEqual(0)
-      expect(collection.findOne({ name: 'Upsert' })).toEqual(undefined)
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toBeUndefined()
     })
 
     it('should upsert items if upsert option is true', async () => {
       expect(await collection.updateMany({ id: 'asdf' }, {
         $set: { name: 'Upsert' },
       }, { upsert: true })).toEqual(1)
-      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert' })
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toMatchObject({ name: 'Upsert' })
     })
 
     it('should use $setOnInsert if upsert option is true', async () => {
@@ -453,7 +455,7 @@ describe('Collection', () => {
           upserted: true,
         },
       }, { upsert: true })).toEqual(1)
-      expect(collection.findOne({ name: 'Upsert' })).toMatchObject({ name: 'Upsert', upserted: true })
+      await expect(collection.findOne<true>({ name: 'Upsert' }, { async: true })).resolves.toMatchObject({ name: 'Upsert', upserted: true })
     })
 
     it('should ignore $setOnInsert if item was not upserted', async () => {
@@ -464,7 +466,7 @@ describe('Collection', () => {
         $setOnInsert: { upserted: true },
       }, { upsert: true })).toEqual(2)
 
-      expect(collection.find().fetch()).toEqual([
+      await expect(collection.find<true>({}, { async: true }).fetch()).resolves.toEqual([
         { id: '1', name: 'John', updated: true },
         { id: '2', name: 'Jane', updated: true },
       ])
@@ -488,7 +490,7 @@ describe('Collection', () => {
 
       await collection.removeMany({ name: 'John' })
 
-      expect(collection.find({ name: 'John' }).fetch()).toEqual([])
+      await expect(collection.find<true>({ name: 'John' }, { async: true }).fetch()).resolves.toEqual([])
     })
 
     it('should emit "removed" event for each removed item', async () => {
@@ -523,6 +525,12 @@ describe('Collection', () => {
     it('should be faster with id only queries', async () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
+      const measureAsyncTime = async (fn: () => Promise<void>) => {
+        const start = performance.now()
+        await fn()
+        return performance.now() - start
+      }
+
       // create items
       await col.batch(async () => {
         for (let i = 0; i < 1000; i += 1) {
@@ -530,13 +538,13 @@ describe('Collection', () => {
         }
       })
 
-      const idQueryTime = measureTime(() => {
-        const item = col.findOne({ id: '999' })
+      const idQueryTime = await measureAsyncTime(async () => {
+        const item = await col.findOne<true>({ id: '999' }, { async: true })
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
-      const nonIdQueryTime = measureTime(() => {
-        const item = col.findOne({ num: 999 })
+      const nonIdQueryTime = await measureAsyncTime(async () => {
+        const item = await col.findOne<true>({ num: 999 }, { async: true })
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
@@ -554,6 +562,12 @@ describe('Collection', () => {
       })
       const col2 = new Collection<{ id: string, name: string, num: number }>()
 
+      const measureAsyncTime = async (fn: () => Promise<void>) => {
+        const start = performance.now()
+        await fn()
+        return performance.now() - start
+      }
+
       await Collection.batch(async () => {
         // create items
         for (let i = 0; i < 10_000; i += 1) {
@@ -562,13 +576,13 @@ describe('Collection', () => {
         }
       })
 
-      const indexQueryTime = measureTime(() => {
-        const item = col1.findOne({ num: 999 })
+      const indexQueryTime = await measureAsyncTime(async () => {
+        const item = await col1.findOne<true>({ num: 999 }, { async: true })
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
-      const nonIndexQueryTime = measureTime(() => {
-        const item = col2.findOne({ num: 999 })
+      const nonIndexQueryTime = await measureAsyncTime(async () => {
+        const item = await col2.findOne<true>({ num: 999 }, { async: true })
         expect(item).toEqual({ id: '999', name: 'John', num: 999 })
       })
 
@@ -758,13 +772,14 @@ describe('Collection', () => {
           },
           getQueryError: () => new Error('boom'),
           getQueryResult: () => [],
+          executeQuery: async () => [],
           dispose: async () => {},
           isReady: async () => {},
         }),
       }
       const c = new Collection<{ id: string, name?: string }>('mock', mockAdapter as unknown as DataAdapter)
-      // async error branch in getItems
-      await expect((c as any).getItems({}, { async: true })).rejects.toThrow('boom')
+      // async branch resolves to [] when backend succeeds
+      await expect((c as any).getItems({}, { async: true })).resolves.toEqual([])
       // private getItem non-promise path
       const v = (c as any).getItem({}, { async: false })
       expect(v).toBeUndefined()
@@ -844,7 +859,7 @@ describe('Collection', () => {
       col.find({ name: 'test' })
       expect(emitSpy.mock.calls.some(call => call[0] === '_debug.find')).toBe(true)
 
-      col.findOne({ name: 'test' })
+      await col.findOne<true>({ name: 'test' }, { async: true })
       expect(emitSpy.mock.calls.some(call => call[0] === '_debug.findOne')).toBe(true)
 
       await col.updateOne({ name: 'test' }, { $set: { name: 'updated' } })
@@ -1008,8 +1023,8 @@ describe('Collection', () => {
         await col.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
         await col.removeOne({ id: '2' })
 
-        expect(col.find().fetch()).toEqual([{ id: '1', name: 'John Doe' }])
-        expect(col.find({ name: 'John Doe' }).fetch()).toEqual([{ id: '1', name: 'John Doe' }])
+        await expect(col.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'John Doe' }])
+        await expect(col.find<true>({ name: 'John Doe' }, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'John Doe' }])
       })
     })
 
@@ -1050,7 +1065,7 @@ describe('Collection', () => {
       await col.batch(async () => {
         await col.removeOne({ id: '1' })
 
-        expect(col.find({ id: '2' }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
+        await expect(col.find<true>({ id: '2' }, { async: true }).fetch()).resolves.toEqual([{ id: '2', name: 'Jane' }])
       })
     })
 
@@ -1107,7 +1122,7 @@ describe('Collection', () => {
         primaryKeyGenerator: () => 'custom-id',
       })
       await col.insert({ name: 'John' })
-      expect(col.findOne({ id: 'custom-id' })).toEqual({ id: 'custom-id', name: 'John' })
+      await expect(col.findOne<true>({ id: 'custom-id' }, { async: true })).resolves.toEqual({ id: 'custom-id', name: 'John' })
     })
   })
 })
@@ -1139,7 +1154,7 @@ describe('Collection coverage extras', () => {
   it('profiles getItems when debug mode enabled', async () => {
     const c = new Collection<{ id: string }>()
     c.setDebugMode(true)
-    expect(() => c.find({}).fetch()).not.toThrow()
+    await expect(c.find<true>({}, { async: true }).fetch()).resolves.toEqual([])
     await c.ready()
   })
 

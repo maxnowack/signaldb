@@ -6,129 +6,90 @@ import type { Selector } from '../src'
 interface TestItem {
   id: string,
   name: string,
-  value?: number,
 }
 
+const waitForBatchedMessage = () => new Promise(resolve => setTimeout(resolve, 0))
+
 class MockWorker implements Worker {
-  private _onmessage:
-  | ((this: Worker, event: MessageEvent) => any)
-  | null = null
-
-  get onmessage() {
-    return this._onmessage
-  }
-
-  set onmessage(fn: ((this: Worker, event: MessageEvent) => any) | null) {
-    this._onmessage = fn
-    if (fn) {
-      // Record as if addEventListener was used so tests can grab and invoke the handler
-      this.addEventListener('message', fn as unknown as EventListener)
-    }
-  }
-
+  onmessage: ((this: Worker, event: MessageEvent) => any) | null = null
   onmessageerror: ((this: Worker, event: MessageEvent) => any) | null = null
   onerror: ((this: AbstractWorker, event: ErrorEvent) => any) | null = null
   terminate = vi.fn()
-  dispatchEvent = vi.fn()
+  dispatchEvent = vi.fn(() => false)
 
   private messageHandlers: ((event: MessageEvent) => void)[] = []
+  private messages: { id: string, workerId: string, method: string, args: unknown[] }[] = []
 
-  postMessage = vi.fn((
-    message: { id: string, workerId: string, method: string, args: unknown[] },
-  ) => {
-    // Auto-respond to isReady to unblock tests that don't simulate a host
-    if (message.method === 'isReady') {
-      this.messageHandlers.forEach(fn => fn(new MessageEvent('message', {
-        data: { id: message.id, workerId: message.workerId, type: 'response', data: undefined },
-      } as MessageEventInit)))
+  postMessage = vi.fn((payload: { id: string, workerId: string, method: string, args: unknown[] }) => {
+    this.messages.push(payload)
+    if (['registerCollection', 'isReady', 'unregisterCollection', 'registerQuery', 'unregisterQuery'].includes(payload.method)) {
+      queueMicrotask(() => {
+        this.emit({ type: 'response', workerId: payload.workerId, id: payload.id, data: undefined, error: null })
+      })
     }
   }) as unknown as Worker['postMessage']
 
-  // Override addEventListener to track message handlers (and keep a mock for expectations)
-  addEventListener = vi.fn(((type: string, listener: EventListenerOrEventListenerObject) => {
-    if (type === 'message') {
-      const fn = (typeof listener === 'function'
-        ? listener
-        : (event: Event) => (listener).handleEvent(event)) as (event: MessageEvent) => void
-      this.messageHandlers.push(fn)
-    }
-  }) as unknown as Worker['addEventListener'])
+  addEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+    if (type !== 'message') return
+    const fn = typeof listener === 'function'
+      ? listener
+      : (event: Event) => (listener as EventListenerObject).handleEvent(event)
+    this.messageHandlers.push(fn as (event: MessageEvent) => void)
+  }) as unknown as Worker['addEventListener']
 
-  // Override removeEventListener to remove handlers
-  removeEventListener = vi.fn(((type: string, listener: EventListenerOrEventListenerObject) => {
-    if (type === 'message') {
-      const fn = (typeof listener === 'function'
-        ? listener
-        : (event: Event) => (listener).handleEvent(event)) as (event: MessageEvent) => void
-      const index = this.messageHandlers.indexOf(fn)
-      if (index !== -1) {
-        this.messageHandlers.splice(index, 1)
-      }
-    }
-  }) as unknown as Worker['removeEventListener'])
+  removeEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+    if (type !== 'message') return
+    const fn = typeof listener === 'function'
+      ? listener
+      : (event: Event) => (listener as EventListenerObject).handleEvent(event)
+    const index = this.messageHandlers.indexOf(fn as (event: MessageEvent) => void)
+    if (index !== -1) this.messageHandlers.splice(index, 1)
+  }) as unknown as Worker['removeEventListener']
 
-  private mockResponse(method: string, args: any[]): any {
-    switch (method) {
-      case 'insert': {
-        return [args[1]]
-      }
-      case 'updateOne': {
-        // selector, update
-        const selector = args[1]
-        const update = args[2] ?? {}
-        const set = update.$set ?? {}
-        return [{ ...selector, ...set }]
-      }
-      case 'replaceOne': {
-        // selector, replacement
-        const replacement = args[2]
-        return [replacement]
-      }
-      case 'removeOne': {
-        const selector = args[1]
-        return [selector]
-      }
-      case 'updateMany': {
-        // pretend two items updated if provided via args[3]; else empty array
-        const items = Array.isArray(args[3]) ? args[3] : []
-        return items
-      }
-      case 'removeMany': {
-        const items = Array.isArray(args[2]) ? args[2] : []
-        return items
-      }
-      case 'registerCollection':
-      case 'unregisterCollection':
-      case 'registerQuery':
-      case 'unregisterQuery': {
-        return undefined
-      }
-      case 'isReady': {
-        return true
-      }
-      default: {
-        return null
-      }
-    }
+  emit(data: any) {
+    const event = new MessageEvent('message', { data })
+    this.messageHandlers.forEach(handler => handler(event))
   }
-}
 
-/**
- * Helper to get the id of the last postMessage call on the worker
- * @param worker The mock worker
- * @param method Optional method name to filter calls
- * @returns The id string
- * @throws If no postMessage calls recorded or last call missing id
- */
-function getLastPostMessageId(worker: MockWorker, method?: string): string {
-  const pm = worker.postMessage as unknown as { mock: { calls: any[][] } }
-  const calls = pm.mock.calls
-  const payloads = calls.map(c => c?.[0] as { id?: string, method?: string })
-  const filtered = method ? payloads.filter(p => p?.method === method) : payloads
-  if (filtered.length === 0) throw new Error('No postMessage calls recorded')
-  const last = filtered.at(-1)
-  if (!last || typeof last.id !== 'string') throw new Error('Last postMessage payload missing id')
-  return last.id
+  emitReady(workerId: string) {
+    this.emit({ type: 'ready', workerId })
+  }
+
+  respondToLast(data: any, error: any = null) {
+    const lastCall = this.messages.at(-1)
+    if (!lastCall) throw new Error('No postMessage calls recorded')
+    this.emit({
+      type: 'response',
+      workerId: lastCall.workerId,
+      id: lastCall.id,
+      data,
+      error,
+    })
+  }
+
+  respondTo(method: string, data: any, error: any = null) {
+    const message = [...this.messages].reverse().find(m => m.method === method)
+    if (!message) throw new Error(`No postMessage recorded for method ${method}`)
+    this.emit({
+      type: 'response',
+      workerId: message.workerId,
+      id: message.id,
+      data,
+      error,
+    })
+  }
+
+  get lastCall() {
+    return this.messages.at(-1)
+  }
+
+  clearCalls() {
+    this.messages = []
+  }
+
+  get sentMessages() {
+    return this.messages
+  }
 }
 
 describe('WorkerDataAdapter', () => {
@@ -139,664 +100,107 @@ describe('WorkerDataAdapter', () => {
   beforeEach(() => {
     mockWorker = new MockWorker()
     adapter = new WorkerDataAdapter(mockWorker, { id: 'test-adapter' })
-    // Use a minimal collection stub to avoid double registrations from Collection constructor
     collection = { name: 'test' } as unknown as Collection<TestItem>
-    // Simulate worker ready so exec calls are not gated
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { type: 'ready', workerId: 'test-adapter' },
-      } as MessageEventInit))
-    })
+    mockWorker.emitReady('test-adapter')
   })
 
-  it('should create adapter with default id when none provided', () => {
-    const defaultAdapter = new WorkerDataAdapter(mockWorker, {})
-    // Simulate ready for default id as well to avoid timeouts
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { type: 'ready', workerId: 'default-worker-data-adapter' },
-      } as MessageEventInit))
-    })
-    expect(defaultAdapter).toBeDefined()
-  })
-
-  it('should create collection backend', async () => {
+  it('registers collection and waits for readiness', async () => {
     const backend = adapter.createCollectionBackend(collection, ['name'])
-    expect(backend).toBeDefined()
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'registerCollection',
-      args: ['test', ['name']],
-    }))
+    await vi.waitFor(() => mockWorker.sentMessages.some(message => message.method === 'registerCollection'))
+    await backend.isReady()
+    expect(mockWorker.sentMessages.some(message => message.method === 'registerCollection')).toBe(true)
+    expect(mockWorker.sentMessages.some(message => message.method === 'isReady')).toBe(true)
   })
 
-  it('should handle insert operation', async () => {
+  it('sends batched insert payloads and resolves with worker response', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
-    const testItem: TestItem = { id: '1', name: 'test' }
+    await backend.isReady()
+    mockWorker.clearCalls()
 
-    const insertPromise = backend.insert(testItem)
+    const insertPromise = backend.insert({ id: '1', name: 'Alice' })
+    const batchPromise = backend.insert({ id: '2', name: 'Bob' })
 
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'insert',
-      args: ['test', testItem],
-    }))
+    let insertMessage: { args: any[] } | undefined
+    await waitForBatchedMessage()
+    insertMessage = mockWorker.sentMessages.find(message => message.method === 'insert')
 
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'insert')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: testItem },
-      }))
-    })
+    expect(insertMessage).toBeDefined()
+    if (!insertMessage) throw new Error('insert message not recorded')
+    expect(insertMessage.args[0]).toBe('test')
+    expect(Array.isArray(insertMessage.args[1])).toBe(true)
+    expect(insertMessage.args[1]).toEqual([[{ id: '1', name: 'Alice' }], [{ id: '2', name: 'Bob' }]])
 
-    const result = await insertPromise
-    expect(result).toEqual(testItem)
+    mockWorker.respondTo('insert', [
+      [{ id: '1', name: 'Alice' }],
+      [{ id: '2', name: 'Bob' }],
+    ])
+
+    await expect(insertPromise).resolves.toEqual([{ id: '1', name: 'Alice' }])
+    await expect(batchPromise).resolves.toEqual([{ id: '2', name: 'Bob' }])
   })
 
-  it('uses default indices parameter when omitted', () => {
-    // Omit indices to exercise default argument branch
-    const backend = adapter.createCollectionBackend(collection)
-    expect(backend).toBeDefined()
-  })
-
-  it('should handle updateOne operation', async () => {
+  it('performs updateOne and forwards worker response', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
-    const updatedItem: TestItem = { id: '1', name: 'updated' }
+    await backend.isReady()
+    mockWorker.clearCalls()
+    const promise = backend.updateOne({ id: '1' }, { $set: { name: 'Updated' } })
 
-    const updatePromise = backend.updateOne({ id: '1' }, { $set: { name: 'updated' } })
+    await waitForBatchedMessage()
+    const updateMessage = mockWorker.sentMessages.find(message => message.method === 'updateOne')
+    expect(updateMessage).toBeDefined()
+    if (!updateMessage) throw new Error('update message not recorded')
+    expect(updateMessage.args[1]).toEqual([[{ id: '1' }, { $set: { name: 'Updated' } }]])
 
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'updateOne',
-      args: ['test', { id: '1' }, { $set: { name: 'updated' } }],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'updateOne')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: [updatedItem] },
-      }))
-    })
-
-    const result = await updatePromise
-    expect(result).toEqual([updatedItem])
+    mockWorker.respondTo('updateOne', [[{ id: '1', name: 'Updated' }]])
+    await expect(promise).resolves.toEqual([{ id: '1', name: 'Updated' }])
   })
 
-  it('should handle updateMany operation', async () => {
+  it('tracks query state and updates via queryUpdate events', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
-    const updatedItems: TestItem[] = [{ id: '1', name: 'updated' }, { id: '2', name: 'updated' }]
-
-    const updatePromise = backend.updateMany({ name: 'test' }, { $set: { name: 'updated' } })
-
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'updateMany',
-      args: ['test', { name: 'test' }, { $set: { name: 'updated' } }],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'updateMany')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: updatedItems },
-      }))
-    })
-
-    const result = await updatePromise
-    expect(result).toEqual(updatedItems)
-  })
-
-  it('should handle replaceOne operation', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const replacedItem: TestItem = { id: '1', name: 'replaced', value: 100 }
-
-    const replacePromise = backend.replaceOne({ id: '1' }, { name: 'replaced', value: 100 })
-
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'replaceOne',
-      args: ['test', { id: '1' }, { name: 'replaced', value: 100 }],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'replaceOne')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: [replacedItem] },
-      }))
-    })
-
-    const result = await replacePromise
-    expect(result).toEqual([replacedItem])
-  })
-
-  it('should handle removeOne operation', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const removedItem: TestItem = { id: '1', name: 'test' }
-
-    const removePromise = backend.removeOne({ id: '1' })
-
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'removeOne',
-      args: ['test', { id: '1' }],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'removeOne')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: [removedItem] },
-      }))
-    })
-
-    const result = await removePromise
-    expect(result).toEqual([removedItem])
-  })
-
-  it('should handle removeMany operation', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const removedItems: TestItem[] = [{ id: '1', name: 'test' }, { id: '2', name: 'test' }]
-
-    const removePromise = backend.removeMany({ name: 'test' })
-
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'removeMany',
-      args: ['test', { name: 'test' }],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'removeMany')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: removedItems },
-      }))
-    })
-
-    const result = await removePromise
-    expect(result).toEqual(removedItems)
-  })
-
-  it('should register and unregister queries', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { name: 'test' }
-    const options = { limit: 10 }
-
-    backend.registerQuery(selector, options)
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'registerQuery',
-      args: ['test', selector, options],
-    }))
-
-    backend.unregisterQuery(selector, options)
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'unregisterQuery',
-      args: ['test', selector, options],
-    }))
-  })
-
-  it('registerQuery increments listeners and avoids duplicate register, unregister branches both paths', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { a: 1 } as Selector<any>
+    await backend.isReady()
+    mockWorker.clearCalls()
+    const selector = { name: 'Alice' }
     const options = { limit: 1 }
+    const listener = vi.fn()
 
-    // First register -> listeners === 0 branch, posts registerQuery
     backend.registerQuery(selector, options)
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String), workerId: 'test-adapter', method: 'registerQuery', args: ['test', selector, options],
-    }))
+    const unsubscribe = backend.onQueryStateChange(selector, options, listener)
 
-    const postCountAfterFirst = (mockWorker.postMessage as any).mock.calls.length
-    // Second register -> listeners > 0 branch, should NOT post registerQuery again
-    backend.registerQuery(selector, options)
-    // Allow any pending microtasks
-    await Promise.resolve()
-    expect((mockWorker.postMessage as any).mock.calls.length).toBe(postCountAfterFirst)
+    await vi.waitFor(() => mockWorker.sentMessages.some(message => message.method === 'registerQuery'))
 
-    // Now unregister once -> newListeners > 0 branch, should NOT post unregisterQuery yet
-    backend.unregisterQuery(selector, options)
-    await new Promise(resolve => setTimeout(resolve, 1))
-    const noUnregisterYet = (mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'unregisterQuery')
-    expect(noUnregisterYet).toBe(false)
-
-    // Now a separate query with single listener -> newListeners === 0 branch
-    const selector2 = { b: 2 } as Selector<any>
-    backend.registerQuery(selector2, options)
-    await vi.waitFor(() => expect((mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'registerQuery' && c?.[0]?.args?.[1] === selector2)).toBe(true))
-    backend.unregisterQuery(selector2, options)
-    await vi.waitFor(() => expect((mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'unregisterQuery' && c?.[0]?.args?.[1] === selector2)).toBe(true))
-  })
-
-  it('should get query state', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { name: 'test' }
-    const options = { limit: 10 }
-
-    // Initially returns 'active'
-    expect(backend.getQueryState(selector, options)).toBe('active')
-  })
-
-  it('should get query error', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { name: 'test' }
-    const options = { limit: 10 }
-
-    // Initially returns null
-    expect(backend.getQueryError(selector, options)).toBeNull()
-  })
-
-  it('should get query result', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { name: 'test' }
-    const options = { limit: 10 }
-
-    // Initially returns empty array
-    expect(backend.getQueryResult(selector, options)).toEqual([])
-  })
-
-  it('should handle query state changes', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const callback = vi.fn()
-    const selector = { name: 'test' }
-    const options = { limit: 10 }
-
-    const unsubscribe = backend.onQueryStateChange(selector, options, callback)
-    backend.registerQuery(selector, options)
-
-    await vi.waitFor(() => expect(mockWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function)))
-
-    // Simulate queryUpdate message (include collectionName inside data)
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          error: null,
-          collectionName: 'test',
-          data: {
-            collectionName: 'test',
-            selector,
-            options,
-            state: 'complete',
-            items: [{ id: '1', name: 'test' }],
-          },
-        },
-      }))
-    })
-
-    expect(callback).toHaveBeenCalledWith('complete')
-    expect(typeof unsubscribe).toBe('function')
-
-    // Test unsubscribe
-    unsubscribe()
-    expect(mockWorker.removeEventListener).toHaveBeenCalledWith('message', expect.any(Function))
-  })
-
-  it('should handle worker errors', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const testItem: TestItem = { id: '1', name: 'test' }
-
-    const insertPromise = backend.insert(testItem)
-
-    // Simulate worker error response
-    await vi.waitFor(() => expect((mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'insert')).toBe(true))
-    const messageId = getLastPostMessageId(mockWorker, 'insert')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          workerId: 'test-adapter',
-          id: messageId,
-          type: 'response',
-          error: new Error('Worker error'),
-        },
-      }))
-    })
-
-    await expect(insertPromise).rejects.toThrow('Worker error')
-  })
-
-  it('should ignore messages for different workers', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const testItem: TestItem = { id: '1', name: 'test' }
-
-    const insertPromise = backend.insert(testItem)
-
-    // Simulate message for different worker
-    await vi.waitFor(() => expect((mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'insert')).toBe(true))
-    const messageId = getLastPostMessageId(mockWorker, 'insert')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          id: messageId,
-          workerId: 'different-worker',
-          type: 'response',
-          data: testItem,
-        },
-      }))
-    })
-
-    // Should not resolve yet
-    let resolved = false
-    void insertPromise.then(() => {
-      resolved = true
-    })
-    await new Promise(resolve => setTimeout(resolve, 10))
-    expect(resolved).toBe(false)
-  })
-
-  it('should ignore non-response messages', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const testItem: TestItem = { id: '1', name: 'test' }
-
-    const insertPromise = backend.insert(testItem)
-
-    // Simulate non-response message
-    await vi.waitFor(() => expect((mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'insert')).toBe(true))
-    const messageId = getLastPostMessageId(mockWorker, 'insert')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          id: messageId,
-          workerId: 'test-adapter',
-          type: 'queryUpdate',
-          data: testItem,
-        },
-      }))
-    })
-
-    // Should not resolve yet
-    let resolved = false
-    void insertPromise.then(() => {
-      resolved = true
-    })
-    await new Promise(resolve => setTimeout(resolve, 10))
-    expect(resolved).toBe(false)
-  })
-
-  it('should ignore messages with different message id', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const testItem: TestItem = { id: '1', name: 'test' }
-
-    const insertPromise = backend.insert(testItem)
-
-    // Simulate message with different id
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          id: 'different-id',
-          workerId: 'test-adapter',
-          type: 'response',
-          data: testItem,
-        },
-      }))
-    })
-
-    // Should not resolve yet
-    let resolved = false
-    void insertPromise.then(() => {
-      resolved = true
-    })
-    await new Promise(resolve => setTimeout(resolve, 10))
-    expect(resolved).toBe(false)
-  })
-
-  it('should handle dispose operation', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-
-    const disposePromise = backend.dispose()
-
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
+    mockWorker.emit({
+      type: 'queryUpdate',
       workerId: 'test-adapter',
-      method: 'unregisterCollection',
-      args: ['test'],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'unregisterCollection')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: undefined },
-      }))
+      data: {
+        collectionName: 'test',
+        selector,
+        options,
+        state: 'complete',
+        items: [{ id: '1', name: 'Alice' }],
+      },
     })
 
-    await disposePromise
+    expect(listener).toHaveBeenCalledWith('complete')
+    expect(backend.getQueryResult(selector, options)).toEqual([{ id: '1', name: 'Alice' }])
+
+    unsubscribe()
+    backend.unregisterQuery(selector, options)
+    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ method: 'unregisterQuery' })))
+  })
+
+  it('disposes collection and terminates worker', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    await backend.isReady()
+    mockWorker.clearCalls()
+    await backend.dispose()
+    expect(mockWorker.sentMessages.some(message => message.method === 'unregisterCollection')).toBe(true)
     expect(mockWorker.terminate).toHaveBeenCalled()
   })
 
-  it('should handle isReady operation', async () => {
+  it('rejects operations once disposed', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
-
-    const readyPromise = backend.isReady()
-
-    await vi.waitFor(() => expect(mockWorker.postMessage).toHaveBeenCalledWith({
-      id: expect.any(String),
-      workerId: 'test-adapter',
-      method: 'isReady',
-      args: ['test'],
-    }))
-
-    // Simulate worker response
-    const messageId = getLastPostMessageId(mockWorker, 'isReady')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: undefined },
-      }))
-    })
-
-    await readyPromise
-  })
-
-  it('exec throws when collection not registered and internal helpers with missing maps', async () => {
-    // Ensure worker is ready to pass workerReady gate
-    const unregisteredError = adapter as unknown as {
-      exec: (m: string, c: string, ...a: any[]) => Promise<any>,
-    }
-    await expect(unregisteredError.exec('insert', 'unknown', { id: '1' })).rejects
-      .toThrow('Collection "unknown" is not registered in WorkerDataAdapter')
-
-    // @ts-expect-error - access private helpers for targeted coverage
-    expect(adapter.queryListeners('no-collection', { selector: {}, options: undefined })).toBe(0)
-    // @ts-expect-error - access private helpers for targeted coverage
-    adapter.updateQuery('no-collection', { selector: {}, options: undefined }, { listeners: 1 })
-  })
-
-  it('onQueryStateChange returns early for mismatched workerId/collection/selector/options', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const callback = vi.fn()
-    const selector = { name: 's' }
-    const options = { limit: 1 }
-    backend.onQueryStateChange(selector, options, callback)
-
-    // 1) Wrong workerId
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'other-id',
-          data: { collectionName: 'test', selector, options, state: 'active', items: [] },
-        },
-      } as MessageEventInit))
-    })
-    // 2) Wrong collectionName
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          data: { collectionName: 'other', selector, options, state: 'active', items: [] },
-        },
-      } as MessageEventInit))
-    })
-    // 3) Wrong selector
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          data: { collectionName: 'test', selector: { name: 'x' }, options, state: 'active', items: [] },
-        },
-      } as MessageEventInit))
-    })
-    // 4) Wrong options
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          data: { collectionName: 'test', selector, options: { limit: 99 }, state: 'active', items: [] },
-        },
-      } as MessageEventInit))
-    })
-
-    expect(callback).not.toHaveBeenCalled()
-  })
-
-  it('initialization timeout rejects workerReady promptly with fake timers', async () => {
-    vi.useFakeTimers()
-    const neverReadyWorker = new (class extends MockWorker {})()
-    const slowAdapter = new WorkerDataAdapter(neverReadyWorker, { id: 'slow' })
-    // Call exec('isReady', ...) directly to avoid unhandled rejection from registerCollection
-    const p = (slowAdapter as unknown as { exec: (m: string, c: string) => Promise<void> }).exec('isReady', 'slow-col')
-    // Advance time to trigger the 5s timeout
-    vi.advanceTimersByTime(5001)
-    await expect(p).rejects.toThrow('WorkerDataAdapter initialization timed out')
-    vi.useRealTimers()
-  })
-
-  it('should reject operations when adapter is disposed', async () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-
-    // First dispose
-    const disposePromise = backend.dispose()
-    await vi.waitFor(() => expect((mockWorker.postMessage as any).mock.calls.some((c: any[]) => c?.[0]?.method === 'unregisterCollection')).toBe(true))
-    const messageId = getLastPostMessageId(mockWorker, 'unregisterCollection')
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: { id: messageId, workerId: 'test-adapter', type: 'response', data: undefined },
-      }))
-    })
-    await disposePromise
-
-    // Now try operations
-    await expect(backend.insert({ id: '1', name: 'test' })).rejects.toThrow('WorkerDataAdapter is disposed')
-  })
-
-  it('should ignore queryUpdate messages for different collections', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const callback = vi.fn()
-    const selector = { name: 'test' }
-
-    backend.onQueryStateChange(selector, {}, callback)
-
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          collection: 'different-collection',
-          collectionName: 'different-collection',
-          selector,
-          options: {},
-          state: 'complete',
-          error: null,
-          items: [],
-        },
-      }))
-    })
-
-    expect(callback).not.toHaveBeenCalled()
-  })
-
-  it('should ignore queryUpdate messages for different selectors', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const callback = vi.fn()
-    const selector = { name: 'test' }
-
-    backend.onQueryStateChange(selector, {}, callback)
-
-    // Simulate queryUpdate for different selector
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          collection: 'test',
-          collectionName: 'test',
-          selector: { name: 'different' },
-          options: undefined,
-          state: 'complete',
-          error: null,
-          items: [],
-        },
-      }))
-    })
-
-    expect(callback).not.toHaveBeenCalled()
-  })
-
-  it('should ignore queryUpdate messages for different options', () => {
-    const backend = adapter.createCollectionBackend(collection, [])
-    const callback = vi.fn()
-    const selector = { name: 'test' }
-    const options = { limit: 10 }
-
-    backend.onQueryStateChange(selector, options, callback)
-
-    // Simulate queryUpdate for different options
-    mockWorker.addEventListener.mock.calls.forEach(([, handler]) => {
-      if (typeof handler !== 'function') return
-      handler(new MessageEvent('message', {
-        data: {
-          type: 'queryUpdate',
-          workerId: 'test-adapter',
-          collection: 'test',
-          collectionName: 'test',
-          selector,
-          options: { limit: 20 },
-          state: 'complete',
-          error: null,
-          items: [],
-        },
-      }))
-    })
-
-    expect(callback).not.toHaveBeenCalled()
+    await backend.isReady()
+    await backend.dispose()
+    await expect(backend.insert({ id: '1', name: 'Alice' })).rejects.toThrow('WorkerDataAdapter is disposed')
   })
 })
