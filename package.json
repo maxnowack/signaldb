@@ -29,8 +29,8 @@
   ],
   "devDependencies": {
     "@codecov/bundle-analyzer": "^1.9.1",
-    "@commitlint/cli": "19.8.1",
-    "@commitlint/config-conventional": "19.8.1",
+    "@commitlint/cli": "20.0.0",
+    "@commitlint/config-conventional": "20.0.0",
     "@rollup/plugin-typescript": "12.1.4",
     "@stylistic/eslint-plugin": "^5.3.1",
     "@typescript-eslint/eslint-plugin": "8.44.1",
