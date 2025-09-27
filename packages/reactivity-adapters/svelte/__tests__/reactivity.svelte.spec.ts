@@ -58,7 +58,7 @@ it('should be reactive with svelte', async () => {
   const getCount = () => count
 
   expect(getCount()).to.equal(0)
-  collection.insert({ text: 'foo' })
+  await collection.insert({ text: 'foo' })
 
   expect(getCount()).to.equal(1)
 })
