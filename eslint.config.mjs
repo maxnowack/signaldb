@@ -186,6 +186,18 @@ export default defineConfig(
   },
   { files: ['commitlint.config.js'], languageOptions: { globals: globals.node } },
   { files: ['**/next.config.js'], languageOptions: { globals: globals.commonjs } },
+  {
+    files: ['.scripts/**.js'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      'jsdoc/require-jsdoc': 'off',
+      'no-console': 'off',
+      'unicorn/filename-case': 'off',
+      'unicorn/prefer-top-level-await': 'off',
+    },
+  },
   // https://github.com/import-js/eslint-plugin-import/issues/1913#issuecomment-1034025709
   ...projectDirectories.map(projectDirectory => ({
     files: [`${projectDirectory}/**/*.{t,j}s`, `${projectDirectory}/**/*.m{t,j}s`],

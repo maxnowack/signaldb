@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/angular",
-  "version": "1.0.5",
+  "version": "2.0.0-beta.1",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
@@ -54,6 +54,6 @@
   ],
   "peerDependencies": {
     "@angular/core": "16.x.x || 17.x.x || 18.x || 19.x || 20.x",
-    "@signaldb/core": "1.x"
+    "@signaldb/core": "1.x || ^2.0.0-0"
   }
 }

@@ -38,9 +38,9 @@ const Placeholder = styled.p`
 
 type Props<T extends Record<string, any>> = {
   items: T[],
-  onAdd?: (item: T) => void,
-  onEdit?: (id: string, item: T) => void,
-  onRemove?: (id: string) => void,
+  onAdd?: (item: T) => Promise<void>,
+  onEdit?: (id: string, item: T) => Promise<void>,
+  onRemove?: (id: string) => Promise<void>,
   placeholder?: string,
   className?: string,
 } & ({
@@ -90,9 +90,9 @@ const Table = <T extends Record<string, any>>({
                   editMode
                   hasActions
                   columns={columns}
-                  onEdit={(item) => {
+                  onEdit={async (item) => {
                     setInsertionMode(false)
-                    onAdd(item)
+                    await onAdd(item)
                   }}
                   onCancel={() => setInsertionMode(false)}
                 />

@@ -4,7 +4,7 @@ import {
   nextTick,
   effectScope,
 } from 'vue'
-import { Collection } from '@signaldb/core'
+import { Collection } from '../../base/core/src'
 import vueReactivityAdapter from '../src'
 
 describe('@signaldb/vue', () => {
@@ -25,7 +25,7 @@ describe('@signaldb/vue', () => {
       })
     })
     await nextTick()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await nextTick()
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
