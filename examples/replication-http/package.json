@@ -16,7 +16,7 @@
     "@signaldb/maverickjs": "*",
     "@signaldb/react": "*",
     "@signaldb/sync": "*",
-    "@types/node": "24.8.1",
+    "@types/node": "24.9.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.1",
     "next": "15.5.6",
