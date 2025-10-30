@@ -1,6 +1,6 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
-import type { ZodSchema, infer as ZodInfer } from 'zod'
+import type { infer as ZodInfer } from 'zod'
 import type { BaseItem, CollectionOptions, TransformAll } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
