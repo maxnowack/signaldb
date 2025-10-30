@@ -42,7 +42,8 @@ export default function createLocalStorageAdapter<
    * @returns The deserialized items from localStorage.
    */
   function getItems(): T[] {
-    return deserialize(localStorage.getItem(collectionId) || '[]')
+    const serializedItems = localStorage.getItem(collectionId)
+    return serializedItems ? deserialize(serializedItems) : []
   }
   return createPersistenceAdapter<T, I>({
     async load() {

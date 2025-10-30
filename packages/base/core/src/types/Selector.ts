@@ -16,13 +16,7 @@ export interface FieldExpression<T> {
   $mod?: number[],
   $regex?: RegExp | string,
   $options?: string,
-  $text?: {
-    $search: string,
-    $language?: string,
-    $caseSensitive?: boolean,
-    $diacriticSensitive?: boolean,
-  },
-  $where?: string | ((item: T) => boolean),
+  $where?: string | ((this: T) => boolean),
   $all?: T[],
   $elemMatch?: T extends object ? Query<T> : FieldExpression<T>,
   $size?: number,
@@ -43,8 +37,8 @@ export type DotNotation<T> = {
       : `${K}` // Base case: Just return the key
 }[keyof T & string]
 
-export type GetType<T, P extends string> =
-  P extends `${infer H}.${infer R}`
+export type GetType<T, P extends string>
+  = P extends `${infer H}.${infer R}`
     ? H extends keyof T
       ? T[H] extends Array<infer U>
         ? GetType<U, R>

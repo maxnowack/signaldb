@@ -205,7 +205,7 @@ export default class Collection<
   private isPushingSignal: Signal<boolean>
   private indexProviders: (IndexProvider<T, I> | LowLevelIndexProvider<T, I>)[] = []
   private indicesOutdated = false
-  private idIndex = new Map<string, Set<number>>()
+  private idIndex = new Map<string | undefined | null, Set<number>>()
   private debugMode
   private batchOperationInProgress = false
   private isDisposed = false

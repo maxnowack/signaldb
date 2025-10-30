@@ -2,11 +2,12 @@
 import fs from 'fs'
 import path from 'path'
 import eslint from '@eslint/js'
+import { defineConfig } from 'eslint/config'
 import globals from 'globals'
-import tseslint, { configs as tseslintConfigs } from 'typescript-eslint'
+import { configs as tseslintConfigs } from 'typescript-eslint'
 import reactPlugin from 'eslint-plugin-react'
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y'
-import { flatConfigs as importPlugin } from 'eslint-plugin-import'
+import eslintPluginImport from 'eslint-plugin-import'
 import testingLibraryPlugin from 'eslint-plugin-testing-library'
 import jsdocPlugin from 'eslint-plugin-jsdoc'
 import vitestPlugin from '@vitest/eslint-plugin'
@@ -19,14 +20,14 @@ const projectDirectories = workspaces
   .flatMap(pattern => FastGlob.sync(pattern, { onlyDirectories: true }))
   .filter(projectPath => fs.existsSync(path.join(import.meta.url, projectPath, 'package.json')))
 
-export default tseslint.config(
+export default defineConfig(
   eslint.configs.recommended,
   tseslintConfigs.recommendedTypeChecked,
-  importPlugin.recommended,
-  stylisticPlugin.configs['recommended-flat'],
+  eslintPluginImport.flatConfigs.recommended,
+  stylisticPlugin.configs.recommended,
   jsdocPlugin.configs['flat/recommended-typescript'],
   vitestPlugin.configs.recommended,
-  unicornPlugin.configs['flat/recommended'],
+  unicornPlugin.configs.recommended,
   {
     plugins: {
       'react': reactPlugin,

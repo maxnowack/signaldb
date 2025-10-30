@@ -796,18 +796,18 @@ describe('Collection', () => {
 
   describe('Schema Validation', () => {
     interface SchemaCollectionOptions<
-      T extends ZodSchema<BaseItem<I>>,
+      T extends z.ZodType<BaseItem<I>>,
       I,
-      E extends ZodSchema<BaseItem<I>> = T,
+      E extends z.ZodType<BaseItem<I>> = T,
       U = ZodInfer<E>,
     > extends CollectionOptions<ZodInfer<T>, I, ZodInfer<E>, U> {
       schema: T,
     }
 
     class SchemaCollection<
-      T extends ZodSchema<BaseItem<I>>,
+      T extends z.ZodType<BaseItem<I>>,
       I = any,
-      E extends ZodSchema<BaseItem<I>> = T,
+      E extends z.ZodType<BaseItem<I>> = T,
       U = ZodInfer<E>,
     > extends Collection<ZodInfer<T>, I, ZodInfer<E>, U> {
       private schema: T

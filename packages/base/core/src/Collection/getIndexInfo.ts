@@ -29,8 +29,10 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
     const info = indexProvider.query(selector)
     if (!info.matched) return memo
 
-    const optimizedSelector = Object.fromEntries(Object.entries(memo.optimizedSelector)
-      .filter(([key]) => !info.fields.includes(key))) as FlatSelector<T>
+    const optimizedSelector = info.keepSelector
+      ? memo.optimizedSelector
+      : Object.fromEntries(Object.entries(memo.optimizedSelector)
+        .filter(([key]) => !info.fields.includes(key))) as FlatSelector<T>
 
     return {
       matched: true,
@@ -95,6 +97,9 @@ export default function getIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
   }
   if (Array.isArray($or)) {
     const $orNew = []
+    const matchedBefore = matched
+    const positionsBefore = positions
+    let hasNonIndexField = false
     for (const sel of $or) {
       const {
         matched: selMatched,
@@ -109,9 +114,16 @@ export default function getIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
         }
       } else {
         $orNew.push(sel)
+        hasNonIndexField = true
       }
     }
     if ($orNew.length > 0) newSelector.$or = $orNew
+
+    if (hasNonIndexField) { // if there was a non-indexed field, we can't optimize the $or away
+      newSelector.$or = $or
+      matched = matchedBefore
+      positions = positionsBefore
+    }
   }
 
   return {

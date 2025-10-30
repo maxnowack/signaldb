@@ -181,13 +181,42 @@ describe('getIndexInfo', () => {
         { age: 30 },
       ],
     })).toEqual({
-      matched: true,
-      positions: [0],
+      matched: false,
+      positions: [],
       optimizedSelector: {
         $or: [
+          { id: '0' },
           { name: 'John' },
           { age: 30 },
         ],
+      },
+    })
+
+    const nameIndex = createIndex<{ id: string, name?: string | null }>('name')
+    nameIndex.rebuild([
+      { id: '0', name: '0' },
+      { id: '1', name: '1' },
+      { id: '2', name: null },
+      { id: '3', name: undefined },
+      { id: '4' },
+    ])
+    expect(getIndexInfo([nameIndex], {
+      $and: [{
+        $or: [
+          { name: null },
+          { name: { $exists: false } },
+        ],
+      }],
+    })).toEqual({
+      matched: true,
+      positions: [2, 3, 4],
+      optimizedSelector: {
+        $and: [{
+          $or: [
+            { name: null },
+            { name: { $exists: false } },
+          ],
+        }],
       },
     })
   })
@@ -315,10 +344,11 @@ describe('getIndexInfo', () => {
         { age: 30 },
       ],
     })).toEqual({
-      matched: true,
-      positions: [0, 1],
+      matched: false,
+      positions: [],
       optimizedSelector: {
         $or: [
+          { authorId: '0' },
           { name: 'John' },
           { age: 30 },
         ],
@@ -382,6 +412,29 @@ describe('getIndexInfo', () => {
       matched: true,
       positions: [0],
       optimizedSelector: {},
+    })
+  })
+
+  it('should handle mixed index/non-index fields in $or', () => {
+    const idIndex = createIndex('id')
+    idIndex.rebuild([{ id: '0' }, { id: '1' }, { id: '2' }])
+
+    expect(getIndexInfo([idIndex], {
+      $or: [
+        { id: '0' },
+        { name: 'John' },
+        { age: 30 },
+      ],
+    })).toEqual({
+      matched: false,
+      positions: [],
+      optimizedSelector: {
+        $or: [
+          { id: '0' },
+          { name: 'John' },
+          { age: 30 },
+        ],
+      },
     })
   })
 })

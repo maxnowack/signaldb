@@ -50,7 +50,7 @@ describe('Cursor', () => {
     it('should return sorted items when sort option is provided', () => {
       const cursor = collection.find({}, { sort: { id: -1 } })
       const result = cursor.fetch()
-      const expected = [...items].reverse()
+      const expected = [...items].toReversed()
       expect(result).toEqual(expected)
     })
 

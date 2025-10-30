@@ -7,12 +7,17 @@
  * @returns The value at the specified path, or `undefined` if the path does not exist.
  */
 export default function get<T extends Record<string, any>>(value: T, path: string) {
-  const segments = path.split(/[.[\]]/g)
-  if (segments[0] === '') segments.shift()
-  if (segments.at(-1) === '') segments.pop()
+  const normalized = path.replaceAll(/\[(\w+)\]/g, '.$1')
+
+  if (normalized.includes('..') || normalized.startsWith('.') || normalized.endsWith('.')) {
+    return
+  }
+
+  const segments = normalized.split('.')
+
   let current: any = value
   for (const key of segments) {
-    if (current == null || key.trim() === '') return
+    if (current == null) return
     current = current[key]
   }
   if (current === undefined) return

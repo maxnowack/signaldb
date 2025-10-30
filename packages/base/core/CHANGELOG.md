@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources.
 
+## [1.7.1] - 2025-08-25
+
+### Fixed
+
+* Fixed index info for `$or` queries with mixed indexed and non-indexed fields
+
+## [1.7.0] - 2025-07-08
+
+### Added
+
+* Type safety for modifiers in `updateOne`, `updateMany`, and `replaceOne` methods
+
+### Fixed
+
+* Fixed a bug where nested array parts where not resolved correctly
+* Removed non-working `$text` operator from query selector type
+* Fixed function signature for `$where` operator
+
+## [1.6.0] - 2025-05-12
+
 ### Added
 
 * Introduced `primaryKeyGenerator`. A function that generates a unique ID for the item. If not provided, a default generator will be used (thanks @signalize!)
@@ -16,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Improve performance of checking id index
+* Export `Cursor` type
+
+### Changed
+
+* Leverage null and undefined values for indexing
 
 ## [1.5.4] - 2025-05-02
 
