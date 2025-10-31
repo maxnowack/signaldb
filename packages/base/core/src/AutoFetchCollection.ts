@@ -15,8 +15,9 @@ interface AutoFetchOptions<T extends { id: I } & Record<string, any>, I> {
 export type AutoFetchCollectionOptions<
   T extends BaseItem<I>,
   I,
-  U = T,
-> = Omit<ReplicatedCollectionOptions<T, I, U>, 'pull' | 'registerRemoteChange'> & AutoFetchOptions<T, I>
+  E extends BaseItem = T,
+  U = E,
+> = Omit<ReplicatedCollectionOptions<T, I, E, U>, 'pull' | 'registerRemoteChange'> & AutoFetchOptions<T, I>
 
 /**
  * A special collection that automatically fetches items when they are needed.
@@ -24,8 +25,9 @@ export type AutoFetchCollectionOptions<
 export default class AutoFetchCollection<
   T extends BaseItem<I> = BaseItem,
   I = any,
-  U = T,
-> extends ReplicatedCollection<T, I, U> {
+  E extends BaseItem = T,
+  U = E,
+> extends ReplicatedCollection<T, I, E, U> {
   private activeObservers = new Map<string, { selector: Selector<T>, count: number }>()
   private observerTimeouts = new Map<string, NodeJS.Timeout>()
   private purgeDelay: number
@@ -43,7 +45,7 @@ export default class AutoFetchCollection<
    * @param options.fetchQueryItems {Function} - A function that fetches items from the server. It takes the selector as an argument and returns a promise that resolves to an object with an `items` property.
    * @param options.purgeDelay {Number} - The delay in milliseconds before purging an item from the cache.
    */
-  constructor(options: AutoFetchCollectionOptions<T, I, U>) {
+  constructor(options: AutoFetchCollectionOptions<T, I, E, U>) {
     let triggerRemoteChange: (() => Promise<void> | void) | undefined
     super({
       ...options,
