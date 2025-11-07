@@ -53,7 +53,7 @@
     "dist"
   ],
   "devDependencies": {
-    "fake-indexeddb": "6.2.4"
+    "fake-indexeddb": "6.2.5"
   },
   "peerDependencies": {
     "@signaldb/core": "1.x"
