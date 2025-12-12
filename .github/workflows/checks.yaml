@@ -24,7 +24,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         timeout-minutes: 5
         continue-on-error: true
         with:
@@ -47,7 +47,7 @@ jobs:
           node-version: latest
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         timeout-minutes: 5
         continue-on-error: false
         with:
@@ -70,7 +70,7 @@ jobs:
           node-version: latest
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         timeout-minutes: 5
         continue-on-error: false
         with:
@@ -96,7 +96,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         timeout-minutes: 5
         continue-on-error: false
         with:
@@ -132,7 +132,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         timeout-minutes: 5
         continue-on-error: false
         with:
@@ -159,7 +159,7 @@ jobs:
           node-version: lts/*
       - name: Load node modules cache
         id: modules-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         timeout-minutes: 5
         continue-on-error: false
         with:
