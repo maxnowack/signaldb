@@ -1,4 +1,4 @@
-import { Client, TablesDB } from 'appwrite'
+import { Client, TablesDB, Realtime } from 'appwrite'
 import { SyncManager } from '@signaldb/sync'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 
@@ -6,6 +6,7 @@ const client = new Client()
 client
   .setEndpoint('https://cloud.appwrite.io/v1')
   .setProject('6567685ea287ba49be81')
+const realtime = new Realtime(client)
 
 const databaseId = '65676881edfe6a3e7e2c'
 const database = new TablesDB(client)
@@ -17,11 +18,11 @@ const syncManager = new SyncManager<Record<string, any>, { id: string }>({
     // eslint-disable-next-line no-console
     console.error(options, error)
   },
-  registerRemoteChange({ name }, onChange) {
+  async registerRemoteChange({ name }, onChange) {
     const handleChange = () => {
       void onChange()
     }
-    client.subscribe(`databases.${databaseId}.collections.${name}.documents`, handleChange)
+    await realtime.subscribe(`databases.${databaseId}.collections.${name}.documents`, handleChange)
   },
   async pull({ name }) {
     const { rows } = await database.listRows({ databaseId, tableId: name })

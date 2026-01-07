@@ -55,9 +55,9 @@
   ],
   "dependencies": {
     "fast-sort": "^3.4.1",
-    "mingo": "^7.0.0"
+    "mingo": "^7.1.1"
   },
   "devDependencies": {
-    "zod": "^4.0.14"
+    "zod": "^4.3.5"
   }
 }
