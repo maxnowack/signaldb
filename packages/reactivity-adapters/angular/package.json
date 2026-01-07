@@ -57,6 +57,6 @@
     "@signaldb/core": "1.x"
   },
   "devDependencies": {
-    "@angular/core": "^20.3.15"
+    "@angular/core": "^21.0.0"
   }
 }
