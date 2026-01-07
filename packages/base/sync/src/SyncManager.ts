@@ -37,7 +37,7 @@ interface Options<
       changes: Changeset<ItemType> & {
         modifiedFields: Map<IdType, string[]>,
       },
-    }
+    },
   ) => Promise<void>,
   registerRemoteChange?: (
     collectionOptions: SyncOptions<CollectionOptions>,
@@ -206,7 +206,7 @@ export default class SyncManager<
    * Gets a collection with it's options by name
    * @deprecated Use getCollectionProperties instead.
    * @param name Name of the collection
-   * @throws Will throw an error if the name wasn't found
+   * @throws {Error} Will throw an error if the name wasn't found
    * @returns Tuple of collection and options
    */
   public getCollection(name: string) {
@@ -217,7 +217,7 @@ export default class SyncManager<
   /**
    * Gets collection options by name
    * @param name Name of the collection
-   * @throws Will throw an error if the name wasn't found
+   * @throws {Error} Will throw an error if the name wasn't found
    * @returns An object of all properties of the collection
    */
   public getCollectionProperties(name: string) {

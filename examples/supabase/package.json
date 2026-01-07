@@ -16,16 +16,16 @@
     "@signaldb/maverickjs": "*",
     "@signaldb/react": "*",
     "@signaldb/sync": "*",
-    "@supabase/supabase-js": "^2.57.2",
-    "@types/node": "24.10.4",
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/node": "25.0.3",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "next": "15.5.9",
+    "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "typescript": "5.9.3"
   },
   "devDependencies": {
-    "sass": "^1.92.1"
+    "sass": "^1.97.2"
   }
 }

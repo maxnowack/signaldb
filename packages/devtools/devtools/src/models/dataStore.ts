@@ -56,77 +56,89 @@ const handlers = {
     queries.patch({ items: newQueries })
   },
   '_debug.getItems': (collection: Collection<any>, callstack: string, selector: Selector<any> | undefined, measuredTime: number) => {
-    const newMeasuredTimes = [...dataStore.getItem('measuredTimes')?.items || []]
-    newMeasuredTimes.push({
-      id: randomId(),
-      collectionName: collection.name,
-      time: Date.now(),
-      measuredTime,
-      selector,
-      callstack,
-    })
+    const newMeasuredTimes = [
+      ...dataStore.getItem('measuredTimes')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        measuredTime,
+        selector,
+        callstack,
+      },
+    ]
     measuredTimes.patch({ items: newMeasuredTimes })
   },
   '_debug.insert': (collection: Collection<any>, callstack: string, item: Record<string, any>) => {
-    const newMutations = [...dataStore.getItem('mutations')?.items || []]
-    newMutations.push({
-      id: randomId(),
-      collectionName: collection.name,
-      time: Date.now(),
-      type: 'insert',
-      item,
-      callstack,
-    })
+    const newMutations = [
+      ...dataStore.getItem('mutations')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        type: 'insert',
+        item,
+        callstack,
+      },
+    ]
     mutations.patch({ items: newMutations })
   },
   '_debug.updateOne': (collection: Collection<any>, callstack: string, selector: Selector<any>, modifier: Modifier<any>) => {
-    const newMutations = [...dataStore.getItem('mutations')?.items || []]
-    newMutations.push({
-      id: randomId(),
-      collectionName: collection.name,
-      time: Date.now(),
-      type: 'updateOne',
-      selector,
-      modifier,
-      callstack,
-    })
+    const newMutations = [
+      ...dataStore.getItem('mutations')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        type: 'updateOne',
+        selector,
+        modifier,
+        callstack,
+      },
+    ]
     mutations.patch({ items: newMutations })
   },
   '_debug.updateMany': (collection: Collection<any>, callstack: string, selector: Selector<any>, modifier: Modifier<any>) => {
-    const newMutations = [...dataStore.getItem('mutations')?.items || []]
-    newMutations.push({
-      id: randomId(),
-      collectionName: collection.name,
-      time: Date.now(),
-      type: 'updateMany',
-      selector,
-      modifier,
-      callstack,
-    })
+    const newMutations = [
+      ...dataStore.getItem('mutations')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        type: 'updateMany',
+        selector,
+        modifier,
+        callstack,
+      },
+    ]
     mutations.patch({ items: newMutations })
   },
   '_debug.removeOne': (collection: Collection<any>, callstack: string, selector: Selector<any>) => {
-    const newMutations = [...dataStore.getItem('mutations')?.items || []]
-    newMutations.push({
-      id: randomId(),
-      collectionName: collection.name,
-      time: Date.now(),
-      type: 'removeOne',
-      selector,
-      callstack,
-    })
+    const newMutations = [
+      ...dataStore.getItem('mutations')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        type: 'removeOne',
+        selector,
+        callstack,
+      },
+    ]
     mutations.patch({ items: newMutations })
   },
   '_debug.removeMany': (collection: Collection<any>, callstack: string, selector: Selector<any>) => {
-    const newMutations = [...dataStore.getItem('mutations')?.items || []]
-    newMutations.push({
-      id: randomId(),
-      collectionName: collection.name,
-      time: Date.now(),
-      type: 'removeMany',
-      selector,
-      callstack,
-    })
+    const newMutations = [
+      ...dataStore.getItem('mutations')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        type: 'removeMany',
+        selector,
+        callstack,
+      },
+    ]
     mutations.patch({ items: newMutations })
   },
 }
