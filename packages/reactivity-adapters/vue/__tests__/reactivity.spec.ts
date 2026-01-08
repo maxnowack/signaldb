@@ -4,7 +4,7 @@ import {
   nextTick,
   effectScope,
 } from 'vue'
-import { Collection } from '../../base/core/src'
+import { Collection } from '@signaldb/core'
 import vueReactivityAdapter from '../src'
 
 describe('@signaldb/vue', () => {

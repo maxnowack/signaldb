@@ -13,12 +13,6 @@ import Observer from '../src/Collection/Observer'
 import createStorageAdapter from '../src/createStorageAdapter'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
 
-const measureTime = (fn: () => void) => {
-  const start = performance.now()
-  fn()
-  return performance.now() - start
-}
-
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
 
@@ -103,7 +97,7 @@ describe('Collection', () => {
       await collection.find<true>({ name: 'John' }, { fields: { id: 1 }, async: true }).fetch()
 
       expect(eventHandler).toHaveBeenCalled()
-      const [, , cursor] = eventHandler.mock.calls[0]
+      const cursor = eventHandler.mock.calls[0][2]
       await expect(cursor.fetch()).resolves.toEqual([{ id: '1' }])
     })
   })

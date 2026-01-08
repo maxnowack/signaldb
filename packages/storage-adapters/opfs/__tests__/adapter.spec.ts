@@ -87,8 +87,8 @@ function makeDirectory(basePath: string) {
       for (const k of Object.keys(fileContents)) {
         if (k === target || k.startsWith(prefix)) delete fileContents[k]
       }
-      for (const d of [...directories]) {
-        if (d === target || d.startsWith(prefix)) directories.delete(d)
+      for (const directory of directories) {
+        if (directory === target || directory.startsWith(prefix)) directories.delete(directory)
       }
       void options
     },
@@ -152,6 +152,11 @@ function generateFolderName() {
   return `sdb-opfs-${Math.floor(Math.random() * 1e17).toString(16)}`
 }
 
+/**
+ * Creates and sets up an adapter scoped to a folder.
+ * @param folderName Optional folder override.
+ * @returns Adapter with associated folder name.
+ */
 async function withAdapter(folderName = generateFolderName()) {
   const adapter = createOPFSAdapter<any, string>(folderName)
   await adapter.setup()
