@@ -366,7 +366,7 @@ export default class Collection<
 
   private transformAll(items: T[], fields?: FieldSpecifier<T>): E[] {
     if (!this.options.transformAll) return items as unknown as E[]
-    return this.options.transformAll(items, fields)
+    return this.options.transformAll(deepClone(items), fields)
   }
 
   private getItem<
