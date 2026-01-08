@@ -145,11 +145,12 @@ export default class SyncManager<
       reactivity,
     })
 
-    this.collectionsReady = Promise.all([
-      this.syncOperations.isReady(),
-      this.changes.isReady(),
-      this.snapshots.isReady(),
-    ]).then(() => { /* noop */ })
+    const readiness = [
+      Promise.resolve(this.syncOperations.isReady()),
+      Promise.resolve(this.changes.isReady()),
+      Promise.resolve(this.snapshots.isReady()),
+    ]
+    this.collectionsReady = Promise.all(readiness).then(() => { /* noop */ })
 
     this.changes.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
@@ -247,8 +248,10 @@ export default class SyncManager<
    * @param options Options for the collection. The object needs at least a `name` property.
    * @param options.name Unique name of the collection
    */
-  public addCollection(
-    collection: Collection<ItemType, IdType, any>,
+  public addCollection<
+    CollectionItem extends ItemType = ItemType,
+  >(
+    collection: Collection<CollectionItem, IdType, any>,
     options: SyncOptions<CollectionOptions>,
   ) {
     if (this.isDisposed) throw new Error('SyncManager is disposed')
@@ -349,7 +352,7 @@ export default class SyncManager<
     collection.on('removed', onRemoved)
 
     this.collections.set(options.name, {
-      collection,
+      collection: collection as unknown as Collection<ItemType, IdType, any>,
       options,
       readyPromise: collection.ready(),
       syncPaused: true, // always start paused as the autostart will start it

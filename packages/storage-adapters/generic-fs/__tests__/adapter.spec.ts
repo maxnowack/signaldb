@@ -195,8 +195,14 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     // Replace bb2 -> status changes, indices updated once replace completes
     await adapter.replace([{ id: 'bb2', status: 'archived', nested: { flag: false } }])
     statusIndex = await adapter.readIndex('status')
-    expect(new Set(statusIndex.get('new') ?? [])).toEqual(new Set(['aa1']))
-    expect(new Set(statusIndex.get('archived') ?? [])).toEqual(new Set(['bb2']))
+    const remainingNew = statusIndex.get('new')
+      ? new Set(statusIndex.get('new'))
+      : new Set<string>()
+    const archived = statusIndex.get('archived')
+      ? new Set(statusIndex.get('archived'))
+      : new Set<string>()
+    expect(remainingNew).toEqual(new Set(['aa1']))
+    expect(archived).toEqual(new Set(['bb2']))
 
     // Replace non-existent -> throws and does not mutate
     await expect(adapter.replace([{ id: 'zz9', status: 'noop' } as Item])).rejects.toThrow('Item with id "zz9" does not exist')

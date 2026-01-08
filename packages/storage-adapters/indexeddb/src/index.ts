@@ -57,7 +57,7 @@ async function openDatabase(
   return databasePromise
 }
 
-type IndexedDBOptions = {
+export type IndexedDBOptions = {
   databaseName?: string,
   version: number,
   schema: Record<string, string[]>,
@@ -132,7 +132,12 @@ export default function prepareIndexedDB(options: IndexedDBOptions) {
     },
   )
 
-  return (storeName: string) => createIndexedDBAdapter(storeName, databasePromise)
+  return function indexedDBAdapter<
+    T extends { id: I } & Record<string, any>,
+    I extends IDBValidKey,
+  >(storeName: string) {
+    return createIndexedDBAdapter<T, I>(storeName, databasePromise)
+  }
 }
 
 /**
