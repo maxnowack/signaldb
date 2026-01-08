@@ -247,8 +247,8 @@ describe('reactivity primitives', () => {
 
   it('should be reactive transformAll after fields updates', async () => {
     const col1 = new Collection({ reactivity: primitiveReactivityAdapter })
-    col1.insert({ id: '1', name: 'John' })
-    col1.insert({ id: '2', name: 'Jane' })
+    await col1.insert({ id: '1', name: 'John' })
+    await col1.insert({ id: '2', name: 'Jane' })
 
     const col2 = new Collection({
       reactivity: primitiveReactivityAdapter,
@@ -270,12 +270,12 @@ describe('reactivity primitives', () => {
       callback(deepClone(items))
     })
 
-    col2.insert({ id: '1', name: 'John', parent: '1' })
+    await col2.insert({ id: '1', name: 'John', parent: '1' })
     await tick()
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
 
-    col1.updateOne({ name: 'John' }, {
+    await col1.updateOne({ name: 'John' }, {
       $set: { name: 'John Jr' },
     })
     await tick()
