@@ -1,7 +1,7 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import type { infer as ZodInfer } from 'zod'
-import type { BaseItem, CollectionOptions } from '../src'
+import type { BaseItem, CollectionOptions, TransformAll } from '../src'
 import { Collection, createMemoryAdapter, createIndex } from '../src'
 import waitForEvent from './helpers/waitForEvent'
 import memoryPersistenceAdapter from './helpers/memoryPersistenceAdapter'
@@ -798,19 +798,21 @@ describe('Collection', () => {
     interface SchemaCollectionOptions<
       T extends z.ZodType<BaseItem<I>>,
       I,
-      U = ZodInfer<T>,
-    > extends CollectionOptions<ZodInfer<T>, I, U> {
+      E extends z.ZodType<BaseItem<I>> = T,
+      U = ZodInfer<E>,
+    > extends CollectionOptions<ZodInfer<T>, I, ZodInfer<E>, U> {
       schema: T,
     }
 
     class SchemaCollection<
       T extends z.ZodType<BaseItem<I>>,
       I = any,
-      U = ZodInfer<T>,
-    > extends Collection<ZodInfer<T>, I, U> {
+      E extends z.ZodType<BaseItem<I>> = T,
+      U = ZodInfer<E>,
+    > extends Collection<ZodInfer<T>, I, ZodInfer<E>, U> {
       private schema: T
 
-      constructor(options: SchemaCollectionOptions<T, I, U>) {
+      constructor(options: SchemaCollectionOptions<T, I, E, U>) {
         super(options)
         this.schema = options.schema
         this.on('validate', (item) => {
@@ -1016,6 +1018,41 @@ describe('Collection', () => {
 
       const col2 = new Collection<{ id: string, name: string }>()
       await expect(col2.isReady()).resolves.toBeUndefined()
+    })
+
+    it('correctly transform entities', async () => {
+      const col1 = new Collection({
+        persistence: memoryPersistenceAdapter(),
+      })
+
+      interface TestItem {
+        id: number,
+        parent?: any,
+      }
+
+      const transformAll: TransformAll<BaseItem, TestItem> = (items, fields) => {
+        if (fields?.parent) {
+          const foreignKeys = [...new Set(items.map(item => item.parent))]
+          const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
+          items.forEach((item) => {
+            item.parent = relatedItems.find(related => related.id === item.parent)
+          })
+        }
+        return items
+      }
+      col1.insert({ id: '1', name: 'John' })
+      col1.insert({ id: '2', name: 'Jane' })
+
+      const col2 = new Collection({ transformAll })
+
+      col2.insert({ id: '1', name: 'John', parent: '1' })
+      col2.insert({ id: '2', name: 'Jane', parent: '2' })
+
+      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
+      expect(col2.find({ id: '2' }, { fields: { id: 1, name: 1 } }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
+
+      col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
+      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
   })
 

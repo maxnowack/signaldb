@@ -44,8 +44,9 @@ export function createReplicationAdapter<T extends { id: I } & Record<string, an
 export type ReplicatedCollectionOptions<
   T extends BaseItem<I>,
   I,
-  U = T,
-> = CollectionOptions<T, I, U> & ReplicationOptions<T, I>
+  E extends BaseItem = T,
+  U = E,
+> = CollectionOptions<T, I, E, U> & ReplicationOptions<T, I>
 
 /**
  * Extends the `Collection` class to support replication with remote sources.
@@ -57,8 +58,9 @@ export type ReplicatedCollectionOptions<
 export default class ReplicatedCollection<
   T extends BaseItem<I> = BaseItem,
   I = any,
-  U = T,
-> extends Collection<T, I, U> {
+  E extends BaseItem = T,
+  U = E,
+> extends Collection<T, I, E, U> {
   private isPullingRemoteSignal: Signal<boolean>
   private isPushingRemoteSignal: Signal<boolean>
 
@@ -76,7 +78,7 @@ export default class ReplicatedCollection<
    * @param options.indices - An array of index providers for optimized querying.
    * @param options.enableDebugMode - A boolean to enable or disable debug mode.
    */
-  constructor(options: ReplicatedCollectionOptions<T, I, U>) {
+  constructor(options: ReplicatedCollectionOptions<T, I, E, U>) {
     const replicationAdapter = createReplicationAdapter({
       registerRemoteChange: options.registerRemoteChange,
       pull: async () => {

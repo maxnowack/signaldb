@@ -16,28 +16,29 @@ import serializeValue from '../utils/serializeValue'
 import type Signal from '../types/Signal'
 import createSignal from '../utils/createSignal'
 import Cursor from './Cursor'
-import type { BaseItem, FindOptions, Transform } from './types'
+import type { BaseItem, FindOptions, Transform, TransformAll, FieldSpecifier } from './types'
 import getIndexInfo from './getIndexInfo'
 import { createExternalIndex } from './createIndex'
 
-export type { BaseItem, Transform, SortSpecifier, FieldSpecifier, FindOptions } from './types'
+export type { BaseItem, Transform, TransformAll, SortSpecifier, FieldSpecifier, FindOptions } from './types'
 export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from './createIndex'
 
-export interface CollectionOptions<T extends BaseItem<I>, I, U = T> {
+export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem = T, U = E> {
   name?: string,
   memory?: MemoryAdapter,
   reactivity?: ReactivityAdapter,
-  transform?: Transform<T, U>,
+  transform?: Transform<E, U>,
   persistence?: PersistenceAdapter<T, I>,
   indices?: IndexProvider<T, I>[],
   enableDebugMode?: boolean,
   fieldTracking?: boolean,
+  transformAll?: TransformAll<T, E>,
   primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 }
 
-interface CollectionEvents<T extends BaseItem, U = T> {
+interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'added': (item: T) => void,
   'changed': (item: T, modifier: Modifier<T>) => void,
   'removed': (item: T) => void,
@@ -58,7 +59,7 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'find': <O extends FindOptions<T>>(
     selector: Selector<T> | undefined,
     options: O | undefined,
-    cursor: Cursor<T, U>,
+    cursor: Cursor<T, E, U>,
   ) => void,
   'findOne': <O extends FindOptions<T>>(
     selector: Selector<T>,
@@ -75,7 +76,7 @@ interface CollectionEvents<T extends BaseItem, U = T> {
   'validate': (item: T) => void,
 
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
-  '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, U>) => void,
+  '_debug.find': <O extends FindOptions<T>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<T, E, U>) => void,
   '_debug.findOne': <O extends FindOptions<T>>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
   '_debug.insert': (callstack: string, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.updateOne': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
@@ -140,8 +141,9 @@ function applyUpdates<T extends BaseItem<I> = BaseItem, I = any>(
 export default class Collection<
   T extends BaseItem<I> = BaseItem,
   I = any,
-  U = T,
-> extends EventEmitter<CollectionEvents<T, U>> {
+  E extends BaseItem = T,
+  U = E,
+> extends EventEmitter<CollectionEvents<T, E, U>> {
   private static collections: Collection<any, any>[] = []
   private static debugMode = false
   private static batchOperationInProgress = false
@@ -197,7 +199,7 @@ export default class Collection<
   }
 
   public readonly name: string
-  private options: CollectionOptions<T, I, U>
+  private options: CollectionOptions<T, I, E, U>
   private persistenceAdapter: PersistenceAdapter<T, I> | null = null
   private isPullingSignal: Signal<boolean>
   private isPushingSignal: Signal<boolean>
@@ -226,8 +228,9 @@ export default class Collection<
    * @param options.indices - An array of index providers for optimized querying.
    * @param options.enableDebugMode - A boolean to enable or disable debug mode.
    * @param options.fieldTracking - A boolean to enable or disable field tracking by default.
+   * @param options.transformAll - A function that will be able to solve the n+1 problem
    */
-  constructor(options?: CollectionOptions<T, I, U>) {
+  constructor(options?: CollectionOptions<T, I, E, U>) {
     super()
     Collection.collections.push(this)
     this.name = options?.name ?? `${this.constructor.name}-${randomId()}`
@@ -582,9 +585,14 @@ export default class Collection<
     return this.memory().map(item => item)
   }
 
-  private transform(item: T): U {
+  private transform(item: E): U {
     if (!this.options.transform) return item as unknown as U
     return this.options.transform(item)
+  }
+
+  private transformAll(items: T[], fields?: FieldSpecifier<E>): E[] {
+    if (!this.options.transformAll) return items as unknown as E[]
+    return this.options.transformAll(items, fields)
   }
 
   private getItems(selector?: Selector<T>) {
@@ -643,11 +651,12 @@ export default class Collection<
   public find<O extends FindOptions<T>>(selector?: Selector<T>, options?: O) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
-    const cursor = new Cursor<T, U>(() => this.getItems(selector), {
+    const cursor = new Cursor<T, E, U>(() => this.getItems(selector), {
       reactive: this.options.reactivity,
       fieldTracking: this.fieldTracking,
       ...options,
       transform: this.transform.bind(this),
+      transformAll: this.transformAll.bind(this),
       bindEvents: (requery) => {
         const handleRequery = () => {
           if (this.batchOperationInProgress) {
