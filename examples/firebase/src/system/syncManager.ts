@@ -1,16 +1,19 @@
 import { SyncManager } from '@signaldb/sync'
-import createIndexedDBAdapter from '@signaldb/indexeddb'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, remove, update, onChildAdded, onChildChanged, onChildRemoved } from 'firebase/database'
+import dataAdapter from './dataAdapter'
 
 initializeApp({
   databaseURL: 'https://signaldb-d7e71-default-rtdb.firebaseio.com',
 })
 const database = getDatabase()
 
-const syncManager = new SyncManager({
+const syncManager = new SyncManager<
+  Record<string, any>,
+  { id: string, text: string, completed: boolean }
+>({
   id: 'firebase-sync-manager',
-  storageAdapter: id => createIndexedDBAdapter(id),
+  dataAdapter,
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)

@@ -87,17 +87,23 @@ describe('Cursor', async () => {
     })
 
     it('should return projected items when fields option is provided', async () => {
-      await expect(collection.find<true>({}, { fields: { id: 1 }, async: true }).fetch()).resolves.toEqual([
+      await expect(
+        collection.find<true>({}, { fields: { id: 1 }, async: true }).fetch(),
+      ).resolves.toEqual([
         { id: 1 },
         { id: 2 },
         { id: 3 },
       ])
-      await expect(collection.find<true>({}, { fields: { name: 1 }, async: true }).fetch()).resolves.toEqual([
+      await expect(
+        collection.find<true>({}, { fields: { name: 1 }, async: true }).fetch(),
+      ).resolves.toEqual([
         { id: 1, name: 'Item 1' },
         { id: 2, name: 'Item 2' },
         { id: 3, name: 'Item 3' },
       ])
-      await expect(collection.find<true>({}, { fields: { name: 0 }, async: true }).fetch()).resolves.toEqual([
+      await expect(
+        collection.find<true>({}, { fields: { name: 0 }, async: true }).fetch(),
+      ).resolves.toEqual([
         { id: 1, test: true },
         { id: 2, test: false },
         { id: 3, test: true },
@@ -105,12 +111,16 @@ describe('Cursor', async () => {
     })
 
     it('should include the id when when fields option is provided', async () => {
-      await expect(collection.find<true>({}, { fields: { name: 1 }, async: true }).fetch()).resolves.toEqual([
+      await expect(
+        collection.find<true>({}, { fields: { name: 1 }, async: true }).fetch(),
+      ).resolves.toEqual([
         { id: 1, name: 'Item 1' },
         { id: 2, name: 'Item 2' },
         { id: 3, name: 'Item 3' },
       ])
-      await expect(collection.find<true>({}, { fields: { id: 0 }, async: true }).fetch()).resolves.toEqual([
+      await expect(
+        collection.find<true>({}, { fields: { id: 0 }, async: true }).fetch(),
+      ).resolves.toEqual([
         { name: 'Item 1', test: true },
         { name: 'Item 2', test: false },
         { name: 'Item 3', test: true },
@@ -155,7 +165,10 @@ describe('Cursor', async () => {
     })
 
     it('should return the count of sorted, limited, and skipped items when options are provided', async () => {
-      const cursor = collection.find<true>({ id: { $gt: 1 } }, { sort: { id: 1 }, limit: 1, skip: 1, async: true })
+      const cursor = collection.find<true>(
+        { id: { $gt: 1 } },
+        { sort: { id: 1 }, limit: 1, skip: 1, async: true },
+      )
       const result = await cursor.count()
       expect(result).toBe(1)
     })

@@ -27,20 +27,20 @@ class Store {
   }
 
   private makeRequest(init: () => void, resultGetter?: () => any) {
-    const listeners: Record<string, ((e: any) => void)[]> = {}
-    const req: any = {
-      addEventListener(type: string, cb: (e: any) => void) {
-        (listeners[type] ||= []).push(cb)
+    const listeners: Record<string, ((event: any) => void)[]> = {}
+    const request: any = {
+      addEventListener(type: string, callback: (event: any) => void) {
+        (listeners[type] ||= []).push(callback)
       },
     }
     if (resultGetter) {
-      Object.defineProperty(req, 'result', { get: resultGetter })
+      Object.defineProperty(request, 'result', { get: resultGetter })
     }
     queueMicrotask(() => {
       init()
-      for (const cb of listeners.success || []) cb({})
+      for (const callback of listeners.success || []) callback({})
     })
-    return req
+    return request
   }
 
   getAll() {
@@ -52,49 +52,57 @@ class Store {
   }
 
   add(item: Item) {
-    return this.makeRequest(() => { this.data.set(item.id, item) })
+    return this.makeRequest(() => {
+      this.data.set(item.id, item)
+    })
   }
 
   put(item: Item) {
-    return this.makeRequest(() => { this.data.set(item.id, item) })
+    return this.makeRequest(() => {
+      this.data.set(item.id, item)
+    })
   }
 
   delete(id: number) {
-    return this.makeRequest(() => { this.data.delete(id) })
+    return this.makeRequest(() => {
+      this.data.delete(id)
+    })
   }
 
   clear() {
-    return this.makeRequest(() => { this.data.clear() })
+    return this.makeRequest(() => {
+      this.data.clear()
+    })
   }
 
   index(field: string) {
     const entries = [...this.data.values()].map(v => ({ key: (v as any)[field], value: v }))
     return {
       openCursor: () => {
-        const listeners: Record<string, ((e: any) => void)[]> = {}
+        const listeners: Record<string, ((event: any) => void)[]> = {}
         let current: any = null
-        const req: any = {
-          addEventListener(type: string, cb: (e: any) => void) {
-            (listeners[type] ||= []).push(cb)
+        const request: any = {
+          addEventListener(type: string, callback: (event: any) => void) {
+            (listeners[type] ||= []).push(callback)
           },
         }
-        Object.defineProperty(req, 'result', { get: () => current })
+        Object.defineProperty(request, 'result', { get: () => current })
         let i = 0
         const emitSuccess = () => {
           if (i < entries.length) {
-            const cur = entries[i++]
+            const entry = entries[i++]
             current = {
-              key: cur.key,
-              value: cur.value,
+              key: entry.key,
+              value: entry.value,
               continue: () => queueMicrotask(emitSuccess),
             }
           } else {
             current = null
           }
-          for (const cb of listeners.success || []) cb({})
+          for (const callback of listeners.success || []) callback({})
         }
         queueMicrotask(emitSuccess)
-        return req
+        return request
       },
     }
   }
@@ -135,9 +143,9 @@ class FakeDB {
 class OpenRequest {
   result!: FakeDB
   transaction!: { objectStore: (name: string) => Store }
-  private listeners: Record<string, ((e: any) => void)[]> = {}
+  private listeners: Record<string, ((event: any) => void)[]> = {}
 
-  addEventListener(type: string, callback: (e: any) => void) {
+  addEventListener(type: string, callback: (event: any) => void) {
     (this.listeners[type] ||= []).push(callback)
   }
 
@@ -146,24 +154,24 @@ class OpenRequest {
   }
 }
 
-let db: FakeDB
+let database: FakeDB
 let openSpy: any
 
 beforeEach(() => {
-  db = new FakeDB()
-  const openFn = (_name: string, _version?: number) => {
-    const req = new OpenRequest()
+  database = new FakeDB()
+  const openFunction = (_name: string, _version?: number) => {
+    const request = new OpenRequest()
     queueMicrotask(() => {
-      req.result = db
-      req.transaction = {
-        objectStore: (name: string) => db.getStore(name),
+      request.result = database
+      request.transaction = {
+        objectStore: (name: string) => database.getStore(name),
       }
-      req.dispatch('upgradeneeded', { oldVersion: 0, newVersion: 1 })
-      req.dispatch('success', {})
+      request.dispatch('upgradeneeded', { oldVersion: 0, newVersion: 1 })
+      request.dispatch('success', {})
     })
-    return req as any
+    return request as any
   }
-  openSpy = openFn
+  openSpy = openFunction
   ;(globalThis as any).indexedDB = { open: openSpy }
 })
 
@@ -195,13 +203,13 @@ describe('indexeddb adapter', () => {
   })
 
   it('removes indexes that disappear from schema on upgrade', async () => {
-    const dbName = 'signaldb-upgrade'
+    const databaseName = 'signaldb-upgrade'
     const coll = 'items'
 
     // Initial schema with index
     {
       const prepare = prepareIndexedDB({
-        databaseName: dbName,
+        databaseName,
         version: 1,
         schema: { [coll]: ['name'] },
       })
@@ -216,7 +224,7 @@ describe('indexeddb adapter', () => {
     // Upgrade without index should drop prior index files
     {
       const prepare = prepareIndexedDB({
-        databaseName: dbName,
+        databaseName,
         version: 2,
         schema: { [coll]: [] },
       })
