@@ -7,11 +7,21 @@ interface TestItem {
   name: string,
 }
 
+type WorkerHostMessage = {
+  id: string,
+  workerId: string,
+  type: string,
+  data: unknown,
+  error: unknown,
+}
+
 class MockWorkerContext {
-  responses: any[] = []
-  postMessage = vi.fn((payload: any) => {
+  responses: WorkerHostMessage[] = []
+
+  postMessage = vi.fn((payload: WorkerHostMessage) => {
     this.responses.push(payload)
   })
+
   private handler: ((event: MessageEvent) => void) | null = null
 
   addEventListener(type: 'message', listener: (event: MessageEvent) => any) {
@@ -19,7 +29,7 @@ class MockWorkerContext {
     this.handler = listener
   }
 
-  emit(data: any) {
+  emit(data: Record<string, unknown>) {
     this.handler?.({ data } as MessageEvent)
   }
 }
@@ -54,25 +64,44 @@ describe('WorkerDataAdapterHost', () => {
     })
   })
 
+  /**
+   * Sends a request to the host and awaits execution.
+   * @param method Method name to execute.
+   * @param args Arguments passed to the host method.
+   * @returns Generated request id.
+   */
   async function sendRequest(method: string, args: any[]) {
     const id = Math.random().toString(36).slice(2)
     await (host as any).handleMessage('host', id, method, args)
     return id
   }
 
+  /**
+   * Waits until a response for given id is posted and returns it.
+   * @param id Request id.
+   * @returns Response payload.
+   */
   async function waitForResponse(id: string) {
     await vi.waitFor(
       () => context.postMessage.mock.calls.some(([payload]) => payload.id === id),
       { timeout: 5000 },
     )
-    const call = context.postMessage.mock.calls.find(([payload]) => payload.id === id)
+    const call = context.postMessage.mock.calls.find(
+      ([payload]: [WorkerHostMessage]) => payload.id === id,
+    )
     const payload = call?.[0]
     if (!payload) throw new Error(`No response recorded for ${id}`)
     return payload
   }
 
   it('responds ready on construction', () => {
-    expect(context.postMessage).toHaveBeenCalledWith({ id: 'ready', workerId: 'host', type: 'ready', data: null, error: null })
+    expect(context.postMessage).toHaveBeenCalledWith({
+      id: 'ready',
+      workerId: 'host',
+      type: 'ready',
+      data: null,
+      error: null,
+    })
   })
 
   it('registers a collection and acknowledges isReady', async () => {
@@ -94,7 +123,10 @@ describe('WorkerDataAdapterHost', () => {
     const registerId = await sendRequest('registerCollection', ['items', []])
     await waitForResponse(registerId)
     context.postMessage.mockClear()
-    const id = await sendRequest('insert', ['items', [[{ id: '1', name: 'Alpha' }], [{ id: '2', name: 'Beta' }]]])
+    const id = await sendRequest('insert', [
+      'items',
+      [[{ id: '1', name: 'Alpha' }], [{ id: '2', name: 'Beta' }]],
+    ])
     const response = await waitForResponse(id)
     expect(response).toBeDefined()
     expect(response?.type).toBe('response')
@@ -117,7 +149,10 @@ describe('WorkerDataAdapterHost', () => {
   })
 
   it('returns error payloads when unknown method is invoked', async () => {
-    const id = await sendRequest('unknownMethod' as any, [])
-    expect(context.postMessage).toHaveBeenCalledWith(expect.objectContaining({ id, error: expect.any(Error) }))
+    const id = await sendRequest('unknownMethod', [])
+    expect(context.postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      id,
+      error: expect.any(Error),
+    }))
   })
 })

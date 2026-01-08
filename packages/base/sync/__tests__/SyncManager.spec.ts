@@ -122,6 +122,11 @@ export default function memoryStorageAdapter<
   })
 }
 
+/**
+ * Forces find/findOne on the provided collection to operate asynchronously.
+ * @param collection Collection to wrap.
+ * @returns Collection with async find helpers.
+ */
 function withAsyncQueries<T extends BaseItem>(collection: Collection<T, any, any>) {
   const originalFind = collection.find.bind(collection) as any
   collection.find = ((selector?: any, options?: any) => originalFind(
@@ -142,7 +147,11 @@ const originalCollectionFind = Collection.prototype.find
 const originalCollectionFindOne = Collection.prototype.findOne
 
 beforeAll(() => {
-  Collection.prototype.find = function(selector?: any, options?: any) {
+  Collection.prototype.find = function (
+    this: Collection<any, any, any>,
+    selector?: any,
+    options?: any,
+  ) {
     return originalCollectionFind.call(
       this,
       selector,
@@ -150,7 +159,11 @@ beforeAll(() => {
     )
   } as typeof Collection.prototype.find
 
-  Collection.prototype.findOne = function(selector: any, options?: any) {
+  Collection.prototype.findOne = function (
+    this: Collection<any, any, any>,
+    selector: any,
+    options?: any,
+  ) {
     return originalCollectionFindOne.call(
       this,
       selector,
@@ -456,7 +469,7 @@ it('should handle sync errors and update sync operation status', async () => {
   await expect(syncManager.sync('test')).rejects.toThrow()
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Sync failed'))
-  const syncOperation = await syncManager.isSyncing('test')
+  const syncOperation = syncManager.isSyncing('test')
   expect(syncOperation).toBe(false)
 })
 
@@ -506,7 +519,7 @@ it('should handle pull errors and update sync operation status', async () => {
 
   await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
 
-  const syncOperation = await syncManager.isSyncing('test')
+  const syncOperation = syncManager.isSyncing('test')
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
   expect(syncOperation).toBe(false)
@@ -538,7 +551,7 @@ it('should handle pull errors and update sync operation status after first sync'
 
   await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
 
-  const syncOperation = await syncManager.isSyncing('test')
+  const syncOperation = syncManager.isSyncing('test')
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
   expect(syncOperation).toBe(false)
@@ -569,7 +582,7 @@ it('should handle push errors and update sync operation status', async () => {
 
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Push failed'))
-  const syncOperation = await syncManager.isSyncing('test')
+  const syncOperation = syncManager.isSyncing('test')
   expect(syncOperation).toBe(false)
 })
 
@@ -1153,14 +1166,15 @@ it('should start sync after internal collections are ready', async () => {
   })
 
   let persistenceInitialized = false
-  void Promise.all([
+  const readiness: Promise<unknown>[] = [
     // @ts-expect-error - private property
-    syncManager.syncOperations.isReady(),
+    Promise.resolve(syncManager.syncOperations.isReady()),
     // @ts-expect-error - private property
-    syncManager.changes.isReady(),
+    Promise.resolve(syncManager.changes.isReady()),
     // @ts-expect-error - private property
-    syncManager.snapshots.isReady(),
-  ]).then(() => {
+    Promise.resolve(syncManager.snapshots.isReady()),
+  ]
+  void Promise.all(readiness).then(() => {
     persistenceInitialized = true
   })
 
@@ -1343,14 +1357,16 @@ it('should not trigger sync if collection is paused', async () => {
   const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
     .mockResolvedValue()
 
-  type SyncManagerOptions = ConstructorParameters<typeof SyncManager>[0]
-  type RegisterRemoteChangeParameters = Parameters<NonNullable<SyncManagerOptions['registerRemoteChange']>>
-  type CollectionOptions = RegisterRemoteChangeParameters[0]
-  type RemoteChangeHandler = RegisterRemoteChangeParameters[1]
+  type CollectionOptions = { name: string } & Record<string, any>
+  type RemoteChangeHandler = (data?: LoadResponse<TestItem>) => Promise<void>
+  type RegisterRemoteCleanup = (() => void | Promise<void>) | void
 
   let onRemoteChangeHandler: RemoteChangeHandler | undefined
   const cleanupFunction = vi.fn()
-  const registerRemoteChange = vi.fn((
+  const registerRemoteChange = vi.fn<(
+    options: CollectionOptions,
+    onRemoteChange: RemoteChangeHandler,
+  ) => RegisterRemoteCleanup>((
     options: CollectionOptions,
     onRemoteChange: RemoteChangeHandler,
   ) => {
