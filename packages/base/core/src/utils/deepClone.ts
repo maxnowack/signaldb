@@ -4,7 +4,7 @@
  * @template T - The type of the value to clone.
  * @param value - The value to deep clone.
  * @returns A deep copy of the provided value.
- * @throws An error if the value is a function, as cloning functions is not supported.
+ * @throws {Error} An error if the value is a function, as cloning functions is not supported.
  */
 export function clone<T>(value: T): T {
   // Functions

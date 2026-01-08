@@ -10,7 +10,7 @@ interface ReplicationOptions<T extends { id: I } & Record<string, any>, I> {
   pull: () => Promise<LoadResponse<T>>,
   push?(changes: Changeset<T>, items: T[]): Promise<void>,
   registerRemoteChange?: (
-    onChange: (data?: LoadResponse<T>) => void | Promise<void>
+    onChange: (data?: LoadResponse<T>) => void | Promise<void>,
   ) => Promise<void>,
 }
 
