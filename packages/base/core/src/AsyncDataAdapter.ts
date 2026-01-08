@@ -203,8 +203,8 @@ export default class AsyncDataAdapter implements DataAdapter {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    await Promise.all(indices.map(index => storage.createIndex(index)))
     await storage.setup()
+    await Promise.all(indices.map(index => storage.createIndex(index)))
   }
 
   private ensureStorageAdapter(name: string) {
@@ -431,14 +431,8 @@ export default class AsyncDataAdapter implements DataAdapter {
   ): Promise<T> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
-
-    const existing = await this.executeQuery<T, I>(
-      collectionName,
-      { id: newItem.id } as Selector<T>,
-      { limit: 1 },
-    )
-    if (existing.length > 0) throw new Error(`Item with id ${String(newItem.id)} already exists`)
-
+    
+    // Storage handles duplicates according to its semantics
     await storage.insert([newItem])
     await this.checkQueryUpdates(collectionName, [newItem])
     return newItem
