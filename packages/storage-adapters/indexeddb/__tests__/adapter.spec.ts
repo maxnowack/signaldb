@@ -30,6 +30,8 @@ type AdapterSetupOptions = {
 /**
  * Helper that prepares and eagerly sets up an IndexedDB adapter using the
  * current factory-based API.
+ * @param options Adapter setup overrides.
+ * @returns Adapter plus metadata for the created store.
  */
 async function withAdapter(options: AdapterSetupOptions = {}) {
   const collectionName = options.collectionName ?? collName()

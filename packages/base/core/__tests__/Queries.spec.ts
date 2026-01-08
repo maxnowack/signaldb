@@ -1,36 +1,86 @@
 import { describe, it, expect } from 'vitest'
 import { Collection } from '../src'
+import type { BaseItem, FindOptions } from '../src/Collection'
+import type Selector from '../src/types/Selector'
+
+type TestDocument = BaseItem & Record<string, any>
+
+/**
+ * Creates strongly typed helper functions for the provided collection.
+ * @param collection Collection used for querying.
+ * @returns An object with preconfigured helper functions.
+ */
+function createQueryHelpers(collection: Collection<TestDocument>) {
+  const findCursor = (
+    selector: Selector<TestDocument> = {},
+    options?: FindOptions<TestDocument, true>,
+  ) => {
+    const normalizedOptions: FindOptions<TestDocument, true> = options
+      ? { ...options, async: true }
+      : { async: true }
+    return collection.find<true>(selector, normalizedOptions)
+  }
+
+  const findCount = (
+    selector?: Selector<TestDocument>,
+    options?: FindOptions<TestDocument, true>,
+  ) => findCursor(selector, options).count()
+
+  const fetchLength = async (
+    selector?: Selector<TestDocument>,
+    options?: FindOptions<TestDocument, true>,
+  ) => {
+    const cursor = findCursor(selector, options)
+    const results = await cursor.fetch()
+    return results.length
+  }
+
+  const findOneAsync = (
+    selector: Selector<TestDocument>,
+    options?: FindOptions<TestDocument, true>,
+  ) => {
+    const normalizedOptions: FindOptions<TestDocument, true> = options
+      ? { ...options, async: true }
+      : { async: true }
+    return collection.findOne<true>(selector, normalizedOptions)
+  }
+
+  return {
+    findCursor,
+    findCount,
+    fetchLength,
+    findOneAsync,
+  }
+}
 
 describe('Queries', () => {
   // thanks to https://github.com/meteor/meteor/blob/devel/packages/minimongo/minimongo_tests_client.js
   it('should pass all the basics', async () => {
-    const c = new Collection()
-    const findCursor = (selector: any = {}, options: any = {}) => c.find<true>(selector, { ...options, async: true } as any)
-    const findCount = async (selector: any = {}, options: any = {}) => findCursor(selector, options).count()
-    const fetchLength = async (selector: any = {}, options: any = {}) => (await findCursor(selector, options).fetch()).length
-    const findOneAsync = (selector: any, options: any = {}) => c.findOne<true>(selector, { ...options, async: true } as any)
+    const collection = new Collection<TestDocument>()
+    const { findCount, fetchLength, findOneAsync } = createQueryHelpers(collection)
     let count
 
-    const fluffyKittenId = await c.insert({ type: 'kitten', name: 'fluffy' })
-    await c.insert({ type: 'kitten', name: 'snookums' })
-    await c.insert({ type: 'cryptographer', name: 'alice' })
-    await c.insert({ type: 'cryptographer', name: 'bob' })
-    await c.insert({ type: 'cryptographer', name: 'cara' })
+    const fluffyKittenId = await collection.insert({ type: 'kitten', name: 'fluffy' })
+    await collection.insert({ type: 'kitten', name: 'snookums' })
+    await collection.insert({ type: 'cryptographer', name: 'alice' })
+    await collection.insert({ type: 'cryptographer', name: 'bob' })
+    await collection.insert({ type: 'cryptographer', name: 'cara' })
     expect(await findCount()).toBe(5)
     expect(await findCount({ type: 'kitten' })).toBe(2)
     expect(await findCount({ type: 'cryptographer' })).toBe(3)
     expect(await fetchLength({ type: 'kitten' })).toBe(2)
     expect(await fetchLength({ type: 'cryptographer' })).toBe(3)
-    expect((await findOneAsync({ type: 'kitten', name: 'fluffy' }))?.id).toBe(fluffyKittenId)
+    const fluffyKitten = await findOneAsync({ type: 'kitten', name: 'fluffy' })
+    expect(fluffyKitten?.id).toBe(fluffyKittenId)
 
-    await c.removeMany({ name: 'cara' })
+    await collection.removeMany({ name: 'cara' })
     expect(await findCount()).toBe(4)
     expect(await findCount({ type: 'kitten' })).toBe(2)
     expect(await findCount({ type: 'cryptographer' })).toBe(2)
     expect(await fetchLength({ type: 'kitten' })).toBe(2)
     expect(await fetchLength({ type: 'cryptographer' })).toBe(2)
 
-    count = await c.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
+    count = await collection.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
     expect(count).toBe(1)
     expect(await findCount()).toBe(4)
     expect(await findCount({ type: 'kitten' })).toBe(1)
@@ -40,29 +90,29 @@ describe('Queries', () => {
 
     /* eslint-disable @typescript-eslint/ban-ts-comment */
     // @ts-ignore
-    await expect(() => c.removeMany(null)).rejects.toThrow()
+    await expect(() => collection.removeMany(null)).rejects.toThrow()
     // @ts-ignore
-    await expect(() => c.removeMany(false)).rejects.toThrow()
+    await expect(() => collection.removeMany(false)).rejects.toThrow()
     // @ts-ignore
-    await expect(() => c.removeMany(undefined)).rejects.toThrow()
+    await expect(() => collection.removeMany(undefined)).rejects.toThrow()
     /* eslint-enable @typescript-eslint/ban-ts-comment */
     expect(await findCount()).toBe(4)
 
-    await c.removeOne({ id: null })
-    await c.removeOne({ id: false })
-    await c.removeOne({ id: undefined })
+    await collection.removeOne({ id: null })
+    await collection.removeOne({ id: false })
+    await collection.removeOne({ id: undefined })
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    await expect(() => c.removeMany()).rejects.toThrow()
+    await expect(() => collection.removeMany()).rejects.toThrow()
     expect(await findCount()).toBe(4)
 
-    count = await c.removeMany({})
+    count = await collection.removeMany({})
     expect(count).toBe(4)
     expect(await findCount()).toBe(0)
 
-    await c.insert({ id: 1, name: 'strawberry', tags: ['fruit', 'red', 'squishy'] })
-    await c.insert({ id: 2, name: 'apple', tags: ['fruit', 'red', 'hard'] })
-    await c.insert({ id: 3, name: 'rose', tags: ['flower', 'red', 'squishy'] })
+    await collection.insert({ id: 1, name: 'strawberry', tags: ['fruit', 'red', 'squishy'] })
+    await collection.insert({ id: 2, name: 'apple', tags: ['fruit', 'red', 'hard'] })
+    await collection.insert({ id: 3, name: 'rose', tags: ['flower', 'red', 'squishy'] })
 
     expect(await findCount({ tags: 'flower' })).toBe(1)
     expect(await findCount({ tags: 'fruit' })).toBe(2)
@@ -71,9 +121,12 @@ describe('Queries', () => {
     expect(await fetchLength({ tags: 'fruit' })).toBe(2)
     expect(await fetchLength({ tags: 'red' })).toBe(3)
 
-    expect((await findOneAsync({ id: 1 }))?.name).toBe('strawberry')
-    expect((await findOneAsync({ id: 2 }))?.name).toBe('apple')
-    expect((await findOneAsync({ id: 3 }))?.name).toBe('rose')
+    const strawberry = await findOneAsync({ id: 1 })
+    const apple = await findOneAsync({ id: 2 })
+    const rose = await findOneAsync({ id: 3 })
+    expect(strawberry?.name).toBe('strawberry')
+    expect(apple?.name).toBe('apple')
+    expect(rose?.name).toBe('rose')
     await expect(findOneAsync({ id: 4 })).resolves.toBeUndefined()
     await expect(findOneAsync({ id: 'abc' })).resolves.toBeUndefined()
     await expect(findOneAsync({ id: undefined })).resolves.toBeUndefined()
@@ -108,41 +161,39 @@ describe('Queries', () => {
     expect(await findCount({ tags: 'fruit' }, { sort: { id: -1 }, limit: 1 })).toBe(1)
     expect(await findCount({ tags: 'fruit' }, { sort: { id: -1 }, skip: 1, limit: 1 })).toBe(1)
 
-    await c.insert({ foo: { bar: 'baz' } })
+    await collection.insert({ foo: { bar: 'baz' } })
     expect(await findCount({ foo: { bam: 'baz' } })).toBe(0)
     expect(await findCount({ foo: { bar: 'baz' } })).toBe(1)
   })
 
   it('should pass all the basics with indices', async () => {
-    const c = new Collection({
+    const collection = new Collection<TestDocument>({
       indices: ['type'],
     })
-    const findCursor = (selector: any = {}, options: any = {}) => c.find<true>(selector, { ...options, async: true } as any)
-    const findCount = async (selector: any = {}, options: any = {}) => findCursor(selector, options).count()
-    const fetchLength = async (selector: any = {}, options: any = {}) => (await findCursor(selector, options).fetch()).length
-    const findOneAsync = (selector: any, options: any = {}) => c.findOne<true>(selector, { ...options, async: true } as any)
+    const { findCount, fetchLength, findOneAsync } = createQueryHelpers(collection)
     let count
 
-    const fluffyKittenId = await c.insert({ type: 'kitten', name: 'fluffy' })
-    await c.insert({ type: 'kitten', name: 'snookums' })
-    await c.insert({ type: 'cryptographer', name: 'alice' })
-    await c.insert({ type: 'cryptographer', name: 'bob' })
-    await c.insert({ type: 'cryptographer', name: 'cara' })
+    const fluffyKittenId = await collection.insert({ type: 'kitten', name: 'fluffy' })
+    await collection.insert({ type: 'kitten', name: 'snookums' })
+    await collection.insert({ type: 'cryptographer', name: 'alice' })
+    await collection.insert({ type: 'cryptographer', name: 'bob' })
+    await collection.insert({ type: 'cryptographer', name: 'cara' })
     expect(await findCount()).toBe(5)
     expect(await findCount({ type: 'kitten' })).toBe(2)
     expect(await findCount({ type: 'cryptographer' })).toBe(3)
     expect(await fetchLength({ type: 'kitten' })).toBe(2)
     expect(await fetchLength({ type: 'cryptographer' })).toBe(3)
-    expect((await findOneAsync({ type: 'kitten', name: 'fluffy' }))?.id).toBe(fluffyKittenId)
+    const fluffyKitten = await findOneAsync({ type: 'kitten', name: 'fluffy' })
+    expect(fluffyKitten?.id).toBe(fluffyKittenId)
 
-    await c.removeMany({ name: 'cara' })
+    await collection.removeMany({ name: 'cara' })
     expect(await findCount()).toBe(4)
     expect(await findCount({ type: 'kitten' })).toBe(2)
     expect(await findCount({ type: 'cryptographer' })).toBe(2)
     expect(await fetchLength({ type: 'kitten' })).toBe(2)
     expect(await fetchLength({ type: 'cryptographer' })).toBe(2)
 
-    count = await c.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
+    count = await collection.updateMany({ name: 'snookums' }, { $set: { type: 'cryptographer' } })
     expect(count).toBe(1)
     expect(await findCount()).toBe(4)
     expect(await findCount({ type: 'kitten' })).toBe(1)
@@ -152,29 +203,29 @@ describe('Queries', () => {
 
     /* eslint-disable @typescript-eslint/ban-ts-comment */
     // @ts-ignore
-    await expect(() => c.removeMany(null)).rejects.toThrow()
+    await expect(() => collection.removeMany(null)).rejects.toThrow()
     // @ts-ignore
-    await expect(() => c.removeMany(false)).rejects.toThrow()
+    await expect(() => collection.removeMany(false)).rejects.toThrow()
     // @ts-ignore
-    await expect(() => c.removeMany(undefined)).rejects.toThrow()
+    await expect(() => collection.removeMany(undefined)).rejects.toThrow()
     /* eslint-enable @typescript-eslint/ban-ts-comment */
     expect(await findCount()).toBe(4)
 
-    await c.removeOne({ id: null })
-    await c.removeOne({ id: false })
-    await c.removeOne({ id: undefined })
+    await collection.removeOne({ id: null })
+    await collection.removeOne({ id: false })
+    await collection.removeOne({ id: undefined })
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    await expect(() => c.removeMany()).rejects.toThrow()
+    await expect(() => collection.removeMany()).rejects.toThrow()
     expect(await findCount()).toBe(4)
 
-    count = await c.removeMany({})
+    count = await collection.removeMany({})
     expect(count).toBe(4)
     expect(await findCount()).toBe(0)
 
-    await c.insert({ id: 1, name: 'strawberry', tags: ['fruit', 'red', 'squishy'] })
-    await c.insert({ id: 2, name: 'apple', tags: ['fruit', 'red', 'hard'] })
-    await c.insert({ id: 3, name: 'rose', tags: ['flower', 'red', 'squishy'] })
+    await collection.insert({ id: 1, name: 'strawberry', tags: ['fruit', 'red', 'squishy'] })
+    await collection.insert({ id: 2, name: 'apple', tags: ['fruit', 'red', 'hard'] })
+    await collection.insert({ id: 3, name: 'rose', tags: ['flower', 'red', 'squishy'] })
 
     expect(await findCount({ tags: 'flower' })).toBe(1)
     expect(await findCount({ tags: 'fruit' })).toBe(2)
@@ -183,9 +234,12 @@ describe('Queries', () => {
     expect(await fetchLength({ tags: 'fruit' })).toBe(2)
     expect(await fetchLength({ tags: 'red' })).toBe(3)
 
-    expect((await findOneAsync({ id: 1 }))?.name).toBe('strawberry')
-    expect((await findOneAsync({ id: 2 }))?.name).toBe('apple')
-    expect((await findOneAsync({ id: 3 }))?.name).toBe('rose')
+    const indexedStrawberry = await findOneAsync({ id: 1 })
+    const indexedApple = await findOneAsync({ id: 2 })
+    const indexedRose = await findOneAsync({ id: 3 })
+    expect(indexedStrawberry?.name).toBe('strawberry')
+    expect(indexedApple?.name).toBe('apple')
+    expect(indexedRose?.name).toBe('rose')
     await expect(findOneAsync({ id: 4 })).resolves.toBeUndefined()
     await expect(findOneAsync({ id: 'abc' })).resolves.toBeUndefined()
     await expect(findOneAsync({ id: undefined })).resolves.toBeUndefined()
@@ -220,7 +274,7 @@ describe('Queries', () => {
     expect(await findCount({ tags: 'fruit' }, { sort: { id: -1 }, limit: 1 })).toBe(1)
     expect(await findCount({ tags: 'fruit' }, { sort: { id: -1 }, skip: 1, limit: 1 })).toBe(1)
 
-    await c.insert({ foo: { bar: 'baz' } })
+    await collection.insert({ foo: { bar: 'baz' } })
     expect(await findCount({ foo: { bam: 'baz' } })).toBe(0)
     expect(await findCount({ foo: { bar: 'baz' } })).toBe(1)
   })
@@ -255,52 +309,52 @@ describe('Queries', () => {
   })
 
   it('should handle edge cases', async () => {
-    const c = new Collection()
-    const findCursor = (selector: any = {}, options: any = {}) => c.find<true>(selector, { ...options, async: true } as any)
+    const collection = new Collection<TestDocument>()
+    const { findCount } = createQueryHelpers(collection)
 
     // Test insert, find, updateMany, removeMany, removeOne with empty data
-    expect(await c.insert({})).toBeDefined()
-    expect(await findCursor({}).count()).toBe(1)
-    expect(await c.updateMany({}, { $set: { name: 'empty' } })).toBe(1)
-    expect(await c.removeMany({})).toBe(1)
-    expect(await c.removeOne({})).toBe(0)
+    expect(await collection.insert({})).toBeDefined()
+    expect(await findCount()).toBe(1)
+    expect(await collection.updateMany({}, { $set: { name: 'empty' } })).toBe(1)
+    expect(await collection.removeMany({})).toBe(1)
+    expect(await collection.removeOne({})).toBe(0)
 
     // Test insert with same id
-    await c.insert({ id: 1, name: 'strawberry' })
-    await expect(() => c.insert({ id: 1, name: 'apple' })).rejects.toThrow()
+    await collection.insert({ id: 1, name: 'strawberry' })
+    await expect(() => collection.insert({ id: 1, name: 'apple' })).rejects.toThrow()
 
     // Test updateMany with no match
-    expect(await c.updateMany({ id: 100 }, { $set: { name: 'new name' } })).toBe(0)
+    expect(await collection.updateMany({ id: 100 }, { $set: { name: 'new name' } })).toBe(0)
 
     // Test removeMany with no match
-    expect(await c.removeMany({ id: 100 })).toBe(0)
+    expect(await collection.removeMany({ id: 100 })).toBe(0)
 
     // Test removeOne with no match
-    expect(await c.removeOne({ id: 100 })).toBe(0)
+    expect(await collection.removeOne({ id: 100 })).toBe(0)
   })
 
   it('should handle queries for empty values correctly', async () => {
-    const c = new Collection({ indices: ['name'] })
-    await c.insert({ id: 1, name: 'John' })
-    await c.insert({ id: 2, name: null })
-    await c.insert({ id: 3, name: undefined })
-    await c.insert({ id: 4, name: '' })
-    await c.insert({ id: 5, name: 0 })
-    await c.insert({ id: 6, name: false })
-    await c.insert({ id: 7, name: [] })
-    await c.insert({ id: 8, name: {} })
-    await c.insert({ id: 9 })
+    const collection = new Collection<TestDocument>({ indices: ['name'] })
+    await collection.insert({ id: 1, name: 'John' })
+    await collection.insert({ id: 2, name: null })
+    await collection.insert({ id: 3, name: undefined })
+    await collection.insert({ id: 4, name: '' })
+    await collection.insert({ id: 5, name: 0 })
+    await collection.insert({ id: 6, name: false })
+    await collection.insert({ id: 7, name: [] })
+    await collection.insert({ id: 8, name: {} })
+    await collection.insert({ id: 9 })
 
-    const findCursor = (selector: any = {}, options: any = {}) => c.find<true>(selector, { ...options, async: true } as any)
+    const { findCount } = createQueryHelpers(collection)
 
-    expect(await findCursor({ name: null }).count()).toBe(3)
-    expect(await findCursor({ name: undefined }).count()).toBe(3)
-    expect(await findCursor({ name: '' }).count()).toBe(1)
-    expect(await findCursor({ name: 0 }).count()).toBe(1)
-    expect(await findCursor({ name: false }).count()).toBe(1)
-    expect(await findCursor({ name: [] }).count()).toBe(1)
-    expect(await findCursor({ name: {} }).count()).toBe(1)
-    expect(await findCursor({ name: { $exists: false } }).count()).toBe(2)
-    expect(await findCursor({ name: { $exists: true } }).count()).toBe(7)
+    expect(await findCount({ name: null })).toBe(3)
+    expect(await findCount({ name: undefined })).toBe(3)
+    expect(await findCount({ name: '' })).toBe(1)
+    expect(await findCount({ name: 0 })).toBe(1)
+    expect(await findCount({ name: false })).toBe(1)
+    expect(await findCount({ name: [] })).toBe(1)
+    expect(await findCount({ name: {} })).toBe(1)
+    expect(await findCount({ name: { $exists: false } })).toBe(2)
+    expect(await findCount({ name: { $exists: true } })).toBe(7)
   })
 })
