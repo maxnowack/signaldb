@@ -1,14 +1,15 @@
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import WorkerDataAdapter from '../src/WorkerDataAdapter'
 import type Collection from '../src/Collection'
-import type { Selector } from '../src'
 
 interface TestItem {
   id: string,
   name: string,
 }
 
-const waitForBatchedMessage = () => new Promise(resolve => setTimeout(resolve, 0))
+const waitForBatchedMessage = () => new Promise<void>((resolve) => {
+  setTimeout(resolve, 0)
+})
 
 class MockWorker implements Worker {
   onmessage: ((this: Worker, event: MessageEvent) => any) | null = null
@@ -18,9 +19,12 @@ class MockWorker implements Worker {
   dispatchEvent = vi.fn(() => false)
 
   private messageHandlers: ((event: MessageEvent) => void)[] = []
+  private listenerMap = new Map<EventListenerOrEventListenerObject, (event: MessageEvent) => void>()
   private messages: { id: string, workerId: string, method: string, args: unknown[] }[] = []
 
-  postMessage = vi.fn((payload: { id: string, workerId: string, method: string, args: unknown[] }) => {
+  postMessage = vi.fn((
+    payload: { id: string, workerId: string, method: string, args: unknown[] },
+  ) => {
     this.messages.push(payload)
     if (['registerCollection', 'isReady', 'unregisterCollection', 'registerQuery', 'unregisterQuery'].includes(payload.method)) {
       queueMicrotask(() => {
@@ -31,22 +35,27 @@ class MockWorker implements Worker {
 
   addEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
     if (type !== 'message') return
-    const fn = typeof listener === 'function'
-      ? listener
-      : (event: Event) => (listener as EventListenerObject).handleEvent(event)
-    this.messageHandlers.push(fn as (event: MessageEvent) => void)
+    const handler: (event: MessageEvent) => void = typeof listener === 'function'
+      ? (event) => {
+        listener(event)
+      }
+      : (event) => {
+        listener.handleEvent(event)
+      }
+    this.listenerMap.set(listener, handler)
+    this.messageHandlers.push(handler)
   }) as unknown as Worker['addEventListener']
 
   removeEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
     if (type !== 'message') return
-    const fn = typeof listener === 'function'
-      ? listener
-      : (event: Event) => (listener as EventListenerObject).handleEvent(event)
-    const index = this.messageHandlers.indexOf(fn as (event: MessageEvent) => void)
+    const handler = this.listenerMap.get(listener)
+    if (!handler) return
+    const index = this.messageHandlers.indexOf(handler)
     if (index !== -1) this.messageHandlers.splice(index, 1)
+    this.listenerMap.delete(listener)
   }) as unknown as Worker['removeEventListener']
 
-  emit(data: any) {
+  emit(data: Record<string, unknown>) {
     const event = new MessageEvent('message', { data })
     this.messageHandlers.forEach(handler => handler(event))
   }
@@ -55,7 +64,7 @@ class MockWorker implements Worker {
     this.emit({ type: 'ready', workerId })
   }
 
-  respondToLast(data: any, error: any = null) {
+  respondToLast(data: unknown, error: unknown = null) {
     const lastCall = this.messages.at(-1)
     if (!lastCall) throw new Error('No postMessage calls recorded')
     this.emit({
@@ -67,8 +76,8 @@ class MockWorker implements Worker {
     })
   }
 
-  respondTo(method: string, data: any, error: any = null) {
-    const message = [...this.messages].reverse().find(m => m.method === method)
+  respondTo(method: string, data: unknown, error: unknown = null) {
+    const message = this.messages.toReversed().find(m => m.method === method)
     if (!message) throw new Error(`No postMessage recorded for method ${method}`)
     this.emit({
       type: 'response',
@@ -120,9 +129,8 @@ describe('WorkerDataAdapter', () => {
     const insertPromise = backend.insert({ id: '1', name: 'Alice' })
     const batchPromise = backend.insert({ id: '2', name: 'Bob' })
 
-    let insertMessage: { args: any[] } | undefined
     await waitForBatchedMessage()
-    insertMessage = mockWorker.sentMessages.find(message => message.method === 'insert')
+    const insertMessage = mockWorker.sentMessages.find(message => message.method === 'insert')
 
     expect(insertMessage).toBeDefined()
     if (!insertMessage) throw new Error('insert message not recorded')

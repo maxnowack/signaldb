@@ -1,6 +1,6 @@
 import { Client, TablesDB, Realtime } from 'appwrite'
 import { SyncManager } from '@signaldb/sync'
-import createIndexedDBAdapter from '@signaldb/indexeddb'
+import dataAdapter from './dataAdapter'
 
 const client = new Client()
 client
@@ -11,9 +11,12 @@ const realtime = new Realtime(client)
 const databaseId = '65676881edfe6a3e7e2c'
 const database = new TablesDB(client)
 
-const syncManager = new SyncManager<Record<string, any>, { id: string }>({
+const syncManager = new SyncManager<
+  Record<string, any>,
+  { id: string, text: string, completed: boolean }
+>({
   id: 'appwrite-sync-manager',
-  storageAdapter: id => createIndexedDBAdapter(id),
+  dataAdapter,
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)
@@ -26,19 +29,19 @@ const syncManager = new SyncManager<Record<string, any>, { id: string }>({
   },
   async pull({ name }) {
     const { rows } = await database.listRows({ databaseId, tableId: name })
-    return {
-      items: rows.map(({
-        $collectionId,
-        $createdAt,
-        $databaseId,
-        $id,
-        $permissions,
-        $updatedAt,
-        ...item
-      }) => ({
-        id: $id,
-        ...item,
-      } as unknown as { id: string })) }
+    const items = rows.map(({
+      $collectionId,
+      $createdAt,
+      $databaseId,
+      $id,
+      $permissions,
+      $updatedAt,
+      ...item
+    }) => ({
+      id: $id,
+      ...item,
+    })) as unknown as { id: string, text: string, completed: boolean }[]
+    return { items }
   },
   async push({ name }, { changes }) {
     await Promise.all([

@@ -1,15 +1,8 @@
-import { Collection, DefaultDataAdapter } from '@signaldb/core'
-import createIndexedDBAdapter from '@signaldb/indexeddb'
+import { Collection } from '@signaldb/core'
 import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 import syncManager from '../system/syncManager'
+import dataAdapter from '../system/dataAdapter'
 
-const dataAdapter = new DefaultDataAdapter({
-  storage: createIndexedDBAdapter,
-  onError: (collectionName, error) => {
-    // eslint-disable-next-line no-console
-    console.error(`DataAdapter Error (${collectionName}):`, error)
-  },
-})
 const Todos = new Collection<{ id: string, text: string, completed: boolean }>('todos-firebase', dataAdapter, {
   reactivity: maverickjsReactivityAdapter,
 })
