@@ -114,8 +114,8 @@ export default class WorkerDataAdapter implements DataAdapter {
     this.queries[collectionName] = collectionQueries
   }
 
-  public createCollectionBackend<T extends BaseItem<I>, I = any, U = T>(
-    collection: Collection<T, I, U>,
+  public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
     indices: string[] = [],
   ): CollectionBackend<T, I> {
     this.queries[collection.name] = new Map()
