@@ -1,5 +1,5 @@
 /* @vitest-environment happy-dom */
-import { it, expect, vi, beforeAll, afterAll } from 'vitest'
+import { it, expect, vi } from 'vitest'
 import { Collection, createStorageAdapter, DefaultDataAdapter } from '@signaldb/core'
 import type { BaseItem } from '@signaldb/core'
 import { SyncManager } from '../src'
@@ -142,40 +142,6 @@ function withAsyncQueries<T extends BaseItem>(collection: Collection<T, any, any
 
   return collection
 }
-
-const originalCollectionFind = Collection.prototype.find
-const originalCollectionFindOne = Collection.prototype.findOne
-
-beforeAll(() => {
-  Collection.prototype.find = function (
-    this: Collection<any, any, any>,
-    selector?: any,
-    options?: any,
-  ) {
-    return originalCollectionFind.call(
-      this,
-      selector,
-      { ...options, async: true },
-    )
-  } as typeof Collection.prototype.find
-
-  Collection.prototype.findOne = function (
-    this: Collection<any, any, any>,
-    selector: any,
-    options?: any,
-  ) {
-    return originalCollectionFindOne.call(
-      this,
-      selector,
-      { ...options, async: true },
-    )
-  } as typeof Collection.prototype.findOne
-})
-
-afterAll(() => {
-  Collection.prototype.find = originalCollectionFind
-  Collection.prototype.findOne = originalCollectionFindOne
-})
 
 interface TestItem extends BaseItem<string> {
   id: string,
