@@ -1,5 +1,5 @@
 import { SyncManager } from '@signaldb/sync'
-import createIndexedDBAdapter from '@signaldb/indexeddb'
+import dataAdapter from './dataAdapter'
 
 /**
  * Fetches data from the authenticated API.
@@ -10,7 +10,10 @@ import createIndexedDBAdapter from '@signaldb/indexeddb'
 function authenticatedFetch(path: string, options?: RequestInit) {
   const databaseId = '65676881edfe6a3e7e2c'
   const projectId = '6567685ea287ba49be81'
-  const apiKey = '93af1c77389b021789b5038400d94c1622d6ccb7e83663d1a7d7e153654c8ecc5c7a6dfde7b0588fcf5b2d31417dd26dcd2bdfae2e899cc9de426951047ba32630206ac0c0d082e247dd4089beebce3c5502db47f96e21825691da98bcf890eab6a14c7bc5f721f81617c267cb3489d5f8a457ca39354ee07ee7f1d27c6402ed'
+  const apiKey = '93af1c77389b021789b5038400d94c1622d6ccb7e83663d1a7d7e153654c8ecc'
+    + '5c7a6dfde7b0588fcf5b2d31417dd26dcd2bdfae2e899cc9de426951047ba3263020'
+    + '6ac0c0d082e247dd4089beebce3c5502db47f96e21825691da98bcf890eab6a14c7b'
+    + 'c5f721f81617c267cb3489d5f8a457ca39354ee07ee7f1d27c6402ed'
   return fetch(`https://cloud.appwrite.io/v1/databases/${databaseId}${path}`, {
     ...options,
     headers: {
@@ -21,9 +24,12 @@ function authenticatedFetch(path: string, options?: RequestInit) {
   })
 }
 
-const syncManager = new SyncManager({
+const syncManager = new SyncManager<
+  Record<string, any>,
+  { id: string, text: string, completed: boolean }
+>({
   id: 'http-sync-manager',
-  storageAdapter: id => createIndexedDBAdapter(id),
+  dataAdapter,
   onError: (options, error) => {
     // eslint-disable-next-line no-console
     console.error(options, error)
