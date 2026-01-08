@@ -243,8 +243,8 @@ export default class DefaultDataAdapter implements DataAdapter {
     })
   }
 
-  private executeAndCacheQuery<T extends BaseItem<I>, I = any, U = T>(
-    collection: Collection<T, I, U>,
+  private executeAndCacheQuery<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
     selector: Selector<T>,
     options?: QueryOptions<T>,
   ) {
