@@ -89,7 +89,7 @@ describe('AutoFetchDataAdapter', () => {
     await col.ready()
 
     // Keep a persistent observer so fetch can complete before we unregister
-    const cursor = col.find({}, { async: true })
+    const cursor = col.find<true>({}, { async: true })
     await cursor.forEach(() => { /* keep observer active */ })
     // let auto-fetch ingest and query state cycle to complete
     await new Promise(resolve => setTimeout(resolve, 0))
