@@ -913,6 +913,24 @@ describe('Collection', () => {
       // Cleanup
       emitSpy.mockRestore()
     })
+
+    it('emits _debug.getItems when debug mode forbids the cached path', async () => {
+      const col = new Collection<{ id: string, name: string }>({ enableDebugMode: true })
+      const debugSpy = vi.fn()
+      col.on('_debug.getItems', debugSpy)
+
+      await col.insert({ id: '1', name: 'debug' })
+      const results = col.find({ name: 'debug' }).fetch()
+      expect(results).toEqual([{ id: '1', name: 'debug' }])
+
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        { name: 'debug' },
+        expect.any(Number),
+      )
+
+      col.off('_debug.getItems', debugSpy)
+    })
   })
 
   describe('Schema Validation', () => {
