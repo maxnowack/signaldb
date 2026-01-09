@@ -126,7 +126,7 @@ export default class WorkerDataAdapter implements DataAdapter {
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection: Collection<T, I, E, U>,
-    indices: string[] = [],
+    indices: string[],
   ): CollectionBackend<T, I> {
     this.queries[collection.name] = new Map()
     void this.exec('registerCollection', collection.name, indices)
@@ -225,10 +225,12 @@ export default class WorkerDataAdapter implements DataAdapter {
         })
 
         return () => {
+          const currentCallbacks = this.queries[collection.name]?.get(
+            queryId(selector, options),
+          )?.stateChangeCallbacks
+          if (!currentCallbacks) throw new Error('State change callbacks are not defined!')
           this.updateQuery(collection.name, { selector, options }, {
-            stateChangeCallbacks: (this.queries[collection.name]?.get(
-              queryId(selector, options),
-            )?.stateChangeCallbacks || [])
+            stateChangeCallbacks: currentCallbacks
               .filter(existingCallback => existingCallback !== callback),
           })
         }
