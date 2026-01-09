@@ -12,6 +12,7 @@ vi.mock('@signaldb/core', () => {
 })
 
 import createGenericFSAdapter from '../src'
+import { addDeltaForChange, accumulateUpsertDelta, type IndexDelta } from '../src/deltaHelpers'
 
 // A tiny in-memory driver matching the Driver interface used by the adapter
 class MemDriver<T extends { id: I }, I> {
@@ -215,6 +216,41 @@ describe('createGenericFSAdapter (generic-fs)', () => {
 
     // Remove non-existent -> error
     await expect(adapter.remove([{ id: 'zz9' } as Item])).rejects.toThrow('Item with id "zz9" does not exist')
+  })
+
+  it('tracks index deltas when values change to and from null', async () => {
+    const item: Item = { id: 'aa1', status: 'new', category: 'A' }
+    await adapter.insert([item])
+
+    await adapter.createIndex('category')
+
+    await adapter.replace([{ id: 'aa1', status: 'new', category: null as any }])
+    let index = await adapter.readIndex('category')
+    expect(index.get('A')).toBeUndefined()
+
+    await adapter.replace([{ id: 'aa1', status: 'new', category: 'B' }])
+    index = await adapter.readIndex('category')
+    expect(index.get('B')).toEqual(new Set(['aa1']))
+  })
+
+  it('covers delta helpers for value transitions without touching production code', () => {
+    const deltas = new Map<string, IndexDelta<string>>()
+    addDeltaForChange(deltas, 'status', 'active', null, 'aa1')
+    expect(deltas.get('status')?.removes.get('active')?.has('aa1')).toBe(true)
+
+    addDeltaForChange(deltas, 'status', null, 'done', 'aa1')
+    expect(deltas.get('status')?.adds.get('done')?.has('aa1')).toBe(true)
+
+    const accumulateDeltas = new Map<string, IndexDelta<string>>()
+    const indicesToMaintain = ['status']
+    accumulateUpsertDelta(
+      accumulateDeltas,
+      indicesToMaintain,
+      { id: 'aa1', status: 'active' },
+      { id: 'aa1', status: null },
+    )
+
+    expect(accumulateDeltas.get('status')?.removes.get('active')?.has('aa1')).toBe(true)
   })
 
   it('removeAll removes the whole folder recursively only if it exists; teardown is a no-op', async () => {
