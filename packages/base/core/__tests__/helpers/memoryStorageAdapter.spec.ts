@@ -255,4 +255,17 @@ describe('memoryStorageAdapter', () => {
     expect(allItems.find(item => item.id === '1')).toEqual({ id: '1', name: 'overridden' })
     expect(allItems.find(item => item.id === '2')).toEqual({ id: '2', name: 'new' })
   })
+
+  it('should reuse index buckets when rebuilding with duplicate field values', async () => {
+    const adapter = memoryStorageAdapter<TestItem>([
+      { id: '1', name: 'shared' },
+      { id: '2', name: 'shared' },
+    ])
+
+    await adapter.createIndex('name')
+
+    await adapter.insert([{ id: '3', name: 'shared' }])
+    const index = await adapter.readIndex('name')
+    expect(index.get('shared')).toEqual(new Set(['1', '2', '3']))
+  })
 })
