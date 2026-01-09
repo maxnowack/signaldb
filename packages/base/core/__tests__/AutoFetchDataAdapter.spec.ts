@@ -544,6 +544,32 @@ describe('AutoFetchDataAdapter', () => {
     expect(result3).toEqual([])
   })
 
+  it('removeOne returns [] when selector matches nothing', async () => {
+    const storage = memoryStorageAdapter<Post>([])
+    const adapter = new AutoFetchDataAdapter({
+      storage: () => storage,
+      fetchQueryItems: async () => [],
+    })
+    const col = new Collection<Post>('rmOne', adapter)
+    const backend = (col as any).backend
+    await backend.isReady()
+    const removed = await backend.removeOne({ id: 'none' })
+    expect(removed).toEqual([])
+  })
+
+  it('removeMany returns [] when selector matches nothing', async () => {
+    const storage = memoryStorageAdapter<Post>([])
+    const adapter = new AutoFetchDataAdapter({
+      storage: () => storage,
+      fetchQueryItems: async () => [],
+    })
+    const col = new Collection<Post>('rmMany', adapter)
+    const backend = (col as any).backend
+    await backend.isReady()
+    const removed = await backend.removeMany({ type: 'missing' })
+    expect(removed).toEqual([])
+  })
+
   it('upsertMerged throws when storage missing', async () => {
     const adapter = new AutoFetchDataAdapter({
       storage: () => memoryStorageAdapter<Post>([]),
