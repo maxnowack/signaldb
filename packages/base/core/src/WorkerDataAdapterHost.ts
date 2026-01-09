@@ -270,6 +270,9 @@ export default class WorkerDataAdapterHost<
     selector: Selector<T>,
     options?: QueryOptions<T>,
   ): Promise<T[]> {
+    // null selector means no matches
+    if (selector === null) return []
+
     const items = await this.queryItems(collectionName, selector || {})
     const { sort, skip, limit, fields } = options || {}
     const sorted = sort ? sortItems(items, sort) : items
@@ -405,7 +408,7 @@ export default class WorkerDataAdapterHost<
       { id: { $in: input.map(i => i[0].id) } } as Selector<any>,
     )
     const result = input.map(([item]) => {
-      if (item.id == null) throw new Error('Item must have an id')
+      if (item.id == null) return new Error('Item must have an id')
       if (existingItems.some(existing => existing.id === item.id)) {
         return new Error(`Item with id ${item.id as string} already exists`)
       }

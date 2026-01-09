@@ -71,4 +71,18 @@ describe('queryId', () => {
     const query2 = { a: new Date('2024-01-01') }
     expect(queryId(query1)).not.toBe(queryId(query2))
   })
+
+  it('should treat primitive options as non-empty', () => {
+    const query = { a: 1 }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const primitiveId = queryId(query, 'limit10' as any)
+    expect(primitiveId).not.toBe(queryId(query))
+  })
+
+  it('should treat array options as non-empty', () => {
+    const query = { a: 1 }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const arrayId = queryId(query, ['limit', 10] as any)
+    expect(arrayId).not.toBe(queryId(query))
+  })
 })
