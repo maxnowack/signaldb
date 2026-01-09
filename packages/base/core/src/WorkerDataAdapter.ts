@@ -1,7 +1,7 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
 import type DataAdapter from './DataAdapter'
-import type { CollectionBackend, QueryOptions } from './DataAdapter'
+import type { CollectionBackend, QueryOptions, StateChangeCallback } from './DataAdapter'
 import type Selector from './types/Selector'
 import queryId from './utils/queryId'
 import randomId from './utils/randomId'
@@ -23,6 +23,7 @@ export default class WorkerDataAdapter implements DataAdapter {
     state: 'active' | 'complete' | 'error',
     error: Error | null,
     items: BaseItem[],
+    stateChangeCallbacks: StateChangeCallback[],
   }>> = {}
 
   constructor(private worker: Worker, private options: WorkerDataAdapterOptions) {
@@ -97,7 +98,12 @@ export default class WorkerDataAdapter implements DataAdapter {
   private updateQuery(
     collectionName: string,
     query: { selector: Selector<any>, options?: QueryOptions<any> },
-    update: { state?: 'active' | 'complete' | 'error', error?: Error | null, items?: BaseItem[] },
+    update: {
+      state?: 'active' | 'complete' | 'error',
+      error?: Error | null,
+      items?: BaseItem[],
+      stateChangeCallbacks?: StateChangeCallback[],
+    },
   ) {
     const id = queryId(query.selector, query.options)
     const collectionQueries = this.queries[collectionName]
@@ -107,6 +113,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       state: 'active' as const,
       error: null,
       items: [],
+      stateChangeCallbacks: [],
       ...existing,
       ...update,
     }
@@ -149,24 +156,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       registerQuery: (selector, options) => {
         this.updateQuery(collection.name, { selector, options }, { state: 'active', error: null, items: [] })
         void this.exec('registerQuery', collection.name, selector, options)
-      },
-      unregisterQuery: (selector, options) => {
-        this.queries[collection.name]?.delete(queryId(selector, options))
-        void this.exec('unregisterQuery', collection.name, selector, options)
-      },
-      getQueryState: (selector, options) => {
-        const query = this.queries[collection.name]?.get(queryId(selector, options))
-        return query?.state || 'active'
-      },
-      getQueryError: (selector, options) => {
-        const query = this.queries[collection.name]?.get(queryId(selector, options))
-        return query?.error || null
-      },
-      getQueryResult: (selector, options) => {
-        const query = this.queries[collection.name]?.get(queryId(selector, options))
-        return query?.items as T[] || []
-      },
-      onQueryStateChange: (selector, options, callback) => {
+
         const handler = (event: MessageEvent) => {
           const { type, data, workerId, error } = event.data
           if (type !== 'queryUpdate') return
@@ -192,11 +182,49 @@ export default class WorkerDataAdapter implements DataAdapter {
             selector: responseSelector,
             options: responseOptions,
           }, { state, error, items })
-          callback(state)
+
+          const query = this.queries[collection.name]?.get(queryId(selector, options))
+          if (!query) return
+          query.stateChangeCallbacks.forEach(callback => callback(state))
         }
         this.worker.addEventListener('message', handler)
         return () => {
           this.worker.removeEventListener('message', handler)
+        }
+      },
+      unregisterQuery: (selector, options) => {
+        this.queries[collection.name]?.delete(queryId(selector, options))
+        void this.exec('unregisterQuery', collection.name, selector, options)
+      },
+      getQueryState: (selector, options) => {
+        const query = this.queries[collection.name]?.get(queryId(selector, options))
+        return query?.state || 'active'
+      },
+      getQueryError: (selector, options) => {
+        const query = this.queries[collection.name]?.get(queryId(selector, options))
+        return query?.error || null
+      },
+      getQueryResult: (selector, options) => {
+        const query = this.queries[collection.name]?.get(queryId(selector, options))
+        return query?.items as T[] || []
+      },
+      onQueryStateChange: (selector, options, callback) => {
+        this.updateQuery(collection.name, { selector, options }, {
+          stateChangeCallbacks: [
+            ...this.queries[collection.name]?.get(
+              queryId(selector, options),
+            )?.stateChangeCallbacks || [],
+            callback,
+          ],
+        })
+
+        return () => {
+          this.updateQuery(collection.name, { selector, options }, {
+            stateChangeCallbacks: (this.queries[collection.name]?.get(
+              queryId(selector, options),
+            )?.stateChangeCallbacks || [])
+              .filter(existingCallback => existingCallback !== callback),
+          })
         }
       },
       executeQuery: (selector, options) => this.exec('executeQuery', collection.name, selector, options),
