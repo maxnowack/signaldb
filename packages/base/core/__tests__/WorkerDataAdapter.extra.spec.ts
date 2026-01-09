@@ -105,7 +105,6 @@ describe('WorkerDataAdapter (extra scenarios)', () => {
     const selector = { name: 'Alice' }
 
     backend.registerQuery(selector, {})
-    const unsubscribe = backend.onQueryStateChange(selector, {}, () => {})
     worker.emit({
       type: 'queryUpdate',
       workerId: 'extra-adapter',
@@ -118,7 +117,6 @@ describe('WorkerDataAdapter (extra scenarios)', () => {
     })
 
     expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alice' }])
-    unsubscribe()
   })
 
   it('propagates worker errors to operation promises', async () => {
