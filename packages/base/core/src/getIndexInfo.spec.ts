@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import getIndexInfo from './getIndexInfo'
 import createIndex from './createIndex'
+import type { BaseItem } from './Collection/types'
+import type { FlatSelector } from './types/Selector'
 
 describe('getIndexInfo', () => {
   it('should not match when selector is an empty object', () => {
@@ -436,5 +438,31 @@ describe('getIndexInfo', () => {
         ],
       },
     })
+  })
+
+  it('supports async providers with nested logic gates', async () => {
+    const idIndex = createIndex('id')
+    idIndex.rebuild([{ id: '0' }, { id: '1' }])
+    const asyncProvider = async (selector: FlatSelector<BaseItem>) => idIndex.query(selector)
+    const info = await getIndexInfo([asyncProvider], {
+      $and: [
+        { id: '0' },
+        { id: '1' },
+      ],
+      $or: [
+        { id: '0' },
+        { id: 'missing' },
+      ],
+    })
+    expect(info.matched).toBe(true)
+    expect(info.ids).toEqual(['0'])
+  })
+
+  it('throws when mixing sync and async providers', async () => {
+    const idIndex = createIndex('id')
+    idIndex.rebuild([{ id: '0' }])
+    const asyncProvider = async (selector: FlatSelector<BaseItem>) => idIndex.query(selector)
+    expect(() => getIndexInfo([asyncProvider, idIndex.query], { id: '0' }))
+      .toThrow('Mixing async and sync index providers is not supported')
   })
 })

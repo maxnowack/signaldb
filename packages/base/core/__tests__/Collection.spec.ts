@@ -866,6 +866,37 @@ describe('Collection', () => {
       emitSpy.mockRestore()
     })
 
+    it('should emit debug events for updateMany, replaceOne and removeMany', async () => {
+      const col = new Collection<any>({ enableDebugMode: true })
+      const emitSpy = vi.spyOn(col, 'emit')
+      await col.insert({ id: '1', name: 'debug' })
+      await col.insert({ id: '2', name: 'debug' })
+
+      await col.updateMany({ name: 'debug' }, { $set: { flag: true } })
+      expect(emitSpy).toHaveBeenCalledWith(
+        '_debug.updateMany',
+        expect.any(String),
+        { name: 'debug' },
+        { $set: { flag: true } },
+      )
+
+      await col.replaceOne({ id: '1' }, { name: 'replaced' })
+      expect(emitSpy).toHaveBeenCalledWith(
+        '_debug.replaceOne',
+        expect.any(String),
+        { id: '1' },
+        { name: 'replaced' },
+      )
+
+      await col.removeMany({ name: 'replaced' })
+      expect(emitSpy).toHaveBeenCalledWith(
+        '_debug.removeMany',
+        expect.any(String),
+        { name: 'replaced' },
+      )
+      emitSpy.mockRestore()
+    })
+
     it('should not emit debug events when debug mode is disabled', async () => {
       // Create a new collection instance with debug mode disabled
       const col = new Collection<any>({ enableDebugMode: false })

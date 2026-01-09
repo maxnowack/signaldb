@@ -139,6 +139,33 @@ describe('DefaultDataAdapter', () => {
     spy.mockRestore()
   })
 
+  it('invokes onError option when persistence fails during setup', async () => {
+    const persistence = createStorageAdapter<Item, string>({
+      setup: async () => {},
+      teardown: async () => {},
+      readAll: async () => {
+        throw new Error('fail')
+      },
+      readIds: async () => [],
+      createIndex: async () => {},
+      dropIndex: async () => {},
+      readIndex: async () => new Map(),
+      insert: async () => {},
+      replace: async () => {},
+      remove: async () => {},
+      removeAll: async () => {},
+    })
+    const onError = vi.fn()
+    const adapter = new DefaultDataAdapter({
+      storage: () => persistence,
+      onError,
+    })
+    const c = new Collection<Item, string, Item>('on-error', adapter, { persistence })
+    const backend = adapter.createCollectionBackend<Item, string, Item>(c, [])
+    await backend.isReady().catch(() => {})
+    expect(onError).toHaveBeenCalledWith('on-error', expect.any(Error))
+  })
+
   it('covers getIndexInfo(null) path and queryItems matchItems branches', () => {
     const adapter = new DefaultDataAdapter()
     const col = new Collection<Item, string, Item>('qi', adapter)
@@ -184,6 +211,21 @@ describe('DefaultDataAdapter', () => {
     await backend.insert({ id: 'q1', x: 2 })
     // No explicit assertion on query updates; path should complete without throwing
     expect(true).toBe(true)
+  })
+
+  it('returns cached results for active queries', async () => {
+    const adapter = new DefaultDataAdapter()
+    const col = new Collection<Item, string, Item>('cached', adapter)
+    const backend = adapter.createCollectionBackend<Item, string, Item>(col, [])
+    await backend.insert({ id: 'c1', x: 1 })
+    const selector = { id: 'c1' } as Selector<Item>
+    backend.registerQuery(selector, {})
+    const executeSpy = vi.spyOn(adapter as any, 'executeQuery')
+    const result = backend.getQueryResult(selector, {})
+    expect(result).toEqual([{ id: 'c1', x: 1 }])
+    expect(executeSpy).not.toHaveBeenCalled()
+    executeSpy.mockRestore()
+    backend.unregisterQuery(selector, {})
   })
 
   it('insert throws when items map is missing for collection', async () => {

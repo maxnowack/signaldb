@@ -24,6 +24,7 @@ export default class WorkerDataAdapter implements DataAdapter {
     error: Error | null,
     items: BaseItem[],
     stateChangeCallbacks: StateChangeCallback[],
+    eventHandler?: (event: MessageEvent) => void,
   }>> = {}
 
   constructor(private worker: Worker, private options: WorkerDataAdapterOptions) {
@@ -103,6 +104,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       error?: Error | null,
       items?: BaseItem[],
       stateChangeCallbacks?: StateChangeCallback[],
+      eventHandler?: (event: MessageEvent) => void,
     },
   ) {
     const id = queryId(query.selector, query.options)
@@ -114,6 +116,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       error: null,
       items: [],
       stateChangeCallbacks: [],
+      eventHandler: existing?.eventHandler,
       ...existing,
       ...update,
     }
@@ -188,12 +191,15 @@ export default class WorkerDataAdapter implements DataAdapter {
           query.stateChangeCallbacks.forEach(callback => callback(state))
         }
         this.worker.addEventListener('message', handler)
-        return () => {
-          this.worker.removeEventListener('message', handler)
-        }
+        this.updateQuery(collection.name, { selector, options }, { eventHandler: handler })
       },
       unregisterQuery: (selector, options) => {
-        this.queries[collection.name]?.delete(queryId(selector, options))
+        const qid = queryId(selector, options)
+        const query = this.queries[collection.name]?.get(qid)
+        if (query?.eventHandler) {
+          this.worker.removeEventListener('message', query.eventHandler)
+        }
+        this.queries[collection.name]?.delete(qid)
         void this.exec('unregisterQuery', collection.name, selector, options)
       },
       getQueryState: (selector, options) => {

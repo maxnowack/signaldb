@@ -3,9 +3,14 @@ import deepClone, { clone } from './deepClone'
 
 describe('deepClone', () => {
   it('should use the polyfill when structuredClone is not available', () => {
+    const originalStructuredClone = globalThis.structuredClone
+    globalThis.structuredClone = undefined as unknown as typeof globalThis.structuredClone
     const object = { a: 1, b: { c: 2 } }
-    expect(deepClone(object)).not.toBe(object)
-    expect(deepClone(object)).toEqual({ a: 1, b: { c: 2 } })
+    const cloned = deepClone(object)
+    expect(cloned).not.toBe(object)
+    expect(cloned).toEqual({ a: 1, b: { c: 2 } })
+    // restore
+    globalThis.structuredClone = originalStructuredClone
   })
 })
 
@@ -53,6 +58,15 @@ describe('clone', () => {
     expect(clonedObject).toEqual(object)
     expect(clonedObject).not.toBe(object)
     expect(clonedObject.b).not.toBe(object.b)
+  })
+
+  it('should ignore inherited properties', () => {
+    const proto = { inherited: true }
+    const object = Object.create(proto)
+    object.own = true
+    const cloned = clone(object)
+    expect(cloned).toEqual({ own: true })
+    expect(cloned).not.toHaveProperty('inherited')
   })
 
   it('should clone complex objects correctly', () => {

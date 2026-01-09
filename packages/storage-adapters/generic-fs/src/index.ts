@@ -1,4 +1,9 @@
 import { createStorageAdapter, get } from '@signaldb/core'
+import {
+  accumulateUpsertDelta,
+  accumulateRemoveDelta,
+  type IndexDelta,
+} from './deltaHelpers'
 
 /**
  * A driver interface that abstracts low-level filesystem operations.
@@ -180,76 +185,7 @@ export default function createGenericFSAdapter<
   // Track which field paths should be kept up-to-date incrementally.
   const indicesToMaintain: string[] = []
 
-  type IndexDelta = {
-    adds: Map<string, Set<I>>,
-    removes: Map<string, Set<I>>,
-  }
-
-  const addToDelta = (
-    deltas: Map<string, IndexDelta>,
-    fieldPath: string,
-    changeKind: 'add' | 'remove',
-    rawKey: string,
-    identifier: I,
-  ) => {
-    if (!deltas.has(fieldPath)) deltas.set(fieldPath, { adds: new Map(), removes: new Map() })
-    const delta = deltas.get(fieldPath)
-    if (!delta) return
-    const target = changeKind === 'add' ? delta.adds : delta.removes
-    if (!target.has(rawKey)) target.set(rawKey, new Set<I>())
-    target.get(rawKey)?.add(identifier)
-  }
-
-  const addDeltaForChange = (
-    deltas: Map<string, IndexDelta>,
-    fieldPath: string,
-    oldValue: any,
-    newValue: any,
-    identifier: I,
-  ) => {
-    const oldKey = oldValue == null ? undefined : String(oldValue)
-    const newKey = newValue == null ? undefined : String(newValue)
-    if (oldKey === newKey) return
-    if (oldKey != null) addToDelta(deltas, fieldPath, 'remove', oldKey, identifier)
-    if (newKey != null) addToDelta(deltas, fieldPath, 'add', newKey, identifier)
-  }
-
-  const accumulateUpsertDelta = (
-    deltas: Map<string, IndexDelta>,
-    existingItem: T | undefined,
-    nextItem: T,
-  ) => {
-    if (existingItem) {
-      for (const fieldPath of indicesToMaintain) {
-        addDeltaForChange(
-          deltas,
-          fieldPath,
-          get(existingItem, fieldPath),
-          get(nextItem, fieldPath),
-          nextItem.id,
-        )
-      }
-    } else {
-      for (const fieldPath of indicesToMaintain) {
-        const value = get(nextItem, fieldPath)
-        if (value == null) continue
-        addToDelta(deltas, fieldPath, 'add', String(value), nextItem.id)
-      }
-    }
-  }
-
-  const accumulateRemoveDelta = (
-    deltas: Map<string, IndexDelta>,
-    existingItem: T,
-  ) => {
-    for (const fieldPath of indicesToMaintain) {
-      const value = get(existingItem, fieldPath)
-      if (value == null) continue
-      addToDelta(deltas, fieldPath, 'remove', String(value), existingItem.id)
-    }
-  }
-
-  const applyIndexDeltas = async (deltas: Map<string, IndexDelta>) => {
+  const applyIndexDeltas = async (deltas: Map<string, IndexDelta<I>>) => {
     // For each indexed field with changes, touch only the affected bucket files
     await Promise.all(
       [...deltas.entries()].map(async ([fieldPath, delta]) => {
@@ -365,7 +301,7 @@ export default function createGenericFSAdapter<
     items: T[],
     mode: 'insert' | 'replace',
   ) => {
-    const deltas = new Map<string, IndexDelta>()
+    const deltas = new Map<string, IndexDelta<I>>()
 
     await Promise.all(
       items.map(async (item) => {
@@ -375,7 +311,7 @@ export default function createGenericFSAdapter<
 
         if (mode === 'insert') {
           if (indexOfItem !== -1) throw new Error(`Item with id "${String(item.id)}" already exists`)
-          accumulateUpsertDelta(deltas, undefined, item)
+          accumulateUpsertDelta(deltas, indicesToMaintain, undefined, item)
           await driver.writeObject(filePath, [...existingArray, item])
         } else {
           if (indexOfItem === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
@@ -441,7 +377,7 @@ export default function createGenericFSAdapter<
     },
 
     remove: async (itemsToRemove) => {
-      const deltas = new Map<string, IndexDelta>()
+      const deltas = new Map<string, IndexDelta<I>>()
 
       await Promise.all(
         itemsToRemove.map(async (item) => {
@@ -450,7 +386,7 @@ export default function createGenericFSAdapter<
           const indexOfItem = existingArray.findIndex(existing => existing.id === item.id)
           if (indexOfItem === -1) throw new Error(`Item with id "${String(item.id)}" does not exist`)
 
-          accumulateRemoveDelta(deltas, existingArray[indexOfItem])
+          accumulateRemoveDelta(deltas, indicesToMaintain, existingArray[indexOfItem])
 
           const updatedArray = [...existingArray]
           updatedArray.splice(indexOfItem, 1)
