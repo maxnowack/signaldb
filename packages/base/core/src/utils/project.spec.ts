@@ -62,4 +62,15 @@ describe('project', () => {
 
     expect(result).toEqual({})
   })
+
+  it('should preserve null values when explicitly included', () => {
+    const result = project({ foo: null, bar: 1 }, { foo: 1 })
+    expect(result).toEqual({ foo: null })
+  })
+
+  it('should remove nested keys when every field is excluded', () => {
+    const sample = { profile: { address: { city: 'NYC', zip: '00000' } }, keep: true }
+    const result = project(sample, { 'profile.address.city': 0 })
+    expect(result).toEqual({ profile: { address: { zip: '00000' } }, keep: true })
+  })
 })
