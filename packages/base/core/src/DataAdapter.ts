@@ -14,6 +14,8 @@ export interface QueryOptions<T extends BaseItem> {
   fields?: FieldSpecifier<T> | undefined,
 }
 
+export type StateChangeCallback = (state: 'active' | 'complete' | 'error') => void
+
 export interface CollectionBackend<T extends BaseItem<I>, I> {
   // CRUD operations will be proxied from the collection to the collection interface of the data layer. The CRUD logic itself will be done inside of the data layer.
   insert(item: T): Promise<T>,
@@ -33,7 +35,7 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   onQueryStateChange<O extends QueryOptions<T>>(
     selector: Selector<T>,
     options: O,
-    callback: (state: 'active' | 'complete' | 'error') => void,
+    callback: StateChangeCallback,
   ): () => void,
 
   // lifecycle methods
