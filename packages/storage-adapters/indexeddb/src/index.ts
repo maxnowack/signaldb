@@ -9,7 +9,7 @@ import { createStorageAdapter } from '@signaldb/core'
  */
 async function openDatabase(
   databaseName: string,
-  version = 1,
+  version: number,
   onUpgrade?: (
     database: IDBDatabase,
     transaction: IDBTransaction,
