@@ -432,12 +432,8 @@ export default class AsyncDataAdapter implements DataAdapter {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    const existing = await this.executeQuery<T, I>(
-      collectionName,
-      { id: newItem.id } as Selector<T>,
-      { limit: 1 },
-    )
-    if (existing.length > 0) throw new Error(`Item with id ${String(newItem.id)} already exists`)
+    const existingItems = await storage.readIds([newItem.id])
+    if (existingItems.length > 0) throw new Error(`Item with id ${String(newItem.id)} already exists`)
 
     await storage.insert([newItem])
     await this.checkQueryUpdates(collectionName, [newItem])
