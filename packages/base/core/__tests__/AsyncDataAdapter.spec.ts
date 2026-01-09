@@ -714,6 +714,33 @@ describe('AsyncDataAdapter', () => {
     expect(() => backend.registerQuery({}, {})).toThrow('Collection test not initialized!')
   })
 
+  it('executeQuery uses cached records and cleans up temporary queries', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    const selector = { name: 'cached' }
+    const qid = queryId(selector)
+    const registry = (adapter as any).queries.get(collection.name)
+    registry.set(qid, {
+      selector,
+      options: undefined,
+      state: 'complete',
+      error: null,
+      items: [{ id: 'cached', name: 'cached' }],
+      listeners: new Set(),
+    })
+
+    const result = await backend.executeQuery(selector, {})
+    expect(result).toEqual([{ id: 'cached', name: 'cached' }])
+    expect(registry.has(qid)).toBe(false)
+  })
+
+  it('queryItems throws when no storage adapter was registered', async () => {
+    const adapterWithoutStorage = new AsyncDataAdapter({
+      storage: () => undefined as any,
+    })
+    await expect((adapterWithoutStorage as any).queryItems('ghost', {}))
+      .rejects.toThrow('No persistence adapter for collection ghost')
+  })
+
   it('fulfillQuery error paths: missing registry, missing record, and error publish', async () => {
     const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
     // Access private fulfillQuery

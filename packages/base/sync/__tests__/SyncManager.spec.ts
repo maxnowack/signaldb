@@ -1604,3 +1604,162 @@ it('invokes onError when push rejects during scheduled sync', async () => {
   expect(options).toMatchObject({ name: 'test' })
   expect((error as Error).message).toBe('push failed')
 })
+
+it('getCollectionProperties throws for unknown collections', () => {
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  expect(() => syncManager.getCollectionProperties('missing'))
+    .toThrow("Collection with id 'missing' not found")
+})
+
+it('addCollection rejects after dispose', async () => {
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  await syncManager.dispose()
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  expect(() => syncManager.addCollection(collection, { name: 'test' }))
+    .toThrow('SyncManager is disposed')
+})
+
+it('skips remote changes already tracked locally', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({ items: [] })
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'test' })
+
+  ;((syncManager as any).remoteChanges as any[]).push(
+    null,
+    { collectionName: 'test', type: 'insert', data: { id: 'other', name: 'Other' } },
+    { collectionName: 'test', type: 'insert', data: { id: 'remote', name: 'Remote' } },
+  )
+
+  await collection.insert({ id: 'remote', name: 'Remote' })
+
+  const remainingRemoteChanges = (syncManager as any).remoteChanges as any[]
+  expect(remainingRemoteChanges.some(change => change?.data?.id === 'remote')).toBe(false)
+})
+
+it('routes change recording failures to onError when provided', async () => {
+  const onError = vi.fn()
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+    onError,
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'errs' })
+  const changes = (syncManager as any).changes as Collection<any, any, any>
+  const insertSpy = vi.spyOn(changes, 'insert').mockRejectedValue(new Error('fail'))
+
+  await collection.insert({ id: '1', name: 'one' })
+  await collection.updateOne({ id: '1' }, { $set: { name: 'two' } })
+  await collection.removeOne({ id: '1' })
+  await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(3))
+
+  insertSpy.mockRestore()
+})
+
+it('swallows change recording failures when onError is missing', async () => {
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'noop' })
+  const changes = (syncManager as any).changes as Collection<any, any, any>
+  const insertSpy = vi.spyOn(changes, 'insert').mockRejectedValue(new Error('fail silently'))
+
+  await collection.insert({ id: '1', name: 'one' })
+  await collection.updateOne({ id: '1' }, { $set: { name: 'two' } })
+  await collection.removeOne({ id: '1' })
+  await new Promise(resolve => setTimeout(resolve, 0))
+
+  expect(insertSpy).toHaveBeenCalled()
+
+  insertSpy.mockRestore()
+})
+
+it('pauseSync returns immediately if collection already paused', async () => {
+  const cleanup = vi.fn()
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+    autostart: false,
+    registerRemoteChange: () => cleanup,
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'test' })
+
+  await syncManager.startSync('test')
+  await syncManager.pauseSync('test')
+  await syncManager.pauseSync('test')
+
+  expect(cleanup).toHaveBeenCalledTimes(1)
+})
+
+it('syncAll throws when invoked after dispose', async () => {
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  await syncManager.dispose()
+  await expect(syncManager.syncAll()).rejects.toThrow('SyncManager is disposed')
+})
+
+it('isSyncing async path resolves a promise', async () => {
+  const syncManager = new SyncManager({
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'test' })
+  const asyncResult = await syncManager.isSyncing<true>('test', true)
+  expect(asyncResult).toBe(false)
+})
+
+it('schedules a follow-up sync when changes remain after applying snapshot', async () => {
+  const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
+    items: [],
+  })
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+  const syncManager = new SyncManager({
+    pull: mockPull,
+    push: mockPush,
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'test' })
+
+  const changes = (syncManager as any).changes as Collection<any, any, any>
+  const originalRemoveMany = changes.removeMany.bind(changes)
+  let insertedExtraChange = false
+  const removeSpy = vi.spyOn(changes, 'removeMany').mockImplementation(async (selector: Parameters<typeof originalRemoveMany>[0]) => {
+    const result = await originalRemoveMany(selector)
+    if (!insertedExtraChange) {
+      insertedExtraChange = true
+      await changes.insert({
+        collectionName: 'test',
+        time: Date.now(),
+        type: 'insert',
+        data: { id: 'late', name: 'Late' },
+      })
+    }
+    return result
+  })
+
+  const syncSpy = vi.spyOn(syncManager, 'sync')
+  await syncManager.sync('test')
+  expect(syncSpy).toHaveBeenCalledTimes(2)
+  expect(syncSpy.mock.calls[1][1]).toMatchObject({ force: true, onlyWithChanges: true })
+  syncSpy.mockRestore()
+  removeSpy.mockRestore()
+})
