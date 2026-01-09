@@ -108,7 +108,12 @@ export default class Observer<T extends { id: any }> {
   public runChecks(getItems: () => Promise<T[]> | T[]) {
     const result = getItems()
     if (result instanceof Promise) {
-      void result.then(newItems => this.checkItems(newItems)) // TODO: handle errors
+      result
+        .then(newItems => this.checkItems(newItems))
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Error while asynchronously querying items', error)
+        })
     } else {
       this.checkItems(result)
     }
