@@ -28,6 +28,21 @@ describe('DefaultDataAdapter', () => {
     expect(() => backend.onQueryStateChange({}, {}, () => {})).toThrow('Query emitter not found for collection def')
   })
 
+  it('returns cached query results for active queries', async () => {
+    const adapter = new DefaultDataAdapter()
+    const col = new Collection<Item, string, Item>('cache', adapter)
+    const backend = adapter.createCollectionBackend<Item, string, Item>(col, [])
+    await backend.isReady()
+
+    await backend.insert({ id: '1', x: 7 })
+    backend.registerQuery({}, {})
+
+    const result = backend.getQueryResult({}, {})
+    expect(result).toEqual([{ id: '1', x: 7 }])
+
+    backend.unregisterQuery({}, {})
+  })
+
   it('calls teardown on persistence and clears internal maps', async () => {
     const teardown = vi.fn(async () => {})
     const persistence = createStorageAdapter<Item, string>({

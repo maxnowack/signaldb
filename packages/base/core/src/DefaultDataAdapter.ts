@@ -475,9 +475,11 @@ export default class DefaultDataAdapter implements DataAdapter {
         const isQueryActive = this.activeQueries.get(collection.name)
           ?.has(queryId(selector, options))
         if (isQueryActive) {
-          return (this.cachedQueryResults
+          const results = this.cachedQueryResults
             .get(collection.name)
-            ?.get(queryId(selector, options)) ?? []) as T[]
+            ?.get(queryId(selector, options))
+          if (!results) throw new Error('Cached query results are not defined!')
+          return results as T[]
         }
         return this.executeQuery(collection, selector, options)
       },
