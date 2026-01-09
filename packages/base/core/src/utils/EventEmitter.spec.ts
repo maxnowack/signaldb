@@ -141,6 +141,19 @@ describe('EventEmitter', () => {
     expect(emitter.listenerCount('hello')).toBe(0)
   })
 
+  it('should call off for each listener removed via removeAllListeners(event)', () => {
+    const fn1 = vi.fn()
+    const fn2 = vi.fn()
+    const offSpy = vi.spyOn(emitter, 'off')
+    emitter.on('hello', fn1).on('hello', fn2)
+
+    emitter.removeAllListeners('hello')
+
+    expect(offSpy).toHaveBeenCalledWith('hello', fn1)
+    expect(offSpy).toHaveBeenCalledWith('hello', fn2)
+    offSpy.mockRestore()
+  })
+
   it('should remove all listeners for all events when removeAllListeners() is called without an event name', () => {
     const helloListener = vi.fn()
     const goodbyeListener = vi.fn()

@@ -1,6 +1,7 @@
 import { vi, describe, it, expect } from 'vitest'
 import type { ObserveCallbacks, Transform } from '../src'
-import { Collection, createReactivityAdapter } from '../src'
+import { Collection, Cursor, createReactivityAdapter } from '../src'
+import Observer from '../src/Collection/Observer'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => {
@@ -521,6 +522,38 @@ describe('Cursor', async () => {
       await wait()
       expect(notify).toHaveBeenCalled()
       stopObserving()
+    })
+  })
+
+  describe('field tracking and cleanup', () => {
+    it('wraps items with getters when fieldTracking is enabled', () => {
+      const depend = vi.fn()
+      const reactive = createReactivityAdapter({
+        create: () => ({
+          depend,
+          notify: vi.fn(),
+        }),
+        isInScope: () => true,
+      })
+      const cursor = new Cursor(() => [{ id: 1, name: 'tracked' }], {
+        fieldTracking: true,
+        reactive,
+      })
+
+      const [item] = cursor.fetch()
+      expect(typeof Object.getOwnPropertyDescriptor(item, 'name')?.get).toBe('function')
+      expect(item.name).toBe('tracked')
+      expect(depend).toHaveBeenCalled()
+      cursor.cleanup()
+    })
+
+    it('stops the observer when observers are disposed', () => {
+      const stopSpy = vi.spyOn(Observer.prototype, 'stop')
+      const cursor = new Cursor(() => [{ id: 1 }])
+      const stop = cursor.observeChanges({ added: () => {} }, true)
+      stop()
+      expect(stopSpy).toHaveBeenCalled()
+      stopSpy.mockRestore()
     })
   })
 })
