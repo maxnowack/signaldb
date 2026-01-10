@@ -14,18 +14,7 @@
     "skipDefaultLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "baseUrl": ".",
-    "paths": {
-      "@signaldb/*": [
-        "packages/base/*/src",
-        "packages/storage-adapters/*/src",
-        "packages/reactivity-adapters/*/src",
-        "packages/persistence-adapters/*/src",
-        "packages/integrations/*/src",
-        "packages/devtools/*/src"
-      ]
-    }
+    "jsx": "react-jsx"
   },
   "exclude": [
     "**/node_modules",
