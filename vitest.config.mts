@@ -7,7 +7,7 @@ export default defineConfig({
       'packages/base/*',
       'packages/devtools/*',
       'packages/integrations/*',
-      'packages/persistence-adapters/*',
+      'packages/storage-adapters/*',
       'packages/reactivity-adapters/*',
     ],
     coverage: {
@@ -24,6 +24,9 @@ export default defineConfig({
         'eslint.config.mjs',
         'packages/devtools/devtools',
       ],
+      thresholds: {
+        lines: 100,
+      },
     },
     reporters: process.env.GITHUB_ACTIONS ? ['dot', 'junit', 'github-actions'] : ['dot'],
   },

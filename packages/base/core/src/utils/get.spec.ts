@@ -54,6 +54,11 @@ describe('get', () => {
     expect(value).toBeUndefined()
   })
 
+  it('returns undefined when encountering null on the path', () => {
+    const value = get(testObject, 'a.e.some')
+    expect(value).toBeUndefined()
+  })
+
   it('returns undefined for path longer than object depth', () => {
     const value = get(testObject, 'a.b.c.d')
     expect(value).toBeUndefined()

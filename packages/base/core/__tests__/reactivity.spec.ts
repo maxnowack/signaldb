@@ -104,7 +104,7 @@ describe('reactivity primitives', () => {
     expect(callback).toHaveBeenLastCalledWith(0)
 
     await tick()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(2)
@@ -124,7 +124,7 @@ describe('reactivity primitives', () => {
     expect(reactivity.onDispose).toHaveBeenCalledTimes(1)
     await tick()
 
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await tick()
     expect(reactivity.onDispose).toHaveBeenCalledTimes(2)
   })
@@ -139,18 +139,18 @@ describe('reactivity primitives', () => {
     })
     await tick()
 
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await tick()
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John' }])
 
-    collection.updateOne({ id: '1' }, { $set: { updated: true } })
+    await collection.updateOne({ id: '1' }, { $set: { updated: true } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(3)
     expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', updated: true }])
 
-    collection.updateOne({ id: '1' }, { $set: { updated: 2 } })
+    await collection.updateOne({ id: '1' }, { $set: { updated: 2 } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(4)
@@ -165,12 +165,12 @@ describe('reactivity primitives', () => {
       const items = collection.find({ name: 'John' }).fetch()
       callback(deepClone(items))
     })
-    collection.insert({ id: '1', name: 'John', count: { a: 1 } })
+    await collection.insert({ id: '1', name: 'John', count: { a: 1 } })
     await tick()
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', count: { a: 1 } }])
 
-    collection.updateOne({ name: 'John' }, {
+    await collection.updateOne({ name: 'John' }, {
       $set: { 'count.a': 2 },
     })
     await tick()
@@ -182,7 +182,7 @@ describe('reactivity primitives', () => {
   it('should be reactive with field-level tracking', async () => {
     const collection = new Collection({ reactivity: primitiveReactivityAdapter })
     const callback = vi.fn()
-    collection.insert({ id: '1', name: 'John', postCount: 20, age: 30 })
+    await collection.insert({ id: '1', name: 'John', postCount: 20, age: 30 })
 
     primitiveReactivity.effect(() => {
       const items = collection.find({ name: 'John' }, {
@@ -195,13 +195,13 @@ describe('reactivity primitives', () => {
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith([20])
 
-    collection.updateOne({ id: '1' }, { $set: { postCount: 21 } })
+    await collection.updateOne({ id: '1' }, { $set: { postCount: 21 } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith([21])
 
-    collection.updateOne({ id: '1' }, { $set: { age: 35 } })
+    await collection.updateOne({ id: '1' }, { $set: { age: 35 } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(2)
@@ -211,8 +211,8 @@ describe('reactivity primitives', () => {
   it('should be reactive with field-level tracking on item level', async () => {
     const collection = new Collection({ reactivity: primitiveReactivityAdapter })
     const callback = vi.fn()
-    collection.insert({ id: '1', name: 'John', postCount: 20, age: 30 })
-    collection.insert({ id: '2', name: 'Jane', postCount: 40, age: 20 })
+    await collection.insert({ id: '1', name: 'John', postCount: 20, age: 30 })
+    await collection.insert({ id: '2', name: 'Jane', postCount: 40, age: 20 })
 
     primitiveReactivity.effect(() => {
       const items = collection.find({}, {
@@ -226,19 +226,19 @@ describe('reactivity primitives', () => {
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith(40)
 
-    collection.updateOne({ name: 'John' }, { $set: { postCount: 21 } })
+    await collection.updateOne({ name: 'John' }, { $set: { postCount: 21 } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith(40)
 
-    collection.updateOne({ name: 'Jane' }, { $set: { age: 35 } })
+    await collection.updateOne({ name: 'Jane' }, { $set: { age: 35 } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith(40)
 
-    collection.updateOne({ name: 'Jane' }, { $set: { postCount: 35 } })
+    await collection.updateOne({ name: 'Jane' }, { $set: { postCount: 35 } })
     await tick()
 
     expect(callback).toHaveBeenCalledTimes(2)
@@ -247,8 +247,8 @@ describe('reactivity primitives', () => {
 
   it('should be reactive transformAll after fields updates', async () => {
     const col1 = new Collection({ reactivity: primitiveReactivityAdapter })
-    col1.insert({ id: '1', name: 'John' })
-    col1.insert({ id: '2', name: 'Jane' })
+    await col1.insert({ id: '1', name: 'John' })
+    await col1.insert({ id: '2', name: 'Jane' })
 
     const col2 = new Collection({
       reactivity: primitiveReactivityAdapter,
@@ -270,12 +270,12 @@ describe('reactivity primitives', () => {
       callback(deepClone(items))
     })
 
-    col2.insert({ id: '1', name: 'John', parent: '1' })
+    await col2.insert({ id: '1', name: 'John', parent: '1' })
     await tick()
     expect(callback).toHaveBeenCalledTimes(2)
     expect(callback).toHaveBeenLastCalledWith([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
 
-    col1.updateOne({ name: 'John' }, {
+    await col1.updateOne({ name: 'John' }, {
       $set: { name: 'John Jr' },
     })
     await tick()
