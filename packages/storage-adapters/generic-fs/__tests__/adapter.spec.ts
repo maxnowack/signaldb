@@ -262,7 +262,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     // Idempotent: calling again when missing
     await expect(adapter.removeAll()).resolves.toBeUndefined()
 
-    // Cover teardown line
+    // Cover teardown
     await expect(adapter.teardown()).resolves.toBeUndefined()
   })
 
@@ -279,7 +279,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
   })
 
   it('covers index delta application edge cases', async () => {
-    // Test applyIndexDeltas when index doesn't exist (line 201)
+    // Test applyIndexDeltas when index doesn't exist
     const a: Item = { id: 'aa1', status: 'new' }
     await adapter.insert([a])
 
@@ -297,7 +297,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     const a: Item = { id: 'aa1', status: 'new' }
     await adapter.insert([a])
 
-    // Remove without recursive option (line 88-89)
+    // Remove without recursive option
     await adapter.remove([a])
     expect(driver.deletedPaths).toContain('/root/collection/items/aa/aa1')
   })
@@ -307,14 +307,14 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     await adapter.insert([a])
     await adapter.createIndex('status')
 
-    // Remove the only item with this status to trigger bucket deletion (line 255)
+    // Remove the only item with this status to trigger bucket deletion
     await adapter.remove([a])
 
     const index = await adapter.readIndex('status')
     expect(index.get('temp')).toBeUndefined()
   })
 
-  it('removes from a non-empty bucket by rewriting the file (covers line 373)', async () => {
+  it('removes from a non-empty bucket by rewriting the file', async () => {
     // Use a bucketed driver so multiple ids share the same file
     class BucketDriver<T extends { id: I }, I> extends MemDriver<T, I> {
       override async fileNameForId(): Promise<string> {
