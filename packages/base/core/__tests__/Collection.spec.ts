@@ -58,6 +58,32 @@ describe('Collection', () => {
 
       expect(eventHandler).toHaveBeenCalledWith({ name: 'John' }, { fields: { id: 1 }, async: true }, { id: '1' })
     })
+
+    it('should find and return an item synchronously when async is false', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'Jane' })
+
+      const item = collection.findOne({ name: 'John' })
+
+      expect(item).toEqual({ id: '1', name: 'John' })
+    })
+
+    it('should return undefined synchronously if no item matches', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+
+      const item = collection.findOne({ name: 'Jane' })
+
+      expect(item).toBeUndefined()
+    })
+
+    it('should return the first matching item synchronously', async () => {
+      await collection.insert({ id: '1', name: 'John' })
+      await collection.insert({ id: '2', name: 'John' })
+
+      const item = collection.findOne({ name: 'John' })
+
+      expect(item).toEqual({ id: '1', name: 'John' })
+    })
   })
 
   describe('find', () => {
