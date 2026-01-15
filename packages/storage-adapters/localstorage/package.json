@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/localstorage",
-  "version": "2.0.0-beta.2",
+  "version": "2.0.0-beta.3",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
@@ -53,6 +53,6 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "2.0.0-beta.2"
+    "@signaldb/core": "2.0.0-beta.3"
   }
 }
