@@ -350,39 +350,41 @@ export default class SyncManager<
           if (data == null) {
             await this.sync(name)
           } else {
-            const syncTime = Date.now()
-            const syncId = await this.syncOperations.insert({
-              start: syncTime,
-              collectionName: name,
-              instanceId: this.instanceId,
-              status: 'active',
-            })
-            await this.syncWithData(name, data)
-              .then(async () => {
-                // clean up old sync operations
-                await this.syncOperations.removeMany({
-                  id: { $ne: syncId },
-                  collectionName: name,
-                  $or: [
-                    { end: { $lte: syncTime } },
-                    { status: 'active' },
-                  ],
-                })
+            await this.getSyncQueue(name).add(async () => {
+              const syncTime = Date.now()
+              const syncId = await this.syncOperations.insert({
+                start: syncTime,
+                collectionName: name,
+                instanceId: this.instanceId,
+                status: 'active',
+              })
+              await this.syncWithData(name, data)
+                .then(async () => {
+                  // clean up old sync operations
+                  await this.syncOperations.removeMany({
+                    id: { $ne: syncId },
+                    collectionName: name,
+                    $or: [
+                      { end: { $lte: syncTime } },
+                      { status: 'active' },
+                    ],
+                  })
 
-                // update sync operation status to done after everthing was finished
-                await this.syncOperations.updateOne({ id: syncId }, {
-                  $set: { status: 'done', end: Date.now() },
+                  // update sync operation status to done after everthing was finished
+                  await this.syncOperations.updateOne({ id: syncId }, {
+                    $set: { status: 'done', end: Date.now() },
+                  })
                 })
-              })
-              .catch(async (error: Error) => {
-                if (this.options.onError) {
-                  this.options.onError(this.getCollectionProperties(name).options, error)
-                }
-                await this.syncOperations.updateOne({ id: syncId }, {
-                  $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
+                .catch(async (error: Error) => {
+                  if (this.options.onError) {
+                    this.options.onError(this.getCollectionProperties(name).options, error)
+                  }
+                  await this.syncOperations.updateOne({ id: syncId }, {
+                    $set: { status: 'error', end: Date.now(), error: error.stack || error.message },
+                  })
+                  throw error
                 })
-                throw error
-              })
+            })
           }
         },
       )
