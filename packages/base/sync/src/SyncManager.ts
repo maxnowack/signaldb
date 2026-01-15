@@ -347,10 +347,9 @@ export default class SyncManager<
       ? await this.options.registerRemoteChange(
         collectionParameters.options,
         async (data) => {
-          if (data == null) {
-            await this.sync(name)
-          } else {
-            await this.getSyncQueue(name).add(async () => {
+          await (data == null
+            ? this.sync(name)
+            : this.getSyncQueue(name).add(async () => {
               const syncTime = Date.now()
               const syncId = await this.syncOperations.insert({
                 start: syncTime,
@@ -384,8 +383,7 @@ export default class SyncManager<
                   })
                   throw error
                 })
-            })
-          }
+            }))
         },
       )
       : undefined
