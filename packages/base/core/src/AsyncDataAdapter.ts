@@ -452,11 +452,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
     const modified = modify(deepClone(item), rest)
     if (item.id !== modified.id) {
-      const existing = await this.executeQuery<T, I>(
-        collectionName,
-        { id: modified.id } as Selector<T>,
-        { limit: 1 },
-      )
+      const existing = await storage.readIds([modified.id])
       if (existing.length > 0) throw new Error(`Item with id ${String(modified.id)} already exists`)
     }
 
@@ -480,11 +476,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     const changed = await Promise.all(items.map(async (item) => {
       const modified = modify(deepClone(item), rest)
       if (item.id !== modified.id) {
-        const existing = await this.executeQuery<T, I>(
-          collectionName,
-          { id: modified.id } as Selector<T>,
-          { limit: 1 },
-        )
+        const existing = await storage.readIds([modified.id])
         if (existing.length > 0) throw new Error(`Item with id ${String(modified.id)} already exists`)
       }
       return modified
@@ -508,11 +500,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
     const modified = { ...replacement, id: replacement.id ?? item.id } as T
     if (item.id !== modified.id) {
-      const existing = await this.executeQuery<T, I>(
-        collectionName,
-        { id: modified.id } as Selector<T>,
-        { limit: 1 },
-      )
+      const existing = await storage.readIds([modified.id])
       if (existing.length > 0) throw new Error(`Item with id ${String(modified.id)} already exists`)
     }
 
