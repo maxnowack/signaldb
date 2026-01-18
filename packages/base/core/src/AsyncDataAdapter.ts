@@ -179,10 +179,7 @@ export default class AsyncDataAdapter implements DataAdapter {
       onQueryStateChange,
       executeQuery: async (selector, options) => {
         await ready
-        registerQuery(selector, options)
-        const result = getQueryResult(selector, options)
-        unregisterQuery(selector, options)
-        return result
+        return this.executeQuery(collection.name, selector, options)
       },
 
       dispose: async () => {
