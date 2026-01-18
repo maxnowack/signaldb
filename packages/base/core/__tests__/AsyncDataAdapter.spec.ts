@@ -714,23 +714,20 @@ describe('AsyncDataAdapter', () => {
     expect(() => backend.registerQuery({}, {})).toThrow('Collection test not initialized!')
   })
 
-  it('executeQuery uses cached records and cleans up temporary queries', async () => {
+  it('executeQuery returns real data from storage', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
-    const selector = { name: 'cached' }
-    const qid = queryId(selector)
-    const registry = (adapter as any).queries.get(collection.name)
-    registry.set(qid, {
-      selector,
-      options: undefined,
-      state: 'complete',
-      error: null,
-      items: [{ id: 'cached', name: 'cached' }],
-      listeners: new Set(),
-    })
+    await backend.isReady()
 
-    const result = await backend.executeQuery(selector, {})
-    expect(result).toEqual([{ id: 'cached', name: 'cached' }])
-    expect(registry.has(qid)).toBe(false)
+    // Insert test data into storage
+    await backend.insert({ id: 'test-item', name: 'Test' })
+
+    // executeQuery should return real data from storage
+    const result = await backend.executeQuery({ name: 'Test' }, {})
+    expect(result).toEqual([{ id: 'test-item', name: 'Test' }])
+
+    // Query for non-existent data should return empty array
+    const emptyResult = await backend.executeQuery({ name: 'NonExistent' }, {})
+    expect(emptyResult).toEqual([])
   })
 
   it('queryItems throws when no storage adapter was registered', async () => {
