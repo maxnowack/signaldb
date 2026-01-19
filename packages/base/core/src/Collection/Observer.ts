@@ -188,10 +188,15 @@ export default class Observer<T extends { id: any }> {
     })
   }
 
+  private stopped = false
+
   /**
    * Stops the observer by unbinding all events and cleaning up resources.
+   * Safe to call multiple times - will only unbind once.
    */
   public stop() {
+    if (this.stopped) return
+    this.stopped = true
     this.unbindEvents()
   }
 

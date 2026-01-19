@@ -498,7 +498,8 @@ export default class Collection<
 
           // register query if not yet registered
           const listeners = this.queryListeners({ selector, options })
-          if (listeners === 0) this.backend.registerQuery(selector, options || {})
+          const didRegister = listeners === 0
+          if (didRegister) this.backend.registerQuery(selector, options || {})
           this.queryListeners({ selector, options }, listeners + 1)
 
           const queryStateChangeCleanup = this.backend.onQueryStateChange(
@@ -511,15 +512,21 @@ export default class Collection<
           )
           this.emit('observer.created', selector, options)
           return () => {
-            setTimeout(() => { // delay to allow multiple quick calls to register/unregister to batch
+            // Use queueMicrotask instead of setTimeout to avoid race conditions
+            // while still allowing batching of quick register/unregister calls
+            queueMicrotask(() => {
               // unregister query if no more listeners
               const newListeners = Math.max(0, this.queryListeners({ selector, options }) - 1)
-              if (newListeners === 0) this.backend.unregisterQuery(selector, options || {})
+              // Only unregister if this observer was the one that registered
+              // This prevents race conditions where a new observer registers
+              // before the old one's cleanup runs
+              if (newListeners === 0 && didRegister)
+                this.backend.unregisterQuery(selector, options || {})
               this.queryListeners({ selector, options }, newListeners)
 
               queryStateChangeCleanup()
               this.emit('observer.disposed', selector, options)
-            }, 0)
+            })
           }
         },
       })
