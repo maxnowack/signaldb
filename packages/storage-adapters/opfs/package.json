@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/opfs",
-  "version": "2.0.0-beta.3",
+  "version": "2.0.0-beta.4",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
@@ -53,9 +53,9 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "2.0.0-beta.3"
+    "@signaldb/core": "2.0.0-beta.4"
   },
   "dependencies": {
-    "@signaldb/generic-fs": "^2.0.0-beta.3"
+    "@signaldb/generic-fs": "^2.0.0-beta.4"
   }
 }
