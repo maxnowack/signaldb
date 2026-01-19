@@ -43,9 +43,15 @@ const Data: React.FC = () => {
           <Items
             itemColumn={`${collectionName} (${collectionItems.length} items)`}
             items={collectionItems}
-            onAdd={item => collection.insert(item)}
-            onEdit={(id, item) => collection.updateOne({ id }, { $set: item })}
-            onRemove={id => collection.removeOne({ id })}
+            onAdd={async (item) => {
+              await collection.insert(item)
+            }}
+            onEdit={async (id, item) => {
+              await collection.updateOne({ id }, { $set: item })
+            }}
+            onRemove={async (id) => {
+              await collection.removeOne({ id })
+            }}
           />
         )
         : (
