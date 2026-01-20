@@ -13,7 +13,10 @@ export type {
   TransformAll,
   SortSpecifier,
   FieldSpecifier,
+  AnyFindOptions,
+  AsyncFindOptions,
   FindOptions,
+  SyncFindOptions,
   CollectionOptions,
 } from './Collection'
 export type { default as DataAdapter } from './DataAdapter'
