@@ -440,11 +440,21 @@ export default class SyncManager<
    * @param [async] If true, it will check for active syncs in the database. This is useful if you have multiple instances of the application running.
    * @returns True if the collection is currently beeing synced, false otherwise. If async is true, it will return a promise that resolves to true or false.
    */
+  public isSyncing(
+    name: string | undefined,
+    async: true,
+  ): Promise<boolean>
+
+  public isSyncing(
+    name?: string,
+    async?: false,
+  ): boolean
+
   public isSyncing<Async extends boolean = false>(
     name?: string,
     async?: Async,
-  ): Async extends true ? Promise<boolean> : boolean {
-    const itemOrPromise = this.syncOperations.findOne<Async>({
+  ): Promise<boolean> | boolean {
+    const itemOrPromise = this.syncOperations.findOne({
       ...name ? { collectionName: name } : {},
       status: 'active',
     }, { fields: { status: 1 }, async })
@@ -476,7 +486,7 @@ export default class SyncManager<
     const { options: collectionOptions, readyPromise } = this.getCollectionProperties(name)
     await readyPromise
 
-    const hasActiveSyncs = await this.syncOperations.find<true>({
+    const hasActiveSyncs = await this.syncOperations.find({
       collectionName: name,
       instanceId: this.instanceId,
       status: 'active',
@@ -492,7 +502,7 @@ export default class SyncManager<
       setTimeout(resolve, 0)
     })
     const doSync = async () => {
-      const lastFinishedSync = await this.syncOperations.findOne<true>({
+      const lastFinishedSync = await this.syncOperations.findOne({
         collectionName: name,
         status: 'done',
       }, {
@@ -501,7 +511,7 @@ export default class SyncManager<
         async: true,
       })
       if (options?.onlyWithChanges) {
-        const currentChanges = await this.changes.find<true>({
+        const currentChanges = await this.changes.find({
           collectionName: name,
           time: { $lte: syncTime },
         }, {
@@ -575,7 +585,7 @@ export default class SyncManager<
 
     const syncTime = Date.now()
 
-    const lastFinishedSync = await this.syncOperations.findOne<true>({
+    const lastFinishedSync = await this.syncOperations.findOne({
       collectionName: name,
       status: 'done',
     }, {
@@ -583,14 +593,14 @@ export default class SyncManager<
       reactive: false,
       async: true,
     })
-    const lastSnapshot = await this.snapshots.findOne<true>({
+    const lastSnapshot = await this.snapshots.findOne({
       collectionName: name,
     } as Selector<Snapshot<any>>, {
       sort: { time: -1 },
       reactive: false,
       async: true,
     })
-    const currentChanges = await this.changes.find<true>({
+    const currentChanges = await this.changes.find({
       collectionName: name,
       time: { $lte: syncTime },
     }, {
@@ -644,7 +654,7 @@ export default class SyncManager<
         }, { upsert: true })
       },
       remove: async (itemId) => {
-        const itemExists = await collection.find<true>({
+        const itemExists = await collection.find({
           id: itemId,
         } as Selector<any>, { reactive: false, async: true }).count() > 0
         if (!itemExists) return
@@ -686,7 +696,7 @@ export default class SyncManager<
           setTimeout(resolve, 0)
         })
 
-        const hasChanges = await this.changes.find<true>({
+        const hasChanges = await this.changes.find({
           collectionName: name,
         }, { reactive: false, async: true }).count() > 0
 
@@ -704,7 +714,7 @@ export default class SyncManager<
         // to make sure that collection and snapshot are in sync
 
         // find all items that are not in the snapshot
-        const nonExistingItemIds = await collection.find<true>({
+        const nonExistingItemIds = await collection.find({
           id: { $nin: snapshot.map(item => item.id) },
         } as Selector<any>, {
           reactive: false,
