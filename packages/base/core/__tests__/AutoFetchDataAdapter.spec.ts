@@ -36,14 +36,14 @@ describe('AutoFetchDataAdapter', () => {
     await col.ready()
 
     // First async fetch resolves local snapshot (empty), remote ingest happens afterwards
-    const first = await col.find<true>({}, { async: true }).fetch()
+    const first = await col.find({}, { async: true }).fetch()
     expect(first).toEqual([])
     // Allow auto-fetch to complete and ingest results
     await Promise.resolve()
-    const all = await col.find<true>({}, { async: true }).fetch()
+    const all = await col.find({}, { async: true }).fetch()
     expect(all).toEqual(remote)
 
-    const only2 = await col.find<true>({ id: '2' }, { async: true }).fetch()
+    const only2 = await col.find({ id: '2' }, { async: true }).fetch()
     expect(only2).toEqual([{ id: '2', title: 'B', type: 'y' }])
 
     const inStorage = await storage.readAll()
@@ -64,15 +64,15 @@ describe('AutoFetchDataAdapter', () => {
     expect(id).toBe('p1')
 
     await col.updateOne({ id }, { $set: { title: 'World' } })
-    let item = await col.find<true>({ id }, { async: true }).fetch()
+    let item = await col.find({ id }, { async: true }).fetch()
     expect(item).toEqual([{ id: 'p1', title: 'World', type: 'x' }])
 
     await col.replaceOne({ id }, { title: 'Replaced' })
-    item = await col.find<true>({ id }, { async: true }).fetch()
+    item = await col.find({ id }, { async: true }).fetch()
     expect(item).toEqual([{ id: 'p1', title: 'Replaced' }])
 
     await col.removeOne({ id })
-    const empty = await col.find<true>({ id }, { async: true }).fetch()
+    const empty = await col.find({ id }, { async: true }).fetch()
     expect(empty).toEqual([])
   })
 
@@ -89,7 +89,7 @@ describe('AutoFetchDataAdapter', () => {
     await col.ready()
 
     // Keep a persistent observer so fetch can complete before we unregister
-    const cursor = col.find<true>({}, { async: true })
+    const cursor = col.find({}, { async: true })
     await cursor.forEach(() => { /* keep observer active */ })
     // let auto-fetch ingest and query state cycle to complete
     await new Promise(resolve => setTimeout(resolve, 0))
@@ -125,7 +125,7 @@ describe('AutoFetchDataAdapter', () => {
     remote = [{ id: '2', title: 'B' }]
     await remoteChangeCallback?.()
     await new Promise(r => setTimeout(r, 10))
-    const all = await col.find<true>({}, { async: true }).fetch()
+    const all = await col.find({}, { async: true }).fetch()
     expect(all).toEqual([{ id: '1', title: 'A' }, { id: '2', title: 'B' }])
     backend.unregisterQuery({})
   })
@@ -189,7 +189,7 @@ describe('AutoFetchDataAdapter', () => {
     await col.insert({ id: 'x', title: 'left' })
     // start observer and simulate remote ingest through internal fetch
     await (adapter as any).upsertMerged('posts', [{ id: 'x', title: 'right' }])
-    const item = await col.find<true>({ id: 'x' }, { async: true }).fetch()
+    const item = await col.find({ id: 'x' }, { async: true }).fetch()
     expect(item).toEqual([{ id: 'x', title: 'left|right' }])
   })
 
@@ -338,7 +338,7 @@ describe('AutoFetchDataAdapter', () => {
     await col.insert({ id: '2', title: 'B', type: 'y' })
     await col.insert({ id: '3', title: 'C', type: 'z' })
     const result = await col
-      .find<true>(
+      .find(
         {},
         {
           async: true,
