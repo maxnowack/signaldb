@@ -18,7 +18,7 @@ function createQueryHelpers(collection: Collection<TestDocument>) {
     const normalizedOptions: FindOptions<TestDocument, true> = options
       ? { ...options, async: true }
       : { async: true }
-    return collection.find<true>(selector, normalizedOptions)
+    return collection.find(selector, normalizedOptions)
   }
 
   const findCount = (
@@ -42,7 +42,7 @@ function createQueryHelpers(collection: Collection<TestDocument>) {
     const normalizedOptions: FindOptions<TestDocument, true> = options
       ? { ...options, async: true }
       : { async: true }
-    return collection.findOne<true>(selector, normalizedOptions)
+    return collection.findOne(selector, normalizedOptions)
   }
 
   return {

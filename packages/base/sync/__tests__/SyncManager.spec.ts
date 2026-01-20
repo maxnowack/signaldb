@@ -199,7 +199,7 @@ it('should handle pull and apply new changes during sync', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPull).toHaveBeenCalled()
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
 })
 
 it('should handle updates correctly during sync', async () => {
@@ -230,13 +230,13 @@ it('should handle updates correctly during sync', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
   await syncManager.sync('test')
-  await expect(mockCollection.findOne<true>({ id: '1' }, { async: true })).resolves.toMatchObject({ name: 'Test Item' })
+  await expect(mockCollection.findOne({ id: '1' }, { async: true })).resolves.toMatchObject({ name: 'Test Item' })
 
   await mockCollection.updateOne({ id: '1' }, { $set: { name: 'New Item' } })
   await syncManager.sync('test')
 
   expect(onError).not.toHaveBeenCalled()
-  await expect(mockCollection.findOne<true>({ id: '1' }, { async: true })).resolves.toMatchObject({ name: 'New Item' })
+  await expect(mockCollection.findOne({ id: '1' }, { async: true })).resolves.toMatchObject({ name: 'New Item' })
 })
 
 it('should push changes when items are added locally', async () => {
@@ -304,7 +304,7 @@ it('should push changes when items are updated locally', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   await vi.waitFor(() => expect(mockPush).toHaveBeenCalled())
-  await expect(mockCollection.findOne<true>({ id: '1' }, { async: true })).resolves.toMatchObject({ name: 'New Item' })
+  await expect(mockCollection.findOne({ id: '1' }, { async: true })).resolves.toMatchObject({ name: 'New Item' })
 })
 
 it('should push changes when items are removed locally', async () => {
@@ -343,7 +343,7 @@ it('should push changes when items are removed locally', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
-  await expect(mockCollection.findOne<true>({ id: '1' }, { async: true })).resolves.toBeUndefined()
+  await expect(mockCollection.findOne({ id: '1' }, { async: true })).resolves.toBeUndefined()
 })
 
 it('should debounce push requests', async () => {
@@ -585,7 +585,7 @@ it('should register and apply remote changes with items', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '2', name: 'Remote Item' }])
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '2', name: 'Remote Item' }])
 })
 
 it('should register and apply remote changes with changes', async () => {
@@ -626,7 +626,7 @@ it('should register and apply remote changes with changes', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }, { id: '2', name: 'Remote Item' }])
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }, { id: '2', name: 'Remote Item' }])
 })
 
 it('should handle error in remote changes without data', async () => {
@@ -719,7 +719,7 @@ it('should sync second time if there were changes during sync', async () => {
     setTimeout(resolve, 0)
   })
 
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
 })
 
 it('should sync after a empty remote change was received', async () => {
@@ -756,7 +756,7 @@ it('should sync after a empty remote change was received', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
 })
 
 it('should call onError handler if an async error occurs', async () => {
@@ -872,7 +872,7 @@ it('should update items that already exist on insert', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
-  await expect(collection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
+  await expect(collection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
 })
 
 it('should insert items that not exist on update', async () => {
@@ -902,7 +902,7 @@ it('should insert items that not exist on update', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
-  await expect(collection.find<true>({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
+  await expect(collection.find({}, { async: true }).fetch()).resolves.toEqual([{ id: '1', name: 'Test Item' }])
 })
 
 it('should not fail while removing non existing items', async () => {
@@ -932,7 +932,7 @@ it('should not fail while removing non existing items', async () => {
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
-  await expect(collection.find<true>({}, { async: true }).fetch()).resolves.toEqual([])
+  await expect(collection.find({}, { async: true }).fetch()).resolves.toEqual([])
 })
 
 it('should clear all internal data structures on dispose', async () => {
@@ -1070,7 +1070,7 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
   await syncManager.sync('test')
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([
     { id: '1', name: 'Test Item' },
     { id: '2', name: 'Test Item 2' },
   ])
@@ -1088,7 +1088,7 @@ it('should reset if syncmanager snapshot and collection are not in sync', async 
   })
 
   await syncManager.sync('test')
-  await expect(mockCollection.find<true>({}, { async: true }).fetch()).resolves.toEqual([
+  await expect(mockCollection.find({}, { async: true }).fetch()).resolves.toEqual([
     { id: '1', name: 'Test Item' },
     { id: '2', name: 'Test Item 2' },
   ])
@@ -1509,7 +1509,7 @@ it('should trigger sync when using $set on an array to modify an object/item inl
   })
   const postId2 = await posts.insert({ title: 'Foo', text: 'Riker ipsum …' })
 
-  await expect(posts.find<true>({}, { async: true }).fetch()).resolves.toEqual([
+  await expect(posts.find({}, { async: true }).fetch()).resolves.toEqual([
     { id: postId1, title: 'Foo', text: 'Lorem ipsum …', meta: { likes: 14 } },
     { id: postId2, title: 'Foo', text: 'Riker ipsum …' },
   ])
@@ -1581,7 +1581,7 @@ it('should handle errors with onError handler in event listeners', async () => {
   await mockCollection.updateOne({ id: '2' }, { $set: { name: 'Updated Item' } })
   await mockCollection.removeOne({ id: '2' })
   // operations complete without throwing even if internal change recording fails
-  await expect(mockCollection.findOne<true>({ id: '2' }, { async: true })).resolves.toBeUndefined()
+  await expect(mockCollection.findOne({ id: '2' }, { async: true })).resolves.toBeUndefined()
 })
 
 it('invokes onError when push rejects during scheduled sync', async () => {
@@ -1722,7 +1722,7 @@ it('isSyncing async path resolves a promise', async () => {
   })
   const collection = withAsyncQueries(new Collection<TestItem, string, any>())
   syncManager.addCollection(collection, { name: 'test' })
-  const asyncResult = await syncManager.isSyncing<true>('test', true)
+  const asyncResult = await syncManager.isSyncing('test', true)
   expect(asyncResult).toBe(false)
 })
 
