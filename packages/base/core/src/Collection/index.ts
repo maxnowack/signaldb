@@ -13,9 +13,27 @@ import modify from '../utils/modify'
 import deepClone from '../utils/deepClone'
 import queryId from '../utils/queryId'
 import Cursor from './Cursor'
-import type { BaseItem, FieldSpecifier, FindOptions, Transform, TransformAll } from './types'
+import type {
+  AsyncFindOptions,
+  BaseItem,
+  FieldSpecifier,
+  FindOptions,
+  SyncFindOptions,
+  Transform,
+  TransformAll,
+} from './types'
 
-export type { BaseItem, Transform, TransformAll, SortSpecifier, FieldSpecifier, FindOptions } from './types'
+export type {
+  AnyFindOptions,
+  AsyncFindOptions,
+  BaseItem,
+  Transform,
+  TransformAll,
+  SortSpecifier,
+  FieldSpecifier,
+  FindOptions,
+  SyncFindOptions,
+} from './types'
 export type { CursorOptions } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from '../createIndex'
@@ -49,7 +67,7 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'observer.disposed': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
   'getItems': (selector: Selector<T> | undefined) => void,
-  'find': <O extends FindOptions<T, Async>, Async extends boolean>(
+  'find': <Async extends boolean, O extends FindOptions<T, Async>>(
     selector: Selector<T> | undefined,
     options: O | undefined,
     cursor: Cursor<E, U, Async>,
@@ -69,8 +87,8 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'validate': (item: T) => void,
 
   '_debug.getItems': (callstack: string, selector: Selector<T> | undefined, measuredTime: number) => void,
-  '_debug.find': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<E, U, Async>) => void,
-  '_debug.findOne': <O extends FindOptions<T, Async>, Async extends boolean>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
+  '_debug.find': <Async extends boolean, O extends FindOptions<T, Async>>(callstack: string, selector: Selector<T> | undefined, options: O | undefined, cursor: Cursor<E, U, Async>) => void,
+  '_debug.findOne': <Async extends boolean, O extends FindOptions<T, Async>>(callstack: string, selector: Selector<T>, options: O | undefined, item: U | undefined) => void,
   '_debug.insert': (callstack: string, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => void,
   '_debug.updateOne': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
   '_debug.updateMany': (callstack: string, selector: Selector<T>, modifier: Modifier<T>) => void,
@@ -454,18 +472,29 @@ export default class Collection<
   /**
    * Finds multiple items in the collection based on a selector and optional options.
    * Returns a cursor for reactive data queries.
-   * @template O - The options type for the find operation.
    * @param [selector] - The criteria to select items.
    * @param [options] - Options for the find operation, such as limit and sort.
    * @returns A cursor to fetch and observe the matching items.
    */
-  public find<
-    Async extends boolean = false,
-    O extends FindOptions<T, Async> = FindOptions<T, Async>,
-  >(
+  public find(
+    selector?: Selector<T>,
+    options?: SyncFindOptions<T>,
+  ): Cursor<E, U, false>
+
+  public find(
+    selector: Selector<T> | undefined,
+    options: AsyncFindOptions<T>,
+  ): Cursor<E, U, true>
+
+  public find(
+    selector?: Selector<T>,
+    options?: FindOptions<T, boolean>,
+  ): Cursor<E, U, boolean>
+
+  public find<Async extends boolean>(
     selector: Selector<T> = {},
-    options?: O,
-  ) {
+    options?: FindOptions<T, Async>,
+  ): Cursor<E, U, Async> {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
     const getTransformedItems = () => {
@@ -539,24 +568,34 @@ export default class Collection<
    * Finds a single item in the collection based on a selector and optional options.
    * ⚡️ this function is reactive!
    * Returns the found item or undefined if no item matches.
-   * @template Async - Whether to perform the operation asynchronously.
-   * @template O - The options type for the find operation.
    * @param selector - The criteria to select the item.
    * @param [options] - Options for the find operation, such as projection.
    * @returns The found item or `undefined`.
    */
-  public findOne<
-    Async extends boolean = false,
-    O extends Omit<FindOptions<T, Async>, 'limit'> = Omit<FindOptions<T, Async>, 'limit'>,
-  >(
+  public findOne(
     selector: Selector<T>,
-    options?: O,
-  ): Async extends true ? Promise<U | undefined> : U | undefined {
+    options?: Omit<SyncFindOptions<T>, 'limit'>,
+  ): U | undefined
+
+  public findOne(
+    selector: Selector<T>,
+    options: Omit<AsyncFindOptions<T>, 'limit'>,
+  ): Promise<U | undefined>
+
+  public findOne(
+    selector: Selector<T>,
+    options?: Omit<FindOptions<T, boolean>, 'limit'>,
+  ): Promise<U | undefined> | U | undefined
+
+  public findOne(
+    selector: Selector<T>,
+    options?: Omit<FindOptions<T, boolean>, 'limit'>,
+  ): Promise<U | undefined> | U | undefined {
     if (this.isDisposed) throw new Error('Collection is disposed')
-    const cursor = this.find<Async, FindOptions<T, Async>>(selector, {
+    const cursor = this.find(selector, {
       limit: 1,
       ...options,
-    } as FindOptions<T, Async>)
+    } as FindOptions<T, boolean>)
     const handleItems = (items: U[]) => {
       const returnValue = items[0] || undefined
       this.emit('findOne', selector, options, returnValue)
@@ -567,7 +606,7 @@ export default class Collection<
     const maybePromise = cursor.fetch()
     return (maybePromise instanceof Promise
       ? maybePromise.then(handleItems)
-      : handleItems(maybePromise)) as Async extends true ? Promise<U | undefined> : U | undefined
+      : handleItems(maybePromise))
   }
 
   /**

@@ -21,3 +21,13 @@ export interface FindOptions<T extends BaseItem, Async extends boolean> extends 
   /** pass `true` to execute the query asynchronously */
   async?: Async,
 }
+
+export type AsyncFindOptions<T extends BaseItem>
+  = Omit<FindOptions<T, true>, 'async'> & { async: true }
+
+export type SyncFindOptions<T extends BaseItem>
+  = Omit<FindOptions<T, false>, 'async'> & { async?: false }
+
+export type AnyFindOptions<T extends BaseItem>
+  = | AsyncFindOptions<T>
+    | SyncFindOptions<T>
