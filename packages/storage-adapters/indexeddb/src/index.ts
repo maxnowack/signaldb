@@ -188,6 +188,24 @@ function createIndexedDBAdapter<
     })
   }
 
+  const getById = async (id: I) => {
+    const store = await getStore(true)
+    return new Promise<T | null>((resolve, reject) => {
+      const request = store.get(id)
+      request.addEventListener('success', () => resolve(request.result as T || null))
+      request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching item')))
+    })
+  }
+
+  const insertOrReplace = async (items: T[]) => {
+    const store = await getStore(true)
+    await Promise.all(items.map(item => new Promise<void>((resolve, reject) => {
+      const request = store.put(item)
+      request.addEventListener('success', () => resolve())
+      request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error inserting or replacing item')))
+    })))
+  }
+
   return createStorageAdapter<T, I>({
     // lifecycle methods
     setup: async () => {
@@ -210,12 +228,7 @@ function createIndexedDBAdapter<
       })
     },
     readIds: async (ids) => {
-      const store = await getStore()
-      const results = await Promise.all(ids.map(id => new Promise<T | null>((resolve, reject) => {
-        const request = store.get(id)
-        request.addEventListener('success', () => resolve(request.result as T || null))
-        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching item')))
-      })))
+      const results = await Promise.all(ids.map(id => getById(id)))
       return results.filter(item => item !== null)
     },
 
@@ -229,22 +242,8 @@ function createIndexedDBAdapter<
     readIndex,
 
     // data manipulation methods
-    insert: async (newItems) => {
-      const store = await getStore(true)
-      await Promise.all(newItems.map(item => new Promise<void>((resolve, reject) => {
-        const request = store.add(item)
-        request.addEventListener('success', () => resolve())
-        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error inserting item')))
-      })))
-    },
-    replace: async (items) => {
-      const store = await getStore(true)
-      await Promise.all(items.map(item => new Promise<void>((resolve, reject) => {
-        const request = store.put(item)
-        request.addEventListener('success', () => resolve())
-        request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error replacing item')))
-      })))
-    },
+    insert: items => insertOrReplace(items),
+    replace: items => insertOrReplace(items),
     remove: async (itemsToRemove) => {
       const store = await getStore(true)
       await Promise.all(itemsToRemove.map(async item => new Promise<void>((resolve, reject) => {
