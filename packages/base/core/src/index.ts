@@ -33,6 +33,7 @@ export { default as randomId } from './utils/randomId'
 export { default as EventEmitter } from './utils/EventEmitter'
 export { default as get } from './utils/get'
 export { default as serializeValue } from './utils/serializeValue'
+export { default as reactiveOrAsync, unwrap } from './utils/reactiveOrAsync'
 
 export { default as DefaultDataAdapter } from './DefaultDataAdapter'
 export { default as AsyncDataAdapter } from './AsyncDataAdapter'
