@@ -39,6 +39,7 @@ export default class DefaultDataAdapter implements DataAdapter {
   private items: Map<string, Map<string | null, BaseItem>> = new Map()
   private options: DefaultDataAdapterOptions
   private storageAdapters: Map<string, StorageAdapter<any, any>> = new Map()
+  private collections = new Set<Collection<any, any, any, any>>()
 
   private indices: Map<
     string,
@@ -91,12 +92,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
     return storageAdapter.setup()
       .then(async () => {
-        const items: T[] = await storageAdapter.readAll()
-        this.items.set(collection.name, items.reduce((map, item) => {
-          map.set(serializeValue(item.id), item)
-          return map
-        }, new Map<string | null, T>()))
-        this.rebuildIndices(collection)
+        await this.fetchItemsFromStorage(collection)
       })
       .catch((error) => {
         if (!this.options.onError) {
@@ -283,6 +279,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     collection: Collection<T, I, E, U>,
     indices: string[],
   ): CollectionBackend<T, I> {
+    this.collections.add(collection)
     this.ensureStorageAdapter(collection.name)
     this.items.set(collection.name, this.items.get(collection.name) ?? new Map<string | null, T>())
     this.queryEmitters.set(
@@ -503,5 +500,25 @@ export default class DefaultDataAdapter implements DataAdapter {
     }
 
     return backend
+  }
+
+  public async fetchItemsFromStorage<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection?: Collection<T, I, E, U>,
+  ) {
+    if (!collection) {
+      await Promise.all([...this.collections]
+        .map(currentCollection => this.fetchItemsFromStorage(currentCollection)))
+      return
+    }
+
+    const storageAdapter = this.storageAdapters.get(collection.name)
+    if (!storageAdapter) return // no persistence adapter available
+
+    const items: T[] = await storageAdapter.readAll()
+    this.items.set(collection.name, items.reduce((map, item) => {
+      map.set(serializeValue(item.id), item)
+      return map
+    }, new Map<string | null, T>()))
+    this.rebuildIndices(collection)
   }
 }

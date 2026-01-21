@@ -126,6 +126,55 @@ describe('DefaultDataAdapter', () => {
     expect(result).toEqual([{ id: 'i1', x: 1 }])
   })
 
+  it('fetchItemsFromStorage reloads items for all collections', async () => {
+    const readAllA = vi.fn(async () => [{ id: 'a1', x: 1 }])
+    const readAllB = vi.fn(async () => [{ id: 'b1', x: 2 }])
+    const persistenceA = createStorageAdapter<Item, string>({
+      setup: async () => {},
+      teardown: async () => {},
+      readAll: readAllA,
+      readIds: async () => [],
+      createIndex: async () => {},
+      dropIndex: async () => {},
+      readIndex: async () => new Map(),
+      insert: async () => {},
+      replace: async () => {},
+      remove: async () => {},
+      removeAll: async () => {},
+    })
+    const persistenceB = createStorageAdapter<Item, string>({
+      setup: async () => {},
+      teardown: async () => {},
+      readAll: readAllB,
+      readIds: async () => [],
+      createIndex: async () => {},
+      dropIndex: async () => {},
+      readIndex: async () => new Map(),
+      insert: async () => {},
+      replace: async () => {},
+      remove: async () => {},
+      removeAll: async () => {},
+    })
+    const adapter = new DefaultDataAdapter({
+      storage: name => (name === 'a' ? persistenceA : name === 'b' ? persistenceB : undefined),
+    })
+    const colA = new Collection<Item, string, Item>('a', adapter)
+    const colB = new Collection<Item, string, Item>('b', adapter)
+    const backendA = adapter.createCollectionBackend<Item, string, Item>(colA, [])
+    const backendB = adapter.createCollectionBackend<Item, string, Item>(colB, [])
+
+    await Promise.all([backendA.isReady(), backendB.isReady()])
+    readAllA.mockClear()
+    readAllB.mockClear()
+
+    await adapter.fetchItemsFromStorage()
+
+    expect(readAllA).toHaveBeenCalledTimes(1)
+    expect(readAllB).toHaveBeenCalledTimes(1)
+    expect(backendA.getQueryResult({}, {})).toEqual([{ id: 'a1', x: 1 }])
+    expect(backendB.getQueryResult({}, {})).toEqual([{ id: 'b1', x: 2 }])
+  })
+
   it('logs persistence errors when no onError is provided', async () => {
     const error = new Error('boom')
     const persistence = createStorageAdapter<Item, string>({
