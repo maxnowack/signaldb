@@ -156,7 +156,10 @@ describe('DefaultDataAdapter', () => {
       removeAll: async () => {},
     })
     const adapter = new DefaultDataAdapter({
-      storage: name => (name === 'a' ? persistenceA : name === 'b' ? persistenceB : undefined),
+      storage: (name) => {
+        if (name === 'a') return persistenceA
+        if (name === 'b') return persistenceB
+      },
     })
     const colA = new Collection<Item, string, Item>('a', adapter)
     const colB = new Collection<Item, string, Item>('b', adapter)
