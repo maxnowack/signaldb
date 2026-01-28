@@ -368,8 +368,8 @@ export default class WorkerDataAdapterHost<
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
     const setupPromise = (async () => {
-      await Promise.all(indices.map(index => storageAdapter.createIndex(index)))
       await storageAdapter.setup()
+      await Promise.all(indices.map(index => storageAdapter.createIndex(index)))
     })()
 
     this.storageAdapterReady.set(collectionName, setupPromise)
