@@ -36,9 +36,8 @@ SignalDB consists of several packages of which each has indiviudal exports.
 * [`createIndex`](/reference/core/createindex/)
 * [`createIndexProvider`](/reference/core/createindexprovider/)
 * [`createMemoryAdapter`](/reference/core/creatememoryadapter/)
-* [`createPersistenceAdapter`](/reference/core/createpersistenceadapter/)
+* [`createStorageAdapter`](/reference/core/createstorageadapter/)
 * [`createReactivityAdapter`](/reference/core/createreactivityadapter/)
-* [`combinePersistenceAdapters`](/reference/core/combinepersistenceadapters/)
 
 ### `@signaldb/sync`
 * [`SyncManager`](/reference/sync/)

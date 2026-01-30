@@ -1,10 +1,8 @@
 export type { default as ReactivityAdapter } from './types/ReactivityAdapter'
-export type { default as MemoryAdapter } from './types/MemoryAdapter'
 export type {
-  default as PersistenceAdapter,
+  default as StorageAdapter,
   Changeset,
-  LoadResponse,
-} from './types/PersistenceAdapter'
+} from './types/StorageAdapter'
 export type { default as Selector } from './types/Selector'
 export type { default as Modifier } from './types/Modifier'
 export type {
@@ -15,20 +13,30 @@ export type {
   TransformAll,
   SortSpecifier,
   FieldSpecifier,
+  AnyFindOptions,
+  AsyncFindOptions,
   FindOptions,
+  SyncFindOptions,
   CollectionOptions,
 } from './Collection'
+export type { default as DataAdapter } from './DataAdapter'
+
 export { default as Cursor } from './Collection/Cursor'
 
-export { default as Collection, createIndex } from './Collection'
-export { default as AutoFetchCollection } from './AutoFetchCollection'
-export { default as combinePersistenceAdapters } from './persistence/combinePersistenceAdapters'
-export { default as createIndexProvider } from './createIndexProvider'
-export { default as createMemoryAdapter } from './createMemoryAdapter'
-export { default as createPersistenceAdapter } from './persistence/createPersistenceAdapter'
+export { default as Collection } from './Collection'
+export { default as createStorageAdapter } from './createStorageAdapter'
 export { default as createReactivityAdapter } from './createReactivityAdapter'
 
 export { default as isEqual } from './utils/isEqual'
 export { default as modify } from './utils/modify'
 export { default as randomId } from './utils/randomId'
 export { default as EventEmitter } from './utils/EventEmitter'
+export { default as get } from './utils/get'
+export { default as serializeValue } from './utils/serializeValue'
+export { default as reactiveOrAsync, unwrap } from './utils/reactiveOrAsync'
+
+export { default as DefaultDataAdapter } from './DefaultDataAdapter'
+export { default as AsyncDataAdapter } from './AsyncDataAdapter'
+export { default as WorkerDataAdapter } from './WorkerDataAdapter'
+export { default as WorkerDataAdapterHost } from './WorkerDataAdapterHost'
+export { default as AutoFetchDataAdapter } from './AutoFetchDataAdapter'

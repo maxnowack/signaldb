@@ -1,10 +1,10 @@
 import { it, expect, vi } from 'vitest'
-import type { BaseItem, Changeset, LoadResponse, Modifier } from '@signaldb/core'
+import type { BaseItem, Changeset, Modifier } from '@signaldb/core'
 import sync from '../src/sync'
 import computeChanges from '../src/computeChanges'
 import getSnapshot from '../src/getSnapshot'
 import applyChanges from '../src/applyChanges'
-import type { Change } from '../src/types'
+import type { Change, LoadResponse } from '../src/types'
 
 // Example item type
 interface TestItem extends BaseItem<number> {
@@ -29,9 +29,9 @@ it('should apply changes to the last snapshot and push them to the server if the
     items: [{ id: 1, name: 'Item 1' }, { id: 2, name: 'Item 2' }],
   }))
   const mockPush = vi.fn<(changes: Changeset<TestItem>) => Promise<void>>()
-  const mockInsert = vi.fn<(item: TestItem) => void>()
-  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
-  const mockRemove = vi.fn<(id: number) => void>()
+  const mockInsert = vi.fn<(item: TestItem) => Promise<void>>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => Promise<void>>()
+  const mockRemove = vi.fn<(id: number) => Promise<void>>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const snapshot = getSnapshot(lastSnapshot, data)
@@ -67,9 +67,9 @@ it('should not push changes if there is no difference between snapshots', async 
 
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>()
   const mockPush = vi.fn<(changes: Changeset<TestItem>) => Promise<void>>()
-  const mockInsert = vi.fn<(item: TestItem) => void>()
-  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
-  const mockRemove = vi.fn<(id: number) => void>()
+  const mockInsert = vi.fn<(item: TestItem) => Promise<void>>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => Promise<void>>()
+  const mockRemove = vi.fn<(id: number) => Promise<void>>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const lastSnapshotWithChanges = applyChanges(lastSnapshot, changes)
@@ -105,9 +105,9 @@ it('should apply new data changes if no local changes are provided', async () =>
 
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>()
   const mockPush = vi.fn<(changes: Changeset<TestItem>) => Promise<void>>()
-  const mockInsert = vi.fn<(item: TestItem) => void>()
-  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
-  const mockRemove = vi.fn<(id: number) => void>()
+  const mockInsert = vi.fn<(item: TestItem) => Promise<void>>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => Promise<void>>()
+  const mockRemove = vi.fn<(id: number) => Promise<void>>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   await sync({
@@ -143,9 +143,9 @@ it('should pull new data after pushing changes to the server', async () => {
 
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>()
   const mockPush = vi.fn<(changes: Changeset<TestItem>) => Promise<void>>()
-  const mockInsert = vi.fn<(item: TestItem) => void>()
-  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => void>()
-  const mockRemove = vi.fn<(id: number) => void>()
+  const mockInsert = vi.fn<(item: TestItem) => Promise<void>>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<TestItem>) => Promise<void>>()
+  const mockRemove = vi.fn<(id: number) => Promise<void>>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   const newServerData: LoadResponse<TestItem> = {

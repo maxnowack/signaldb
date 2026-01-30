@@ -12,12 +12,20 @@ const List: React.FC = () => {
           <input
             type="checkbox"
             checked={item.completed}
-            onChange={() => Todos.updateOne({ id: item.id }, {
-              $set: { completed: !item.completed },
-            })}
+            onChange={() => {
+              void Todos.updateOne({ id: item.id }, {
+                $set: { completed: !item.completed },
+              })
+            }}
           />
           <p>{item.text}</p>
-          <button onClick={() => Todos.removeOne({ id: item.id })}>x</button>
+          <button
+            onClick={() => {
+              void Todos.removeOne({ id: item.id })
+            }}
+          >
+            x
+          </button>
         </li>
       ))}
       {items.length === 0 && <li className="empty">Empty</li>}
