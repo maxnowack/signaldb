@@ -240,13 +240,11 @@ export default withMermaid({
     transformItems(items) {
       const exclude = new Set([
         '/googlef8c159020eb311c9',
-        '/404',
-        '/examples/firebase',
-        '/examples/firebase/404',
+        '/examples',
         '/examples/appwrite',
-        '/examples/appwrite/404',
+        '/examples/firebase',
+        '/examples/replication-http',
         '/examples/supabase',
-        '/examples/supabase/404',
         'guides/',
         'integrations/',
       ])
