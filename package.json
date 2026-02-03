@@ -20,7 +20,7 @@
   "author": "Max Nowack <max.nowack@gmail.com>",
   "license": "MIT",
   "workspaces": [
-    "examples/*",
+    "examples",
     "packages/integrations/*",
     "packages/storage-adapters/*",
     "packages/reactivity-adapters/*",
