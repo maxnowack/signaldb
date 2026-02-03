@@ -1,0 +1,35 @@
+{
+  "name": "signaldb-examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "copy": "rimraf ../docs/public/examples && cp -R dist ../docs/public/examples"
+  },
+  "dependencies": {
+    "@maverick-js/signals": "^6.0.0",
+    "@signaldb/core": "*",
+    "@signaldb/devtools": "*",
+    "@signaldb/indexeddb": "*",
+    "@signaldb/maverickjs": "*",
+    "@signaldb/react": "*",
+    "@signaldb/sync": "*",
+    "@supabase/supabase-js": "^2.89.0",
+    "appwrite": "^21.5.0",
+    "firebase": "^12.7.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.10",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "rimraf": "6.1.2",
+    "sass": "^1.97.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.1"
+  }
+}
