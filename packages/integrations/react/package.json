@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/react",
-  "version": "2.0.0-beta.5",
+  "version": "2.0.0-beta.6",
   "description": "SignalDB is a client-side database that provides a simple MongoDB-like interface to the data with first-class typescript support to achieve an optimistic UI. Data persistence can be achieved by using storage providers that store the data through a JSON interface to places such as localStorage.",
   "scripts": {
     "build": "rimraf dist && vite build",
