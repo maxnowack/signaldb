@@ -36,12 +36,12 @@ const syncManager = new SyncManager<
   },
   pull: async ({ name }) => {
     const result: {
-      total: number
+      total: number,
       documents: {
-        $id: string
-        text: string
-        completed: boolean
-      }[]
+        $id: string,
+        text: string,
+        completed: boolean,
+      }[],
     } = await authenticatedFetch(`/collections/${name}/documents`)
       .then(fetchResult => fetchResult.json())
     return {
