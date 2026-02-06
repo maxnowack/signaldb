@@ -148,6 +148,13 @@ interface TestItem extends BaseItem<string> {
   name: string,
 }
 
+interface TodoItem extends BaseItem<string> {
+  id: string,
+  title: string,
+  completed: boolean,
+  order: number,
+}
+
 it('should add a collection and register sync events', async () => {
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
@@ -437,6 +444,183 @@ it('should handle sync errors and update sync operation status', async () => {
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Sync failed'))
   const syncOperation = syncManager.isSyncing('test')
   expect(syncOperation).toBe(false)
+})
+
+it('should merge field-level changes when one client is offline', async () => {
+  type Field = 'title' | 'completed' | 'order'
+  type Meta = { time: number, clientId: 'A' | 'B' }
+  type ServerDocument = TodoItem & { meta: Record<Field, Meta> }
+  type UpdateData = { id: string, modifier: { $set?: Partial<TodoItem> } }
+  type RawChange
+    = | { time: number, type: 'insert', data: TodoItem }
+      | { time: number, type: 'update', data: UpdateData }
+      | { time: number, type: 'remove', data: string }
+
+  const serverDocuments = new Map<string, ServerDocument>()
+  const listeners = new Map<'A' | 'B', (data?: LoadResponse<TodoItem>) => Promise<void>>()
+
+  const seed: ServerDocument = {
+    id: 't1',
+    title: 'Initial',
+    completed: false,
+    order: 1,
+    meta: {
+      title: { time: 1, clientId: 'A' },
+      completed: { time: 1, clientId: 'A' },
+      order: { time: 1, clientId: 'A' },
+    },
+  }
+  serverDocuments.set(seed.id, seed)
+
+  const snapshot = () => [...serverDocuments.values()].map(document => ({
+    id: document.id,
+    title: document.title,
+    completed: document.completed,
+    order: document.order,
+  }))
+
+  const notifyAll = () => {
+    const data = { items: snapshot() } satisfies LoadResponse<TodoItem>
+    listeners.forEach((listener) => {
+      void listener(data)
+    })
+  }
+
+  const extractFieldTimes = (rawChanges: RawChange[]) => {
+    const times = new Map<string, Map<Field, number>>()
+    rawChanges.forEach((change) => {
+      if (change.type === 'remove') return
+      const id = change.data.id
+      const fields: Field[] = []
+      if (change.type === 'insert') {
+        fields.push('title', 'completed', 'order')
+      } else if (change.type === 'update') {
+        const keys = Object.keys(change.data.modifier?.$set || {})
+        keys.forEach((key) => {
+          if (key === 'title' || key === 'completed' || key === 'order') fields.push(key)
+        })
+      }
+      if (!times.has(id)) times.set(id, new Map())
+      const entry = times.get(id) as Map<Field, number>
+      fields.forEach((field) => {
+        const current = entry.get(field)
+        if (current == null || change.time > current) entry.set(field, change.time)
+      })
+    })
+    return times
+  }
+
+  const applyChanges = (
+    clientId: 'A' | 'B',
+    changes: {
+      added: TodoItem[],
+      modified: TodoItem[],
+      removed: TodoItem[],
+      modifiedFields: Map<string, string[]>,
+    },
+    rawChanges: RawChange[],
+  ) => {
+    const times = extractFieldTimes(rawChanges)
+
+    const ensureDocument = (id: string) => {
+      const existing = serverDocuments.get(id)
+      if (existing) return existing
+      const fresh: ServerDocument = {
+        id,
+        title: '',
+        completed: false,
+        order: 1,
+        meta: {
+          title: { time: 0, clientId: 'A' },
+          completed: { time: 0, clientId: 'A' },
+          order: { time: 0, clientId: 'A' },
+        },
+      }
+      serverDocuments.set(id, fresh)
+      return fresh
+    }
+
+    const applyField = (document: ServerDocument, field: Field, value: TodoItem[Field]) => {
+      const incomingTime = times.get(document.id)?.get(field) ?? Date.now()
+      const current = document.meta[field]
+      const isNewer = incomingTime > current.time
+        || (incomingTime === current.time && clientId > current.clientId)
+      if (isNewer) {
+        if (field === 'title') document.title = value as string
+        if (field === 'completed') document.completed = value as boolean
+        if (field === 'order') document.order = value as number
+        document.meta[field] = { time: incomingTime, clientId }
+      }
+    }
+
+    changes.added.forEach((item) => {
+      const document = ensureDocument(item.id)
+      applyField(document, 'title', item.title)
+      applyField(document, 'completed', item.completed)
+      applyField(document, 'order', item.order)
+    })
+
+    changes.modified.forEach((item) => {
+      const document = ensureDocument(item.id)
+      const fields = changes.modifiedFields.get(item.id) || []
+      fields.forEach((field) => {
+        if (field === 'title') applyField(document, field, item.title)
+        if (field === 'completed') applyField(document, field, item.completed)
+        if (field === 'order') applyField(document, field, item.order)
+      })
+    })
+
+    changes.removed.forEach(item => serverDocuments.delete(item.id))
+  }
+
+  const createClient = (clientId: 'A' | 'B') => {
+    const syncManager = new SyncManager({
+      pull: async () => ({ items: snapshot() }),
+      push: async (_options, { changes, rawChanges }) => {
+        applyChanges(clientId, changes, rawChanges)
+        notifyAll()
+      },
+      registerRemoteChange: (_options, onChange) => {
+        listeners.set(clientId, onChange)
+        return () => {
+          listeners.delete(clientId)
+        }
+      },
+      debounceTime: 10,
+    })
+    const collection = withAsyncQueries(new Collection<TodoItem, string, any>())
+    const name = `todos_${clientId}`
+    syncManager.addCollection(collection, { name, clientId })
+    return { syncManager, collection, name }
+  }
+
+  const clientA = createClient('A')
+  const clientB = createClient('B')
+
+  await clientA.syncManager.sync(clientA.name)
+  await clientB.syncManager.sync(clientB.name)
+
+  await clientB.syncManager.pauseSync(clientB.name)
+
+  await clientA.collection.updateOne({ id: 't1' }, { $set: { title: 'Renamed by A' } })
+  await clientB.collection.updateOne({ id: 't1' }, { $set: { completed: true } })
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, 60)
+  })
+
+  await clientB.syncManager.startSync(clientB.name)
+  await clientB.syncManager.sync(clientB.name)
+  await clientA.syncManager.sync(clientA.name)
+
+  await vi.waitFor(async () => {
+    const a = await clientA.collection.findOne({ id: 't1' }, { async: true })
+    const b = await clientB.collection.findOne({ id: 't1' }, { async: true })
+    expect(a?.title).toBe('Renamed by A')
+    expect(a?.completed).toBe(true)
+    expect(b?.title).toBe('Renamed by A')
+    expect(b?.completed).toBe(true)
+  })
 })
 
 it('should sync all collections', async () => {
