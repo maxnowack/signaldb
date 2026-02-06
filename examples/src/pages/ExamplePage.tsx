@@ -1,8 +1,9 @@
-import ExampleLayout from './ExampleLayout'
 import { examples } from '../examples/registry'
+import ExampleLayout from './ExampleLayout'
 
 const ExamplePage = ({ exampleId }: { exampleId: string }) => {
-  const example = examples[exampleId]
+  const key = exampleId as keyof typeof examples
+  const example = examples[key]
 
   if (!example) {
     return (

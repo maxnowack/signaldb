@@ -4,7 +4,7 @@ import ExamplePage from './pages/ExamplePage'
 import Home from './pages/Home'
 import './styles/globals.scss'
 
-const rootElement = document.getElementById('root')
+const rootElement = document.querySelector('#root')
 
 if (!rootElement) {
   throw new Error('Root element not found')

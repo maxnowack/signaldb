@@ -5,9 +5,9 @@ const ExampleLayout = ({
   codeUrl,
   children,
 }: {
-  title: string
-  codeUrl: string
-  children: ReactNode
+  title: string,
+  codeUrl: string,
+  children: ReactNode,
 }) => {
   return (
     <main>
