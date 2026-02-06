@@ -7,39 +7,39 @@ interface Database {
     Tables: {
       todos: {
         Row: {
-          completed: boolean | null
-          created_at: string
-          id: number
-          text: string | null
-        }
+          completed: boolean | null,
+          created_at: string,
+          id: number,
+          text: string | null,
+        },
         Insert: {
-          completed?: boolean | null
-          created_at?: string
-          id?: number
-          text?: string | null
-        }
+          completed?: boolean | null,
+          created_at?: string,
+          id?: number,
+          text?: string | null,
+        },
         Update: {
-          completed?: boolean | null
-          created_at?: string
-          id?: number
-          text?: string | null
-        }
-        Relationships: []
-      }
-    }
+          completed?: boolean | null,
+          created_at?: string,
+          id?: number,
+          text?: string | null,
+        },
+        Relationships: [],
+      },
+    },
     Views: {
       [_ in never]: never
-    }
+    },
     Functions: {
       [_ in never]: never
-    }
+    },
     Enums: {
       [_ in never]: never
-    }
+    },
     CompositeTypes: {
       [_ in never]: never
-    }
-  }
+    },
+  },
 }
 
 const supabaseUrl = 'https://jjgysyutehjldurguojg.supabase.co'
@@ -74,9 +74,9 @@ const syncManager = new SyncManager<
       .select()
       .overrideTypes<{ id: string }[]>()
     const items = (documents.data ?? []) as unknown as {
-      id: string
-      text: string
-      completed: boolean
+      id: string,
+      text: string,
+      completed: boolean,
     }[]
     return { items }
   },

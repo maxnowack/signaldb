@@ -11,21 +11,21 @@ export const examples = {
     codeUrl: 'https://github.com/maxnowack/signaldb/tree/main/examples/src/examples/replication-http/Example.tsx',
     component: ReplicationHttpExample,
   },
-  appwrite: {
+  'appwrite': {
     slug: 'appwrite',
     title: 'Appwrite',
     heading: 'SignalDB Appwrite Example - Todo App',
     codeUrl: 'https://github.com/maxnowack/signaldb/tree/main/examples/src/examples/appwrite/Example.tsx',
     component: AppwriteExample,
   },
-  firebase: {
+  'firebase': {
     slug: 'firebase',
     title: 'Firebase',
     heading: 'SignalDB Firebase Example - Todo App',
     codeUrl: 'https://github.com/maxnowack/signaldb/tree/main/examples/src/examples/firebase/Example.tsx',
     component: FirebaseExample,
   },
-  supabase: {
+  'supabase': {
     slug: 'supabase',
     title: 'Supabase',
     heading: 'SignalDB Supabase Example - Todo App',
