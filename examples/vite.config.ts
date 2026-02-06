@@ -1,10 +1,11 @@
-import { resolve, dirname } from 'node:path'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
+// @ts-expect-error -- Vite config is type-checked under bundler resolution in examples.
 import react from '@vitejs/plugin-react'
 
-const rootDir = dirname(fileURLToPath(import.meta.url))
-const resolvePath = (path: string) => resolve(rootDir, path)
+const rootDirectory = path.dirname(fileURLToPath(import.meta.url))
+const resolvePath = (value: string) => path.resolve(rootDirectory, value)
 
 export default defineConfig({
   plugins: [react()],
