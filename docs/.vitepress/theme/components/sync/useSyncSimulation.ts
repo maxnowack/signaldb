@@ -3,6 +3,7 @@ import { Collection } from '@signaldb/core'
 import type { BaseItem } from '@signaldb/core'
 import { SyncManager } from '@signaldb/sync'
 import vueReactivityAdapter from '@signaldb/vue'
+import '@signaldb/devtools'
 
 export type ClientId = 'A' | 'B'
 export type Todo = {
@@ -214,8 +215,7 @@ function createClient(id: ClientId, server: ServerRuntime): ClientRuntime {
   syncManager.addCollection(collection, { name, clientId: id })
 
   void syncManager.startSync(name)
-
-  void collection.isReady()
+  void collection.ready()
     .then(() => syncManager.sync(name))
     .catch(() => { /* ignore demo sync errors */ })
 
@@ -512,7 +512,7 @@ function addTodo(clientId: ClientId, clientA: ClientRuntime, clientB: ClientRunt
   const order = nextOrder(client.state.items)
   const id = `${clientId}-${Math.random().toString(36).slice(2, 8)}`
 
-  client.collection.insert({ id, title, completed: false, order })
+  void client.collection.insert({ id, title, completed: false, order })
   client.state.newTitle = ''
 }
 
@@ -543,7 +543,7 @@ function toggleComplete(
   const client = getClient(clientId, clientA, clientB)
   const item = client.state.items.find(todo => todo.id === id)
   if (!item) return
-  client.collection.updateOne({ id }, { $set: { completed: !item.completed } })
+  void client.collection.updateOne({ id }, { $set: { completed: !item.completed } })
 }
 
 /**
@@ -586,7 +586,7 @@ function finishEdit(
     client.state.editingId = null
     return
   }
-  client.collection.updateOne({ id }, { $set: { title } })
+  void client.collection.updateOne({ id }, { $set: { title } })
   client.state.editingId = null
 }
 
@@ -629,7 +629,7 @@ function onDrop(
   else if (before && !after) order = before.order + 1
   else if (before && after) order = (before.order + after.order) / 2
 
-  client.collection.updateOne({ id: dragging.id }, { $set: { order } })
+  void client.collection.updateOne({ id: dragging.id }, { $set: { order } })
   dragging.clientId = null
   dragging.id = null
 }
@@ -652,7 +652,7 @@ function onDropEnd(
     .findLast(item => item.id !== dragging.id)
   const order = last ? last.order + 1 : 1
 
-  client.collection.updateOne({ id: dragging.id }, { $set: { order } })
+  void client.collection.updateOne({ id: dragging.id }, { $set: { order } })
   dragging.clientId = null
   dragging.id = null
 }
