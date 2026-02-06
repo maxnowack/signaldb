@@ -29,8 +29,8 @@ head:
 
 hero:
   name: SignalDB
-  text: Local-First JavaScript Database with Signals
-  tagline: Build offline-capable apps that stay fast and responsive, with real-time sync across any backend.
+  text: Reactive Local-First JavaScript Database
+  tagline: Signals for instant UI updates, plus real-time sync when you need it.
   image:
     src: /logo.svg
     alt: SignalDB Logo
@@ -44,35 +44,37 @@ hero:
 
 features:
   - icon: ⚡️
-    title: Signal-Based Reactive Database
+    title: Signal-Based Reactivity
     link: /reactivity/
-    details: SignalDB is a <strong>Reactive Database</strong> that leverages signal-based reactivity to instantly reflect data changes in real-time. SignalDB offers a universal interface that works with any JavaScript framework or library. It provides pre-built adapters for numerous libraries including <a href="/guides/angular/">Angular</a>, <a href="/guides/solid-js/">Solid.js</a>, <a href="/guides/react/">React</a>, <a href="/guides/vue/">Vue</a>, and <a href="/reactivity/#reactivity-libraries">others</a>!
+    details: SignalDB is a <strong>reactive JavaScript database</strong> powered by signals for instant UI updates. Works with any framework, with adapters for <a href="/guides/angular/">Angular</a>, <a href="/guides/solid-js/">Solid.js</a>, <a href="/guides/react/">React</a>, <a href="/guides/vue/">Vue</a>, and more.
   - icon: 📍
     title: Local-First
     link: /sync/#local-first-synchronization
-    details: SignalDB is a <strong>Local-First Database</strong>, meaning it prioritizes local data storage and processing. This approach ensures that your application remains responsive and functional even when offline. SignalDB automatically syncs data with the server once the connection is re-established, providing a seamless user experience.
+    details: A <strong>local-first database</strong> that keeps apps fast and usable offline. Data syncs automatically when you’re back online for a smooth offline-first experience.
   - icon: 🔄
     title: Real-Time Synchronization
     link: /sync/
-    details: With SignalDB’s sync capabilities you can ensures data consistency between your application and your server. SignalDB provides <strong>Real-Time Synchronization</strong> that keeps your data up-to-date across all clients and servers, providing a seamless user experience. It also includes built-in conflict resolution to manage data discrepancies effectively.
+    details: Built-in <strong>real-time sync</strong> keeps data consistent across clients and servers. Includes conflict handling for reliable collaborative and multi-device apps.
   - icon: 👌
     title: Developer Friendly
     link: /core-concepts/
-    details: SignalDB is designed for simplicity and ease of use. With full <strong>TypeScript</strong> support, it guarantees type safety across your application. The familiar <a href="/queries/">MongoDB-like query syntax</a> lets you use existing knowledge of selectors and operators. Additionally, the built-in <a href="/orm/">ORM</a> simplifies data modeling, letting you define relationships and handle complex data structures more easily.
+    details: Full <strong>TypeScript</strong> support with a familiar <a href="/queries/">MongoDB-like query</a> API. Model relationships easily with the built-in <a href="/orm/">ORM</a>.
   - icon: ✨
     title: Optimistic UI
     link: /core-concepts/#optimistic-ui
-    details: Enhance the <strong>User Experience</strong> of your application with <strong>Optimistic UI</strong>. This provides immediate feedback to users by anticipating actions, resulting in a seamless and responsive interface even before the server confirms the changes.
+    details: Ship snappy apps with <strong>optimistic UI</strong>—updates render instantly while sync runs in the background.
   - icon: 🛠️
     title: Developer Tools
     link: /devtools/
-    details: SignalDB comes with a set of <strong>Developer Tools</strong> that provide real-time debugging, query monitoring, and performance insights. These tools help you optimize your application by identifying bottlenecks and improving performance.
+    details: Use <strong>devtools</strong> to inspect queries, changes, and performance in real time. Debug faster and spot bottlenecks early.
   - icon: 🔌
     title: Backend Agnostic
     link: /sync/#syncing-with-any-backend
-    details: SignalDB is <strong>Backend Agnostic</strong>, allowing you to integrate with any server setup. Whether you are using a simple REST API or a complex GraphQL setup. SignalDB provides a universal interface that works with any backend technology.
+    details: Sync works with REST, GraphQL, or custom APIs. Plug into your existing server without rewrites.
   - icon: 💾
     title: Storage Adapters
     link: /data-persistence/
-    details: SignalDB offers a versatile API for integrating Storage Adapters, enabling you to store data across various environments. Whether you’re building a web, mobile, or desktop application, SignalDB makes it easy to implement storage solutions. It also includes pre-built adapters for <strong>IndexedDB</strong>, <strong>LocalStorage</strong>, and more.
+    details: Persist data anywhere with flexible <strong>storage adapters</strong>. Includes support for <strong>IndexedDB</strong>, <strong>OPFS</strong>, and more.
 ---
+
+<SyncExample />

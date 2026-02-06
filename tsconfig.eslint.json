@@ -7,7 +7,7 @@
   "include": [
     ".eslintrc.js",
     "docs/.vitepress/config.mts",
-    "docs/.vitepress/theme/index.ts",
+    "docs/.vitepress/theme/**/*.ts",
     "**/*.spec.ts",
     "**/*.ts",
     "**/*.tsx",
