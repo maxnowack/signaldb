@@ -1,3 +1,4 @@
+import type { QueryOptions } from '../DataAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 
 export type BaseItem<I = any> = { id: I } & Record<string, any>
@@ -12,17 +13,21 @@ export type SortSpecifier<T> = { [P in keyof T]?: -1 | 1 } & Record<string, -1 |
 
 export type FieldSpecifier<T> = { [P in keyof T]?: 0 | 1 } & Record<string, 0 | 1>
 
-export interface FindOptions<T extends BaseItem> {
-  /** Sort order (default: natural order) */
-  sort?: SortSpecifier<T> | undefined,
-  /** Number of results to skip at the beginning */
-  skip?: number | undefined,
-  /** Maximum number of results to return */
-  limit?: number | undefined,
-  /** Dictionary of fields to return or exclude. */
-  fields?: FieldSpecifier<T> | undefined,
+export interface FindOptions<T extends BaseItem, Async extends boolean> extends QueryOptions<T> {
   /** pass `false` to disable reactivity */
   reactive?: ReactivityAdapter | false,
   /** pass `true` to enable automatic field-level reactitivy */
   fieldTracking?: boolean,
+  /** pass `true` to execute the query asynchronously */
+  async?: Async,
 }
+
+export type AsyncFindOptions<T extends BaseItem>
+  = Omit<FindOptions<T, true>, 'async'> & { async: true }
+
+export type SyncFindOptions<T extends BaseItem>
+  = Omit<FindOptions<T, false>, 'async'> & { async?: false }
+
+export type AnyFindOptions<T extends BaseItem>
+  = | AsyncFindOptions<T>
+    | SyncFindOptions<T>

@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/mobx",
-  "version": "1.0.0",
+  "version": "2.0.0-beta.6",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
@@ -52,7 +52,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "1.x",
+    "@signaldb/core": "1.x || ^2.0.0-0",
     "mobx": "6.x.x"
   }
 }
