@@ -69,7 +69,7 @@ Parameters
   * name: An optional name for the collection to make it easier to identify. This name will also be used in the developer tools.
   * memory: A [MemoryAdapter](/core-concepts/#memory-adapters) for storing items in memory.
   * reactivity: A [ReactivityAdapter](/reactivity/) for enabling reactivity.
-  * persistence: A [PersistenceAdapter](/data-persistence/) for enabling persistent storage.
+  * persistence: A [StorageAdapter](/data-persistence/) for enabling persistent storage.
   * transform: A transformation function to be applied to items. The document that should be transformed is passed as the only parameter. The function should return the transformed document (e.g. `(doc: T) => U`)
   * indices: An array of [IndexProvider](/reference/core/createindexprovider/) objects for creating indices on the collection.
   * primaryKeyGenerator: A function that generates a unique ID for the item. If not provided, a default generator will be used.

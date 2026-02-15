@@ -30,7 +30,12 @@ const handlerCategories: Record<string, string[]> = {
 }
 
 const handlers = {
-  '_debug.find': (collection: Collection<any>, callstack: string, selector: Selector<any> | undefined, options: FindOptions<any> | undefined) => {
+  '_debug.find': (
+    collection: Collection<any>,
+    callstack: string,
+    selector: Selector<any> | undefined,
+    options: FindOptions<any, false> | undefined,
+  ) => {
     let newQueries = [...dataStore.getItem('queries')?.items || []]
     // increase the count of the query with same selector and options if it exists
     let exists = false

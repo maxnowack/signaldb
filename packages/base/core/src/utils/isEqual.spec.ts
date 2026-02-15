@@ -31,6 +31,7 @@ describe('isEqual', () => {
     expect(isEqual('hello', 'world')).toBe(false)
     expect(isEqual(true, false)).toBe(false)
     expect(isEqual({}, null)).toBe(false)
+    expect(isEqual(null as unknown as Record<string, unknown>, {})).toBe(false)
     expect(isEqual({ a: 1 }, { b: 2 })).toBe(false)
     expect(isEqual({}, {})).toBe(true)
     expect(isEqual({ test: true }, {})).toBe(false)

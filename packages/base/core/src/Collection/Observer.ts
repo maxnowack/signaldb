@@ -103,9 +103,23 @@ export default class Observer<T extends { id: any }> {
   /**
    * Compares the previous state of items with the new state and triggers the appropriate callbacks
    * for events such as added, removed, changed, or moved items.
-   * @param newItems - The new list of items to compare against the previous state.
+   * @param getItems - A function that returns a promise resolving to the new items or the items themselves.
    */
-  public runChecks(newItems: T[]) {
+  public runChecks(getItems: () => Promise<T[]> | T[]) {
+    const result = getItems()
+    if (result instanceof Promise) {
+      result
+        .then(newItems => this.checkItems(newItems))
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Error while asynchronously querying items', error)
+        })
+    } else {
+      this.checkItems(result)
+    }
+  }
+
+  private checkItems(newItems: T[]) {
     const oldItemsMap = new Map(this.previousItems.map((item, index) => [
       item.id,
       { item, index, beforeItem: this.previousItems[index + 1] || null },
@@ -174,10 +188,15 @@ export default class Observer<T extends { id: any }> {
     })
   }
 
+  private stopped = false
+
   /**
    * Stops the observer by unbinding all events and cleaning up resources.
+   * Safe to call multiple times - will only unbind once.
    */
   public stop() {
+    if (this.stopped) return
+    this.stopped = true
     this.unbindEvents()
   }
 

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+* The `insert`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous and return a `Promise<void>`
+* The `createMemoryAdapter` method and `MemoryAdapter` type were removed.
+* The `memory` option for a `Collection` was removed.
+* The `AutoFetchCollection` was removed. Use the `AutoFetchDataAdapter` instead.
+* `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
+* Indices on a `Collection` are now specified as an array of strings instead of using `IndexProvider` or `LowLevelIndexProvider` instances.
+* `PersistenceAdapter` was renamed to `StorageAdapter` and the signature was changed in a non backward compatible way.
+* The `createPersistenceAdapter` method was renamed to `createStorageAdapter`.
+* The `combinePersistenceAdapters` method was removed.
+* All persistence events on the `Collection` were removed.
+* Exports for `createIndexProvider` and `createIndex` were removed. Specify indices as strings instead.
+* `.isReady()` method on `Collection` was renamed to `.ready()`. A new reactive `.isReady` method was added to check if the collection is ready in a reactive way.
+
+### Added
+
+* Introduced support to use a `DataAdapter` with a `Collection` to handle data operations in a more structured way.
+* Added `DefaultDataAdapter` which provides a basic and backward compatible implementation of the `DataAdapter` interface.
+* Added `AsyncDataAdapter` which provides an asynchronous implementation of the `DataAdapter` interface.
+* Added `WorkerDataAdapter` and `WorkerDataAdapterHost` which provides a `DataAdapter` implementation that runs in a web worker.
+* Added `isBatchOperationInProgress` method to `Collection` to check if a batch operation is currently in progress.
+
+## [1.7.3] - ????-??-??
+
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources (thanks @signalize!)
 
 ## [1.7.2] - 2026-01-07

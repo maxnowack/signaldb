@@ -5,5 +5,7 @@
  * randomId() // '1234567890abcdef'
  */
 export default function randomId() {
-  return Math.floor(Math.random() * 1e17).toString(16)
+  return Array.from({ length: 16 }, () =>
+    'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)],
+  ).join('')
 }

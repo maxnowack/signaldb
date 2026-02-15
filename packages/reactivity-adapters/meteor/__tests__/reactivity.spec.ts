@@ -21,7 +21,7 @@ describe('@signaldb/meteor', () => {
       callback(collection.find({ name: 'John' }).count())
     })
     Tracker.flush()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })
@@ -44,7 +44,7 @@ describe('@signaldb/meteor', () => {
       }).count())
     })
     Tracker.flush()
-    collection.insert({ id: '1', name: 'John' })
+    await collection.insert({ id: '1', name: 'John' })
     await new Promise((resolve) => {
       setTimeout(resolve, 0)
     })

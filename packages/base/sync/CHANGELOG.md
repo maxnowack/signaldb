@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+* Removed compatibility with `@signaldb/core` versions below `2.0.0`
+* Removed `persistenceAdapter` option from `SyncManager` constructor options. Use `dataAdapter` option instead.
+
 ## [1.3.1] - 2025-04-29
 
 ### Fixed
