@@ -191,6 +191,7 @@ export default class SyncManager<
    * Clears all internal data structures
    */
   public async dispose() {
+    this.isDisposed = true
     this.collections.clear()
     this.syncQueues.clear()
     this.remoteChanges.splice(0)
@@ -199,7 +200,6 @@ export default class SyncManager<
       this.snapshots.dispose(),
       this.syncOperations.dispose(),
     ])
-    this.isDisposed = true
   }
 
   /**
@@ -271,6 +271,7 @@ export default class SyncManager<
     }
 
     collection.on('added', (item) => {
+      if (this.isDisposed) return
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'insert', data: item })) {
         removeRemoteChanges(options.name, item.id)
@@ -287,6 +288,7 @@ export default class SyncManager<
       this.schedulePush(options.name)
     })
     collection.on('changed', ({ id }, modifier) => {
+      if (this.isDisposed) return
       const data = { id, modifier }
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'update', data })) {
@@ -304,6 +306,7 @@ export default class SyncManager<
       this.schedulePush(options.name)
     })
     collection.on('removed', ({ id }) => {
+      if (this.isDisposed) return
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'remove', data: id })) {
         removeRemoteChanges(options.name, id)
@@ -365,6 +368,7 @@ export default class SyncManager<
       ? await this.options.registerRemoteChange(
         collectionParameters.options,
         async (data) => {
+          if (this.isDisposed) return
           if (data == null) {
             await this.sync(name)
           } else {
@@ -377,6 +381,7 @@ export default class SyncManager<
             })
             await this.syncWithData(name, data)
               .then(() => {
+                if (this.isDisposed) return
                 // clean up old sync operations
                 this.syncOperations.removeMany({
                   id: { $ne: syncId },
@@ -577,6 +582,7 @@ export default class SyncManager<
     name: string,
     data: LoadResponse<ItemType>,
   ) {
+    if (this.isDisposed) return
     const { collection, options: collectionOptions } = this.getCollectionProperties(name)
 
     const syncTime = Date.now()
@@ -665,6 +671,8 @@ export default class SyncManager<
       },
     })
       .then(async (snapshot) => {
+        if (this.isDisposed) return
+
         // clean up old snapshots
         this.snapshots.removeMany({
           collectionName: name,
