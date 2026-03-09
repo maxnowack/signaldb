@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added the previous state (before the update) as an argument to `'changed'` event handlers. This provides additional information to handlers, enabling e.g. history functionality (thanks @robot-controller!)
+
 ## [1.8.1] - 2026-03-17
 
 ### Fixed

@@ -186,7 +186,10 @@ describe('Cursor', () => {
       await wait() // Wait for all operations to finish
       expect(callbacks.added).not.toHaveBeenCalled()
       expect(callbacks.addedBefore).not.toHaveBeenCalled()
-      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
+      expect(callbacks.changed).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, name: 'item1_modified' }),
+        expect.objectContaining({ id: 1, name: 'Item 1' }),
+      )
       expect(callbacks.movedBefore).not.toHaveBeenCalled()
       expect(callbacks.removed).not.toHaveBeenCalled()
     })
@@ -289,7 +292,10 @@ describe('Cursor', () => {
       await wait() // Wait for all operations to finish
       expect(callbacks.added).not.toHaveBeenCalled()
       expect(callbacks.addedBefore).not.toHaveBeenCalled()
-      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 30' }))
+      expect(callbacks.changed).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 2, name: 'Item 30' }),
+        expect.objectContaining({ id: 2, name: 'Item 2' }),
+      )
       expect(callbacks.movedBefore).toHaveBeenCalledWith(
         expect.objectContaining({ id: 2, name: 'Item 30' }),
         null,
@@ -357,7 +363,10 @@ describe('Cursor', () => {
       await new Promise((resolve) => {
         setTimeout(resolve, 0)
       })
-      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'item1_modified' }))
+      expect(callbacks.changed).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, name: 'item1_modified' }),
+        expect.objectContaining({ id: 1, name: 'Item 1' }),
+      )
 
       col.updateOne({ id: 1 }, { $set: { count: 42 } }) // Move existing item
       await new Promise((resolve) => {
