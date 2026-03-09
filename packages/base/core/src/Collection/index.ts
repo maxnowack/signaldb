@@ -146,7 +146,7 @@ export default class Collection<
 > extends EventEmitter<CollectionEvents<T, E, U>> {
   private static collections: Collection<any, any>[] = []
   private static debugMode = false
-  private static batchOperationInProgress = false
+  private static staticBatchOperationsInProgress = 0
   private static fieldTracking = false
   private static onCreationCallbacks: ((collection: Collection<any>) => void)[] = []
   private static onDisposeCallbacks: ((collection: Collection<any>) => void)[] = []
@@ -192,10 +192,10 @@ export default class Collection<
    * @param callback - The batch operation to execute.
    */
   static batch(callback: () => void) {
-    Collection.batchOperationInProgress = true
+    Collection.staticBatchOperationsInProgress++
     Collection.collections.reduce((memo, collection) => () =>
       collection.batch(() => memo()), callback)()
-    Collection.batchOperationInProgress = false
+    Collection.staticBatchOperationsInProgress--
   }
 
   public readonly name: string
@@ -207,7 +207,7 @@ export default class Collection<
   private indicesOutdated = false
   private idIndex = new Map<string | undefined | null, Set<number>>()
   private debugMode
-  private batchOperationInProgress = false
+  private batchOperationsInProgress = 0
   private isDisposed = false
   private postBatchCallbacks = new Set<() => void>()
   private fieldTracking = false
@@ -504,7 +504,7 @@ export default class Collection<
 
   private rebuildIndices() {
     this.indicesOutdated = true
-    if (this.batchOperationInProgress) return
+    if (this.batchOperationsInProgress !== 0) return
     this.rebuildAllIndices()
   }
 
@@ -569,7 +569,7 @@ export default class Collection<
     this.idIndex.delete(serializeValue(id))
 
     // offset all indices after the deleted item -1, but only during batch operations
-    if (!this.batchOperationInProgress) return
+    if (this.batchOperationsInProgress === 0) return
     this.idIndex.forEach(([currenIndex], key) => {
       if (currenIndex > index) {
         this.idIndex.set(key, new Set([currenIndex - 1]))
@@ -659,7 +659,7 @@ export default class Collection<
       transformAll: this.transformAll.bind(this),
       bindEvents: (requery) => {
         const handleRequery = () => {
-          if (this.batchOperationInProgress) {
+          if (this.batchOperationsInProgress !== 0) {
             this.postBatchCallbacks.add(requery)
             return
           }
@@ -712,16 +712,22 @@ export default class Collection<
    * @param callback - The batch operation to execute.
    */
   public batch(callback: () => void) {
-    this.batchOperationInProgress = true
-    callback()
-    this.batchOperationInProgress = false
+    this.batchOperationsInProgress++
+    try {
+      callback()
+    } finally {
+      this.batchOperationsInProgress--
+    }
 
-    // rebuild indiices as they are not rebuilt during batch operations
-    this.rebuildAllIndices()
+    // Rebuild indices after the last nested batch operation completes
+    if (this.batchOperationsInProgress === 0) {
+      // rebuild indiices as they are not rebuilt during batch operations
+      this.rebuildAllIndices()
 
-    // execute all post batch callbacks
-    this.postBatchCallbacks.forEach(callback_ => callback_())
-    this.postBatchCallbacks.clear()
+      // execute all post batch callbacks
+      this.postBatchCallbacks.forEach(callback_ => callback_())
+      this.postBatchCallbacks.clear()
+    }
   }
 
   /**
