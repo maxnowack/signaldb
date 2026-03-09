@@ -158,7 +158,7 @@ export default class Collection<
   private static fieldTracking = false
   private static onCreationCallbacks: ((collection: Collection<any>) => void)[] = []
   private static onDisposeCallbacks: ((collection: Collection<any>) => void)[] = []
-  private static staticEvents: EventEmitter<StaticCollectionEvents> = new EventEmitter()
+  public static staticEvents: EventEmitter<StaticCollectionEvents> = new EventEmitter()
 
   static getCollections() {
     return Collection.collections
