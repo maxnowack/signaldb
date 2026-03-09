@@ -174,7 +174,7 @@ describe('Collection', () => {
 
       collection.updateOne({ id: '1' }, { $set: { name: 'Jane' } })
 
-      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } }, { id: '1', name: 'John' })
     })
 
     it('should not throw an error if no item matches the selector', () => {
@@ -272,8 +272,8 @@ describe('Collection', () => {
       collection.updateMany({ name: 'John' }, { $set: { name: 'Jane' } })
 
       expect(eventHandler).toHaveBeenCalledTimes(2)
-      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } })
-      expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' }, { $set: { name: 'Jane' } })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jane' }, { $set: { name: 'Jane' } }, { id: '1', name: 'John' })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '3', name: 'Jane' }, { $set: { name: 'Jane' } }, { id: '3', name: 'John' })
     })
 
     it('should throw an error if trying to update the item id to a value that already exists', () => {
@@ -312,7 +312,7 @@ describe('Collection', () => {
 
       collection.replaceOne({ id: '1' }, { name: 'Jack' })
 
-      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jack' }, { name: 'Jack' })
+      expect(eventHandler).toHaveBeenCalledWith({ id: '1', name: 'Jack' }, { name: 'Jack' }, { id: '1', name: 'John' })
     })
 
     it('should not throw an error if no item matches the selector', () => {
