@@ -38,6 +38,11 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
   primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 }
 
+interface StaticCollectionEvents {
+  'static.batch.start': () => void,
+  'static.batch.end': () => void,
+}
+
 interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'added': (item: T) => void,
   'changed': (itemAfter: T, modifier: Modifier<T>, itemBefore: T) => void,
@@ -54,6 +59,9 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
 
   'observer.created': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
   'observer.disposed': <O extends FindOptions<T>>(selector?: Selector<T>, options?: O) => void,
+
+  'batch.start': () => void,
+  'batch.end': () => void,
 
   'getItems': (selector: Selector<T> | undefined) => void,
   'find': <O extends FindOptions<T>>(
@@ -150,6 +158,7 @@ export default class Collection<
   private static fieldTracking = false
   private static onCreationCallbacks: ((collection: Collection<any>) => void)[] = []
   private static onDisposeCallbacks: ((collection: Collection<any>) => void)[] = []
+  private static staticEvents: EventEmitter<StaticCollectionEvents> = new EventEmitter()
 
   static getCollections() {
     return Collection.collections
@@ -192,10 +201,16 @@ export default class Collection<
    * @param callback - The batch operation to execute.
    */
   static batch(callback: () => void) {
+    if (Collection.staticBatchOperationsInProgress === 0) {
+      Collection.staticEvents.emit('static.batch.start')
+    }
     Collection.staticBatchOperationsInProgress++
     Collection.collections.reduce((memo, collection) => () =>
       collection.batch(() => memo()), callback)()
     Collection.staticBatchOperationsInProgress--
+    if (Collection.staticBatchOperationsInProgress === 0) {
+      Collection.staticEvents.emit('static.batch.end')
+    }
   }
 
   public readonly name: string
@@ -712,6 +727,9 @@ export default class Collection<
    * @param callback - The batch operation to execute.
    */
   public batch(callback: () => void) {
+    if (this.batchOperationsInProgress === 0) {
+      this.emit('batch.start')
+    }
     this.batchOperationsInProgress++
     try {
       callback()
@@ -727,6 +745,9 @@ export default class Collection<
       // execute all post batch callbacks
       this.postBatchCallbacks.forEach(callback_ => callback_())
       this.postBatchCallbacks.clear()
+
+      // emit batch end event
+      this.emit('batch.end')
     }
   }
 
