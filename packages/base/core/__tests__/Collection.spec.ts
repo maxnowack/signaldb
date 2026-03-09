@@ -626,6 +626,109 @@ describe('Collection', () => {
       expect(col.listenerCount('changed')).toBe(0)
       expect(col.listenerCount('removed')).toBe(0)
     })
+
+    it('should fire batch events', () => {
+      // Use vi.fn() to test the events
+      const batchStartHandler = vi.fn()
+      const batchEndHandler = vi.fn()
+      const staticBatchStartHandler = vi.fn()
+      const staticBatchEndHandler = vi.fn()
+
+      // Listen to static batch events
+      Collection['staticEvents'].on('static.batch.start', staticBatchStartHandler)
+      Collection['staticEvents'].on('static.batch.end', staticBatchEndHandler)
+
+      const col = new Collection<{ id: string, name: string }>()
+      col.on('batch.start', batchStartHandler)
+      col.on('batch.end', batchEndHandler)
+
+      // Helper to track call order
+      const callOrder: string[] = []
+      batchStartHandler.mockImplementation(() => callOrder.push('batch.start'))
+      batchEndHandler.mockImplementation(() => callOrder.push('batch.end'))
+      staticBatchStartHandler.mockImplementation(() => callOrder.push('static.batch.start'))
+      staticBatchEndHandler.mockImplementation(() => callOrder.push('static.batch.end'))
+
+      // Non-static batch (instance method)
+      col.batch(() => {
+        col.insert({ id: '1', name: 'John' })
+        col.insert({ id: '2', name: 'Jane' })
+      })
+      expect(batchStartHandler).toHaveBeenCalledTimes(1)
+      expect(batchEndHandler).toHaveBeenCalledTimes(1)
+      expect(callOrder).toEqual(['batch.start', 'batch.end'])
+
+      // Static batch (static method)
+      batchStartHandler.mockClear()
+      batchEndHandler.mockClear()
+      staticBatchStartHandler.mockClear()
+      staticBatchEndHandler.mockClear()
+      callOrder.length = 0
+      Collection.batch(() => {
+        col.insert({ id: '3', name: 'Jack' })
+        col.insert({ id: '4', name: 'Jill' })
+      })
+      expect(batchStartHandler).toHaveBeenCalledTimes(1)
+      expect(batchEndHandler).toHaveBeenCalledTimes(1)
+      expect(staticBatchStartHandler).toHaveBeenCalledTimes(1)
+      expect(staticBatchEndHandler).toHaveBeenCalledTimes(1)
+      expect(callOrder).toEqual([
+        'static.batch.start',
+        'batch.start',
+        'batch.end',
+        'static.batch.end',
+      ])
+
+      // Nested batch: static inside static
+      batchStartHandler.mockClear()
+      batchEndHandler.mockClear()
+      staticBatchStartHandler.mockClear()
+      staticBatchEndHandler.mockClear()
+      callOrder.length = 0
+      Collection.batch(() => {
+        Collection.batch(() => {
+          col.insert({ id: '5', name: 'Nested' })
+        })
+      })
+      expect(staticBatchStartHandler).toHaveBeenCalledTimes(1)
+      expect(staticBatchEndHandler).toHaveBeenCalledTimes(1)
+      expect(batchStartHandler).toHaveBeenCalledTimes(1)
+      expect(batchEndHandler).toHaveBeenCalledTimes(1)
+      expect(callOrder).toEqual([
+        'static.batch.start',
+        'batch.start',
+        'batch.end',
+        'static.batch.end',
+      ])
+
+      // Nested batch: instance inside static
+      batchStartHandler.mockClear()
+      batchEndHandler.mockClear()
+      staticBatchStartHandler.mockClear()
+      staticBatchEndHandler.mockClear()
+      callOrder.length = 0
+      Collection.batch(() => {
+        col.batch(() => {
+          col.insert({ id: '6', name: 'Nested2' })
+        })
+      })
+      expect(staticBatchStartHandler).toHaveBeenCalledTimes(1)
+      expect(staticBatchEndHandler).toHaveBeenCalledTimes(1)
+      expect(batchStartHandler).toHaveBeenCalledTimes(1)
+      expect(batchEndHandler).toHaveBeenCalledTimes(1)
+      expect(callOrder).toEqual([
+        'static.batch.start',
+        'batch.start',
+        'batch.end',
+        'static.batch.end',
+      ])
+
+      // Clean up listeners
+      Collection['staticEvents'].removeAllListeners('static.batch.start')
+      Collection['staticEvents'].removeAllListeners('static.batch.end')
+      col.removeAllListeners('batch.start')
+      col.removeAllListeners('batch.end')
+    })
   })
 
   describe('performance', { retry: 5 }, () => {
