@@ -9,6 +9,7 @@ export default defineConfig({
       'packages/integrations/*',
       'packages/persistence-adapters/*',
       'packages/reactivity-adapters/*',
+      'packages/history/*',
     ],
     coverage: {
       provider: 'istanbul',

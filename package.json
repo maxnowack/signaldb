@@ -25,7 +25,8 @@
     "packages/persistence-adapters/*",
     "packages/reactivity-adapters/*",
     "packages/devtools/*",
-    "packages/base/*"
+    "packages/base/*",
+    "packages/history/*"
   ],
   "devDependencies": {
     "@codecov/bundle-analyzer": "^1.9.1",
