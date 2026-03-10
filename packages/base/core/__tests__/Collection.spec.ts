@@ -635,8 +635,8 @@ describe('Collection', () => {
       const staticBatchEndHandler = vi.fn()
 
       // Listen to static batch events
-      Collection['staticEvents'].on('static.batch.start', staticBatchStartHandler)
-      Collection['staticEvents'].on('static.batch.end', staticBatchEndHandler)
+      Collection.staticEvents.on('static.batch.start', staticBatchStartHandler)
+      Collection.staticEvents.on('static.batch.end', staticBatchEndHandler)
 
       const col = new Collection<{ id: string, name: string }>()
       col.on('batch.start', batchStartHandler)
