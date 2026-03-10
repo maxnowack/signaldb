@@ -1,4 +1,4 @@
-import { Collection, type BaseItem } from '@signaldb/core'
+import { Collection, type Selector, type BaseItem } from '@signaldb/core'
 
 interface UndoRedoable {
   forward(): void,
@@ -21,7 +21,7 @@ class InsertOperation<T extends BaseItem<I>, I> implements UndoRedoable {
   public backward(): void {
     this.collection.removeOne({
       id: this.item.id,
-    })
+    } as Selector<T>)
   }
 }
 
@@ -41,7 +41,7 @@ class UpdateOperation<
 
   public forward(): void {
     this.collection.updateOne(
-      { id: this.before.id },
+      { id: this.before.id } as Selector<T>,
       {
         $set: this.after,
       },
@@ -50,7 +50,7 @@ class UpdateOperation<
 
   public backward(): void {
     this.collection.updateOne(
-      { id: this.after.id },
+      { id: this.after.id } as Selector<T>,
       {
         $set: this.before,
       },
