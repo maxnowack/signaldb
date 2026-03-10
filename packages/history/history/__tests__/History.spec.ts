@@ -126,4 +126,60 @@ describe('SignalDBHistory', () => {
     history.redo()
     expect(collection.findOne({ id: 1 })?.value).toBe('a')
   })
+
+  it('should execute doPaused and not record history', () => {
+    collection.insert(item)
+    history.doPaused(() => {
+      collection.insert({ id: 2, value: 'b' })
+      collection.updateOne({ id: 1 }, { $set: { value: 'z' } })
+      collection.removeOne({ id: 2 })
+    })
+    // History should only have the initial insert
+    expect(history['history'].length).toBe(1)
+    expect(collection.findOne({ id: 1 })?.value).toBe('z')
+    expect(collection.findOne({ id: 2 })).toBeUndefined()
+    history.undo()
+    expect(collection.findOne({ id: 1 })).toBeUndefined()
+  })
+
+  it('should execute doPausedAsync and not record history', async () => {
+    collection.insert(item)
+    await history.doPausedAsync(async () => {
+      collection.insert({ id: 2, value: 'b' })
+      await new Promise(resolve => setTimeout(resolve, 10))
+      collection.updateOne({ id: 1 }, { $set: { value: 'y' } })
+      collection.removeOne({ id: 2 })
+    })
+    // History should only have the initial insert
+    expect(history['history'].length).toBe(1)
+    expect(collection.findOne({ id: 1 })?.value).toBe('y')
+    expect(collection.findOne({ id: 2 })).toBeUndefined()
+    history.undo()
+    expect(collection.findOne({ id: 1 })).toBeUndefined()
+  })
+
+  it('should record history after doPaused is finished', () => {
+    collection.insert(item)
+    history.doPaused(() => {
+      collection.insert({ id: 2, value: 'b' })
+    })
+    collection.insert({ id: 3, value: 'c' })
+    expect(history['history'].length).toBe(2)
+    history.undo()
+    expect(collection.findOne({ id: 3 })).toBeUndefined()
+    expect(collection.findOne({ id: 1 })?.value).toBe('a')
+  })
+
+  it('should record history after doPausedAsync is finished', async () => {
+    collection.insert(item)
+    await history.doPausedAsync(async () => {
+      collection.insert({ id: 2, value: 'b' })
+      await new Promise(resolve => setTimeout(resolve, 5))
+    })
+    collection.insert({ id: 4, value: 'd' })
+    expect(history['history'].length).toBe(2)
+    history.undo()
+    expect(collection.findOne({ id: 4 })).toBeUndefined()
+    expect(collection.findOne({ id: 1 })?.value).toBe('a')
+  })
 })

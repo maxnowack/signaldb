@@ -25,7 +25,10 @@ class InsertOperation<T extends BaseItem<I>, I> implements UndoRedoable {
   }
 }
 
-class UpdateOperation<T extends BaseItem<I> = BaseItem, I = any> implements UndoRedoable {
+class UpdateOperation<
+  T extends BaseItem<I> = BaseItem,
+  I = any,
+> implements UndoRedoable {
   private before: T
   private after: T
   private collection: Collection<T, I, any>
@@ -55,10 +58,9 @@ class UpdateOperation<T extends BaseItem<I> = BaseItem, I = any> implements Undo
   }
 }
 
-class RemoveOperation<
-  T extends BaseItem<I> = BaseItem,
-  I = any,
-> extends InsertOperation<T, I> implements UndoRedoable {
+class RemoveOperation<T extends BaseItem<I> = BaseItem, I = any>
+  extends InsertOperation<T, I>
+  implements UndoRedoable {
   public forward(): void {
     super.backward()
   }
@@ -69,12 +71,13 @@ class RemoveOperation<
 }
 
 export class SignalDBHistory {
-  private history: UndoRedoable[][]
-    = []
+  private history: UndoRedoable[][] = []
 
   private isGlobalBatchRunning = false
   private isCollectionBatchRunning = false
   private currentBatch: UndoRedoable[] = []
+
+  private pauseDepth = 0
 
   private undoneSteps = 0
   private isUndoingOrRedoing = false
@@ -96,6 +99,24 @@ export class SignalDBHistory {
         startGlobalBatchListener,
       )
       Collection.staticEvents.off('static.batch.end', endGlobalBatchListener)
+    }
+  }
+
+  public doPaused<T>(fn: () => T): T {
+    this.pauseDepth++
+    try {
+      return fn()
+    } finally {
+      this.pauseDepth--
+    }
+  }
+
+  public async doPausedAsync<T>(fn: () => Promise<T>): Promise<T> {
+    this.pauseDepth++
+    try {
+      return await fn()
+    } finally {
+      this.pauseDepth--
     }
   }
 
@@ -199,11 +220,14 @@ export class SignalDBHistory {
     }
   }
 
-  private pushToBatch(
-    operation: UndoRedoable,
-  ): void {
+  private pushToBatch(operation: UndoRedoable): void {
     // Don't record operations that are already in the history
     if (this.isUndoingOrRedoing) {
+      return
+    }
+
+    // Don't record operations while paused
+    if (this.pauseDepth > 0) {
       return
     }
 
