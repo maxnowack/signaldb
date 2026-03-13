@@ -40,7 +40,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
 
 interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'added': (item: T) => void,
-  'changed': (item: T, modifier: Modifier<T>) => void,
+  'changed': (itemAfter: T, modifier: Modifier<T>, itemBefore: T) => void,
   'removed': (item: T) => void,
 
   'persistence.init': () => void,
@@ -814,7 +814,7 @@ export default class Collection<
       this.emit('validate', modifiedItem)
       this.memory().splice(index, 1, modifiedItem)
       this.rebuildIndices()
-      this.emit('changed', modifiedItem, restModifier)
+      this.emit('changed', modifiedItem, restModifier, item)
     }
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
@@ -875,8 +875,8 @@ export default class Collection<
       this.memory().splice(index, 1, item)
     })
     this.rebuildIndices()
-    changes.forEach(({ item }) => {
-      this.emit('changed', item, restModifier)
+    changes.forEach(({ item: changedItem }, changeIndex) => {
+      this.emit('changed', changedItem, restModifier, items[changeIndex])
     })
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
@@ -919,7 +919,7 @@ export default class Collection<
       this.emit('validate', modifiedItem)
       this.memory().splice(index, 1, modifiedItem)
       this.rebuildIndices()
-      this.emit('changed', modifiedItem, replacement as Modifier<T>)
+      this.emit('changed', modifiedItem, replacement as Modifier<T>, item)
     }
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))

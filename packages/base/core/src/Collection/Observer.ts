@@ -3,7 +3,7 @@ import uniqueBy from '../utils/uniqueBy'
 
 type AddedCallback<T> = (item: T) => void
 type AddedBeforeCallback<T> = (item: T, before: T) => void
-type ChangedCallback<T> = (item: T) => void
+type ChangedCallback<T> = (oldItem: T, newItem: T) => void
 type ChangedFieldCallback<T> = <Field extends keyof T>(
   item: T,
   field: Field,
@@ -122,7 +122,7 @@ export default class Observer<T extends { id: any }> {
         if (newItem) {
           if (this.hasCallbacks(['changed', 'changedField']) // If the item exists but has changed, call 'changed' callback
             && !isEqual(newItem.item, oldItem)) {
-            this.call('changed', newItem.item)
+            this.call('changed', newItem.item, oldItem)
 
             if (this.hasCallbacks(['changedField'])) {
               // check for changed fields and call 'changedField' callback
