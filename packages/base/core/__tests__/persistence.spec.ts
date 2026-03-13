@@ -137,7 +137,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -153,7 +153,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -194,7 +194,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -210,7 +210,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -305,11 +305,11 @@ describe('Persistence', () => {
     })
     await waitForEvent(collection, 'persistence.init')
 
-    expect(onChange).toBeCalledTimes(0)
+    expect(onChange).toHaveBeenCalledTimes(0)
     expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }])
 
     onChange({ changes: { added: [{ id: '2', name: 'Jane' }], modified: [], removed: [] } })
-    expect(onChange).toBeCalledTimes(1)
+    expect(onChange).toHaveBeenCalledTimes(1)
     expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }])
   })
 

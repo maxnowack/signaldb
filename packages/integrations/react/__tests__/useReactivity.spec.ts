@@ -26,7 +26,7 @@ it('should run once without reactive data', async () => {
   const fn = vi.fn().mockResolvedValue('test')
   const { result } = renderHook(() => useReactivity(fn))
   await waitFor(async () => expect(await result.current).toBe('test'))
-  expect(fn).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(1)
 })
 
 it('should rerun with reactive data', async () => {
@@ -38,14 +38,14 @@ it('should rerun with reactive data', async () => {
   })
   const { result, unmount } = renderHook(() => useReactivity(fn))
   await waitFor(async () => expect(await result.current).toBe(1))
-  expect(fn).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(1)
 
   reactive.set(2)
   await waitFor(async () => expect(await result.current).toBe(2))
-  expect(fn).toBeCalledTimes(2)
-  expect(dispose).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(2)
+  expect(dispose).toHaveBeenCalledTimes(1)
   unmount()
-  expect(dispose).toBeCalledTimes(2)
+  expect(dispose).toHaveBeenCalledTimes(2)
 })
 
 it('should rerun in strict mode', async () => {
@@ -59,14 +59,14 @@ it('should rerun in strict mode', async () => {
     wrapper: StrictMode as React.FC,
   })
   await waitFor(async () => expect(await result.current).toBe(1))
-  expect(fn).toBeCalledTimes(3)
+  expect(fn).toHaveBeenCalledTimes(3)
 
   reactive.set(2)
   await waitFor(async () => expect(await result.current).toBe(2))
-  expect(fn).toBeCalledTimes(4)
-  expect(dispose).toBeCalledTimes(3)
+  expect(fn).toHaveBeenCalledTimes(4)
+  expect(dispose).toHaveBeenCalledTimes(3)
   unmount()
-  expect(dispose).toBeCalledTimes(4)
+  expect(dispose).toHaveBeenCalledTimes(4)
 })
 
 it('should rerun with reactive data and dependencies', async () => {
@@ -78,14 +78,14 @@ it('should rerun with reactive data and dependencies', async () => {
   })
   const { result, unmount } = renderHook(props => useReactivity(fn, props), { initialProps: [1] })
   await waitFor(async () => expect(await result.current).toBe(1))
-  expect(fn).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(1)
 
   reactive.set(2)
   await waitFor(async () => expect(await result.current).toBe(2))
-  expect(fn).toBeCalledTimes(2)
-  expect(dispose).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(2)
+  expect(dispose).toHaveBeenCalledTimes(1)
   unmount()
-  expect(dispose).toBeCalledTimes(2)
+  expect(dispose).toHaveBeenCalledTimes(2)
 })
 
 it('should rerun if dependencies change', async () => {
@@ -98,14 +98,14 @@ it('should rerun if dependencies change', async () => {
   const { result, rerender, unmount } = renderHook(dep =>
     useReactivity(fn, [dep]), { initialProps: 1 })
   await waitFor(async () => expect(await result.current).toBe(1))
-  expect(fn).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(1)
 
   rerender(2)
-  await waitFor(() => expect(fn).toBeCalledTimes(2))
-  expect(fn).toBeCalledTimes(2)
-  expect(dispose).toBeCalledTimes(1)
+  await waitFor(() => expect(fn).toHaveBeenCalledTimes(2))
+  expect(fn).toHaveBeenCalledTimes(2)
+  expect(dispose).toHaveBeenCalledTimes(1)
   unmount()
-  expect(dispose).toBeCalledTimes(2)
+  expect(dispose).toHaveBeenCalledTimes(2)
 })
 
 it('should not rerun if dependencies do not change', async () => {
@@ -118,12 +118,12 @@ it('should not rerun if dependencies do not change', async () => {
   const { result, rerender, unmount } = renderHook(dep =>
     useReactivity(fn, [dep]), { initialProps: 1 })
   await waitFor(async () => expect(await result.current).toBe(1))
-  expect(fn).toBeCalledTimes(1)
+  expect(fn).toHaveBeenCalledTimes(1)
 
   rerender(1)
-  await waitFor(() => expect(fn).toBeCalledTimes(1))
-  expect(fn).toBeCalledTimes(1)
-  expect(dispose).toBeCalledTimes(0)
+  await waitFor(() => expect(fn).toHaveBeenCalledTimes(1))
+  expect(fn).toHaveBeenCalledTimes(1)
+  expect(dispose).toHaveBeenCalledTimes(0)
   unmount()
-  expect(dispose).toBeCalledTimes(1)
+  expect(dispose).toHaveBeenCalledTimes(1)
 })
