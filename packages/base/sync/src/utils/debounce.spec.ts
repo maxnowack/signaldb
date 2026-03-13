@@ -12,11 +12,11 @@ describe('debounce', () => {
     debouncedFunction()
     debouncedFunction()
 
-    expect(mockFunction).not.toBeCalled()
+    expect(mockFunction).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFunction).toBeCalledTimes(1)
+    expect(mockFunction).toHaveBeenCalledTimes(1)
   })
 
   it('should call the function immediately if leading option is true', () => {
@@ -27,11 +27,11 @@ describe('debounce', () => {
 
     debouncedFunction()
 
-    expect(mockFunction).toBeCalledTimes(1)
+    expect(mockFunction).toHaveBeenCalledTimes(1)
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFunction).toBeCalledTimes(1)
+    expect(mockFunction).toHaveBeenCalledTimes(1)
   })
 
   it('should call the function after the wait time if trailing option is true', () => {
@@ -44,11 +44,11 @@ describe('debounce', () => {
     debouncedFunction()
     debouncedFunction()
 
-    expect(mockFunction).not.toBeCalled()
+    expect(mockFunction).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFunction).toBeCalledTimes(1)
+    expect(mockFunction).toHaveBeenCalledTimes(1)
   })
 
   it('should call the function immediately and after the wait time if both leading and trailing options are true', () => {
@@ -61,10 +61,10 @@ describe('debounce', () => {
     debouncedFunction()
     debouncedFunction()
 
-    expect(mockFunction).toBeCalledTimes(1)
+    expect(mockFunction).toHaveBeenCalledTimes(1)
 
     vi.advanceTimersByTime(100)
 
-    expect(mockFunction).toBeCalledTimes(2)
+    expect(mockFunction).toHaveBeenCalledTimes(2)
   })
 })

@@ -13,6 +13,6 @@ describe('waitForEvent', () => {
   it('should reject when timeout is reached', async () => {
     const emitter = new EventEmitter()
     const promise = waitForEvent(emitter, 'event', 10)
-    await expect(promise).rejects.toThrowError('waitForEvent timeout')
+    await expect(promise).rejects.toThrow('waitForEvent timeout')
   })
 })
