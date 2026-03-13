@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources (thanks @signalize!)
+* Added `Collection.resetData()` to clear in-memory state and reload data from the persistence adapter.
 
 ### Fixed
 
