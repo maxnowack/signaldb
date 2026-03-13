@@ -212,6 +212,7 @@ export default class Collection<
   private postBatchCallbacks = new Set<() => void>()
   private fieldTracking = false
   private persistenceReadyPromise: Promise<void>
+  private pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
 
   /**
    * Initializes a new instance of the `Collection` class with optional configuration.
@@ -265,57 +266,6 @@ export default class Collection<
     if (this.persistenceAdapter) {
       let ongoingSaves = 0
       let isInitialized = false
-      const pendingUpdates: Changeset<T> = { added: [], modified: [], removed: [] }
-
-      const loadPersistentData = async (data?: LoadResponse<T>) => {
-        if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
-        this.emit('persistence.pullStarted')
-        // load items from persistence adapter and push them into memory
-        const { items, changes } = data ?? await this.persistenceAdapter.load()
-
-        if (items) {
-          // as we overwrite all items, we need to discard if there are ongoing saves
-          if (ongoingSaves > 0) return
-
-          // push new items to this.memory() and delete old ones
-          this.memory().splice(0, this.memoryArray().length, ...items)
-          this.idIndex.clear()
-
-          this.memory().map((item, index) => {
-            this.idIndex.set(serializeValue(item.id), new Set([index]))
-          })
-        } else if (changes) {
-          changes.added.forEach((item) => {
-            const index = this.memory().findIndex(document => document.id === item.id)
-            if (index !== -1) { // item already exists; doing upsert
-              this.memory().splice(index, 1, item)
-              return
-            }
-
-            // item does not exists yet; normal insert
-            this.memory().push(item)
-            const itemIndex = this.memory().findIndex(document => document === item)
-            this.idIndex.set(serializeValue(item.id), new Set([itemIndex]))
-          })
-          changes.modified.forEach((item) => {
-            const index = this.memory().findIndex(document => document.id === item.id)
-            if (index === -1) throw new Error('Cannot resolve index for item')
-            this.memory().splice(index, 1, item)
-          })
-          changes.removed.forEach((item) => {
-            const index = this.memory().findIndex(document => document.id === item.id)
-            if (index === -1) throw new Error('Cannot resolve index for item')
-            this.memory().splice(index, 1)
-          })
-        }
-        this.rebuildIndices()
-
-        this.emit('persistence.received')
-
-        // emit persistence.pullCompleted in next tick to let cursor observers
-        // do the requery before the loading state updates
-        setTimeout(() => this.emit('persistence.pullCompleted'), 0)
-      }
 
       const saveQueue = {
         added: [],
@@ -350,7 +300,7 @@ export default class Collection<
 
       this.on('added', (item) => {
         if (!isInitialized) {
-          pendingUpdates.added.push(item)
+          this.pendingUpdates.added.push(item)
           return
         }
         saveQueue.added.push(item)
@@ -358,7 +308,7 @@ export default class Collection<
       })
       this.on('changed', (item) => {
         if (!isInitialized) {
-          pendingUpdates.modified.push(item)
+          this.pendingUpdates.modified.push(item)
           return
         }
         saveQueue.modified.push(item)
@@ -366,22 +316,22 @@ export default class Collection<
       })
       this.on('removed', (item) => {
         if (!isInitialized) {
-          pendingUpdates.removed.push(item)
+          this.pendingUpdates.removed.push(item)
           return
         }
         saveQueue.removed.push(item)
         flushQueue()
       })
 
-      this.persistenceAdapter.register(data => loadPersistentData(data))
+      this.persistenceAdapter.register(data => this.loadPersistentData(data, ongoingSaves > 0))
         .then(async () => {
           if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
           let currentItems = this.memoryArray()
-          await loadPersistentData()
-          while (hasPendingUpdates(pendingUpdates)) {
-            const added = pendingUpdates.added.splice(0)
-            const modified = pendingUpdates.modified.splice(0)
-            const removed = pendingUpdates.removed.splice(0)
+          await this.loadPersistentData()
+          while (hasPendingUpdates(this.pendingUpdates)) {
+            const added = this.pendingUpdates.added.splice(0)
+            const modified = this.pendingUpdates.modified.splice(0)
+            const removed = this.pendingUpdates.removed.splice(0)
             currentItems = applyUpdates(this.memoryArray(), { added, modified, removed })
 
             await this.persistenceAdapter.save(currentItems, { added, modified, removed })
@@ -389,7 +339,7 @@ export default class Collection<
                 this.emit('persistence.transmitted')
               })
           }
-          await loadPersistentData()
+          await this.loadPersistentData()
 
           isInitialized = true
           // emit persistence.init in next tick to make
@@ -407,6 +357,77 @@ export default class Collection<
     })
 
     Collection.onCreationCallbacks.forEach(callback => callback(this))
+  }
+
+  /**
+   * Resets the collection's data by clearing the in-memory items and reloading from the persistence adapter.
+   * @returns A promise that resolves when the data has been reset and reloaded.
+   */
+  public async resetData() {
+    if (hasPendingUpdates(this.pendingUpdates)) {
+      await new Promise<void>((resolve) => {
+        this.on('persistence.transmitted', resolve)
+      })
+    }
+
+    this.options.memory = []
+    await this.loadPersistentData()
+  }
+
+  /**
+   * Loads data from the persistence adapter and updates the in-memory collection accordingly.
+   * @param data - Optional data to load, containing either a full list of items or a set of changes. If not provided, data will be loaded from the persistence adapter.
+   * @param hasOngoingSaves - A boolean indicating whether there are ongoing save operations. If `true`, the method will skip loading data to avoid conflicts with pending updates.
+   * @returns A promise that resolves when the data has been loaded and the in-memory collection has been updated.
+   */
+  private async loadPersistentData(data?: LoadResponse<T>, hasOngoingSaves = false) {
+    if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
+    this.emit('persistence.pullStarted')
+    // load items from persistence adapter and push them into memory
+    const { items, changes } = data ?? await this.persistenceAdapter.load()
+
+    if (items) {
+      // as we overwrite all items, we need to discard if there are ongoing saves
+      if (hasOngoingSaves) return
+
+      // push new items to this.memory() and delete old ones
+      this.memory().splice(0, this.memoryArray().length, ...items)
+      this.idIndex.clear()
+
+      this.memory().map((item, index) => {
+        this.idIndex.set(serializeValue(item.id), new Set([index]))
+      })
+    } else if (changes) {
+      changes.added.forEach((item) => {
+        const index = this.memory().findIndex(document => document.id === item.id)
+        if (index !== -1) { // item already exists; doing upsert
+          this.memory().splice(index, 1, item)
+          return
+        }
+
+        // item does not exists yet; normal insert
+        this.memory().push(item)
+        const itemIndex = this.memory().findIndex(document => document === item)
+        this.idIndex.set(serializeValue(item.id), new Set([itemIndex]))
+      })
+      changes.modified.forEach((item) => {
+        const index = this.memory().findIndex(document => document.id === item.id)
+        if (index === -1) throw new Error('Cannot resolve index for item')
+        this.memory().splice(index, 1, item)
+      })
+      changes.removed.forEach((item) => {
+        const index = this.memory().findIndex(document => document.id === item.id)
+        if (index === -1) throw new Error('Cannot resolve index for item')
+        this.memory().splice(index, 1)
+      })
+    }
+    this.rebuildIndices()
+
+    this.emit('persistence.received')
+
+    // emit persistence.pullCompleted in next tick to let cursor observers
+    // do the requery before the loading state updates
+    setTimeout(() => this.emit('persistence.pullCompleted'), 0)
   }
 
   /**

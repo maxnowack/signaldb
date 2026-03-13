@@ -90,6 +90,21 @@ collection.insert({ name: 'Item 1' })
 // ...
 ```
 
+### `resetData()`
+
+Clears the current in-memory data and reloads items from the configured persistence adapter.
+If there are pending local updates queued during initialization, `resetData()` waits until they are transmitted before reloading.
+
+Example:
+```ts
+const collection = new Collection({ persistence: /* ... */ })
+await collection.isReady()
+
+await collection.resetData()
+```
+
+This method requires a configured persistence adapter.
+
 ### `find(selector?: Selector<T>, options?: Options)`
 
 Returns a new [cursor object](/reference/core/cursor/) for the items in the collection that match a given selector and options.
