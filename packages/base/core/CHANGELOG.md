@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-03-17
+
 ### Fixed
 
 * Filter out gone items when getting items from index. This fixes a bug where items that were removed from the collection but were still present in the index and lead to an exception when trying to get the item from the collection.
