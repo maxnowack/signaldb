@@ -574,7 +574,9 @@ export default class Collection<
     const memory = this.memoryArray()
     const indexInfo = this.getIndexInfo(selector)
     const items = indexInfo.matched
-      ? indexInfo.positions.map(index => memory[index])
+      ? indexInfo.positions
+        .map(index => memory[index])
+        .filter(item => item != null)
       : memory
     const item = items.find(document => match(document, selector))
     const foundInIndex = indexInfo.matched
@@ -636,7 +638,9 @@ export default class Collection<
           return memory.filter(matchItems)
         }
 
-        const items = indexInfo.positions.map(index => memory[index])
+        const items = indexInfo.positions
+          .map(index => memory[index])
+          .filter(item => item != null)
         if (isEqual(indexInfo.optimizedSelector, {})) return items
         return items.filter(matchItems)
       },
