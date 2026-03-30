@@ -100,6 +100,7 @@ export default withMermaid({
           collapsed: false,
           items: [
             { text: 'Angular', link: '/guides/angular/' },
+            { text: 'Electron', link: '/guides/electron/' },
             { text: 'React', link: '/guides/react/' },
             { text: 'Solid', link: '/guides/solid-js/' },
             { text: 'Svelte', link: '/guides/svelte/' },
@@ -167,6 +168,7 @@ export default withMermaid({
         {
           text: 'Integrations',
           items: [
+            { text: '@signaldb/electron', link: '/reference/electron/' },
             { text: '@signaldb/react', link: '/reference/react/' },
           ],
         },

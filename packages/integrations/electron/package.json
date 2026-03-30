@@ -1,0 +1,86 @@
+{
+  "name": "@signaldb/electron",
+  "version": "1.0.0",
+  "description": "Electron IPC bridge for SignalDB persistence adapters",
+  "scripts": {
+    "build": "rimraf dist && vite build",
+    "analyze-bundle": "bundle-analyzer ./dist --upload-token=$BUNDLE_ANALYZER_UPLOAD_TOKEN --bundle-name=@signaldb/electron",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxnowack/signaldb.git"
+  },
+  "homepage": "https://signaldb.js.org",
+  "keywords": [
+    "electron",
+    "ipc",
+    "client-database",
+    "database",
+    "local-database",
+    "offline-first",
+    "optimistic-ui",
+    "persistence",
+    "reactive",
+    "reactivity",
+    "signaldb",
+    "typescript"
+  ],
+  "author": "Max Nowack <max.nowack@gmail.com>",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./main": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.mjs",
+      "require": "./dist/main.cjs"
+    },
+    "./preload": {
+      "types": "./dist/preload.d.ts",
+      "import": "./dist/preload.mjs",
+      "require": "./dist/preload.cjs"
+    },
+    "./renderer": {
+      "types": "./dist/renderer.d.ts",
+      "import": "./dist/renderer.mjs",
+      "require": "./dist/renderer.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "main": [
+        "./dist/main.d.ts"
+      ],
+      "preload": [
+        "./dist/preload.d.ts"
+      ],
+      "renderer": [
+        "./dist/renderer.d.ts"
+      ],
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "@signaldb/core": "1.x",
+    "electron": ">=20.0.0"
+  },
+  "peerDependenciesMeta": {
+    "electron": {
+      "optional": true
+    }
+  }
+}
