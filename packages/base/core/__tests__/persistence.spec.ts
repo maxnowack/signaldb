@@ -137,7 +137,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -153,7 +153,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -194,7 +194,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -210,7 +210,7 @@ describe('Persistence', () => {
     })
     const fn = vi.fn()
     collection.on('persistence.error', fn)
-    await expect(collection.isReady()).rejects.toThrowError('test')
+    await expect(collection.isReady()).rejects.toThrow('test')
     expect(fn).toHaveBeenCalledWith(new Error('test'))
   })
 
@@ -305,11 +305,11 @@ describe('Persistence', () => {
     })
     await waitForEvent(collection, 'persistence.init')
 
-    expect(onChange).toBeCalledTimes(0)
+    expect(onChange).toHaveBeenCalledTimes(0)
     expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }])
 
     onChange({ changes: { added: [{ id: '2', name: 'Jane' }], modified: [], removed: [] } })
-    expect(onChange).toBeCalledTimes(1)
+    expect(onChange).toHaveBeenCalledTimes(1)
     expect(collection.find().fetch()).toEqual([{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }])
   })
 
@@ -343,5 +343,79 @@ describe('Persistence', () => {
       { id: '1', name: 'Jack' },
       { id: '2', name: 'Jane' },
     ])
+  })
+
+  it('should reset in-memory data and reload from persistence adapter', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }])
+    const collection = new Collection({ persistence })
+    await waitForEvent(collection, 'persistence.init')
+
+    collection.insert({ id: '2', name: 'Jane' })
+    await waitForEvent(collection, 'persistence.transmitted')
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'John' },
+      { id: '2', name: 'Jane' },
+    ])
+
+    persistence.addNewItem({ id: '3', name: 'Joe' })
+    await waitForEvent(collection, 'persistence.received')
+
+    await collection.resetData()
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'John' },
+      { id: '2', name: 'Jane' },
+      { id: '3', name: 'Joe' },
+    ])
+  })
+
+  it('should wait for pending updates when resetData is called before initialization', async () => {
+    const persistence = memoryPersistenceAdapter([{ id: '1', name: 'John' }], false, 50)
+    const collection = new Collection({ persistence })
+
+    collection.insert({ id: '2', name: 'Jane' })
+    await collection.resetData()
+
+    expect(collection.find().fetch()).toEqual([
+      { id: '1', name: 'John' },
+      { id: '2', name: 'Jane' },
+    ])
+  })
+
+  it('should not overwrite local memory with stale full snapshots while save is in progress', async () => {
+    type Item = { id: string, name: string }
+    let items: Item[] = [{ id: '1', name: 'John' }]
+    let onChange: ((data?: { items: Item[] }) => void | Promise<void>) = () => {}
+    let resolveSave: (() => void) | null = () => {}
+
+    const saveStarted = new Promise<void>((resolve) => {
+      resolveSave = resolve
+    })
+
+    const collection = new Collection<Item>({
+      persistence: {
+        register: async (onChangeCallback) => {
+          onChange = onChangeCallback
+        },
+        load: async () => ({ items }),
+        save: async (newSnapshot) => {
+          items = [...newSnapshot]
+          await saveStarted
+        },
+      },
+    })
+
+    await waitForEvent(collection, 'persistence.init')
+
+    const pushStarted = waitForEvent(collection, 'persistence.pushStarted')
+    const pushCompleted = waitForEvent(collection, 'persistence.pushCompleted')
+    collection.updateOne({ id: '1' }, { $set: { name: 'Johnny' } })
+    await pushStarted
+
+    await onChange({ items: [{ id: '1', name: 'John' }] })
+    expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Johnny' }])
+
+    resolveSave()
+    await pushCompleted
+    expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Johnny' }])
   })
 })

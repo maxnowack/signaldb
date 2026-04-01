@@ -9,7 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Added the previous state (before the update) as an argument to `'changed'` event handlers. This provides additional information to handlers, enabling e.g. history functionality.
 
+## [1.8.1] - 2026-03-17
+
+### Fixed
+
+* Filter out gone items when getting items from index. This fixes a bug where items that were removed from the collection but were still present in the index and lead to an exception when trying to get the item from the collection.
+
+## [1.8.0] - 2026-03-13
+
+### Added
+
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources (thanks @signalize!)
+* Added `Collection.resetData()` to clear in-memory state and reload data from the persistence adapter.
+
+### Fixed
+
+* Fixed a race condition in SyncManager.dispose() that could cause unhandled "Collection is disposed" errors during organization/context switches while sync operations were still in flight (thanks @shajan-journal!)
 
 ## [1.7.2] - 2026-01-07
 

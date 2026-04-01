@@ -26,7 +26,7 @@ it('should fetch query items when observer is created', async () => {
   await waitForEvent(collection, 'persistence.received')
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   await vi.waitFor(() => expect(collection.isLoading({})).toBe(false))
   await vi.waitFor(() => expect(collection.isLoading()).toBe(false))
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(response.items)
@@ -64,7 +64,7 @@ it('should remove query when observer is disposed', async () => {
   await waitForEvent(collection, 'persistence.received')
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   expect(collection.find({}).fetch()).toEqual(response.items)
 
   disposeAll()
@@ -133,7 +133,7 @@ it('should handle multiple observers for the same query', async () => {
   await waitForEvent(collection, 'persistence.received')
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   expect(collection.find({}).fetch()).toEqual(response.items)
 
   disposeAll()
@@ -178,13 +178,13 @@ it('should handle multiple queries', async () => {
   })
 
   expect(collection.find({ name: 'Item 1' }).fetch()).toEqual([])
-  expect(fetchQueryItems).toBeCalledWith({ name: 'Item 1' })
+  expect(fetchQueryItems).toHaveBeenCalledWith({ name: 'Item 1' })
   await waitForEvent(collection, 'persistence.received')
-  expect(fetchQueryItems).toBeCalledTimes(1)
+  expect(fetchQueryItems).toHaveBeenCalledTimes(1)
   expect(collection.find({}).fetch()).toEqual(responseFilteredItems.items)
 
-  expect(fetchQueryItems).toBeCalledWith({})
-  expect(fetchQueryItems).toBeCalledTimes(2)
+  expect(fetchQueryItems).toHaveBeenCalledWith({})
+  expect(fetchQueryItems).toHaveBeenCalledTimes(2)
   await waitForEvent(collection, 'persistence.received')
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(responseAllItems.items)
 
@@ -231,12 +231,12 @@ it('should update items with result of new fetch', async () => {
 
   expect(collection.find({}).fetch()).toEqual([])
   await waitForEvent(collection, 'persistence.received')
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   expect(collection.find({}).fetch()).toEqual(responseItems)
 
   expect(collection.findOne({ id: 1 })).toEqual(responseItems[0])
   await waitForEvent(collection, 'persistence.received')
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(2))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(2))
   expect(collection.findOne({ id: 1 })).toEqual({ id: 1, name: 'Item 1 updated' })
 
   disposeAll()
@@ -279,7 +279,7 @@ it('should purge items after specified delay', async () => {
   await waitForEvent(collection, 'persistence.received')
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   expect(collection.find({}).fetch()).toEqual(response.items)
 
   disposeAll()
@@ -319,12 +319,12 @@ it('should register and unregister queries', async () => {
   fetchQueryItems.mockResolvedValue(response)
 
   expect(collection.find({}).fetch()).toEqual([])
-  expect(fetchQueryItems).toBeCalledTimes(0)
+  expect(fetchQueryItems).toHaveBeenCalledTimes(0)
   collection.registerQuery({})
   await waitForEvent(collection, 'persistence.received')
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   expect(collection.find({}).fetch()).toEqual(response.items)
 
   collection.unregisterQuery({})
@@ -375,10 +375,10 @@ it('should keep track which items and which fields were returned by a query', as
   })
 
   expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([])
-  expect(fetchQueryItems).toBeCalledTimes(0)
+  expect(fetchQueryItems).toHaveBeenCalledTimes(0)
 
   collection.registerQuery({})
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   await waitForEvent(collection, 'persistence.received')
   expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
     { id: 1, name: 'Jane' },
@@ -386,7 +386,7 @@ it('should keep track which items and which fields were returned by a query', as
   ])
 
   collection.registerQuery({ age: { gt: 20 } })
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(2))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(2))
   await waitForEvent(collection, 'persistence.received')
   expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
     { id: 1, name: 'Jane', age: 30 },
@@ -394,7 +394,7 @@ it('should keep track which items and which fields were returned by a query', as
   ])
 
   collection.registerQuery({ id: 1 })
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(3))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(3))
   await waitForEvent(collection, 'persistence.received')
   expect(collection.find({}, { sort: { id: 1 } }).fetch()).toEqual([
     { id: 1, name: 'Jane', age: 30, country: 'AU' },
@@ -448,7 +448,7 @@ it('should refetch query items when onChange was called', async () => {
   await waitForEvent(collection, 'persistence.received')
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(1))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(1))
   await vi.waitFor(() => expect(collection.isLoading({})).toBe(false))
   await vi.waitFor(() => expect(collection.isLoading()).toBe(false))
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(response.items)
@@ -461,7 +461,7 @@ it('should refetch query items when onChange was called', async () => {
   await remoteChange()
 
   // Wait for fetchQueryItems to be called
-  await vi.waitFor(() => expect(fetchQueryItems).toBeCalledTimes(2))
+  await vi.waitFor(() => expect(fetchQueryItems).toHaveBeenCalledTimes(2))
   await vi.waitFor(() => expect(collection.isLoading({})).toBe(false))
   await vi.waitFor(() => expect(collection.isLoading()).toBe(false))
   expect(collection.find({}, { reactive: false }).fetch()).toEqual(response2.items)

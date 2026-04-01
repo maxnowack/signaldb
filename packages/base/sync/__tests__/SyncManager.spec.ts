@@ -428,7 +428,7 @@ it('should handle pull errors and update sync operation status', async () => {
 
   syncManager.addCollection(mockCollection, { name: 'test' })
 
-  await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
+  await expect(syncManager.sync('test')).rejects.toThrow('Pull failed')
 
   const syncOperation = syncManager.isSyncing('test')
   expect(onError).toHaveBeenCalledTimes(1)
@@ -461,7 +461,7 @@ it('should handle pull errors and update sync operation status after first sync'
     return Promise.reject(new Error('Pull failed'))
   })
 
-  await expect(syncManager.sync('test')).rejects.toThrowError('Pull failed')
+  await expect(syncManager.sync('test')).rejects.toThrow('Pull failed')
 
   const syncOperation = syncManager.isSyncing('test')
   expect(onError).toHaveBeenCalledTimes(1)
@@ -914,11 +914,11 @@ it('should clear all internal data structures on dispose', async () => {
   // @ts-expect-error - private property
   expect(syncManager.syncQueues.size).toBe(0)
   // @ts-expect-error - private property
-  expect(() => syncManager.changes.insert({})).toThrowError('Collection is disposed')
+  expect(() => syncManager.changes.insert({})).toThrow('Collection is disposed')
   // @ts-expect-error - private property
-  expect(() => syncManager.snapshots.insert({})).toThrowError('Collection is disposed')
+  expect(() => syncManager.snapshots.insert({})).toThrow('Collection is disposed')
   // @ts-expect-error - private property
-  expect(() => syncManager.syncOperations.insert({})).toThrowError('Collection is disposed')
+  expect(() => syncManager.syncOperations.insert({})).toThrow('Collection is disposed')
 })
 
 it('should register error handlers for internal persistence adapters', async () => {
@@ -1095,12 +1095,12 @@ it('should start sync after internal collections are ready', async () => {
   const collection = new Collection<TestItem, string, any>()
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(mockPersistenceAdapter.load).not.toBeCalled()
-  expect(mockPull).not.toBeCalled()
+  expect(mockPersistenceAdapter.load).not.toHaveBeenCalled()
+  expect(mockPull).not.toHaveBeenCalled()
   expect(persistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
-  expect(mockPull).toBeCalled()
+  expect(mockPull).toHaveBeenCalled()
   expect(mockPersistenceAdapter.load).toHaveBeenCalledBefore(mockPull)
   expect(persistenceInitialized).toBeTruthy()
 })
@@ -1136,12 +1136,12 @@ it('should start sync after collection is ready', async () => {
 
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(mockPull).not.toBeCalled()
-  expect(mockPersistenceAdapter.load).not.toBeCalled()
+  expect(mockPull).not.toHaveBeenCalled()
+  expect(mockPersistenceAdapter.load).not.toHaveBeenCalled()
   expect(persistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
-  expect(mockPull).toBeCalled()
+  expect(mockPull).toHaveBeenCalled()
   expect(mockPersistenceAdapter.load).toHaveBeenCalledBefore(mockPull)
   expect(persistenceInitialized).toBeTruthy()
 })
@@ -1183,13 +1183,13 @@ it('should fail if there was a persistence error during initialization', async (
 
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(mockPull).not.toBeCalled()
+  expect(mockPull).not.toHaveBeenCalled()
   expect(persistenceInitialized).toBeFalsy()
   expect(persistenceError).toBeFalsy()
 
-  await expect(syncManager.sync('test')).rejects.toThrowError('Persistence error')
+  await expect(syncManager.sync('test')).rejects.toThrow('Persistence error')
 
-  expect(mockPull).not.toBeCalled()
+  expect(mockPull).not.toHaveBeenCalled()
   expect(persistenceInitialized).toBeFalsy()
   expect(persistenceError).toBeTruthy()
 })
@@ -1212,12 +1212,12 @@ it('should start sync if autostart is enabled', async () => {
   const collection = new Collection<TestItem, string, any>()
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(registerRemoteChange).toBeCalledTimes(1)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(1)
   await syncManager.sync('test')
-  expect(mockPull).toBeCalled()
+  expect(mockPull).toHaveBeenCalled()
 
   await syncManager.startSync('test')
-  expect(registerRemoteChange).toBeCalledTimes(1) // already started, should not be called again
+  expect(registerRemoteChange).toHaveBeenCalledTimes(1) // already started, should not be called again
 })
 
 it('should not start sync if autostart is disabled', async () => {
@@ -1238,13 +1238,13 @@ it('should not start sync if autostart is disabled', async () => {
   const collection = new Collection<TestItem, string, any>()
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(registerRemoteChange).toBeCalledTimes(0)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(0)
   await syncManager.sync('test')
-  expect(mockPull).toBeCalled()
-  expect(registerRemoteChange).toBeCalledTimes(0)
+  expect(mockPull).toHaveBeenCalled()
+  expect(registerRemoteChange).toHaveBeenCalledTimes(0)
 
   await syncManager.startSync('test')
-  expect(registerRemoteChange).toBeCalledTimes(1)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(1)
 })
 
 it('should not trigger sync if collection is paused', async () => {
@@ -1278,24 +1278,24 @@ it('should not trigger sync if collection is paused', async () => {
   const collection = new Collection<TestItem, string, any>()
   syncManager.addCollection(collection, { name: 'test' })
 
-  expect(registerRemoteChange).toBeCalledTimes(0)
-  expect(mockPull).toBeCalledTimes(0)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(0)
+  expect(mockPull).toHaveBeenCalledTimes(0)
   expect(onRemoteChangeHandler).toBeUndefined()
 
   await syncManager.startSync('test')
   if (!onRemoteChangeHandler) return
-  expect(cleanupFunction).toBeCalledTimes(0)
-  expect(mockPull).toBeCalledTimes(0)
-  expect(registerRemoteChange).toBeCalledTimes(1)
+  expect(cleanupFunction).toHaveBeenCalledTimes(0)
+  expect(mockPull).toHaveBeenCalledTimes(0)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(1)
   expect(onRemoteChangeHandler).toBeDefined()
 
   await onRemoteChangeHandler()
-  expect(mockPull).toBeCalledTimes(1)
+  expect(mockPull).toHaveBeenCalledTimes(1)
 
   await syncManager.pauseSync('test')
   await onRemoteChangeHandler()
-  expect(cleanupFunction).toBeCalledTimes(1)
-  expect(mockPull).toBeCalledTimes(2)
+  expect(cleanupFunction).toHaveBeenCalledTimes(1)
+  expect(mockPull).toHaveBeenCalledTimes(2)
 })
 
 it('should only automatically push if started', async () => {
@@ -1393,13 +1393,13 @@ it('should pause and resume sync all collections', async () => {
   const col2 = new Collection<TestItem, string, any>()
   syncManager.addCollection(col2, { name: 'test2' })
 
-  expect(registerRemoteChange).toBeCalledTimes(0)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(0)
   await syncManager.startAll()
   expect(registerRemoteChange).toHaveBeenNthCalledWith(1, { name: 'test1' }, expect.any(Function))
   expect(registerRemoteChange).toHaveBeenNthCalledWith(2, { name: 'test2' }, expect.any(Function))
 
   await syncManager.pauseAll()
-  expect(registerRemoteChange).toBeCalledTimes(2)
+  expect(registerRemoteChange).toHaveBeenCalledTimes(2)
 })
 
 it('should trigger sync when using $set on an array to modify an object/item inline', async () => {

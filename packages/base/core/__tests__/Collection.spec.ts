@@ -837,7 +837,7 @@ describe('Collection', () => {
           title: 'Hello',
           content: 'World',
         })
-      }).not.toThrowError()
+      }).not.toThrow()
 
       expect(() => {
         Posts.updateOne({
@@ -845,13 +845,13 @@ describe('Collection', () => {
         }, {
           $set: { published: true },
         })
-      }).not.toThrowError()
+      }).not.toThrow()
 
       expect(() => {
         Posts.updateMany({}, {
           $set: { published: true },
         })
-      }).not.toThrowError()
+      }).not.toThrow()
 
       expect(() => {
         Posts.replaceOne({
@@ -860,7 +860,7 @@ describe('Collection', () => {
           title: 'Hello',
           content: 'World',
         })
-      }).not.toThrowError()
+      }).not.toThrow()
     })
 
     it('should validate the schema and throw errors', () => {
@@ -879,7 +879,7 @@ describe('Collection', () => {
           id: '1',
           content: 'World',
         } as any)
-      }).toThrowError()
+      }).toThrow()
 
       expect(() => {
         Posts.updateOne({
@@ -887,13 +887,13 @@ describe('Collection', () => {
         }, {
           $set: { foo: true },
         })
-      }).not.toThrowError()
+      }).not.toThrow()
 
       expect(() => {
         Posts.updateMany({}, {
           $set: { bar: true },
         })
-      }).not.toThrowError()
+      }).not.toThrow()
 
       expect(() => {
         Posts.replaceOne({
@@ -904,7 +904,7 @@ describe('Collection', () => {
           content: 'World',
           asdf: true,
         } as any)
-      }).not.toThrowError()
+      }).not.toThrow()
     })
   })
 
@@ -961,14 +961,14 @@ describe('Collection', () => {
       col.insert({ id: '1', name: 'John' })
       await col.dispose()
 
-      expect(() => col.find()).toThrowError('Collection is disposed')
-      expect(() => col.findOne({})).toThrowError('Collection is disposed')
-      expect(() => col.insert({ name: 'Jane' })).toThrowError('Collection is disposed')
-      expect(() => col.insertMany([{ name: 'Jerry' }])).toThrowError('Collection is disposed')
-      expect(() => col.updateOne({}, {})).toThrowError('Collection is disposed')
-      expect(() => col.updateMany({}, {})).toThrowError('Collection is disposed')
-      expect(() => col.removeOne({})).toThrowError('Collection is disposed')
-      expect(() => col.removeMany({})).toThrowError('Collection is disposed')
+      expect(() => col.find()).toThrow('Collection is disposed')
+      expect(() => col.findOne({})).toThrow('Collection is disposed')
+      expect(() => col.insert({ name: 'Jane' })).toThrow('Collection is disposed')
+      expect(() => col.insertMany([{ name: 'Jerry' }])).toThrow('Collection is disposed')
+      expect(() => col.updateOne({}, {})).toThrow('Collection is disposed')
+      expect(() => col.updateMany({}, {})).toThrow('Collection is disposed')
+      expect(() => col.removeOne({})).toThrow('Collection is disposed')
+      expect(() => col.removeMany({})).toThrow('Collection is disposed')
 
       // @ts-expect-error - private property
       expect(col.memoryArray()).toEqual([])

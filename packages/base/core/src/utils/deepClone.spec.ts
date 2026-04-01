@@ -77,6 +77,6 @@ describe('clone', () => {
   })
 
   it('should fail on functions', () => {
-    expect(() => clone(() => {})).toThrowError('Cloning functions is not supported')
+    expect(() => clone(() => {})).toThrow('Cloning functions is not supported')
   })
 })
