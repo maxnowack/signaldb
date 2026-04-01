@@ -3,7 +3,7 @@ import uniqueBy from '../utils/uniqueBy'
 
 type AddedCallback<T> = (item: T) => void
 type AddedBeforeCallback<T> = (item: T, before: T) => void
-type ChangedCallback<T> = (oldItem: T, newItem: T) => void
+type ChangedCallback<T> = (item: T, before: T) => void
 type ChangedFieldCallback<T> = <Field extends keyof T>(
   item: T,
   field: Field,
