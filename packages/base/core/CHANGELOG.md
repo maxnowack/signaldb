@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+* Added the previous state (before the update) as an argument to `'changed'` event handlers. This provides additional information to handlers, enabling e.g. history functionality.
+
 * Introduced the `transformAll` option when creating a `Collection`. This allows you to define a function that transform items after they are retrieved from persistence, enabling the integration of data from other collections or external sources (thanks @signalize!)
 
 ## [1.7.2] - 2026-01-07
