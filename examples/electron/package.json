@@ -1,0 +1,32 @@
+{
+  "name": "electron-example",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "npm run build && electron .",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build:main": "vite build --config vite.main.config.ts",
+    "build:preload": "vite build --config vite.preload.config.ts",
+    "build:renderer": "vite build"
+  },
+  "dependencies": {
+    "@maverick-js/signals": "^6.0.0",
+    "@signaldb/core": "*",
+    "@signaldb/electron": "*",
+    "@signaldb/fs": "*",
+    "@signaldb/maverickjs": "*",
+    "@signaldb/react": "*",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^4.5.2",
+    "electron": "^35.0.0",
+    "typescript": "5.9.3",
+    "vite": "^6.3.5"
+  }
+}
