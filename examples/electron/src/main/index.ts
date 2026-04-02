@@ -12,19 +12,19 @@ setupSignalDBMain(ipcMain, {
   todos: Todos,
 })
 
-app.whenReady().then(() => {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      preload: path.join(__dirname, '..', 'preload', 'index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  })
+await app.whenReady()
 
-  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'))
+const win = new BrowserWindow({
+  width: 800,
+  height: 600,
+  webPreferences: {
+    preload: path.join(__dirname, '..', 'preload', 'index.js'),
+    contextIsolation: true,
+    nodeIntegration: false,
+  },
 })
+
+await win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'))
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
