@@ -41,24 +41,25 @@ const Posts = new Collection({
   persistence: createFilesystemAdapter('./data/posts.json'),
 })
 
-const { dispose } = setupSignalDBMain(ipcMain, {
-  posts: Posts,
-})
+const signalDB = setupSignalDBMain(ipcMain)
+signalDB.addCollection(Posts, { name: 'posts' })
 
 // Collections are fully usable in the main process
 const allPosts = Posts.find().fetch()
 ```
 
-Registers IPC handlers in the main process that bridge Collection instances to renderer processes. The collections remain fully usable in the main process — you can query, insert, update, and remove items directly.
+Registers IPC handlers in the main process that bridge Collection instances to renderer processes. Collections are added via `addCollection` and remain fully usable in the main process — you can query, insert, update, and remove items directly.
 
 ### Parameters
 
 - `ipcMain` — Electron's `ipcMain` module (or any object with `handle` and `removeHandler` methods)
-- `collections` — `Record<string, Collection>` mapping collection names to Collection instances
 
 ### Returns
 
-`{ dispose(): void }` — Call `dispose()` to remove all IPC handlers and clean up event listeners.
+`{ addCollection(collection, options): void, dispose(): void }`
+
+- `addCollection(collection, { name })` — Register a Collection instance under the given name. The `name` must match what renderers pass to `createElectronAdapter`.
+- `dispose()` — Remove all IPC handlers and clean up event listeners.
 
 ### Behavior
 

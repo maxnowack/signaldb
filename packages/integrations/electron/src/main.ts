@@ -19,13 +19,12 @@ import {
 /**
  * Sets up SignalDB IPC handlers in the Electron main process.
  * @param ipcMain - Electron's ipcMain (or compatible)
- * @param collections - Map of collection names to Collection instances
- * @returns Object with a dispose() method to clean up all handlers
+ * @returns Object with addCollection() and dispose() methods
  */
 export function setupSignalDBMain(
   ipcMain: IpcMainLike,
-  collections: Record<string, CollectionLike>,
-): { dispose(): void } {
+): { addCollection(collection: CollectionLike, options: { name: string }): void, dispose(): void } {
+  const collections: Record<string, CollectionLike> = {}
   const subscribers = new Map<string, Set<WebContentsLike>>()
   const cleanups = new Map<string, () => void>()
 
@@ -189,6 +188,9 @@ export function setupSignalDBMain(
   )
 
   return {
+    addCollection(collection: CollectionLike, options: { name: string }) {
+      collections[options.name] = collection
+    },
     dispose() {
       ipcMain.removeHandler(SIGNALDB_LOAD)
       ipcMain.removeHandler(SIGNALDB_SAVE)

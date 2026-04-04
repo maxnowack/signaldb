@@ -139,7 +139,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should register handlers for all channels', () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     expect(ipcMain.handlers.has(SIGNALDB_LOAD)).toBe(true)
     expect(ipcMain.handlers.has(SIGNALDB_SAVE)).toBe(true)
@@ -148,7 +149,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should load items from the collection', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const handler = ipcMain.handlers.get(SIGNALDB_LOAD)
     const wc = createMockWebContents()
@@ -161,7 +163,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should apply changeset to collection on save', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const handler = ipcMain.handlers.get(SIGNALDB_SAVE)
     const wc = createMockWebContents()
@@ -185,7 +188,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should remove items from collection on save', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const handler = ipcMain.handlers.get(SIGNALDB_SAVE)
     const wc = createMockWebContents()
@@ -203,7 +207,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should throw on unknown collection name', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const handler = ipcMain.handlers.get(SIGNALDB_LOAD)
     const wc = createMockWebContents()
@@ -215,7 +220,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should notify subscribers when collection data changes', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const wc = createMockWebContents()
     const registerHandler = ipcMain.handlers.get(SIGNALDB_REGISTER)
@@ -240,7 +246,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should fan out changes to multiple windows', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const wc1 = createMockWebContents()
     const wc2 = createMockWebContents()
@@ -264,7 +271,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should auto-cleanup destroyed WebContents and remove listeners', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const wc = createMockWebContents()
     const registerHandler = ipcMain.handlers.get(SIGNALDB_REGISTER)
@@ -281,7 +289,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should not send to destroyed WebContents', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const wc1 = createMockWebContents()
     const wc2 = createMockWebContents()
@@ -305,7 +314,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should remove listeners when last subscriber leaves via unregister', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const wc = createMockWebContents()
     const registerHandler = ipcMain.handlers.get(SIGNALDB_REGISTER)
@@ -327,7 +337,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should re-attach listeners after all subscribers leave and new one arrives', async () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const wc1 = createMockWebContents()
     const registerHandler = ipcMain.handlers.get(SIGNALDB_REGISTER)
@@ -356,7 +367,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should clean up everything on dispose', async () => {
-    const result = setupSignalDBMain(ipcMain, { posts: collection })
+    const result = setupSignalDBMain(ipcMain)
+    result.addCollection(collection, { name: 'posts' })
 
     const wc = createMockWebContents()
     const registerHandler = ipcMain.handlers.get(SIGNALDB_REGISTER)
@@ -372,7 +384,8 @@ describe('setupSignalDBMain', () => {
   })
 
   it('should allow direct collection access in main process', () => {
-    setupSignalDBMain(ipcMain, { posts: collection })
+    const signalDB = setupSignalDBMain(ipcMain)
+    signalDB.addCollection(collection, { name: 'posts' })
 
     const items = collection.find().fetch()
     expect(items).toEqual([{ id: '1', name: 'test' }])

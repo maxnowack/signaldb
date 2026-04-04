@@ -54,7 +54,7 @@ And a reactivity adapter for the renderer. For example, if you are using React:
 
 ## Setting Up the Main Process
 
-In your main process entry file, create your Collections with persistence adapters and pass them to `setupSignalDBMain`. Each key is a collection name that renderers will reference. The collections are fully usable in the main process — you can query, insert, update, and remove items directly.
+In your main process entry file, call `setupSignalDBMain` to initialize the IPC bridge, then register each Collection with `addCollection`. The `name` must match what renderers will reference. The collections are fully usable in the main process — you can query, insert, update, and remove items directly.
 
 ```js
 // main.js
@@ -70,10 +70,9 @@ const Users = new Collection({
   persistence: createFilesystemAdapter('./data/users.json'),
 })
 
-setupSignalDBMain(ipcMain, {
-  posts: Posts,
-  users: Users,
-})
+const signalDB = setupSignalDBMain(ipcMain)
+signalDB.addCollection(Posts, { name: 'posts' })
+signalDB.addCollection(Users, { name: 'users' })
 
 // You can query collections directly in the main process
 ipcMain.handle('get-post-count', () => {
@@ -92,7 +91,7 @@ app.whenReady().then(() => {
 })
 ```
 
-`setupSignalDBMain` returns an object with a `dispose()` method that removes all IPC handlers and cleans up event listeners. Call it if you need to tear down the bridge.
+`setupSignalDBMain` returns an object with `addCollection()` and `dispose()` methods. Call `addCollection` to register each collection, and `dispose()` if you need to tear down the bridge.
 
 ## Setting Up the Preload Script
 

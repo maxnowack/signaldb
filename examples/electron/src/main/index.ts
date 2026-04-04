@@ -8,9 +8,8 @@ const Todos = new Collection<{ id: string, text: string, completed: boolean }>({
   persistence: createFilesystemAdapter(path.join(app.getPath('userData'), 'todos.json')),
 })
 
-setupSignalDBMain(ipcMain, {
-  todos: Todos,
-})
+const signalDB = setupSignalDBMain(ipcMain)
+signalDB.addCollection(Todos, { name: 'todos' })
 
 await app.whenReady()
 
