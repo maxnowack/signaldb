@@ -24,7 +24,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         '@signaldb/core',
-        '@maverick-js/signals',
+        'oby',
       ],
       plugins: [
         typescriptPaths({
