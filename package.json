@@ -28,7 +28,7 @@
     "packages/base/*"
   ],
   "devDependencies": {
-    "@codecov/bundle-analyzer": "^1.9.1",
+    "@codecov/bundle-analyzer": "^2.0.0",
     "@commitlint/cli": "20.5.0",
     "@commitlint/config-conventional": "20.5.0",
     "@rollup/plugin-typescript": "12.3.0",
