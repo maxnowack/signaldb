@@ -80,7 +80,7 @@ This method allows observation of changes in the cursor items. It uses callbacks
   * `callbacks`: An object of Callback functions for different observation events.
     * `added(item: T)`gets called when a new item was added to the cursor
     * `addedBefore(item: T, before: T)`gets called when a new item was added to the cursor and also indicates the position of the new item
-    * `changed(item: T)`gets called when an item in the cursor was changed
+    * `changed(item: T, before: T)`gets called when an item in the cursor was changed, passing the state after and before the change
     * `movedBefore(item: T, before: T)`gets called when an item moved its position in the cursor
     * `removed(item: T)`gets called when an item was removed from the cursor
   * `skipInitial`: A boolean to decide whether to skip the initial observation event.
