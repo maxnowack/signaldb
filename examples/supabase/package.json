@@ -18,7 +18,7 @@
     "@signaldb/sync": "*",
     "@supabase/supabase-js": "^2.89.0",
     "@types/node": "25.9.1",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "next": "16.2.6",
     "react": "19.2.6",
