@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Reject unsafe `$regex` selector patterns before passing queries to mingo.
+
 ## [1.8.1] - 2026-03-17
 
 ### Fixed
