@@ -387,19 +387,19 @@ export default class AsyncDataAdapter implements DataAdapter {
   /**
    * After mutations, recompute and push updates for affected active queries
    * @param collectionName - name of the collection
-   * @param changedItems - items that were inserted/updated/replaced/removed
+   * @param affectedItems - item states before and/or after the mutation
    */
   private async checkQueryUpdates<T extends BaseItem<I>, I = any>(
     collectionName: string,
-    changedItems: T[],
+    affectedItems: T[],
   ) {
     const registry = this.queries.get(collectionName)
     if (!registry) throw new Error(`Collection ${collectionName} not initialized!`)
     if (registry.size === 0) return
 
-    // Find active queries whose selector matches at least one changed item
+    // Find active queries matching an item state before or after the mutation
     const affected = [...registry.values()].filter(({ selector }) =>
-      changedItems.some(item => match(item, selector)),
+      affectedItems.some(item => match(item, selector)),
     )
     if (affected.length === 0) return
 
@@ -457,7 +457,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     }
 
     await storage.replace([modified])
-    await this.checkQueryUpdates(collectionName, [modified])
+    await this.checkQueryUpdates(collectionName, [item, modified])
     return [modified]
   }
 
@@ -482,7 +482,7 @@ export default class AsyncDataAdapter implements DataAdapter {
       return modified
     }))
     await storage.replace(changed)
-    await this.checkQueryUpdates(collectionName, changed)
+    await this.checkQueryUpdates(collectionName, [...items, ...changed])
     return changed
   }
 
@@ -505,7 +505,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     }
 
     await storage.replace([modified])
-    await this.checkQueryUpdates(collectionName, [modified])
+    await this.checkQueryUpdates(collectionName, [item, modified])
     return [modified]
   }
 
