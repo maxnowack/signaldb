@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import '../setup'
 import { Collection, WorkerDataAdapter, WorkerDataAdapterHost } from '@signaldb/core'
 import { SyncManager } from '@signaldb/sync'
 import createLocalStorageAdapter from '../../src'

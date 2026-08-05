@@ -1,7 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
-// @ts-expect-error -- Vite config is type-checked under bundler resolution in examples.
 import react from '@vitejs/plugin-react'
 
 const rootDirectory = path.dirname(fileURLToPath(import.meta.url))
