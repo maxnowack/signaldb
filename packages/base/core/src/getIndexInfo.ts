@@ -166,9 +166,7 @@ export default function getIndexInfo<
       const matchedBefore = matched
       const idsBefore = ids
       const process$or = ($orNew: Selector<T>[] | undefined) => {
-        if ($orNew && $orNew.length > 0) newSelector.$or = $orNew
-
-        if (hasNonIndexField) { // if there was a non-indexed field, we can't optimize the $or away
+        if (hasNonIndexField || ($orNew && $orNew.length > 0)) {
           newSelector.$or = $or
           matched = matchedBefore
           ids = idsBefore

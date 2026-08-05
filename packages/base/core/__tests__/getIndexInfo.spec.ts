@@ -39,6 +39,40 @@ describe('getIndexInfo', () => {
     expect(Array.isArray(info.ids)).toBe(true)
   })
 
+  it('falls back when one indexed $or branch still needs selector matching', () => {
+    const provider: SynchronousQueryFunction<Item, string> = (selector) => {
+      if (!Object.hasOwn(selector, 'a')) return noMatch
+      return {
+        matched: true,
+        ids: selector.a === 1 ? ['1'] : ['2'],
+        fields: ['a'],
+        keepSelector: false,
+      }
+    }
+    const selector = { $or: [{ a: 1 }, { a: 2, b: 3 }] } as unknown as Selector<Item>
+
+    const info = getIndexInfo([provider], selector)
+
+    expect(info).toEqual({ matched: false, ids: [], optimizedSelector: selector })
+  })
+
+  it('falls back from partially optimized $or branches with async providers', async () => {
+    const provider: AsynchronousQueryFunction<Item, string> = async (selector) => {
+      if (!Object.hasOwn(selector, 'a')) return noMatch
+      return {
+        matched: true,
+        ids: selector.a === 1 ? ['1'] : ['2'],
+        fields: ['a'],
+        keepSelector: false,
+      }
+    }
+    const selector = { $or: [{ a: 1 }, { a: 2, b: 3 }] } as unknown as Selector<Item>
+
+    const info = await getIndexInfo([provider], selector)
+
+    expect(info).toEqual({ matched: false, ids: [], optimizedSelector: selector })
+  })
+
   it('throws when mixing sync/async in getMergedIndexInfo', () => {
     const sync: SynchronousQueryFunction<Item, string> = () => noMatch
     const asyncP: AsynchronousQueryFunction<Item, string> = async () => matchAll
