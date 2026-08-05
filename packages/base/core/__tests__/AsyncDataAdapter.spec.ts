@@ -120,14 +120,12 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
   }
 }
 
-// Helper function to wait for query completion (unused but kept for potential future use)
 /**
  * Wait for query completion
  * @param backend - The backend instance
  * @param selector - The query selector
  * @param options - Query options
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function waitForQueryCompletion(backend: any, selector: any, options?: any): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -567,6 +565,55 @@ describe('AsyncDataAdapter', () => {
     // Cleanup
     unsubscribe()
     backend.unregisterQuery({ name: 'test' }, {})
+  })
+
+  it('updates an active query when updateOne moves an item out of its selector', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    const selector = { name: 'pending' }
+
+    await backend.insert({ id: '1', name: 'pending' })
+    backend.registerQuery(selector, {})
+    await waitForQueryCompletion(backend, selector, {})
+
+    expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'pending' }])
+
+    await backend.updateOne({ id: '1' }, { $set: { name: 'complete' } })
+
+    expect(await backend.executeQuery(selector, {})).toEqual([])
+    expect(backend.getQueryResult(selector, {})).toEqual([])
+  })
+
+  it('updates an active query when updateMany moves items out of its selector', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    const selector = { name: 'pending' }
+
+    await backend.insert({ id: '1', name: 'pending' })
+    await backend.insert({ id: '2', name: 'pending' })
+    backend.registerQuery(selector, {})
+    await waitForQueryCompletion(backend, selector, {})
+
+    expect(backend.getQueryResult(selector, {})).toHaveLength(2)
+
+    await backend.updateMany(selector, { $set: { name: 'complete' } })
+
+    expect(await backend.executeQuery(selector, {})).toEqual([])
+    expect(backend.getQueryResult(selector, {})).toEqual([])
+  })
+
+  it('updates an indexed active query when replaceOne moves an item out of its selector', async () => {
+    const backend = adapter.createCollectionBackend(collection, ['name'])
+    const selector = { name: 'pending' }
+
+    await backend.insert({ id: '1', name: 'pending' })
+    backend.registerQuery(selector, {})
+    await waitForQueryCompletion(backend, selector, {})
+
+    expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'pending' }])
+
+    await backend.replaceOne({ id: '1' }, { name: 'complete' })
+
+    expect(await backend.executeQuery(selector, {})).toEqual([])
+    expect(backend.getQueryResult(selector, {})).toEqual([])
   })
 
   it('should handle errors during operation execution', async () => {
