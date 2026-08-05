@@ -1,14 +1,13 @@
 /// <reference types="vitest" />
 import path from 'path'
 import { defineConfig } from 'vite'
-import typescript from '@rollup/plugin-typescript'
 import { typescriptPaths } from 'rollup-plugin-typescript-paths'
-import dts from 'vite-plugin-dts'
 import tsconfigPaths from 'vite-tsconfig-paths'
+import { createDtsPlugin } from '../../../vite.config.shared.mts'
 
 export default defineConfig({
   plugins: [
-    dts(),
+    createDtsPlugin(__dirname),
     tsconfigPaths(),
   ],
   build: {
@@ -28,11 +27,6 @@ export default defineConfig({
       plugins: [
         typescriptPaths({
           preserveExtensions: true,
-        }),
-        typescript({
-          sourceMap: false,
-          declaration: true,
-          outDir: 'dist',
         }),
       ],
     },
