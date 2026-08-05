@@ -53,7 +53,7 @@ describe('reactiveOrAsync / unwrap', () => {
       return v
     })
 
-    expect(() => fn()).toThrowError(new Error('Promise yielded in sync flow'))
+    expect(() => fn()).toThrow(new Error('Promise yielded in sync flow'))
   })
 
   it('async mode: awaits yielded Promises and passes through non-thenables', async () => {

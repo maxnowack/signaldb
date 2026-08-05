@@ -1040,11 +1040,11 @@ describe('Collection', () => {
         id: '1',
       }, {
         $set: { foo: true },
-      })).rejects.not.toThrow()
+      })).resolves.not.toThrow()
 
       await expect(Posts.updateMany({}, {
         $set: { bar: true },
-      })).rejects.not.toThrow()
+      })).resolves.not.toThrow()
 
       await expect(Posts.replaceOne({
         id: '1',
@@ -1053,7 +1053,7 @@ describe('Collection', () => {
         title: 'Hello',
         content: 'World',
         asdf: true,
-      } as any)).rejects.not.toThrow()
+      } as any)).resolves.not.toThrow()
     })
   })
 

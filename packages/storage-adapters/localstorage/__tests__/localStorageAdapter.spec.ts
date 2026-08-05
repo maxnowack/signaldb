@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import './setup'
 import createLocalStorageAdapter from '../src/index'
 
 interface Item {
