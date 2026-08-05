@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/fs",
-  "version": "2.0.0-beta.7",
+  "version": "2.0.0-beta.8",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
@@ -53,9 +53,9 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "2.0.0-beta.7"
+    "@signaldb/core": "2.0.0-beta.8"
   },
   "dependencies": {
-    "@signaldb/generic-fs": "^2.0.0-beta.7"
+    "@signaldb/generic-fs": "^2.0.0-beta.8"
   }
 }
