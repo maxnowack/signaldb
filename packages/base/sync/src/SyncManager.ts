@@ -405,9 +405,12 @@ export default class SyncManager<
         collectionParameters.options,
         async (data) => {
           if (this.isDisposed) return
+          // eslint-disable-next-line unicorn/prefer-ternary -- this is easier to read than a ternary operator
           if (data == null) {
+            // if no data is provided, we will sync the collection with the remote source
             await this.sync(name)
           } else {
+            // if data is provided, we will sync the collection with the provided data
             await this.getSyncQueue(name).add(async () => {
               const syncTime = Date.now()
               const syncId = await this.syncOperations.insert({

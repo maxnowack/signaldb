@@ -210,8 +210,8 @@ describe('getIndexInfo', () => {
         ],
       }],
     })).toEqual({
-      matched: true,
-      ids: ['2', '3', '4'],
+      matched: false,
+      ids: [],
       optimizedSelector: {
         $and: [{
           $or: [
@@ -381,7 +381,7 @@ describe('getIndexInfo', () => {
       ],
     })).toEqual({
       matched: true,
-      ids: ['1', '2', '0'],
+      ids: ['1'],
       optimizedSelector: {
         $and: [
           {
@@ -394,10 +394,12 @@ describe('getIndexInfo', () => {
         $or: [
           {
             $and: [
-              { id: '0' },
+              { id: '0', postId: '0' },
               { id: '1' },
             ],
           },
+          { authorId: '0', postId: '0' },
+          { authorId: '0' },
         ],
       },
     })

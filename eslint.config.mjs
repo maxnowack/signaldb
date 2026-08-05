@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import fs from 'fs'
 import path from 'path'
+import { fixupPluginRules } from '@eslint/compat'
 import eslint from '@eslint/js'
 import { defineConfig } from 'eslint/config'
 import globals from 'globals'
@@ -36,9 +37,8 @@ export default defineConfig(
   unicornPlugin.configs.recommended,
   {
     plugins: {
-      'react': reactPlugin,
-      'jsx-a11y': jsxA11yPlugin,
-      '@stylistic': stylisticPlugin,
+      'react': fixupPluginRules(reactPlugin),
+      'jsx-a11y': fixupPluginRules(jsxA11yPlugin),
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
@@ -174,7 +174,7 @@ export default defineConfig(
   {
     files: ['**/__tests__/**/*.(m)[jt]s?(x)', '**/?(*.)+(spec|test).(m)[jt]s?(x)'],
     plugins: {
-      'testing-library': testingLibraryPlugin,
+      'testing-library': fixupPluginRules(testingLibraryPlugin),
     },
   },
   {
