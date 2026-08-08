@@ -174,15 +174,33 @@ export default class Collection<
       callback,
     )()
 
-    const maybePromise = execute()
-
     const afterBatch = () => {
       Collection.batchOperationInProgress = false
     }
 
+    let maybePromise: ReturnType | Promise<ReturnType>
+    try {
+      maybePromise = execute()
+    } catch (error) {
+      // A synchronously throwing callback must not leave the batch flag
+      // stuck at `true` — that would defer every requery forever (see the
+      // rejection branch below).
+      afterBatch()
+      throw error
+    }
+
     if (maybePromise && typeof (maybePromise as any).then === 'function') {
       return (maybePromise as Promise<ReturnType>)
-        .then(() => afterBatch())
+        .then(
+          () => afterBatch(),
+          (error) => {
+            // Rejections need the same cleanup as fulfillment — otherwise
+            // `batchOperationInProgress` stays `true` and all deferred
+            // requeries are never flushed, silently freezing reactivity.
+            afterBatch()
+            throw error
+          },
+        )
     } else {
       afterBatch()
     }
@@ -620,7 +638,6 @@ export default class Collection<
   public batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
     if (this.batchOperationInProgress) return callback() as void | Promise<void>
     this.batchOperationInProgress = true
-    const maybePromise = callback()
 
     const afterBatch = () => {
       this.batchOperationInProgress = false
@@ -628,8 +645,29 @@ export default class Collection<
       this.postBatchCallbacks.clear()
     }
 
+    let maybePromise: ReturnType | Promise<ReturnType>
+    try {
+      maybePromise = callback()
+    } catch (error) {
+      // A synchronously throwing callback must not leave the batch flag
+      // stuck at `true` — that would defer every requery forever (see the
+      // rejection branch below).
+      afterBatch()
+      throw error
+    }
+
     if (maybePromise && typeof (maybePromise as any).then === 'function') {
-      return (maybePromise as Promise<any>).then(() => afterBatch())
+      return (maybePromise as Promise<any>).then(
+        () => afterBatch(),
+        (error) => {
+          // Rejections need the same cleanup as fulfillment — otherwise
+          // `batchOperationInProgress` stays `true`, deferred post-batch
+          // callbacks (e.g. reactive requeries) are never flushed and
+          // reactivity silently freezes for the rest of the session.
+          afterBatch()
+          throw error
+        },
+      )
     } else {
       afterBatch()
     }
