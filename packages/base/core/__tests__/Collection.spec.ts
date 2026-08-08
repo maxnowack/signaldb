@@ -1256,6 +1256,54 @@ describe('Collection coverage extras', () => {
     expect(innerRan).toBe(true)
   })
 
+  it('resets batch state and flushes post-batch callbacks when an async batch rejects', async () => {
+    const c = new Collection<{ id: string }>()
+    let postBatchRan = false
+    await expect(c.batch(async () => {
+      c.onPostBatch(() => {
+        postBatchRan = true
+      })
+      throw new Error('boom')
+    })).rejects.toThrow('boom')
+    expect(postBatchRan).toBe(true)
+    expect(c.isBatchOperationInProgress()).toBe(false)
+
+    // batching still works afterwards
+    await c.batch(async () => {
+      await c.insert({ id: '1' })
+    })
+    await expect(c.findOne({ id: '1' }, { async: true })).resolves.toEqual({ id: '1' })
+  })
+
+  it('resets batch state when a sync batch callback throws', async () => {
+    const c = new Collection<{ id: string }>()
+    expect(() => c.batch(() => {
+      throw new Error('boom')
+    })).toThrow('boom')
+    expect(c.isBatchOperationInProgress()).toBe(false)
+  })
+
+  it('resets static batch state when the callback rejects', async () => {
+    const c = new Collection<{ id: string }>()
+    let postBatchRan = false
+    await expect(Collection.batch(async () => {
+      c.onPostBatch(() => {
+        postBatchRan = true
+      })
+      throw new Error('boom')
+    })).rejects.toThrow('boom')
+    expect(postBatchRan).toBe(true)
+    expect(c.isBatchOperationInProgress()).toBe(false)
+  })
+
+  it('resets static batch state when the callback throws synchronously', async () => {
+    const c = new Collection<{ id: string }>()
+    expect(() => Collection.batch(() => {
+      throw new Error('boom')
+    })).toThrow('boom')
+    expect(c.isBatchOperationInProgress()).toBe(false)
+  })
+
   it('throws on invalid selector for find', () => {
     const c = new Collection<{ id: string }>()
     // invalid selector type
