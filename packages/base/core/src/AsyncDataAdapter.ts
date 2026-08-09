@@ -24,7 +24,54 @@ export interface AsyncDataAdapterOptions {
   id?: string,
   /** Optional error hook (mirrors WorkerDataAdapterHost) */
   onError?: (error: Error) => void,
+  /**
+   * How often a failing query is retried before it is published as `'error'`.
+   * A query that fails is otherwise a dead end for the rest of the session —
+   * cursors only requery on `'complete'`, so they keep serving their neutral
+   * empty value, which consumers cannot tell apart from "there is no data".
+   */
+  retry?: {
+    /** Total attempts including the first one. Default 3. */
+    attempts?: number,
+    /** Delay in ms before attempt N+1. Default 100 * 4 ** (attempt - 1). */
+    delay?: (attempt: number) => number,
+  },
 }
+
+/**
+ * Carries the context needed to act on a failed query. The bare storage error
+ * on its own does not say which collection or selector produced it, which made
+ * the default `console.error` hook close to useless.
+ */
+export class QueryError extends Error {
+  public readonly collectionName: string
+  public readonly selector: unknown
+  public readonly options: unknown
+  public readonly attempts: number
+
+  constructor(
+    collectionName: string,
+    selector: unknown,
+    options: unknown,
+    attempts: number,
+    cause: unknown,
+  ) {
+    const reason = cause instanceof Error ? cause.message : String(cause)
+    super(`Query on "${collectionName}" failed after ${attempts} attempt(s): ${reason}`)
+    this.name = 'QueryError'
+    this.collectionName = collectionName
+    this.selector = selector
+    this.options = options
+    this.attempts = attempts
+    this.cause = cause
+  }
+}
+
+const DEFAULT_RETRY_ATTEMPTS = 3
+const defaultRetryDelay = (attempt: number) => 100 * (4 ** (attempt - 1))
+const wait = (ms: number) => new Promise<void>((resolve) => {
+  setTimeout(resolve, ms)
+})
 
 type QueryState = 'active' | 'complete' | 'error'
 
@@ -47,6 +94,8 @@ type QueryRecord<T extends BaseItem<I>, I = any> = {
 export default class AsyncDataAdapter implements DataAdapter {
   private id: string
   private onError: (error: Error) => void
+  private retryAttempts: number
+  private retryDelay: (attempt: number) => number
 
   // Per-collection resources
   private storageAdapters = new Map<string, StorageAdapter<any, any>>()
@@ -61,6 +110,8 @@ export default class AsyncDataAdapter implements DataAdapter {
     this.onError = options.onError ?? ((error) => {
       /* eslint-disable no-console */ console.error(error)
     })
+    this.retryAttempts = Math.max(1, options.retry?.attempts ?? DEFAULT_RETRY_ATTEMPTS)
+    this.retryDelay = options.retry?.delay ?? defaultRetryDelay
   }
 
   public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -121,6 +172,14 @@ export default class AsyncDataAdapter implements DataAdapter {
       return (q?.items as T[]) ?? []
     }
 
+    const retryQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
+      const qid = queryId(selector, options)
+      const rec = this.queries.get(collection.name)?.get(qid)
+      if (!rec) return
+      this.publishState(collection.name, qid, 'active', null)
+      void this.runQuery(collection.name, selector, options)
+    }
+
     const onQueryStateChange = (
       selector: Selector<T>,
       options: QueryOptions<T> | undefined,
@@ -141,6 +200,11 @@ export default class AsyncDataAdapter implements DataAdapter {
         })
       }
       registry.get(qid)?.listeners.add(callback)
+      // A query that has already failed would otherwise stay failed forever:
+      // `registerQuery` only runs for the *first* cursor on a selector, so
+      // every later observer inherited the dead state without anything ever
+      // retrying it. A new observer is a natural moment to try again.
+      if (registry.get(qid)?.state === 'error') retryQuery(selector, options)
       return () => registry.get(qid)?.listeners.delete(callback)
     }
 
@@ -173,6 +237,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
       registerQuery,
       unregisterQuery,
+      retryQuery,
       getQueryState,
       getQueryError,
       getQueryResult,
@@ -229,14 +294,52 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (!rec) return
 
     this.publishState(collectionName, qid, 'active', null)
+    await this.runQuery<T, I>(collectionName, selector, options)
+  }
 
-    try {
-      const items = await this.executeQuery<T, I>(collectionName, selector, options)
-      this.publishResult(collectionName, qid, items)
-      this.publishState(collectionName, qid, 'complete', null)
-    } catch (error) {
-      this.publishState(collectionName, qid, 'error', error as Error)
+  /**
+   * Executes a query, retrying transient failures before giving up. The state
+   * stays `'active'` across retries — consumers should see "still loading",
+   * not "failed", until we actually stop trying. Only the final failure is
+   * published as `'error'` and reported through `onError`; previously that
+   * error was swallowed entirely (`fulfillQuery` caught it internally, so the
+   * `.catch(this.onError)` on its call site was unreachable) and the query
+   * stayed dead for the rest of the session.
+   * @param collectionName - name of the collection
+   * @param selector - query selector
+   * @param options - query options
+   */
+  private async runQuery<T extends BaseItem<I>, I = any>(
+    collectionName: string,
+    selector: Selector<T>,
+    options?: QueryOptions<T>,
+  ) {
+    const qid = queryId(selector, options)
+    let lastError: unknown
+    for (let attempt = 1; attempt <= this.retryAttempts; attempt += 1) {
+      // The query can be unregistered while a retry is waiting — dropping out
+      // here keeps a disposed cursor from resurrecting its record.
+      if (!this.queries.get(collectionName)?.has(qid)) return
+      try {
+        const items = await this.executeQuery<T, I>(collectionName, selector, options)
+        this.publishResult(collectionName, qid, items)
+        this.publishState(collectionName, qid, 'complete', null)
+        return
+      } catch (error) {
+        lastError = error
+        if (attempt < this.retryAttempts) await wait(this.retryDelay(attempt))
+      }
     }
+
+    const queryError = new QueryError(
+      collectionName,
+      selector,
+      options,
+      this.retryAttempts,
+      lastError,
+    )
+    this.publishState(collectionName, qid, 'error', queryError)
+    this.onError(queryError)
   }
 
   /**
@@ -409,17 +512,11 @@ export default class AsyncDataAdapter implements DataAdapter {
       this.publishState(collectionName, qid, 'active', null)
     }
 
-    // …then recompute and complete
-    await Promise.all(affected.map(async ({ selector, options }) => {
-      const qid = queryId(selector, options)
-      try {
-        const items = await this.executeQuery<T, I>(collectionName, selector, options)
-        this.publishResult(collectionName, qid, items)
-        this.publishState(collectionName, qid, 'complete', null)
-      } catch (error) {
-        this.publishState(collectionName, qid, 'error', error as Error)
-      }
-    }))
+    // …then recompute and complete, with the same retry/report behaviour a
+    // freshly registered query gets — a mutation-triggered refresh that fails
+    // silently leaves exactly the same dead cursor.
+    await Promise.all(affected.map(({ selector, options }) =>
+      this.runQuery<T, I>(collectionName, selector, options)))
   }
 
   private async insert<T extends BaseItem<I>, I = any>(

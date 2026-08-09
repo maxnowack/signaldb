@@ -28,6 +28,12 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   // methods for registering and unregistering queries that will be called from the collection during find/findOne
   registerQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
   unregisterQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
+  /**
+   * Re-runs a query that is currently in the `'error'` state. Optional so
+   * existing custom adapters keep compiling — an adapter that never surfaces
+   * an error state has nothing to implement.
+   */
+  retryQuery?<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
   getQueryState<O extends QueryOptions<T>>(selector: Selector<T>, options: O): 'active' | 'complete' | 'error',
   getQueryError<O extends QueryOptions<T>>(selector: Selector<T>, options: O): Error | null,
   getQueryResult<O extends QueryOptions<T>>(selector: Selector<T>, options: O): T[],
