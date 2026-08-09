@@ -66,6 +66,17 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'observer.created': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
   'observer.disposed': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
 
+  /**
+   * A query backing at least one live cursor failed and will not deliver
+   * results. The cursor keeps returning its neutral empty value, so without
+   * listening here a consumer cannot distinguish failure from "no data".
+   */
+  'query.error': <O extends QueryOptions<T>>(
+    error: Error,
+    selector?: Selector<T>,
+    options?: O,
+  ) => void,
+
   'getItems': (selector: Selector<T> | undefined) => void,
   'find': <Async extends boolean, O extends FindOptions<T, Async>>(
     selector: Selector<T> | undefined,
@@ -553,6 +564,18 @@ export default class Collection<
             selector,
             options || {},
             (state) => {
+              // A failed query never reaches `'complete'`, so the cursor keeps
+              // serving its neutral empty value — indistinguishable from "no
+              // data" for anyone reading it. Surfacing the failure as an event
+              // is the only way a consumer can tell the difference. Requerying
+              // here would be pointless (the backend result is still empty)
+              // and risks a loop, so it deliberately does not.
+              if (state === 'error') {
+                const queryError = this.backend.getQueryError(selector, options || {})
+                  || new Error(`Query on "${this.name}" failed`)
+                this.emit('query.error', queryError, selector, options)
+                return
+              }
               if (state !== 'complete') return
               handleRequery()
             },
