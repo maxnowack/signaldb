@@ -453,6 +453,17 @@ describe('WorkerDataAdapter', () => {
       unsubscribe()
     })
 
+    it('allows query callback cleanup after its query was unregistered', () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      const selector = { name: 'test' }
+
+      backend.registerQuery(selector, {})
+      const unsubscribe = backend.onQueryStateChange(selector, {}, () => {})
+      backend.unregisterQuery(selector, {})
+
+      expect(unsubscribe).not.toThrow()
+    })
+
     it('handles multiple state change callbacks for the same query', async () => {
       const backend = adapter.createCollectionBackend(collection, [])
       await backend.isReady()

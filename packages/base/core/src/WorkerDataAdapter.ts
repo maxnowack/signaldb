@@ -235,7 +235,7 @@ export default class WorkerDataAdapter implements DataAdapter {
           const currentCallbacks = this.queries[collection.name]?.get(
             queryId(selector, options),
           )?.stateChangeCallbacks
-          if (!currentCallbacks) throw new Error('State change callbacks are not defined!')
+          if (!currentCallbacks) return
           this.updateQuery(collection.name, { selector, options }, {
             stateChangeCallbacks: currentCallbacks
               .filter(existingCallback => existingCallback !== callback),
