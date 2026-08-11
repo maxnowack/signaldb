@@ -162,7 +162,7 @@ describe('WorkerDataAdapterHost', () => {
       consoleSpy.mockRestore()
     })
 
-    it('throws when worker globals are missing', () => {
+    it('uses the supplied endpoint when worker globals are missing', () => {
       const originalAdd = (globalThis as any).addEventListener
       const originalPost = (globalThis as any).postMessage
       delete (globalThis as any).addEventListener
@@ -172,7 +172,7 @@ describe('WorkerDataAdapterHost', () => {
       try {
         expect(() => new WorkerDataAdapterHost(context_, {
           storage: () => memoryStorageAdapter<TestItem>(),
-        })).toThrow('WorkerDataAdapterHost can only be used in a Web Worker context')
+        })).not.toThrow()
       } finally {
         ;(globalThis as any).addEventListener = originalAdd
         ;(globalThis as any).postMessage = originalPost

@@ -12,6 +12,13 @@ interface WorkerDataAdapterOptions {
   log?: (message: string, ...args: any[]) => void,
 }
 
+export interface WorkerDataAdapterEndpoint {
+  addEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
+  removeEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
+  postMessage: (message: unknown) => void,
+  terminate?: () => void,
+}
+
 export default class WorkerDataAdapter implements DataAdapter {
   private id: string
   private isDisposed = false
@@ -27,7 +34,7 @@ export default class WorkerDataAdapter implements DataAdapter {
     eventHandler?: (event: MessageEvent) => void,
   }>> = {}
 
-  constructor(private worker: Worker, private options: WorkerDataAdapterOptions) {
+  constructor(private worker: WorkerDataAdapterEndpoint, private options: WorkerDataAdapterOptions) {
     this.id = this.options.id || 'default-worker-data-adapter'
     if (this.options.log) this.log = this.options.log
     this.workerReady = new Promise((resolve, reject) => {
@@ -241,7 +248,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       dispose: async () => {
         await this.exec('unregisterCollection', collection.name)
         this.isDisposed = true
-        this.worker.terminate()
+        this.worker.terminate?.()
       },
       isReady: async () => {
         await this.exec('isReady', collection.name)
