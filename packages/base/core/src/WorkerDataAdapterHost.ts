@@ -15,7 +15,7 @@ import sortItems from './utils/sortItems'
 import project from './utils/project'
 import compact from './utils/compact'
 
-interface WorkerContext {
+export interface WorkerDataAdapterHostEndpoint {
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
   postMessage: (message: any) => void,
 }
@@ -98,16 +98,12 @@ export default class WorkerDataAdapterHost<
     console.error(error)
   }
 
-  constructor(private workerContext: WorkerContext, private options: WorkerDataAdapterHostOptions) {
+  constructor(private workerContext: WorkerDataAdapterHostEndpoint, private options: WorkerDataAdapterHostOptions) {
     this.id = this.options.id || 'default-worker-data-adapter'
     if (this.options.onError) {
       this.onError = this.options.onError
     }
     if (this.options.log) this.log = this.options.log
-
-    if (typeof addEventListener === 'undefined' || typeof postMessage === 'undefined') {
-      throw new TypeError('WorkerDataAdapterHost can only be used in a Web Worker context')
-    }
 
     this.workerContext.addEventListener('message', async (event: MessageEvent) => {
       try {
