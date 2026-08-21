@@ -706,4 +706,176 @@ describe('WorkerDataAdapter', () => {
       await expect(backend.insert({ id: '1', name: 'Alice' })).rejects.toThrow('WorkerDataAdapter is disposed')
     })
   })
+
+  describe('Pending writes on active queries', () => {
+    const selector: Selector<TestItem> = {}
+
+    // Registers `selector` and seeds it with `items` as the worker's
+    // authoritative result, so a test starts from a settled query.
+    const registerSeededQuery = async (
+      backend: ReturnType<WorkerDataAdapter['createCollectionBackend']>,
+      items: TestItem[],
+      querySelector: Selector<TestItem> = selector,
+      options: Record<string, unknown> = {},
+    ) => {
+      backend.registerQuery(querySelector, options)
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          selector: querySelector,
+          options,
+          state: 'complete',
+          items,
+        },
+        error: null,
+      })
+    }
+
+    it('reflects an insert before the worker confirms it', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
+      mockWorker.clearCalls()
+
+      const promise = backend.insert({ id: '2', name: 'Bob' })
+
+      // No worker round trip has happened yet — not even the batched
+      // postMessage has been sent.
+      expect(mockWorker.sentMessages).toHaveLength(0)
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+      ])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('insert', [{ id: '2', name: 'Bob' }])
+      await promise
+    })
+
+    it('notifies active queries immediately so cursors requery', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [])
+      const callback = vi.fn()
+      backend.onQueryStateChange(selector, {}, callback)
+      mockWorker.clearCalls()
+
+      const promise = backend.insert({ id: '1', name: 'Alice' })
+      expect(callback).toHaveBeenCalledWith('complete')
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('insert', [{ id: '1', name: 'Alice' }])
+      await promise
+    })
+
+    it('rolls back an insert the worker rejects', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
+      mockWorker.clearCalls()
+
+      const promise = backend.insert({ id: '2', name: 'Bob' })
+      expect(backend.getQueryResult(selector, {})).toHaveLength(2)
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('insert', null, new Error('duplicate id'))
+      await expect(promise).rejects.toThrow('duplicate id')
+
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alice' }])
+    })
+
+    it('reflects an update before the worker confirms it', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
+      mockWorker.clearCalls()
+
+      const promise = backend.updateOne({ id: '1' }, { $set: { name: 'Alicia' } })
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alicia' }])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateOne', [[{ id: '1', name: 'Alicia' }]])
+      await promise
+    })
+
+    it('reflects a removal before the worker confirms it', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }, { id: '2', name: 'Bob' }])
+      mockWorker.clearCalls()
+
+      const promise = backend.removeOne({ id: '1' })
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '2', name: 'Bob' }])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('removeOne', [[{ id: '1', name: 'Alice' }]])
+      await promise
+    })
+
+    it('drops an item that a pending update moves out of a query', async () => {
+      const nameSelector: Selector<TestItem> = { name: 'Alice' }
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }], nameSelector)
+      mockWorker.clearCalls()
+
+      const promise = backend.updateOne({ id: '1' }, { $set: { name: 'Bob' } })
+      expect(backend.getQueryResult(nameSelector, {})).toEqual([])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateOne', [[{ id: '1', name: 'Bob' }]])
+      await promise
+    })
+
+    it('re-applies sort and limit to a pending insert', async () => {
+      const options = { sort: { name: 1 as const }, limit: 2 }
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(
+        backend,
+        [{ id: '1', name: 'Alice' }, { id: '3', name: 'Carol' }],
+        selector,
+        options,
+      )
+      mockWorker.clearCalls()
+
+      const promise = backend.insert({ id: '2', name: 'Bob' })
+      expect(backend.getQueryResult(selector, options)).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+      ])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('insert', [{ id: '2', name: 'Bob' }])
+      await promise
+    })
+
+    it('keeps a later pending write on top of an earlier one', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
+      mockWorker.clearCalls()
+
+      const first = backend.updateOne({ id: '1' }, { $set: { name: 'Alicia' } })
+      const second = backend.updateOne({ id: '1' }, { $set: { name: 'Allie' } })
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Allie' }])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateOne', [[{ id: '1', name: 'Alicia' }], [{ id: '1', name: 'Allie' }]])
+      await Promise.all([first, second])
+    })
+
+    it('leaves query results untouched while no write is pending', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      const items = [{ id: '1', name: 'Alice' }]
+      await registerSeededQuery(backend, items)
+
+      // Same array instance the worker delivered — no needless copying or
+      // re-sorting on the read path when there is nothing to overlay.
+      expect(backend.getQueryResult(selector, {})).toBe(items)
+    })
+  })
 })
