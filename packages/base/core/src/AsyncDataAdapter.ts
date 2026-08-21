@@ -359,8 +359,13 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (!rec) return
     rec.state = state
     rec.error = error
-    // notify subscribers
-    for (const callback of rec.listeners) {
+    // Notify over a snapshot, never the live set: a subscriber is free to
+    // resubscribe from inside its own callback — a reactive scope that reads
+    // the query state does exactly that when it re-runs — and `Set` iteration
+    // visits entries added while it is still running, so notifying in place
+    // turns one state change into an unbounded loop.
+    const subscribers = [...rec.listeners]
+    for (const callback of subscribers) {
       try {
         callback(state)
       } catch (error_) {

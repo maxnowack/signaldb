@@ -34,7 +34,7 @@ export type {
   FindOptions,
   SyncFindOptions,
 } from './types'
-export type { CursorOptions } from './Cursor'
+export type { CursorOptions, QueryStateAccessor } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from '../createIndex'
 
@@ -229,6 +229,15 @@ export default class Collection<
   private postBatchCallbacks = new Set<() => void>()
   private fieldTracking = false
   private queryListenersMap: Map<string, number> = new Map()
+  // Which registered queries have delivered an outcome at least once, backing
+  // `Cursor#isLoading()`. Kept here rather than on a cursor because a cursor is
+  // rebuilt on every reactive re-run, and rather than in the data adapters
+  // because deriving it from the state they already publish needs no change to
+  // the `CollectionBackend` contract. Keyed and dropped exactly like
+  // `queryListenersMap`, so a query that gets unregistered starts out pending
+  // again — which is correct, since the adapter re-executes it on the next
+  // registration.
+  private settledQueriesSet: Set<string> = new Set()
 
   /**
    * Initializes a new instance of the `Collection` class with optional configuration.
@@ -545,6 +554,27 @@ export default class Collection<
         fieldTracking: this.fieldTracking,
         ...options,
         transform: this.transform.bind(this),
+        queryState: {
+          hasSettled: () => {
+            if (this.settledQueriesSet.has(queryId(selector, options))) return true
+            // An adapter that answers synchronously reports `'complete'` from
+            // the start, so a cursor over one is never in a loading state.
+            const state = this.backend.getQueryState(selector, options || {})
+            return state === 'complete' || state === 'error'
+          },
+          // The latch is set by the very callback that notifies, so a cursor
+          // can never be woken to read a state that has not been recorded yet,
+          // whatever order the backend runs its subscribers in.
+          onSettled: callback => this.backend.onQueryStateChange(
+            selector,
+            options || {},
+            (state) => {
+              if (state !== 'complete' && state !== 'error') return
+              this.settledQueriesSet.add(queryId(selector, options))
+              callback()
+            },
+          ),
+        },
         bindEvents: (requery) => {
           const handleRequery = () => {
             if (this.batchOperationInProgress) {
@@ -590,8 +620,10 @@ export default class Collection<
               // Only unregister if this observer was the one that registered
               // This prevents race conditions where a new observer registers
               // before the old one's cleanup runs
-              if (newListeners === 0 && didRegister)
+              if (newListeners === 0 && didRegister) {
                 this.backend.unregisterQuery(selector, options || {})
+                this.settledQueriesSet.delete(queryId(selector, options))
+              }
               this.queryListeners({ selector, options }, newListeners)
 
               queryStateChangeCleanup()

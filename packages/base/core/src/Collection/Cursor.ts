@@ -14,6 +14,23 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
 }
 
+/**
+ * Reports whether the query a cursor stands for has produced an outcome yet.
+ * Supplied by the collection, which owns the query registration; a cursor
+ * built without one simply never reports itself as loading.
+ */
+export interface QueryStateAccessor {
+  /**
+   * Whether the query has settled — completed or failed — at least once
+   * since it was registered.
+   */
+  hasSettled: () => boolean,
+  /**
+   * Subscribes to the query settling. Returns a cleanup function.
+   */
+  onSettled: (callback: () => void) => () => void,
+}
+
 export interface CursorOptions<
   T extends BaseItem,
   U = T,
@@ -21,6 +38,7 @@ export interface CursorOptions<
 > extends FindOptions<T, Async> {
   transform?: Transform<T, U>,
   bindEvents?: (requery: () => void) => () => void,
+  queryState?: QueryStateAccessor,
 }
 
 /**
@@ -94,6 +112,7 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
       [P in keyof ObserveCallbacks<T>]?: true
         | ((notify: () => void) => NonNullable<ObserveCallbacks<T>[P]>)
     },
+    bindExtraNotifier?: (notify: () => void) => () => void,
   ) {
     if (this.options?.async) return
     if (!isInReactiveScope(this.options.reactive)) {
@@ -143,6 +162,17 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
       this.options.reactive.onDispose(() => stop(), signal)
     }
     this.onCleanup(stop)
+
+    // A notifier that isn't driven by the result set itself — `isLoading()`
+    // needs to re-run its scope when the query settles, which is precisely
+    // the moment the result set may *not* have changed (an empty query
+    // completing produces no diff, so the observer above stays silent).
+    if (!bindExtraNotifier) return
+    const stopExtraNotifier = bindExtraNotifier(notify)
+    if (this.options.reactive.onDispose) {
+      this.options.reactive.onDispose(() => stopExtraNotifier(), signal)
+    }
+    this.onCleanup(stopExtraNotifier)
   }
 
   private ensureObserver() {
@@ -273,6 +303,37 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     return (maybePromise instanceof Promise
       ? maybePromise.then(items => items.length)
       : maybePromise.length) as Async extends true ? Promise<number> : number
+  }
+
+  /**
+   * Whether this cursor's query has yet to deliver a first result.
+   * ⚡️ this function is reactive!
+   *
+   * An asynchronous data adapter answers a newly registered query only after a
+   * round trip, and serves a neutral empty result until it does — which a
+   * consumer cannot otherwise tell apart from "there is nothing to show". This
+   * is that distinction, per query rather than per collection, so one screen
+   * waiting on its own data says nothing about any other query.
+   *
+   * Follows the usual `isLoading`/`isFetching` split: it reports "no result
+   * yet", not "an execution is in flight". A write that re-runs an
+   * already-settled query drives it through `'active'` again while this stays
+   * `false`, so a list does not fall back to a loading state every time one of
+   * its rows changes.
+   *
+   * A query that fails counts as settled — the `query.error` event on the
+   * collection is what surfaces the failure, and a loading state that never
+   * ends is the worse answer. Reading this registers the query if nothing else
+   * has, so it cannot wait on something nobody asked for. It is always `false`
+   * for an `{ async: true }` cursor, whose `fetch()` awaits the real result
+   * anyway, and for a data adapter that answers synchronously.
+   * @returns A boolean indicating whether the first result is still pending.
+   */
+  public isLoading(): boolean {
+    const queryState = this.options.queryState
+    if (!queryState || this.options.async) return false
+    this.depend({}, notify => queryState.onSettled(notify))
+    return !queryState.hasSettled()
   }
 
   /**
