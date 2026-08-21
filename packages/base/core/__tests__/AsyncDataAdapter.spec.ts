@@ -893,6 +893,31 @@ describe('AsyncDataAdapter', () => {
     unsubscribe()
   })
 
+  it('does not re-enter a listener that resubscribes from inside its own callback', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+    const selector = { name: 'resubscribing' }
+    let calls = 0
+    let unsubscribe = () => {}
+
+    // A reactive scope reading the query state does exactly this on every
+    // re-run: drop its subscription and take a fresh one. Notifying over the
+    // live listener set made that one state change re-enter forever.
+    const listener = () => {
+      calls += 1
+      if (calls > 10) return
+      unsubscribe()
+      unsubscribe = backend.onQueryStateChange(selector, {}, listener)
+    }
+    unsubscribe = backend.onQueryStateChange(selector, {}, listener)
+
+    backend.registerQuery(selector, {})
+    await waitForQueryCompletion(backend, selector, {})
+
+    // 'active' on registration plus 'complete' when it lands, and nothing more.
+    expect(calls).toBe(2)
+    unsubscribe()
+  })
+
   it('onQueryStateChange throws if collection not initialized (after dispose)', async () => {
     const backend = adapter.createCollectionBackend(collection, [])
     await backend.dispose() // removes queries registry for the collection
