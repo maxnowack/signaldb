@@ -18,6 +18,7 @@ export type {
   FindOptions,
   SyncFindOptions,
   CollectionOptions,
+  QueryStateAccessor,
 } from './Collection'
 export type { default as DataAdapter } from './DataAdapter'
 
