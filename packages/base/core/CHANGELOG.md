@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added `isBatchOperationInProgress` method to `Collection` to check if a batch operation is currently in progress.
 * Added the previous state (before the update) as an argument to `'changed'` event handlers. This provides additional information to handlers, enabling e.g. history functionality (thanks @robot-controller!)
 * The callback passed to `onQueryStateChange` on a `CollectionBackend` may now receive a second argument describing how the query result changed. Existing callbacks are unaffected — the argument is only passed when the adapter can produce it, and adapters that cannot simply omit it.
+* `CollectionBackend`, `QueryOptions`, `StateChangeCallback` and `QueryDelta` are now exported, so a custom `DataAdapter` can name the types it has to implement.
 
 ### Changed
 
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed a bug in `WorkerDataAdapter` where a query going back to the `'active'` state discarded the result it was holding, leaving readers of that query with nothing to show until the recomputation landed.
 * Fixed a bug in `WorkerDataAdapter` where a query using `fields` returned an empty result for as long as any write was in flight. Its stored items are projected, and they were being matched against the selector again — which no field the projection had dropped could satisfy.
+* Fixed `WorkerDataAdapter` letting a failed `registerCollection`, `registerQuery` or `unregisterQuery` escape as an uncaught promise rejection — which a disposed collection produced every time a cursor was cleaned up after it. A query the worker cannot register is now published as failed, so it reaches the collection's `query.error` event instead of waiting forever on an empty result.
 
 ## [1.8.1] - 2026-03-17
 

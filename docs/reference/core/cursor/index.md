@@ -80,8 +80,8 @@ This method allows observation of changes in the cursor items. It uses callbacks
   * `callbacks`: An object of Callback functions for different observation events.
     * `added(item: T)`gets called when a new item was added to the cursor
     * `addedBefore(item: T, before: T)`gets called when a new item was added to the cursor and also indicates the position of the new item
-    * `changed(item: T, before: T)`gets called when an item in the cursor was changed, passing the state after and before the change
-    * `movedBefore(item: T, before: T)`gets called when an item moved its position in the cursor
+    * `changed(item: T)`gets called when an item in the cursor was changed
+    * `movedBefore(item: T, before: T)`gets called when an item moved its position in the cursor. Only the items that have to move are reported: reordering a list can leave several items at a different index while a single move produces that order, and it is that single move you are told about.
     * `removed(item: T)`gets called when an item was removed from the cursor
   * `skipInitial`: A boolean to decide whether to skip the initial observation event.
 * Returns
