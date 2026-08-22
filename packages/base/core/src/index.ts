@@ -21,6 +21,12 @@ export type {
   QueryStateAccessor,
 } from './Collection'
 export type { default as DataAdapter } from './DataAdapter'
+export type {
+  CollectionBackend,
+  QueryOptions,
+  StateChangeCallback,
+} from './DataAdapter'
+export type { QueryDelta } from './utils/queryDelta'
 
 export { default as Cursor } from './Collection/Cursor'
 
