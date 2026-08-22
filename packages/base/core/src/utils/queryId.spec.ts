@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import queryId from './queryId'
 
 describe('queryId', () => {
@@ -84,5 +84,48 @@ describe('queryId', () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const arrayId = queryId(query, ['limit', 10] as any)
     expect(arrayId).not.toBe(queryId(query))
+  })
+  describe('memoization', () => {
+    it('should serialize a selector/options pair only once when both are reused', () => {
+      const selector = { a: 1 }
+      const options = { limit: 10 }
+      // prime the cache so the assertion below is not affected by the first call
+      const expected = queryId(selector, options)
+
+      const stringifySpy = vi.spyOn(JSON, 'stringify')
+      try {
+        expect(queryId(selector, options)).toBe(expected)
+        expect(queryId(selector, options)).toBe(expected)
+        expect(stringifySpy).not.toHaveBeenCalled()
+      } finally {
+        stringifySpy.mockRestore()
+      }
+    })
+
+    it('should serialize undefined options only once', () => {
+      const selector = { b: 2 }
+      const expected = queryId(selector)
+
+      const stringifySpy = vi.spyOn(JSON, 'stringify')
+      try {
+        expect(queryId(selector)).toBe(expected)
+        expect(queryId(selector, undefined)).toBe(expected)
+        expect(stringifySpy).not.toHaveBeenCalled()
+      } finally {
+        stringifySpy.mockRestore()
+      }
+    })
+
+    it('should not confuse two structurally identical but distinct selectors', () => {
+      expect(queryId({ a: 1 }, { limit: 1 })).toBe(queryId({ a: 1 }, { limit: 1 }))
+    })
+
+    it('should keep caching per options object, not per selector alone', () => {
+      const selector = { a: 1 }
+      const first = queryId(selector, { limit: 1 })
+      const second = queryId(selector, { limit: 2 })
+      expect(first).not.toBe(second)
+      expect(queryId(selector, { limit: 1 })).toBe(first)
+    })
   })
 })

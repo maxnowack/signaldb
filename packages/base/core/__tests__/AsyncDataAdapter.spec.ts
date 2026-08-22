@@ -842,16 +842,17 @@ describe('AsyncDataAdapter', () => {
 
   it('checkQueryUpdates paths: missing registry, no affected, and executeQuery error', async () => {
     const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
-    await expect((localAdapter as any).checkQueryUpdates('nope', [])).rejects.toThrow('Collection nope not initialized!')
+    const changes = { upserts: [{ id: '1', name: 'n' }], deletes: [] }
+    await expect((localAdapter as any).checkQueryUpdates('nope', changes)).rejects.toThrow('Collection nope not initialized!')
     ;(localAdapter as any).queries.set('c', new Map())
-    await (localAdapter as any).checkQueryUpdates('c', [{ id: '1', name: 'n' }])
+    await (localAdapter as any).checkQueryUpdates('c', changes)
     // Non-matching selector -> empty affected
     ;(localAdapter as any).queries.get('c').set('na', { selector: { y: 2 }, options: undefined, state: 'active', error: null, items: [], listeners: new Set() })
-    await (localAdapter as any).checkQueryUpdates('c', [{ id: '1', name: 'n' }])
+    await (localAdapter as any).checkQueryUpdates('c', changes)
     // Matching selector, executeQuery throws
     ;(localAdapter as any).queries.get('c').set('qid', { selector: {}, options: undefined, state: 'active', error: null, items: [], listeners: new Set() })
     const execSpy = vi.spyOn(localAdapter as any, 'executeQuery').mockRejectedValue(new Error('boom'))
-    await (localAdapter as any).checkQueryUpdates('c', [{ id: '1', name: 'n' }])
+    await (localAdapter as any).checkQueryUpdates('c', changes)
     execSpy.mockRestore()
   })
 

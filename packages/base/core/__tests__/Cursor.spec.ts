@@ -323,14 +323,14 @@ describe('Cursor', async () => {
       expect(callbacks.added).not.toHaveBeenCalled()
       expect(callbacks.addedBefore).not.toHaveBeenCalled()
       expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 30' }))
-      expect(callbacks.movedBefore).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 2, name: 'Item 30' }),
-        null,
-      )
-      expect(callbacks.movedBefore).toHaveBeenCalledWith(
+      // Only what has to move is reported. Sorted by name, renaming "Item 2" to "Item 30" sends
+      // it to the end — which is the same order as moving "Item 3" in front of it, and one move
+      // is enough either way.
+      expect(callbacks.movedBefore).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({ id: 3, name: 'Item 3' }),
         expect.objectContaining({ id: 2, name: 'Item 30' }),
       )
+      expect(cursor.fetch().map(item => item.id)).toEqual([1, 3, 2])
       expect(callbacks.removed).not.toHaveBeenCalled()
     })
 

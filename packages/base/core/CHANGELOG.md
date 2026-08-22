@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * All persistence events on the `Collection` were removed.
 * Exports for `createIndexProvider` and `createIndex` were removed. Specify indices as strings instead.
 * `.isReady()` method on `Collection` was renamed to `.ready()`. A new reactive `.isReady` method was added to check if the collection is ready in a reactive way.
+* Observing a query now reports the *minimal* set of `movedBefore` events for a reordering. In v1, every item whose neighbouring item had changed was reported as moved, so moving a single item could produce a `movedBefore` for several of them. Applying the reported moves still produces the same order, but consumers that count `movedBefore` calls, or that rely on being notified about items which did not themselves move, will now see fewer events.
 
 ### Added
 
@@ -29,6 +30,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added `AsyncDataAdapter` which provides an asynchronous implementation of the `DataAdapter` interface.
 * Added `WorkerDataAdapter` and `WorkerDataAdapterHost` which provides a `DataAdapter` implementation that runs in a web worker.
 * Added `isBatchOperationInProgress` method to `Collection` to check if a batch operation is currently in progress.
+* The callback passed to `onQueryStateChange` on a `CollectionBackend` may now receive a second argument describing how the query result changed. Existing callbacks are unaffected — the argument is only passed when the adapter can produce it, and adapters that cannot simply omit it.
+
+### Changed
+
+* A write is now propagated to live queries as a description of what changed, instead of by re-running each affected query and comparing its new result against the previous one. A write that touches one item costs the size of that change rather than the size of every result on screen.
+* `WorkerDataAdapterHost` sends the full result only the first time a query is answered; every update after that carries just the change. Editing one field of one row no longer serialises the entire result set across the worker boundary.
+* `DefaultDataAdapter`, `AsyncDataAdapter` and `WorkerDataAdapterHost` bring a query's result up to date from its previous result where they can, instead of reading the whole collection back from storage on every write. Queries using `limit` or `skip`, and projected queries that are also sorted, still re-execute, because their previous result cannot answer the change on its own.
+* `WorkerDataAdapter` routes every worker message through a single listener instead of adding one per query and per pending request. Previously each incoming message was offered to every listener in turn, and each of them re-serialised its own selector to decide the message was not for it.
+* A write that leaves a query's result unchanged no longer notifies that query's observers at all, and no longer produces a message across the worker boundary.
+* `WorkerDataAdapter` no longer shows a write before the worker confirms it when the item it modifies is known only through a projected query. Applying a modifier to a projected item produces something that is not the item, and a selector naming a projected-away field would no longer match it. The write itself is unaffected; it simply becomes visible when the worker answers rather than immediately.
+
+### Fixed
+
+* Fixed a bug in `WorkerDataAdapter` where a query going back to the `'active'` state discarded the result it was holding, leaving readers of that query with nothing to show until the recomputation landed.
+* Fixed a bug in `WorkerDataAdapter` where a query using `fields` returned an empty result for as long as any write was in flight. Its stored items are projected, and they were being matched against the selector again — which no field the projection had dropped could satisfy.
 
 ## [1.8.1] - 2026-03-17
 

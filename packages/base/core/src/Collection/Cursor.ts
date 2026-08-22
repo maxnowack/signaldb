@@ -1,4 +1,5 @@
 import type ReactivityAdapter from '../types/ReactivityAdapter'
+import type { QueryDelta } from '../utils/queryDelta'
 import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
@@ -37,7 +38,10 @@ export interface CursorOptions<
   Async extends boolean = false,
 > extends FindOptions<T, Async> {
   transform?: Transform<T, U>,
-  bindEvents?: (requery: () => void) => () => void,
+  bindEvents?: (
+    requery: () => void,
+    applyDelta: (delta: QueryDelta<T>) => void,
+  ) => () => void,
   queryState?: QueryStateAccessor,
 }
 
@@ -181,7 +185,11 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
         const requery = () => {
           observer.runChecks(this.getItems)
         }
-        const cleanup = this.options.bindEvents && this.options.bindEvents(requery)
+        const applyDelta = (delta: QueryDelta<T>) => {
+          observer.applyDelta(delta, this.getItems)
+        }
+        const cleanup = this.options.bindEvents
+          && this.options.bindEvents(requery, applyDelta)
         return () => {
           if (cleanup) cleanup()
         }
@@ -379,5 +387,18 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
   public requery() {
     if (!this.observer) return
     this.observer.runChecks(this.getItems)
+  }
+
+  /**
+   * Brings the cursor up to date from a description of what changed, rather than by re-running the
+   * query and comparing the result with the previous one.
+   *
+   * Falls back to `requery` when the delta does not fit the result the cursor currently holds, so
+   * a caller never has to decide which of the two is safe.
+   * @param delta - The change to apply.
+   */
+  public applyDelta(delta: QueryDelta<T>) {
+    if (!this.observer) return
+    this.observer.applyDelta(delta, this.getItems)
   }
 }
