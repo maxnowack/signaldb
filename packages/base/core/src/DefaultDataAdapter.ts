@@ -13,7 +13,11 @@ import EventEmitter from './utils/EventEmitter'
 import isEqual from './utils/isEqual'
 import match from './utils/match'
 import modify from './utils/modify'
-import project from './utils/project'
+import projectItems from './utils/projectItems'
+import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
+import type { QueryChangeset } from './utils/incrementalQueryUpdate'
+import { callWithDelta, diffQueryResults, isEmptyQueryDelta } from './utils/queryDelta'
+import type { QueryDelta } from './utils/queryDelta'
 import queryId from './utils/queryId'
 import serializeValue from './utils/serializeValue'
 import sortItems from './utils/sortItems'
@@ -54,7 +58,12 @@ export default class DefaultDataAdapter implements DataAdapter {
   private queryEmitters: Map<
     string,
     EventEmitter<{
-      change: (selector: Selector<any>, options: QueryOptions<any> | undefined, state: 'active' | 'complete' | 'error') => void,
+      change: (
+        selector: Selector<any>,
+        options: QueryOptions<any> | undefined,
+        state: 'active' | 'complete' | 'error',
+        delta?: QueryDelta<any>,
+      ) => void,
     }>
   > = new Map()
 
@@ -201,14 +210,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     const sorted = sort ? sortItems(items, sort) : items
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
-    const idExcluded = fields && fields.id === 0
-    return limited.map((item) => {
-      if (!fields) return item
-      return {
-        ...idExcluded ? {} : { id: item.id },
-        ...project(item, fields),
-      }
-    })
+    return projectItems(limited, fields)
   }
 
   private flushQueuedQueryUpdates<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -219,6 +221,10 @@ export default class DefaultDataAdapter implements DataAdapter {
     if (!changes || !hasPendingUpdates(changes)) return
     this.queuedQueryUpdates.set(collection.name, { added: [], modified: [], removed: [] })
 
+    const changeset: QueryChangeset<T> = {
+      upserts: [...changes.added, ...changes.modified],
+      deletes: changes.removed.map(item => item.id),
+    }
     const flatItems = [...changes.added, ...changes.modified, ...changes.removed]
     const itemIds = new Set(flatItems.map(i => i.id))
     const queries = [
@@ -235,7 +241,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     })
 
     queries.forEach(({ selector, options }) => {
-      this.executeAndCacheQuery(collection, selector, options)
+      this.executeAndCacheQuery(collection, selector, options, changeset)
     })
   }
 
@@ -243,8 +249,18 @@ export default class DefaultDataAdapter implements DataAdapter {
     collection: Collection<T, I, E, U>,
     selector: Selector<T>,
     options?: QueryOptions<T>,
+    changes?: QueryChangeset<T>,
   ) {
-    const result = this.executeQuery(collection, selector, options)
+    const cached = this.cachedQueryResults.get(collection.name)?.get(queryId(selector, options))
+    // With the change in hand and the previous result cached, the query can be brought up to date
+    // without walking every item this collection holds — and the listeners can be told what
+    // changed instead of being left to compare the two results themselves.
+    const incremental = changes && cached
+      ? incrementalQueryUpdate(cached as T[], selector, options, changes)
+      : null
+    const result = incremental ?? this.executeQuery(collection, selector, options)
+    const delta = cached ? diffQueryResults(cached as T[], result) : undefined
+
     this.cachedQueryResults.set(
       collection.name,
       this.cachedQueryResults.get(collection.name) || new Map<string, BaseItem[]>(),
@@ -257,8 +273,9 @@ export default class DefaultDataAdapter implements DataAdapter {
 
     const emitter = this.queryEmitters.get(collection.name)
     if (!emitter) return
+    if (delta && isEmptyQueryDelta(delta)) return
 
-    emitter.emit('change', selector, options, 'complete')
+    emitter.emit('change', selector, options, 'complete', delta)
   }
 
   private updateQueries<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -285,7 +302,12 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.queryEmitters.set(
       collection.name,
       this.queryEmitters.get(collection.name) ?? new EventEmitter<{
-        change: (selector: Selector<any>, options: QueryOptions<any> | undefined, state: 'active' | 'complete' | 'error') => void,
+        change: (
+          selector: Selector<any>,
+          options: QueryOptions<any> | undefined,
+          state: 'active' | 'complete' | 'error',
+          delta?: QueryDelta<any>,
+        ) => void,
       }>(),
     )
 
@@ -458,9 +480,10 @@ export default class DefaultDataAdapter implements DataAdapter {
           querySelector: Selector<any>,
           queryOptions: QueryOptions<any> | undefined,
           state: 'active' | 'complete' | 'error',
+          delta?: QueryDelta<any>,
         ) => {
           if (queryId(querySelector, queryOptions) !== queryId(selector, options)) return
-          callback(state)
+          callWithDelta(callback, state, delta)
         }
         emitter.on('change', handler)
         return () => {

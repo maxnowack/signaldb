@@ -1,5 +1,12 @@
 import isEqual from '../utils/isEqual'
 import uniqueBy from '../utils/uniqueBy'
+import {
+  applyQueryDelta,
+  canApplyQueryDelta,
+  diffQueryResults,
+  isEmptyQueryDelta,
+} from '../utils/queryDelta'
+import type { QueryDelta } from '../utils/queryDelta'
 
 type AddedCallback<T> = (item: T) => void
 type AddedBeforeCallback<T> = (item: T, before: T) => void
@@ -119,60 +126,94 @@ export default class Observer<T extends { id: any }> {
     }
   }
 
-  private checkItems(newItems: T[]) {
-    const oldItemsMap = new Map(this.previousItems.map((item, index) => [
-      item.id,
-      { item, index, beforeItem: this.previousItems[index + 1] || null },
-    ]))
-    const newItemsMap = new Map(newItems.map((item, index) => [
-      item.id,
-      { item, index, beforeItem: newItems[index + 1] || null },
-    ]))
+  /**
+   * Brings the observer up to date from a description of what changed, instead of from the new
+   * result.
+   *
+   * `runChecks` has to rediscover the change by comparing the whole new result against the whole
+   * old one — a cost proportional to the result, paid on every write, to find out that one row
+   * moved. When the change is already known it can simply be reported, and the cost becomes
+   * proportional to the change.
+   *
+   * The delta must have been computed against exactly the result this observer holds. If it was
+   * not, this reports nothing, falls back to `runChecks`, and returns `false`.
+   *
+   * Note that the reported moves are minimal, where a comparison reports every item whose
+   * neighbour changed. Applying them yields the same order either way — there are simply fewer of
+   * them.
+   * @param delta - The change to report.
+   * @param getItems - Used to fall back to a comparison when the delta cannot be applied.
+   * @returns Whether the delta was applied.
+   */
+  public applyDelta(delta: QueryDelta<T>, getItems: () => Promise<T[]> | T[]): boolean {
+    if (!canApplyQueryDelta(this.previousItems, delta)) {
+      this.runChecks(getItems)
+      return false
+    }
+    if (isEmptyQueryDelta(delta)) return true
 
-    if (this.hasCallbacks(['changed', 'changedField', 'movedBefore', 'removed'])) {
-      // Check for removed or changed items
-      oldItemsMap.forEach(({ item: oldItem, index, beforeItem: oldBeforeItem }) => {
-        const newItem = newItemsMap.get(oldItem.id)
-        if (newItem) {
-          if (this.hasCallbacks(['changed', 'changedField']) // If the item exists but has changed, call 'changed' callback
-            && !isEqual(newItem.item, oldItem)) {
-            this.call('changed', newItem.item, oldItem)
+    this.emitDelta(delta, applyQueryDelta(this.previousItems, delta))
+    return true
+  }
 
-            if (this.hasCallbacks(['changedField'])) {
-              // check for changed fields and call 'changedField' callback
-              const keys = uniqueBy([
-                ...Object.keys(newItem.item) as (keyof T)[],
-                ...Object.keys(oldItem) as (keyof T)[],
-              ], value => value)
-              keys.forEach((key) => {
-                if (isEqual(newItem.item[key], oldItem[key])) return
-                this.call('changedField', newItem.item, key, oldItem[key], newItem.item[key])
-              })
-            }
-          }
-          // If the item's beforeItem has changed, call 'movedBefore' callback
-          if (newItem.index !== index && newItem.beforeItem?.id !== oldBeforeItem?.id) {
-            this.call('movedBefore', newItem.item, newItem.beforeItem)
-          }
-        } else {
-          // If the item no longer exists, call 'removed' callback
-          this.call('removed', oldItem)
-        }
+  /**
+   * Reports a delta and adopts the result it produces.
+   *
+   * The single place the callbacks are fired from, whether the change arrived as a delta or was
+   * found by comparing two results — so the two can never disagree about what a consumer is told.
+   * @param delta - The change to report.
+   * @param nextItems - The result the delta produces.
+   */
+  private emitDelta(delta: QueryDelta<T>, nextItems: T[]) {
+    if (this.isEmpty()) {
+      this.finishCheck(nextItems)
+      return
+    }
+
+    const previousById = new Map(this.previousItems.map(item => [item.id, item]))
+    const beforeOf = (index: number) => nextItems[index + 1] || null
+
+    if (this.hasCallbacks(['changed', 'changedField'])) {
+      delta.changed.forEach((item) => {
+        const oldItem = previousById.get(item.id)
+        if (!oldItem) return
+        this.call('changed', item)
+        if (!this.hasCallbacks(['changedField'])) return
+        const keys = uniqueBy([
+          ...Object.keys(item) as (keyof T)[],
+          ...Object.keys(oldItem) as (keyof T)[],
+        ], value => value)
+        keys.forEach((key) => {
+          if (isEqual(item[key], oldItem[key])) return
+          this.call('changedField', item, key, oldItem[key], item[key])
+        })
+      })
+    }
+
+    if (this.hasCallbacks(['removed'])) {
+      delta.removed.forEach((id) => {
+        const oldItem = previousById.get(id)
+        if (oldItem) this.call('removed', oldItem)
       })
     }
 
     if (this.hasCallbacks(['added', 'addedBefore'])) {
-      // Check for added items
-      newItems.forEach((newItem, index) => {
-        const oldItem = oldItemsMap.get(newItem.id)
-        if (oldItem) return
-
-        // If the item is newly added, call 'added' and 'addedBefore' callbacks
-        this.call('added', newItem)
-        this.call('addedBefore', newItem, newItems[index + 1] || null)
+      delta.added.forEach(({ index, item }) => {
+        this.call('added', item)
+        this.call('addedBefore', item, beforeOf(index))
       })
     }
 
+    if (this.hasCallbacks(['movedBefore'])) {
+      delta.moved.forEach(({ index }) => {
+        this.call('movedBefore', nextItems[index], beforeOf(index))
+      })
+    }
+
+    this.finishCheck(nextItems)
+  }
+
+  private finishCheck(newItems: T[]) {
     // Store new items as previous items for next check
     this.previousItems = newItems
     Object.keys(this.callbacks).forEach((key) => {
@@ -186,6 +227,13 @@ export default class Observer<T extends { id: any }> {
         },
       })) as any
     })
+  }
+
+  private checkItems(newItems: T[]) {
+    // Derives the change and reports it through the same path a change that arrived ready-made
+    // takes. Comparing and then reporting item by item, as this used to, meant the two paths could
+    // describe the same change differently — most visibly in how many moves they reported.
+    this.emitDelta(diffQueryResults(this.previousItems, newItems), newItems)
   }
 
   private stopped = false

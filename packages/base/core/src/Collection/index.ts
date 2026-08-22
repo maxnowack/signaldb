@@ -12,6 +12,7 @@ import type StorageAdapter from '../types/StorageAdapter'
 import modify from '../utils/modify'
 import deepClone from '../utils/deepClone'
 import queryId from '../utils/queryId'
+import type { QueryDelta } from '../utils/queryDelta'
 import Cursor from './Cursor'
 import type {
   AsyncFindOptions,
@@ -575,7 +576,7 @@ export default class Collection<
             },
           ),
         },
-        bindEvents: (requery) => {
+        bindEvents: (requery, applyDelta) => {
           const handleRequery = () => {
             if (this.batchOperationInProgress) {
               this.postBatchCallbacks.add(requery)
@@ -583,6 +584,11 @@ export default class Collection<
             }
             requery()
           }
+
+          // A `transformAll` sits between the backend's result and what the cursor holds, and it
+          // is free to produce anything at all — so a delta describing the backend's result says
+          // nothing about the cursor's. Those collections keep comparing.
+          const canApplyDeltas = !this.options.transformAll && !options?.async
 
           // register query if not yet registered
           const listeners = this.queryListeners({ selector, options })
@@ -593,7 +599,7 @@ export default class Collection<
           const queryStateChangeCleanup = this.backend.onQueryStateChange(
             selector,
             options || {},
-            (state) => {
+            (state, delta) => {
               // A failed query never reaches `'complete'`, so the cursor keeps
               // serving its neutral empty value — indistinguishable from "no
               // data" for anyone reading it. Surfacing the failure as an event
@@ -607,6 +613,13 @@ export default class Collection<
                 return
               }
               if (state !== 'complete') return
+              // Inside a batch the update is deferred to the end of it, by which point this delta
+              // is one of several and no longer describes the whole change — so the batch always
+              // ends in a comparison.
+              if (delta != null && canApplyDeltas && !this.batchOperationInProgress) {
+                applyDelta(delta as unknown as QueryDelta<E>)
+                return
+              }
               handleRequery()
             },
           )

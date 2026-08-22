@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, beforeAll, afterAll } from 'vitest'
 import WorkerDataAdapterHost from '../src/WorkerDataAdapterHost'
+import queryId from '../src/utils/queryId'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
 
 interface TestItem {
@@ -779,6 +780,19 @@ describe('WorkerDataAdapterHost', () => {
       expect(response).toBeDefined()
       expect(response?.type).toBe('response')
       expect(response?.data).toEqual([{ id: '1', name: 'Alice' }])
+    })
+
+    it('names the query it updates so the adapter can route without re-deriving the id', async () => {
+      await sendRequest('registerCollection', ['items', []])
+      await vi.waitFor(() => storageAdapters.has('items'))
+
+      context.clearResponses()
+      const id = await sendRequest('registerQuery', ['items', { name: 'Alice' }, { limit: 1 }])
+      await waitForResponse(id)
+
+      const [update] = context.getQueryUpdates('items')
+      expect(update).toBeDefined()
+      expect((update.data as any).qid).toBe(queryId({ name: 'Alice' }, { limit: 1 }))
     })
 
     it('returns non-matching index info for null selectors', async () => {

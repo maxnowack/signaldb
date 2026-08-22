@@ -2,6 +2,7 @@ import type { BaseItem, FieldSpecifier, SortSpecifier } from './Collection'
 import type Collection from './Collection'
 import type Modifier from './types/Modifier'
 import type Selector from './types/Selector'
+import type { QueryDelta } from './utils/queryDelta'
 
 export interface QueryOptions<T extends BaseItem> {
   /** Sort order (default: natural order) */
@@ -14,7 +15,22 @@ export interface QueryOptions<T extends BaseItem> {
   fields?: FieldSpecifier<T> | undefined,
 }
 
-export type StateChangeCallback = (state: 'active' | 'complete' | 'error') => void
+/**
+ * Notified when a query's state changes.
+ *
+ * A `'complete'` notification may carry a delta describing how the result changed since the last
+ * one. An adapter that can produce one saves its listeners from rediscovering the change by
+ * comparing the whole result against the whole previous result; one that cannot simply omits it,
+ * and its listeners fall back to exactly that comparison.
+ *
+ * A delta is only ever passed when it is relative to what `getQueryResult` returned the last time
+ * it was asked. An adapter that layers anything on top of its stored result — an optimistic write
+ * still in flight, for instance — must omit the delta for as long as it does.
+ */
+export type StateChangeCallback<T extends BaseItem = BaseItem> = (
+  state: 'active' | 'complete' | 'error',
+  delta?: QueryDelta<T>,
+) => void
 
 export interface CollectionBackend<T extends BaseItem<I>, I> {
   // CRUD operations will be proxied from the collection to the collection interface of the data layer. The CRUD logic itself will be done inside of the data layer.
@@ -41,7 +57,7 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   onQueryStateChange<O extends QueryOptions<T>>(
     selector: Selector<T>,
     options: O,
-    callback: StateChangeCallback,
+    callback: StateChangeCallback<T>,
   ): () => void,
 
   // lifecycle methods

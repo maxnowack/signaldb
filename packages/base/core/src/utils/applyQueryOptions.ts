@@ -3,7 +3,7 @@ import type Selector from '../types/Selector'
 import type { BaseItem } from '../Collection/types'
 import match from './match'
 import sortItems from './sortItems'
-import project from './project'
+import projectItems from './projectItems'
 
 /**
  * Filters, sorts, paginates and projects a plain in-memory array the same way
@@ -26,12 +26,5 @@ export default function applyQueryOptions<T extends BaseItem>(
   const sorted = sort ? sortItems(matched, sort) : matched
   const skipped = skip ? sorted.slice(skip) : sorted
   const limited = limit ? skipped.slice(0, limit) : skipped
-  const idExcluded = fields && fields.id === 0
-  return limited.map((item) => {
-    if (!fields) return item
-    return {
-      ...idExcluded ? {} : { id: item.id },
-      ...project(item, fields),
-    } as T
-  })
+  return projectItems(limited, fields)
 }
