@@ -138,9 +138,13 @@ export default class WorkerDataAdapter implements DataAdapter {
     const pending = this.pendingWrites.get(collectionName)
     if (!pending || pending.size === 0) return items
     const merged = new Map(items.map(item => [item.id, item] as [any, BaseItem]))
-    // Ascending seq order — a later write to the same item must win.
+    // Ascending seq order — a later write to the same item must win. `sort` rather than
+    // `toSorted`: the array is already a fresh copy, so sorting it in place mutates nothing the
+    // caller holds, and React Native's Hermes engine has no `Array.prototype.toSorted`. Using it
+    // threw `toSorted is not a function` on every read that had a pending write — which, during a
+    // burst of writes, is every read.
     ;[...pending.entries()]
-      .toSorted(([a], [b]) => a - b)
+      .sort(([a], [b]) => a - b) // eslint-disable-line unicorn/no-array-sort -- unavailable on Hermes
       .forEach(([, write]) => {
         write.upserts.forEach((item, id) => merged.set(id, item))
         write.deletes.forEach(id => merged.delete(id))
