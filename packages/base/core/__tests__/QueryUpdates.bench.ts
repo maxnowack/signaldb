@@ -145,6 +145,56 @@ describe('a write with 20 live queries over 5000 items', () => {
   })
 })
 
+describe('a write with 20 live top-10 lists over 5000 items', () => {
+  // The shape a screenful of "latest N" lists has. Each query is a window onto a larger set, which
+  // is the case a store cannot answer from the window alone whenever the window loses an item.
+  const observeWindows = (collection: Collection<BenchItem>) => {
+    Array.from({ length: QUERY_COUNT }, (_, group) => {
+      const cursor = collection.find({ group }, { sort: { rank: 1 }, limit: 10 })
+      return cursor.observeChanges({
+        added: () => {}, changed: () => {}, removed: () => {}, movedBefore: () => {},
+      })
+    })
+  }
+
+  describe('async adapter', async () => {
+    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    const collection = new Collection<BenchItem>('bench-window-async', new AsyncDataAdapter({
+      storage: () => storage,
+    }))
+    await Promise.resolve(collection.isReady())
+    observeWindows(collection)
+    await settle()
+    let counter = 0
+
+    bench('update an item inside the windows', async () => {
+      counter += 1
+      await collection.updateOne({ id: 'item-5' }, { $set: { name: `renamed-${counter}` } })
+      await settle()
+    })
+  })
+
+  describe('worker adapter', async () => {
+    const pair = createMessagePair()
+    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench-window', storage: () => storage })
+    const collection = new Collection<BenchItem>('bench-window', new WorkerDataAdapter(
+      pair.clientEndpoint,
+      { id: 'bench-window' },
+    ))
+    await Promise.resolve(collection.isReady())
+    observeWindows(collection)
+    await settle()
+    let counter = 0
+
+    bench('update an item inside the windows', async () => {
+      counter += 1
+      await collection.updateOne({ id: 'item-5' }, { $set: { name: `renamed-${counter}` } })
+      await settle()
+    })
+  })
+})
+
 describe('a write with one live query holding all 5000 items', () => {
   // The shape that hurts most: everything the write touches is in one result, so any step that
   // costs the size of the result is paid in full on every write.

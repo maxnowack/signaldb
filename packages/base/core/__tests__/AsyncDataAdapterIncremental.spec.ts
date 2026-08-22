@@ -69,13 +69,30 @@ describe('AsyncDataAdapter incremental query updates', () => {
       expect(readAll).not.toHaveBeenCalled()
     })
 
-    it('reads the collection back for a limited query, whose window may have shifted', async () => {
+    it('answers a limited query from its window when the window keeps its items', async () => {
+      // The window holds `c`; `a` sorts after it and stays outside either way.
       const limited: QueryOptions<TestItem> = { sort: { rank: 1 }, limit: 1 }
       await registerAndSettle(selector, limited)
 
       const readAll = vi.spyOn(storage, 'readAll')
       await backend.updateOne({ id: 'a' }, { $set: { name: 'Annabel' } })
+      await settledResult(selector, limited, items => items.length === 1)
+
+      expect(readAll).not.toHaveBeenCalled()
+      expect(backend.getQueryResult(selector, limited).map(item => item.id)).toEqual(['c'])
+    })
+
+    it('reads the collection back when a full window loses one of its items', async () => {
+      // Removing `c` empties the window, and what moves up into it is beyond what it holds.
+      const limited: QueryOptions<TestItem> = { sort: { rank: 1 }, limit: 1 }
+      await registerAndSettle(selector, limited)
+
+      const readAll = vi.spyOn(storage, 'readAll')
+      await backend.removeOne({ id: 'c' })
       await vi.waitFor(() => expect(readAll).toHaveBeenCalled())
+
+      const items = await settledResult(selector, limited, result => result.length === 1)
+      expect(items.map(item => item.id)).toEqual(['a'])
     })
 
     it('reads the collection back for the first answer to a query', async () => {
