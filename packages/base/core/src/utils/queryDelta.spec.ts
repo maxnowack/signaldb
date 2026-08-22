@@ -138,6 +138,39 @@ describe('queryDelta', () => {
     })
   })
 
+  describe('shortcuts it takes', () => {
+    it('should report nothing for the very same array', () => {
+      const previous = items('a', 'b', 'c')
+      expect(isEmptyQueryDelta(diffQueryResults(previous, previous))).toBe(true)
+    })
+
+    it('should report nothing for an array holding the very same items', () => {
+      const previous = items('a', 'b', 'c')
+      expect(isEmptyQueryDelta(diffQueryResults(previous, [...previous]))).toBe(true)
+    })
+
+    it('should report no moves when the surviving items kept their order', () => {
+      const previous = items('a', 'b', 'c', 'd')
+      const delta = diffQueryResults(previous, [
+        { id: 'x' }, previous[0], previous[2], { id: 'y' }, previous[3],
+      ])
+      expect(delta.moved).toEqual([])
+      expect(delta.removed).toEqual(['b'])
+      expect(delta.added.map(entry => entry.item.id)).toEqual(['x', 'y'])
+    })
+
+    it('should still report moves when the surviving items were reordered', () => {
+      const previous = items('a', 'b', 'c', 'd')
+      const delta = diffQueryResults(previous, [
+        previous[3], previous[0], previous[1], previous[2],
+      ])
+      expect(delta.moved).toHaveLength(1)
+      expect(applyQueryDelta(previous, delta)).toEqual([
+        previous[3], previous[0], previous[1], previous[2],
+      ])
+    })
+  })
+
   describe('canApplyQueryDelta', () => {
     const previous = items('a', 'b', 'c')
     const base = { added: [], changed: [], removed: [], moved: [], resultCount: 3 }

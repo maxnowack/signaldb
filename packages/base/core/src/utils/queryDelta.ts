@@ -148,21 +148,26 @@ function longestIncreasingSubsequence(sequence: number[]): number[] {
  * @returns The delta between the two results.
  */
 export function diffQueryResults<T extends BaseItem>(previous: T[], next: T[]): QueryDelta<T> {
+  // Both arrays are walked in full here, so the cheap ways out are worth taking. Two results
+  // holding the same items in the same places are the common case by some margin: this is asked
+  // several times per write, and most of those ask about a query the write did not really change.
+  if (holdsTheSameItems(previous, next)) {
+    return { added: [], changed: [], removed: [], moved: [], resultCount: next.length }
+  }
+
   const previousIndexById = new Map<any, number>()
   previous.forEach((item, index) => previousIndexById.set(item.id, index))
-  const nextIds = new Set(next.map(item => item.id))
-
-  const removed: any[] = []
-  previous.forEach((item) => {
-    if (!nextIds.has(item.id)) removed.push(item.id)
-  })
 
   const added: { index: number, item: T }[] = []
   const changed: T[] = []
   // Positions in `previous` of the items that survive, in the order they appear in `next`. An
-  // increasing run in here is a stretch of items whose relative order did not change.
+  // increasing run in here is a stretch of items whose relative order did not change — and when
+  // the whole thing is increasing, nothing moved and the work below can be skipped entirely.
   const survivingPreviousIndices: number[] = []
   const survivingNextIndices: number[] = []
+  const survived: boolean[] = Array.from<boolean>({ length: previous.length }).fill(false)
+  let orderPreserved = true
+  let lastPreviousIndex = -1
 
   next.forEach((item, index) => {
     const previousIndex = previousIndexById.get(item.id)
@@ -170,22 +175,48 @@ export function diffQueryResults<T extends BaseItem>(previous: T[], next: T[]): 
       added.push({ index, item })
       return
     }
+    survived[previousIndex] = true
     if (!isEqual(previous[previousIndex], item)) changed.push(item)
+    if (previousIndex < lastPreviousIndex) orderPreserved = false
+    lastPreviousIndex = previousIndex
     survivingPreviousIndices.push(previousIndex)
     survivingNextIndices.push(index)
   })
 
-  const stationary = new Set(
-    longestIncreasingSubsequence(survivingPreviousIndices)
-      .map(position => survivingNextIndices[position]),
-  )
-  const moved: { index: number, id: any }[] = []
-  survivingNextIndices.forEach((nextIndex) => {
-    if (stationary.has(nextIndex)) return
-    moved.push({ index: nextIndex, id: next[nextIndex].id })
+  const removed: any[] = []
+  previous.forEach((item, index) => {
+    if (!survived[index]) removed.push(item.id)
   })
 
+  const moved: { index: number, id: any }[] = []
+  if (!orderPreserved) {
+    const stationary = new Set(
+      longestIncreasingSubsequence(survivingPreviousIndices)
+        .map(position => survivingNextIndices[position]),
+    )
+    survivingNextIndices.forEach((nextIndex) => {
+      if (stationary.has(nextIndex)) return
+      moved.push({ index: nextIndex, id: next[nextIndex].id })
+    })
+  }
+
   return { added, changed, removed, moved, resultCount: next.length }
+}
+
+/**
+ * Whether two results hold the same items in the same order, by identity.
+ *
+ * Items are replaced rather than mutated wherever they come from, so identity is a sound answer to
+ * "unchanged" — and a wrong one is impossible, only a missed shortcut.
+ * @template T - The type of the items.
+ * @param previous - One result.
+ * @param next - The other.
+ * @returns `true` when the two are element-for-element the same objects.
+ */
+function holdsTheSameItems<T extends BaseItem>(previous: T[], next: T[]): boolean {
+  if (previous === next) return true
+  if (previous.length !== next.length) return false
+  return previous.every((item, index) => item === next[index])
 }
 
 /**
