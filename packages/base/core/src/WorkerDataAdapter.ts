@@ -66,6 +66,12 @@ interface QueryRecord {
   // every active query's result.
   itemsById?: Map<any, BaseItem>,
   stateChangeCallbacks: StateChangeCallback<any>[],
+  // The last answer `servedResult` gave, together with the two things that can invalidate it: the
+  // stored result it was derived from, and the state of the collection's pending writes. A query is
+  // read far more often than it is written to — every cursor read goes through here, and the
+  // adapter asks several times per write — and layering the pending writes on costs the size of
+  // those writes each time. Keeping the answer also gives readers a stable array to compare.
+  served?: { items: BaseItem[], fromItems: BaseItem[], pendingVersion: number },
 }
 
 export default class WorkerDataAdapter implements DataAdapter {
@@ -102,6 +108,15 @@ export default class WorkerDataAdapter implements DataAdapter {
   }>> = new Map()
 
   private pendingWriteSeq = 0
+
+  // Bumped whenever a collection's pending writes change, in either direction. Anything derived
+  // from them is stale from that moment on.
+  private pendingWriteVersions: Map<string, number> = new Map()
+
+  private bumpPendingWriteVersion(collectionName: string) {
+    const current = this.pendingWriteVersions.get(collectionName) ?? 0
+    this.pendingWriteVersions.set(collectionName, current + 1)
+  }
 
   constructor(
     private worker: WorkerDataAdapterEndpoint,
@@ -369,15 +384,20 @@ export default class WorkerDataAdapter implements DataAdapter {
   // when the store produced them and are carried over untouched, which is both what makes this cost
   // the size of the pending writes rather than the size of the result, and what keeps a projected
   // result from being re-matched against fields its projection has already dropped.
-  private servedResult(
-    collectionName: string,
-    query: {
-      selector: Selector<any>,
-      options?: QueryOptions<any>,
-      items: BaseItem[],
-      itemsById?: Map<any, BaseItem>,
-    },
-  ): BaseItem[] {
+  private servedResult(collectionName: string, query: QueryRecord): BaseItem[] {
+    const pendingVersion = this.pendingWriteVersions.get(collectionName) ?? 0
+    if (query.served
+      && query.served.fromItems === query.items
+      && query.served.pendingVersion === pendingVersion) {
+      return query.served.items
+    }
+
+    const items = this.computeServedResult(collectionName, query)
+    query.served = { items, fromItems: query.items, pendingVersion }
+    return items
+  }
+
+  private computeServedResult(collectionName: string, query: QueryRecord): BaseItem[] {
     const pending = this.flattenPendingWrites(collectionName)
     if (!pending) return query.items
     const byId = this.queryItemsById(query)
@@ -429,6 +449,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       deletes: new Set(deletes),
     })
     this.pendingWrites.set(collectionName, pending)
+    this.bumpPendingWriteVersion(collectionName)
     this.notifyWithDeltas(collectionName, affected, servedBefore)
 
     return () => {
@@ -438,6 +459,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       const beforeDrop = this.servedResults(collectionName, affectedOnDrop)
       current.delete(seq)
       if (current.size === 0) this.pendingWrites.delete(collectionName)
+      this.bumpPendingWriteVersion(collectionName)
       // By the time a write settles the host's own answer has usually already landed, so dropping
       // the optimistic copy changes nothing a reader can see and produces no notification at all.
       this.notifyWithDeltas(collectionName, affectedOnDrop, beforeDrop)

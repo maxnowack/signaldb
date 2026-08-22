@@ -230,6 +230,86 @@ describe('serving a query while a write is in flight', () => {
     })
   })
 
+  // A write in flight is layered onto the stored result every time the query is read, and a query
+  // is read far more often than it is written to — every cursor read goes through here, and the
+  // adapter itself asks several times per write. Computing that layering once per state it can be
+  // in is both cheaper and gives readers a stable array to compare against.
+  describe('reading the same query twice', () => {
+    const options: QueryOptions<TestItem> = { sort: { rank: 1 } }
+
+    beforeEach(() => seed(options))
+
+    it('answers with the same array when nothing has changed', () => {
+      expect(backend.getQueryResult(selector, options))
+        .toBe(backend.getQueryResult(selector, options))
+    })
+
+    it('answers with the same array while a write is in flight', async () => {
+      const item: TestItem = { id: 'e', status: 'open', rank: 0, name: 'Eve' }
+      const promise = backend.insert(item)
+
+      const first = backend.getQueryResult(selector, options)
+      expect(backend.getQueryResult(selector, options)).toBe(first)
+      expect(first[0]).toEqual(item)
+
+      await flush()
+      worker.respondTo('insert', [item])
+      await promise
+    })
+
+    it('answers with a new array once another write joins the first', async () => {
+      const item: TestItem = { id: 'e', status: 'open', rank: 0, name: 'Eve' }
+      const first = backend.insert(item)
+      const before = backend.getQueryResult(selector, options)
+
+      const second = backend.insert({ id: 'f', status: 'open', rank: 5, name: 'Fay' })
+      const after = backend.getQueryResult(selector, options)
+
+      expect(after).not.toBe(before)
+      expect(after.some(entry => entry.id === 'f')).toBe(true)
+
+      await flush()
+      worker.respondTo('insert', [item, { id: 'f' }])
+      await Promise.all([first, second])
+    })
+
+    it('answers with the stored array again once the writes settle', async () => {
+      const item: TestItem = { id: 'e', status: 'open', rank: 0, name: 'Eve' }
+      const promise = backend.insert(item)
+      backend.getQueryResult(selector, options)
+      await flush()
+      worker.respondTo('insert', [item])
+      await promise
+
+      expect(backend.getQueryResult(selector, options))
+        .toEqual(applyQueryOptions(stored, selector, options))
+      expect(backend.getQueryResult(selector, options))
+        .toBe(backend.getQueryResult(selector, options))
+    })
+
+    it('answers with a new array when the worker sends an update', async () => {
+      const before = backend.getQueryResult(selector, options)
+      worker.emit({
+        type: 'queryUpdate',
+        workerId: 'test',
+        data: {
+          collectionName: 'test',
+          selector,
+          options,
+          state: 'complete',
+          delta: {
+            added: [], changed: [], removed: ['a'], moved: [], resultCount: 2,
+          },
+        },
+        error: null,
+      })
+
+      const after = backend.getQueryResult(selector, options)
+      expect(after).not.toBe(before)
+      expect(after.some(entry => entry.id === 'a')).toBe(false)
+    })
+  })
+
   // A projected result is not the items, it is a view of them, and a write cannot be resolved
   // against a view: applying a modifier to an item that has had fields removed produces something
   // the selector may no longer match. The adapter therefore resolves writes only against items it
