@@ -814,27 +814,31 @@ export default class Collection<
     if (!modifier) throw new Error('Invalid modifier')
 
     const { $setOnInsert, ...restModifier } = modifier
-    const item = await this.getItem<true>(selector, { async: true })
-    if (item == null) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-          ...restModifier,
-          $set: {
-            ...$setOnInsert,
-            ...restModifier.$set,
-          },
-        })
-        await this.insert(newItem as T)
-        return 1
-      }
-      return 0 // no item found, and upsert is not enabled
+
+    // Reading the item back before writing it is worth a round trip to the data layer only when
+    // something is waiting to inspect it: a validator gets to refuse the write, and it can only do
+    // that beforehand. Otherwise the backend's own answer says everything there is to know — what
+    // it returns is what changed, and an empty answer is what turns an upsert into an insert.
+    if (this.listenerCount('validate') > 0) {
+      const item = await this.getItem<true>(selector, { async: true })
+      if (item != null) this.emit('validate', modify(deepClone(item), restModifier))
     }
 
-    const modifiedItem = modify(deepClone(item), restModifier)
-    this.emit('validate', modifiedItem)
     const changes = await this.withPushState(() => this.backend.updateOne(selector, modifier))
-    this.emit('changed', modifiedItem, restModifier)
+    if (changes.length === 0) {
+      if (!options?.upsert) return 0 // no item found, and upsert is not enabled
+      const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
+        ...restModifier,
+        $set: {
+          ...$setOnInsert,
+          ...restModifier.$set,
+        },
+      })
+      await this.insert(newItem as T)
+      return 1
+    }
+
+    changes.forEach(item => this.emit('changed', item, restModifier))
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return changes.length
@@ -858,29 +862,29 @@ export default class Collection<
     if (!selector) throw new Error('Invalid selector')
     if (!modifier) throw new Error('Invalid modifier')
     const { $setOnInsert, ...restModifier } = modifier
-    const items = await this.getItems<true>(selector, { async: true })
-    if (items.length === 0) {
-      if (options?.upsert) {
-        // if upsert is enabled, insert a new item
-        const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
-          ...restModifier,
-          $set: {
-            ...$setOnInsert,
-            ...restModifier.$set,
-          },
-        })
-        await this.insert(newItem as T)
-        return 1
-      }
-      return 0 // no items found, and upsert is not enabled
+
+    // See `updateOne`: the items are only fetched up front for the sake of a validator.
+    if (this.listenerCount('validate') > 0) {
+      const items = await this.getItems<true>(selector, { async: true })
+      items.forEach((item) => {
+        this.emit('validate', modify(deepClone(item), restModifier))
+      })
     }
 
-    items.forEach((item) => {
-      const modifiedItem = modify(deepClone(item), restModifier)
-      this.emit('validate', modifiedItem)
-    })
-
     const changes = await this.withPushState(() => this.backend.updateMany(selector, modifier))
+    if (changes.length === 0) {
+      if (!options?.upsert) return 0 // no items found, and upsert is not enabled
+      const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
+        ...restModifier,
+        $set: {
+          ...$setOnInsert,
+          ...restModifier.$set,
+        },
+      })
+      await this.insert(newItem as T)
+      return 1
+    }
+
     changes.forEach((item) => {
       this.emit('changed', item, restModifier)
     })
@@ -906,21 +910,20 @@ export default class Collection<
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (!selector) throw new Error('Invalid selector')
 
-    const item = await this.getItem<true>(selector, { async: true })
-    if (item == null) {
-      if (options?.upsert) {
-        await this.insert(replacement as T)
-        return 1
-      }
-      return 0 // no item found, and upsert is not enabled
+    // See `updateOne`: the item is only fetched up front for the sake of a validator.
+    if (this.listenerCount('validate') > 0) {
+      const item = await this.getItem<true>(selector, { async: true })
+      if (item != null) this.emit('validate', { id: item.id, ...replacement } as T)
     }
 
-    const modifiedItem = { id: item.id, ...replacement } as T
-    this.emit('validate', modifiedItem)
-
     const changes = await this.withPushState(() => this.backend.replaceOne(selector, replacement))
+    if (changes.length === 0) {
+      if (!options?.upsert) return 0 // no item found, and upsert is not enabled
+      await this.insert(replacement as T)
+      return 1
+    }
 
-    this.emit('changed', modifiedItem, replacement as Modifier<T>)
+    changes.forEach(item => this.emit('changed', item, replacement as Modifier<T>))
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
     return changes.length
