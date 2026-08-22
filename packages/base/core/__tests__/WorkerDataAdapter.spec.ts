@@ -867,6 +867,89 @@ describe('WorkerDataAdapter', () => {
       await Promise.all([first, second])
     })
 
+    // The overlay must cost the size of what is in flight, not the size of what is on screen. An
+    // application with a few large queries open writes constantly, and the previous shape rebuilt
+    // every query's result — filter and sort included — on every read for as long as any write was
+    // unconfirmed.
+    it('leaves a query the pending write does not touch on its own array', async () => {
+      const otherSelector: Selector<TestItem> = { name: 'Bob' }
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      const untouched = [{ id: '2', name: 'Bob' }]
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
+      await registerSeededQuery(backend, untouched, otherSelector)
+      mockWorker.clearCalls()
+
+      const promise = backend.updateOne({ id: '1' }, { $set: { name: 'Alicia' } })
+      // The write is in flight and the other query is served its own array, unrebuilt.
+      expect(backend.getQueryResult(otherSelector, {})).toBe(untouched)
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alicia' }])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateOne', [[{ id: '1', name: 'Alicia' }]])
+      await promise
+    })
+
+    // A pending insert has no id in any query yet, so "does this touch me" cannot be answered by
+    // ids alone — a query whose selector the new item matches has to see it.
+    it('shows a pending insert to a query it matches, even though no query held it', async () => {
+      const nameSelector: Selector<TestItem> = { name: 'Carol' }
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [], nameSelector)
+      mockWorker.clearCalls()
+
+      const promise = backend.insert({ id: '9', name: 'Carol' })
+      expect(backend.getQueryResult(nameSelector, {})).toEqual([{ id: '9', name: 'Carol' }])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('insert', [{ id: '9', name: 'Carol' }])
+      await promise
+    })
+
+    // `{ id: { $in } }` takes the same shortcut as a plain `{ id }`, and must resolve every one.
+    it('resolves an $in update through the id path', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+        { id: '3', name: 'Carol' },
+      ])
+      mockWorker.clearCalls()
+
+      const promise = backend.updateMany({ id: { $in: ['1', '3'] } }, { $set: { value: 'x' } })
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '1', name: 'Alice', value: 'x' },
+        { id: '2', name: 'Bob' },
+        { id: '3', name: 'Carol', value: 'x' },
+      ])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateMany', [[
+        { id: '1', name: 'Alice', value: 'x' },
+        { id: '3', name: 'Carol', value: 'x' },
+      ]])
+      await promise
+    })
+
+    // A selector that names `id` *and* something else cannot be answered by ids alone: the second
+    // condition may exclude a row the id path would have written.
+    it('falls back to matching when the selector asks for more than ids', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
+      mockWorker.clearCalls()
+
+      const promise = backend.updateOne({ id: '1', name: 'Bob' }, { $set: { value: 'x' } })
+      // `name` does not match, so nothing is written optimistically.
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alice' }])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateOne', [[]])
+      await promise
+    })
+
     it('leaves query results untouched while no write is pending', async () => {
       const backend = adapter.createCollectionBackend(collection, [])
       await backend.isReady()
