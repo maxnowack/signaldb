@@ -21,9 +21,11 @@ class FlakyStorageAdapter implements StorageAdapter<TestItem, string> {
   teardown(): Promise<void> {
     return Promise.resolve()
   }
+
   dropIndex(): Promise<void> {
     throw new Error('Method not implemented.')
   }
+
   removeAll(): Promise<void> {
     throw new Error('Method not implemented.')
   }

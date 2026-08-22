@@ -25,11 +25,15 @@ class MockWorker implements Worker {
   private listenerMap = new Map<EventListenerOrEventListenerObject, (event: MessageEvent) => void>()
   private messages: { id: string, workerId: string, method: string, args: unknown[] }[] = []
 
+  // Lifecycle calls are answered for us, the way a healthy host answers them right away. Tests
+  // about a host that cannot answer turn this off.
+  autoRespondTo = ['registerCollection', 'isReady', 'unregisterCollection', 'registerQuery', 'unregisterQuery']
+
   postMessage = vi.fn((
     payload: { id: string, workerId: string, method: string, args: unknown[] },
   ) => {
     this.messages.push(payload)
-    if (['registerCollection', 'isReady', 'unregisterCollection', 'registerQuery', 'unregisterQuery'].includes(payload.method)) {
+    if (this.autoRespondTo.includes(payload.method)) {
       queueMicrotask(() => {
         this.emit({ type: 'response', workerId: payload.workerId, id: payload.id, data: undefined, error: null })
       })
@@ -972,6 +976,69 @@ describe('WorkerDataAdapter', () => {
       expect(backend.getQueryResult(selector, {})).toBe(items)
     })
   })
+  describe('When the worker cannot answer a lifecycle call', () => {
+    const failNext = (method: string, error: Error) => {
+      const message = mockWorker.sentMessages.toReversed().find(entry => entry.method === method)
+      if (!message) throw new Error(`no ${method} recorded`)
+      mockWorker.emit({
+        type: 'response', workerId: message.workerId, id: message.id, data: null, error,
+      })
+    }
+
+    it('reports a query it could not register as failed, rather than leaving it pending', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      mockWorker.autoRespondTo = ['isReady']
+      const selector = { name: 'Alice' }
+      const listener = vi.fn()
+      backend.onQueryStateChange(selector, {}, listener)
+      backend.registerQuery(selector, {})
+
+      await vi.waitFor(() => {
+        expect(mockWorker.sentMessages.some(m => m.method === 'registerQuery')).toBe(true)
+      })
+      failNext('registerQuery', new Error('worker is gone'))
+
+      // The failure reaches the query one microtask later, when the call it belongs to settles.
+      await vi.waitFor(() => {
+        expect(backend.getQueryState(selector, {})).toBe('error')
+      })
+      expect(backend.getQueryError(selector, {})?.message).toBe('worker is gone')
+      expect(listener).toHaveBeenCalledWith('error')
+    })
+
+    it('does not leave a failed unregister unhandled', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      mockWorker.autoRespondTo = ['isReady']
+      const selector = { name: 'Alice' }
+      backend.registerQuery(selector, {})
+      await vi.waitFor(() => {
+        expect(mockWorker.sentMessages.some(m => m.method === 'registerQuery')).toBe(true)
+      })
+      backend.unregisterQuery(selector, {})
+
+      await vi.waitFor(() => {
+        expect(mockWorker.sentMessages.some(m => m.method === 'unregisterQuery')).toBe(true)
+      })
+      expect(() => failNext('unregisterQuery', new Error('collection is gone'))).not.toThrow()
+
+      // Nothing is left holding the query, so there is nothing to report it to either.
+      expect(backend.getQueryState(selector, {})).toBe('active')
+    })
+
+    it('does not leave a failed collection registration unhandled', async () => {
+      mockWorker.autoRespondTo = ['isReady']
+      const backend = adapter.createCollectionBackend(collection, [])
+      await vi.waitFor(() => {
+        expect(mockWorker.sentMessages.some(m => m.method === 'registerCollection')).toBe(true)
+      })
+
+      expect(() => failNext('registerCollection', new Error('nope'))).not.toThrow()
+      expect(backend).toBeDefined()
+    })
+  })
+
   describe('Query deltas', () => {
     const register = async (selector: Selector<TestItem>) => {
       const backend = adapter.createCollectionBackend(collection, [])

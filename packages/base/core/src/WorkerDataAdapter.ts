@@ -282,6 +282,30 @@ export default class WorkerDataAdapter implements DataAdapter {
     })
   }
 
+  /**
+   * Issues a call whose result nobody is waiting for, and makes sure a failure has somewhere to
+   * go. A bare rejection here would surface as an uncaught error — which is what a disposed
+   * collection produced every time a cursor was cleaned up after it.
+   * @param method - The method to call on the worker.
+   * @param collectionName - The collection it applies to.
+   * @param args - The remaining arguments.
+   * @param onError - Called when the call fails, in place of merely logging it.
+   */
+  private execInBackground(
+    method: string,
+    collectionName: string,
+    args: unknown[] = [],
+    onError?: (error: Error) => void,
+  ) {
+    this.exec(method, collectionName, ...args).catch((error: Error) => {
+      if (onError) {
+        onError(error)
+        return
+      }
+      this.log(method, 'failed', error)
+    })
+  }
+
   private queryItemsById(
     query: { items: BaseItem[], itemsById?: Map<any, BaseItem> },
   ): Map<any, BaseItem> {
@@ -627,7 +651,7 @@ export default class WorkerDataAdapter implements DataAdapter {
     indices: string[],
   ): CollectionBackend<T, I> {
     this.queries[collection.name] = new Map()
-    void this.exec('registerCollection', collection.name, indices)
+    this.execInBackground('registerCollection', collection.name, [indices])
     this.collectionReady.set(collection.name, this.exec('isReady', collection.name))
     this.batchExecutionHelpers.set(
       collection.name,
@@ -683,11 +707,28 @@ export default class WorkerDataAdapter implements DataAdapter {
       // methods for registering and unregistering queries that will be called from the collection during find/findOne
       registerQuery: (selector, options) => {
         this.updateQuery(collection.name, { selector, options }, { state: 'active', error: null, items: [] })
-        void this.exec('registerQuery', collection.name, selector, options)
+        // A query the worker could not register will never answer. Left as a bare rejection it
+        // would surface as an uncaught error and the cursor would sit on its empty result forever,
+        // indistinguishable from a query with nothing to show; published as an error it reaches
+        // the collection's `query.error` event, which is what that event is for.
+        this.execInBackground(
+          'registerQuery',
+          collection.name,
+          [selector, options],
+          (error) => {
+            const query = this.queries[collection.name]?.get(queryId(selector, options))
+            if (!query) return
+            this.updateQuery(collection.name, { selector, options }, { state: 'error', error })
+            query.stateChangeCallbacks.forEach(callback => callback('error'))
+          },
+        )
       },
       unregisterQuery: (selector, options) => {
         this.queries[collection.name]?.delete(queryId(selector, options))
-        void this.exec('unregisterQuery', collection.name, selector, options)
+        // Nothing holds the query any more, so a failure here has nobody to report to — but it
+        // still must not escape as an uncaught error, which is what a disposed collection would
+        // otherwise produce every time a cursor was cleaned up after it.
+        this.execInBackground('unregisterQuery', collection.name, [selector, options])
       },
       getQueryState: (selector, options) => {
         const query = this.queries[collection.name]?.get(queryId(selector, options))
