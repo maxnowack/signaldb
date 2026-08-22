@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { QueryOptions } from '../DataAdapter'
 import type Selector from '../types/Selector'
 import applyQueryOptions from './applyQueryOptions'
 import incrementalQueryUpdate from './incrementalQueryUpdate'
@@ -12,12 +13,52 @@ interface Item {
 
 describe('incrementalQueryUpdate', () => {
   describe('cases it declines', () => {
-    it('should decline a query with a limit, because it cannot see past the window', () => {
+    it('should decline a full window that loses one of its items', () => {
       const result = incrementalQueryUpdate(
-        [{ id: 'a' }],
+        [{ id: 'a', rank: 1 }, { id: 'b', rank: 2 }],
         {},
-        { limit: 10 },
-        { upserts: [{ id: 'b' }], deletes: [] },
+        { sort: { rank: 1 }, limit: 2 },
+        { upserts: [], deletes: ['a'] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline a full window whose item stops matching', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a', rank: 1, status: 'open' }, { id: 'b', rank: 2, status: 'open' }],
+        { status: 'open' },
+        { sort: { rank: 1 }, limit: 2 },
+        { upserts: [{ id: 'a', rank: 1, status: 'done' }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline a full window whose item moves past its edge', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a', rank: 1 }, { id: 'b', rank: 2 }],
+        {},
+        { sort: { rank: 1 }, limit: 2 },
+        { upserts: [{ id: 'a', rank: 99 }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline a full window that is not sorted, having no edge to speak of', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a' }, { id: 'b' }],
+        {},
+        { limit: 2 },
+        { upserts: [{ id: 'c' }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline a full window whose items are projected', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a' }, { id: 'b' }],
+        {},
+        { sort: { rank: 1 }, limit: 2, fields: { name: 1 } },
+        { upserts: [{ id: 'c', rank: 0 }], deletes: [] },
       )
       expect(result).toBeNull()
     })
@@ -247,6 +288,191 @@ describe('incrementalQueryUpdate', () => {
           changes: { upserts: [], deletes: ['a', 'c', 'd'] },
         }))
       expect(incremental).toEqual(reExecuted)
+    })
+  })
+
+  describe('a window onto a larger set', () => {
+    const allItems: Item[] = Array.from({ length: 12 }, (_, index) => ({
+      id: `id-${index}`,
+      status: index % 3 === 0 ? 'done' : 'open',
+      rank: index,
+      name: `name-${index}`,
+    }))
+    const selector = { status: 'open' }
+
+    /**
+     * Runs a change through the incremental path and a full re-execution.
+     * @param options - The query's options.
+     * @param nextAllItems - Every item the store holds after the change.
+     * @param changes - The change, as the store would describe it.
+     * @param changes.upserts - The items that exist after the change.
+     * @param changes.deletes - The ids that no longer exist.
+     * @returns Both answers; the incremental one is `null` when it declined.
+     */
+    const bothPaths = (
+      options: Record<string, any>,
+      nextAllItems: Item[],
+      changes: { upserts: Item[], deletes: string[] },
+    ) => ({
+      incremental: incrementalQueryUpdate(
+        applyQueryOptions(allItems, selector, options),
+        selector,
+        options,
+        changes,
+      ),
+      reExecuted: applyQueryOptions(nextAllItems, selector, options),
+    })
+
+    it('should answer a window that is not full, having nothing beyond it', () => {
+      const options = { sort: { rank: 1 }, limit: 50 }
+      const item: Item = { id: 'new', status: 'open', rank: -1, name: 'New' }
+      const { incremental, reExecuted } = bothPaths(
+        options,
+        [...allItems, item],
+        { upserts: [item], deletes: [] },
+      )
+      expect(incremental).toEqual(reExecuted)
+    })
+
+    it('should answer an insert that sorts into a full window', () => {
+      const options = { sort: { rank: 1 }, limit: 3 }
+      const item: Item = { id: 'new', status: 'open', rank: -1, name: 'New' }
+      const { incremental, reExecuted } = bothPaths(
+        options,
+        [...allItems, item],
+        { upserts: [item], deletes: [] },
+      )
+      expect(incremental).toEqual(reExecuted)
+      expect(incremental).toHaveLength(3)
+    })
+
+    it('should answer an insert that sorts past a full window', () => {
+      const options = { sort: { rank: 1 }, limit: 3 }
+      const item: Item = { id: 'new', status: 'open', rank: 99, name: 'New' }
+      const { incremental, reExecuted } = bothPaths(
+        options,
+        [...allItems, item],
+        { upserts: [item], deletes: [] },
+      )
+      expect(incremental).toEqual(reExecuted)
+    })
+
+    it('should answer an update inside a full window that stays inside it', () => {
+      const options = { sort: { rank: 1 }, limit: 3 }
+      const item: Item = { ...allItems[1], name: 'renamed' }
+      const { incremental, reExecuted } = bothPaths(
+        options,
+        allItems.map(entry => (entry.id === item.id ? item : entry)),
+        { upserts: [item], deletes: [] },
+      )
+      expect(incremental).toEqual(reExecuted)
+    })
+
+    it('should answer a removal beyond a full window', () => {
+      const options = { sort: { rank: 1 }, limit: 3 }
+      const { incremental, reExecuted } = bothPaths(
+        options,
+        allItems.filter(entry => entry.id !== 'id-11'),
+        { upserts: [], deletes: ['id-11'] },
+      )
+      expect(incremental).toEqual(reExecuted)
+    })
+
+    it('should decline a query that skips, having items before it too', () => {
+      const options = { sort: { rank: 1 }, limit: 3, skip: 1 }
+      const item: Item = { id: 'new', status: 'open', rank: -1, name: 'New' }
+      const { incremental } = bothPaths(options, [...allItems, item], {
+        upserts: [item],
+        deletes: [],
+      })
+      expect(incremental).toBeNull()
+    })
+
+    const byRankThenId = (items: Item[]) => [...items]
+      .toSorted((a, b) => (a.rank ?? 0) - (b.rank ?? 0) || a.id.localeCompare(b.id))
+
+    it('should keep items that sort equally in the order it already had them', () => {
+      const options: QueryOptions<Item> = { sort: { rank: 1 }, limit: 4 }
+      const previous: Item[] = [
+        { id: 'x', rank: 1 }, { id: 'y', rank: 2 }, { id: 'z', rank: 3 }, { id: 'w', rank: 9 },
+      ]
+      const result = incrementalQueryUpdate(previous, {}, options, {
+        upserts: [{ id: 'z', rank: 2 }],
+        deletes: [],
+      })
+      expect(result?.map(item => item.id)).toEqual(['x', 'y', 'z', 'w'])
+    })
+
+    it('should decline a change that ties with the edge of a full window', () => {
+      const options: QueryOptions<Item> = { sort: { rank: 1 }, limit: 2 }
+      const result = incrementalQueryUpdate(
+        [{ id: 'x', rank: 1 }, { id: 'y', rank: 2 }],
+        {},
+        options,
+        { upserts: [{ id: 'z', rank: 2 }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline a full window whose last two items sort equally', () => {
+      const options: QueryOptions<Item> = { sort: { rank: 1 }, limit: 2 }
+      const result = incrementalQueryUpdate(
+        [{ id: 'x', rank: 2 }, { id: 'y', rank: 2 }],
+        {},
+        options,
+        { upserts: [{ id: 'z', rank: 0 }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should never disagree with a full re-execution, whatever the change', () => {
+      let seed = 7
+      const random = () => {
+        seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
+        return seed / 2_147_483_648
+      }
+      let answered = 0
+
+      for (let run = 0; run < 400; run += 1) {
+        const options = { sort: { rank: 1 }, limit: 1 + Math.floor(random() * 6) }
+        const target = allItems[Math.floor(random() * allItems.length)]
+        const roll = random()
+
+        let nextAllItems: Item[]
+        let changes: { upserts: Item[], deletes: string[] }
+        if (roll < 0.3) {
+          const item: Item = {
+            id: `new-${run}`,
+            status: random() > 0.4 ? 'open' : 'done',
+            rank: Math.floor(random() * 16) - 2,
+            name: 'New',
+          }
+          nextAllItems = [...allItems, item]
+          changes = { upserts: [item], deletes: [] }
+        } else if (roll < 0.6) {
+          nextAllItems = allItems.filter(entry => entry.id !== target.id)
+          changes = { upserts: [], deletes: [target.id] }
+        } else {
+          const item: Item = {
+            ...target,
+            rank: Math.floor(random() * 16) - 2,
+            status: random() > 0.3 ? 'open' : 'done',
+          }
+          nextAllItems = allItems.map(entry => (entry.id === item.id ? item : entry))
+          changes = { upserts: [item], deletes: [] }
+        }
+
+        const { incremental, reExecuted } = bothPaths(options, nextAllItems, changes)
+        if (incremental == null) continue
+        answered += 1
+        // Compared with ties broken by id: which of two items sorting equally comes first is not
+        // something the query asks for, and a re-execution answers it from the order the store
+        // happens to hold them in.
+        expect(byRankThenId(incremental)).toEqual(byRankThenId(reExecuted))
+      }
+
+      // A rule that declined everything would pass the assertion above and be useless.
+      expect(answered).toBeGreaterThan(100)
     })
   })
 
