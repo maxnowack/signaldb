@@ -41,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `WorkerDataAdapter` routes every worker message through a single listener instead of adding one per query and per pending request. Previously each incoming message was offered to every listener in turn, and each of them re-serialised its own selector to decide the message was not for it.
 * A write that leaves a query's result unchanged no longer notifies that query's observers at all, and no longer produces a message across the worker boundary.
 * `WorkerDataAdapter` no longer shows a write before the worker confirms it when the item it modifies is known only through a projected query. Applying a modifier to a projected item produces something that is not the item, and a selector naming a projected-away field would no longer match it. The write itself is unaffected; it simply becomes visible when the worker answers rather than immediately.
+* `updateOne`, `updateMany` and `replaceOne` no longer read the items back from the data layer before writing them. The write's own answer says what changed, and an empty answer is what turns an upsert into an insert. The read still happens when something is listening for `validate`, so a validator can still inspect an item — and refuse the write — before it happens.
+* `changed` is no longer emitted for a write that matched nothing. It previously was, whenever the item had still existed at the moment it was read back.
+* A query with a `limit` is now brought up to date from its own window where the window allows it, instead of always being re-executed against the store. A window losing one of its items still needs the store, because what fills the gap is something the window has never held.
 
 ### Fixed
 
