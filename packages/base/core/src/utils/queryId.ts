@@ -15,6 +15,21 @@ function isEmptyOptions(options?: QueryOptions<any>) {
   return Object.keys(options).length === 0
 }
 
+// Stands in for absent options so they can be a `WeakMap` key like any other pair half.
+const noOptions = {}
+
+// Ids are asked for far more often than queries are created — every cursor read resolves its query
+// through one, and a single `postMessage` round trip goes through several. Serializing the same two
+// objects over and over is pure waste, so a pair of objects that has been seen before answers from
+// here. Keyed weakly on both halves: an entry lives exactly as long as the objects it describes,
+// and a selector built fresh at the call site simply misses and is collected again.
+//
+// The cache assumes a selector or options object is not mutated after it has been used to identify
+// a query. That already holds today for a different reason — a query is registered, cached and
+// looked up under the id its selector had at registration time, so mutating it afterwards loses the
+// query either way.
+const cache = new WeakMap<object, WeakMap<object, string>>()
+
 /**
  * Generates a unique identifier for a query based on its selector and options.
  * @param selector - The selector object.
@@ -22,8 +37,26 @@ function isEmptyOptions(options?: QueryOptions<any>) {
  * @returns A unique identifier string for the query.
  */
 export default function queryId(selector: Selector<any>, options?: QueryOptions<any>) {
+  const isCacheable = selector != null && typeof selector === 'object'
+    && (options == null || typeof options === 'object')
+  if (!isCacheable) {
+    const optionsId = isEmptyOptions(options) ? -1 : JSON.stringify(options)
+    return `${JSON.stringify(selector)}:${optionsId}`
+  }
+
+  const optionsKey = (options ?? noOptions) as object
+  const cachedForSelector = cache.get(selector as object)
+  const cached = cachedForSelector?.get(optionsKey)
+  if (cached != null) return cached
+
   const selectorId = JSON.stringify(selector)
   const optionsId = isEmptyOptions(options) ? -1 : JSON.stringify(options)
+  const id = `${selectorId}:${optionsId}`
 
-  return `${selectorId}:${optionsId}`
+  if (cachedForSelector) {
+    cachedForSelector.set(optionsKey, id)
+  } else {
+    cache.set(selector as object, new WeakMap<object, string>([[optionsKey, id]]))
+  }
+  return id
 }

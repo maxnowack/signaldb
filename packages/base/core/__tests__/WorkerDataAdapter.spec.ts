@@ -2,6 +2,7 @@ import { vi, beforeEach, describe, it, expect, afterEach } from 'vitest'
 import WorkerDataAdapter from '../src/WorkerDataAdapter'
 import type Collection from '../src/Collection'
 import type Selector from '../src/types/Selector'
+import queryId from '../src/utils/queryId'
 
 interface TestItem {
   id: string,
@@ -341,15 +342,19 @@ describe('WorkerDataAdapter', () => {
       await expect(promise).resolves.toEqual([{ id: '1', value: 'test' }])
     })
 
-    it('removes query event listeners when unregistering queries', async () => {
+    it('does not accumulate message listeners across register/unregister cycles', async () => {
       const backend = adapter.createCollectionBackend(collection, [])
       await backend.isReady()
 
-      const selector: Selector<TestItem> = { id: '1' }
-      backend.registerQuery(selector, {})
-      backend.unregisterQuery(selector, {})
+      const addEventListener = mockWorker.addEventListener as unknown as ReturnType<typeof vi.fn>
+      const listenersBefore = addEventListener.mock.calls.length
+      for (let index = 0; index < 20; index += 1) {
+        const selector: Selector<TestItem> = { id: `${index}` }
+        backend.registerQuery(selector, {})
+        backend.unregisterQuery(selector, {})
+      }
 
-      expect(mockWorker.removeEventListener).toHaveBeenCalledWith('message', expect.any(Function))
+      expect(addEventListener.mock.calls.length).toBe(listenersBefore)
     })
   })
 
@@ -754,7 +759,7 @@ describe('WorkerDataAdapter', () => {
       await promise
     })
 
-    it('notifies active queries immediately so cursors requery', async () => {
+    it('notifies active queries immediately with what the write adds', async () => {
       const backend = adapter.createCollectionBackend(collection, [])
       await backend.isReady()
       await registerSeededQuery(backend, [])
@@ -763,7 +768,13 @@ describe('WorkerDataAdapter', () => {
       mockWorker.clearCalls()
 
       const promise = backend.insert({ id: '1', name: 'Alice' })
-      expect(callback).toHaveBeenCalledWith('complete')
+      expect(callback).toHaveBeenCalledWith('complete', expect.objectContaining({
+        added: [{ index: 0, item: { id: '1', name: 'Alice' } }],
+        changed: [],
+        removed: [],
+        moved: [],
+        resultCount: 1,
+      }))
 
       await waitForBatchedMessage()
       mockWorker.respondTo('insert', [{ id: '1', name: 'Alice' }])
@@ -959,6 +970,352 @@ describe('WorkerDataAdapter', () => {
       // Same array instance the worker delivered — no needless copying or
       // re-sorting on the read path when there is nothing to overlay.
       expect(backend.getQueryResult(selector, {})).toBe(items)
+    })
+  })
+  describe('Query deltas', () => {
+    const register = async (selector: Selector<TestItem>) => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      backend.registerQuery(selector, {})
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          qid: queryId(selector, {}),
+          state: 'complete',
+          items: [
+            { id: '1', name: 'Alice' },
+            { id: '2', name: 'Bob' },
+          ],
+        },
+      })
+      return backend
+    }
+
+    const emitDelta = (selector: Selector<TestItem>, delta: Record<string, unknown>) => {
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          qid: queryId(selector, {}),
+          state: 'complete',
+          delta,
+        },
+      })
+    }
+
+    it('applies an addition at the position the delta names', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      emitDelta(selector, {
+        added: [{ index: 0, item: { id: '3', name: 'Cleo' } }],
+        changed: [],
+        removed: [],
+        moved: [],
+        resultCount: 3,
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '3', name: 'Cleo' },
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+      ])
+    })
+
+    it('applies a change without touching the rest of the result', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+      const before = backend.getQueryResult(selector, {})
+
+      emitDelta(selector, {
+        added: [],
+        changed: [{ id: '2', name: 'Bobby' }],
+        removed: [],
+        moved: [],
+        resultCount: 2,
+      })
+
+      const after = backend.getQueryResult(selector, {})
+      expect(after).toEqual([{ id: '1', name: 'Alice' }, { id: '2', name: 'Bobby' }])
+      expect(after[0]).toBe(before[0])
+    })
+
+    it('applies a removal by id', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      emitDelta(selector, {
+        added: [],
+        changed: [],
+        removed: ['1'],
+        moved: [],
+        resultCount: 1,
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '2', name: 'Bob' }])
+    })
+
+    it('applies a move', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      emitDelta(selector, {
+        added: [],
+        changed: [],
+        removed: [],
+        moved: [{ index: 0, id: '2' }],
+        resultCount: 2,
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '2', name: 'Bob' },
+        { id: '1', name: 'Alice' },
+      ])
+    })
+
+    it('passes the delta on to its listeners', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+      const listener = vi.fn()
+      backend.onQueryStateChange(selector, {}, listener)
+
+      const delta = {
+        added: [],
+        changed: [{ id: '2', name: 'Bobby' }],
+        removed: [],
+        moved: [],
+        resultCount: 2,
+      }
+      emitDelta(selector, delta)
+
+      expect(listener).toHaveBeenCalledExactlyOnceWith('complete', delta)
+    })
+
+    it('does not notify listeners about a delta that changes nothing', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+      const listener = vi.fn()
+      backend.onQueryStateChange(selector, {}, listener)
+
+      emitDelta(selector, {
+        added: [], changed: [], removed: [], moved: [], resultCount: 2,
+      })
+
+      expect(listener).not.toHaveBeenCalled()
+    })
+
+    it('ignores a delta that does not fit the result it holds', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      emitDelta(selector, {
+        added: [],
+        changed: [],
+        removed: ['does-not-exist'],
+        moved: [],
+        resultCount: 1,
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+      ])
+    })
+
+    it('ignores a delta whose result count does not add up', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      emitDelta(selector, {
+        added: [],
+        changed: [],
+        removed: ['1'],
+        moved: [],
+        resultCount: 7,
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+      ])
+    })
+
+    it('keeps the result it holds when the query goes back to active', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          qid: queryId(selector, {}),
+          state: 'active',
+        },
+      })
+
+      expect(backend.getQueryState(selector, {})).toBe('active')
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+      ])
+    })
+
+    it('applies a delta that arrives after the query went back to active', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: { collectionName: 'test', qid: queryId(selector, {}), state: 'active' },
+      })
+      emitDelta(selector, {
+        added: [], changed: [], removed: ['1'], moved: [], resultCount: 1,
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '2', name: 'Bob' }])
+    })
+
+    it('lets a full result replace whatever it holds', async () => {
+      const selector = { name: 'x' }
+      const backend = await register(selector)
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          qid: queryId(selector, {}),
+          state: 'complete',
+          items: [{ id: '9', name: 'Zoe' }],
+        },
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '9', name: 'Zoe' }])
+    })
+  })
+
+  describe('Message dispatch', () => {
+    it('does not add a message listener per registered query', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+
+      const addEventListener = mockWorker.addEventListener as unknown as ReturnType<typeof vi.fn>
+      const listenersBefore = addEventListener.mock.calls.length
+      const selectors = Array.from({ length: 25 }, (_, index) => ({ name: `user-${index}` }))
+      selectors.forEach(selector => backend.registerQuery(selector, {}))
+      const listenersAfter = addEventListener.mock.calls.length
+
+      expect(listenersAfter - listenersBefore).toBeLessThan(selectors.length)
+    })
+
+    it('routes a query update to the matching query only, without rescanning the others', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+
+      const selectors = Array.from({ length: 10 }, (_, index) => ({ name: `user-${index}` }))
+      const listeners = selectors.map(() => vi.fn())
+      selectors.forEach((selector, index) => {
+        backend.registerQuery(selector, {})
+        backend.onQueryStateChange(selector, {}, listeners[index])
+      })
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          selector: selectors[4],
+          options: {},
+          state: 'complete',
+          items: [{ id: '4', name: 'user-4' }],
+        },
+      })
+
+      expect(listeners[4]).toHaveBeenCalledWith('complete')
+      listeners.forEach((listener, index) => {
+        if (index === 4) return
+        expect(listener).not.toHaveBeenCalled()
+      })
+      expect(backend.getQueryResult(selectors[4], {})).toEqual([{ id: '4', name: 'user-4' }])
+      expect(backend.getQueryResult(selectors[3], {})).toEqual([])
+    })
+
+    it('routes updates by the query id the host sends when one is present', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+
+      const selector = { name: 'Alice' }
+      backend.registerQuery(selector, {})
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          qid: queryId(selector, {}),
+          state: 'complete',
+          items: [{ id: '1', name: 'Alice' }],
+        },
+      })
+
+      expect(backend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alice' }])
+    })
+
+    it('keeps queries of different collections apart', async () => {
+      const otherCollection = { name: 'other' } as unknown as Collection<TestItem>
+      const backend = adapter.createCollectionBackend(collection, [])
+      const otherBackend = adapter.createCollectionBackend(otherCollection, [])
+      await backend.isReady()
+      await otherBackend.isReady()
+
+      const selector = { name: 'Alice' }
+      backend.registerQuery(selector, {})
+      otherBackend.registerQuery(selector, {})
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'other',
+          selector,
+          options: {},
+          state: 'complete',
+          items: [{ id: '1', name: 'Alice' }],
+        },
+      })
+
+      expect(otherBackend.getQueryResult(selector, {})).toEqual([{ id: '1', name: 'Alice' }])
+      expect(backend.getQueryResult(selector, {})).toEqual([])
+    })
+
+    it('stops routing updates to a query after it is unregistered', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+
+      const selector = { name: 'Alice' }
+      const listener = vi.fn()
+      backend.registerQuery(selector, {})
+      backend.onQueryStateChange(selector, {}, listener)
+      backend.unregisterQuery(selector, {})
+
+      mockWorker.emit({
+        type: 'queryUpdate',
+        workerId: 'test-adapter',
+        data: {
+          collectionName: 'test',
+          selector,
+          options: {},
+          state: 'complete',
+          items: [{ id: '1', name: 'Alice' }],
+        },
+      })
+
+      expect(listener).not.toHaveBeenCalled()
     })
   })
 })

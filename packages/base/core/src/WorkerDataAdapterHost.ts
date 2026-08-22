@@ -12,8 +12,12 @@ import getIndexInfo from './getIndexInfo'
 import getMatchingKeys from './utils/getMatchingKeys'
 import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
-import project from './utils/project'
+import projectItems from './utils/projectItems'
 import compact from './utils/compact'
+import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
+import type { QueryChangeset } from './utils/incrementalQueryUpdate'
+import { diffQueryResults, isEmptyQueryDelta } from './utils/queryDelta'
+import type { QueryDelta } from './utils/queryDelta'
 
 export interface WorkerDataAdapterHostEndpoint {
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
@@ -79,6 +83,31 @@ type CollectionMethods<T extends BaseItem<I>, I = any> = {
   ) => Promise<void>,
 }
 
+/**
+ * Turns the item states a write produced into the upsert/delete split a query update needs.
+ *
+ * The two lists are not symmetric: an item that is still there after the write is described by
+ * its new state, while an item that is gone — removed, or given a new id — is described by the id
+ * it used to have and nothing else. Mixing the states from before and after a write into one list
+ * loses exactly that distinction.
+ * @template T - The type of the items.
+ * @param previousItems - The items as they were before the write.
+ * @param modifiedItems - The items as they are after it.
+ * @returns The changeset describing the write.
+ */
+function toChangeset<T extends BaseItem>(
+  previousItems: T[],
+  modifiedItems: T[],
+): QueryChangeset<T> {
+  const modifiedIds = new Set(modifiedItems.map(item => item.id))
+  return {
+    upserts: modifiedItems,
+    deletes: previousItems
+      .map(item => item.id)
+      .filter(id => !modifiedIds.has(id)),
+  }
+}
+
 export default class WorkerDataAdapterHost<
   T extends BaseItem<I>,
   I = any,
@@ -91,6 +120,14 @@ export default class WorkerDataAdapterHost<
   private queries: Map<string, Map<string, {
     selector: Selector<any>,
     options?: QueryOptions<any>,
+    // The result this host last sent out, and the reference every delta it sends afterwards is
+    // relative to. `null` until the query has been answered once, because the first answer has
+    // nothing to be relative to and goes out in full.
+    items: BaseItem[] | null,
+    // Lazily built from `items`, dropped along with them. Whether a write affects a query is a
+    // question about ids, and answering it by scanning the result would cost the size of every
+    // active query's result on every write — the very thing sending deltas is here to avoid.
+    itemIds?: Set<any>,
   }>> = new Map()
 
   private onError: (error: Error) => void = (error) => {
@@ -98,7 +135,10 @@ export default class WorkerDataAdapterHost<
     console.error(error)
   }
 
-  constructor(private workerContext: WorkerDataAdapterHostEndpoint, private options: WorkerDataAdapterHostOptions) {
+  constructor(
+    private workerContext: WorkerDataAdapterHostEndpoint,
+    private options: WorkerDataAdapterHostOptions,
+  ) {
     this.id = this.options.id || 'default-worker-data-adapter'
     if (this.options.onError) {
       this.onError = this.options.onError
@@ -274,14 +314,7 @@ export default class WorkerDataAdapterHost<
     const sorted = sort ? sortItems(items, sort) : items
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
-    const idExcluded = fields && fields.id === 0
-    return limited.map((item) => {
-      if (!fields) return item
-      return {
-        ...idExcluded ? {} : { id: item.id },
-        ...project(item, fields),
-      }
-    })
+    return projectItems(limited, fields)
   }
 
   private ensureQuery(
@@ -295,10 +328,23 @@ export default class WorkerDataAdapterHost<
     }
     let query = this.queries.get(collectionName)?.get(id)
     if (!query) {
-      query = { selector, options }
+      query = { selector, options, items: null }
       this.queries.get(collectionName)?.set(id, query)
     }
     return query
+  }
+
+  private setQueryItems(
+    query: { items: BaseItem[] | null, itemIds?: Set<any> },
+    items: BaseItem[] | null,
+  ) {
+    query.items = items
+    query.itemIds = undefined
+  }
+
+  private queryItemIds(query: { items: BaseItem[] | null, itemIds?: Set<any> }): Set<any> {
+    if (!query.itemIds) query.itemIds = new Set((query.items ?? []).map(item => item.id))
+    return query.itemIds
   }
 
   private emitQueryUpdate(
@@ -308,12 +354,25 @@ export default class WorkerDataAdapterHost<
     state: 'active' | 'complete' | 'error',
     error: Error | null,
     items?: BaseItem[],
+    delta?: QueryDelta<any>,
   ) {
     const id = queryId(selector, options)
     const collectionQueries = this.queries.get(collectionName)
     if (!collectionQueries) throw new Error(`Collection ${collectionName} not initialized!`)
 
-    this.respond(id, { collectionName, selector, options, state, error, items }, null, 'queryUpdate')
+    // `qid` is what the adapter routes on. It is derived from the same selector/options pair the
+    // adapter registered the query with, so sending it saves every recipient from re-deriving it.
+    //
+    // `items` and `delta` are alternatives: the first answer to a query carries the whole result
+    // because the recipient holds nothing yet, every answer after it carries only what changed.
+    // Everything in this message is structurally cloned on its way out of the worker, which is why
+    // it matters that editing one field of one row no longer costs a copy of the entire result.
+    this.respond(
+      id,
+      { collectionName, qid: id, selector, options, state, error, items, delta },
+      null,
+      'queryUpdate',
+    )
   }
 
   private ensureStorageAdapter(name: string) {
@@ -325,33 +384,52 @@ export default class WorkerDataAdapterHost<
 
   private async checkQueryUpdates(
     collectionName: string,
-    items: T[],
+    changes: QueryChangeset<T>,
   ) {
     const queries = this.queries.get(collectionName)
     if (!queries) throw new Error(`Collection ${collectionName} not initialized!`)
-    const affectedQueries = [...queries.values()].filter(({ selector }) =>
-      items.some(item => match(item, selector))) ?? []
+    if (changes.upserts.length === 0 && changes.deletes.length === 0) return
 
-    if (affectedQueries.length === 0) return // no active queries affected
-    affectedQueries.forEach(({ selector, options }) => {
-      this.emitQueryUpdate(
-        collectionName,
-        selector,
-        options,
-        'active',
-        null,
-      )
+    // A query is affected when the write produces something it should hold, or takes away
+    // something it already holds. The second half is what the write itself cannot tell us: an
+    // item that no longer matches, or that was removed outright, is invisible to the matcher.
+    const affectedQueries = [...queries.values()].filter((query) => {
+      const ids = this.queryItemIds(query)
+      if (changes.deletes.some(id => ids.has(id))) return true
+      return changes.upserts.some(item => ids.has(item.id) || match(item, query.selector))
     })
+    if (affectedQueries.length === 0) return // no active queries affected
 
-    await Promise.all(affectedQueries.map(async ({ selector, options }) => {
+    await Promise.all(affectedQueries.map(async (query) => {
+      const { selector, options } = query
+      const previous = query.items
+      const incremental = previous == null
+        ? null
+        : incrementalQueryUpdate(previous, selector, options, changes)
+
+      if (incremental != null) {
+        // Answered from the previous result, without touching the store — so there is no window in
+        // which the query is stale, and nothing to announce with an `'active'` state either.
+        const delta = diffQueryResults(previous as T[], incremental)
+        if (isEmptyQueryDelta(delta)) return
+        this.setQueryItems(query, incremental)
+        this.emitQueryUpdate(
+          collectionName, selector, options, 'complete', null, undefined, delta,
+        )
+        return
+      }
+
+      this.emitQueryUpdate(collectionName, selector, options, 'active', null)
       const queryItems = await this.executeQuery(collectionName, selector, options)
+      if (previous == null) {
+        this.setQueryItems(query, queryItems)
+        this.emitQueryUpdate(collectionName, selector, options, 'complete', null, queryItems)
+        return
+      }
+      const delta = diffQueryResults(previous as T[], queryItems)
+      this.setQueryItems(query, queryItems)
       this.emitQueryUpdate(
-        collectionName,
-        selector,
-        options,
-        'complete',
-        null,
-        queryItems,
+        collectionName, selector, options, 'complete', null, undefined, delta,
       )
     }))
   }
@@ -378,8 +456,11 @@ export default class WorkerDataAdapterHost<
   }
 
   protected registerQuery: CollectionMethods<T, I>['registerQuery'] = async (collectionName, selector, options) => {
-    this.ensureQuery(collectionName, selector, options)
+    const query = this.ensureQuery(collectionName, selector, options)
     const queryItems = await this.executeQuery(collectionName, selector, options)
+    // Always the full result, even for a query that is already registered: whoever is registering
+    // holds nothing for it yet, and a delta would be relative to a result only the host has seen.
+    this.setQueryItems(query, queryItems)
     this.emitQueryUpdate(
       collectionName,
       selector,
@@ -413,7 +494,7 @@ export default class WorkerDataAdapterHost<
 
     const newItems = result.filter(item => !(item instanceof Error)) as T[]
     await storageAdapter.insert(newItems)
-    await this.checkQueryUpdates(collectionName, newItems)
+    await this.checkQueryUpdates(collectionName, { upserts: newItems, deletes: [] })
 
     return result
   }
@@ -450,7 +531,7 @@ export default class WorkerDataAdapterHost<
     const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
     if (modifiedItems.length > 0) {
       await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(collectionName, [...modifiedItems, ...previousItems])
+      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
     }
     return result
   }
@@ -495,7 +576,7 @@ export default class WorkerDataAdapterHost<
     const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
     if (modifiedItems.length > 0) {
       await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(collectionName, [...modifiedItems, ...previousItems])
+      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
     }
     return result
   }
@@ -538,7 +619,7 @@ export default class WorkerDataAdapterHost<
     const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
     if (modifiedItems.length > 0) {
       await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(collectionName, [...modifiedItems, ...previousItems])
+      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
     }
     return result
   }
@@ -559,7 +640,10 @@ export default class WorkerDataAdapterHost<
     const items = result.flat()
     if (items.length > 0) {
       await storageAdapter.remove(items)
-      await this.checkQueryUpdates(collectionName, items)
+      await this.checkQueryUpdates(collectionName, {
+        upserts: [],
+        deletes: items.map(item => item.id),
+      })
     }
     return result
   }
@@ -575,7 +659,10 @@ export default class WorkerDataAdapterHost<
     const items = result.flat()
     if (items.length > 0) {
       await storageAdapter.remove(items)
-      await this.checkQueryUpdates(collectionName, items)
+      await this.checkQueryUpdates(collectionName, {
+        upserts: [],
+        deletes: items.map(item => item.id),
+      })
     }
     return result
   }

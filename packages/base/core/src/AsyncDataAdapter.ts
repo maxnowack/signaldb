@@ -1,7 +1,7 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
 import type DataAdapter from './DataAdapter'
-import type { CollectionBackend, QueryOptions } from './DataAdapter'
+import type { CollectionBackend, QueryOptions, StateChangeCallback } from './DataAdapter'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import type Modifier from './types/Modifier'
@@ -15,7 +15,11 @@ import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
 import getMatchingKeys from './utils/getMatchingKeys'
 import sortItems from './utils/sortItems'
-import project from './utils/project'
+import projectItems from './utils/projectItems'
+import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
+import type { QueryChangeset } from './utils/incrementalQueryUpdate'
+import { callWithDelta, diffQueryResults, isEmptyQueryDelta } from './utils/queryDelta'
+import type { QueryDelta } from './utils/queryDelta'
 
 export interface AsyncDataAdapterOptions {
   /** Factory to obtain a StorageAdapter per collection name */
@@ -67,6 +71,31 @@ export class QueryError extends Error {
   }
 }
 
+/**
+ * Turns the item states a write produced into the upsert/delete split a query update needs.
+ *
+ * The two lists are not symmetric: an item that is still there after the write is described by its
+ * new state, while an item that is gone — removed, or given a new id — is described by the id it
+ * used to have and nothing else. Mixing the states from before and after a write into one list
+ * loses exactly that distinction.
+ * @template T - The type of the items.
+ * @param previousItems - The items as they were before the write.
+ * @param modifiedItems - The items as they are after it.
+ * @returns The changeset describing the write.
+ */
+function toChangeset<T extends BaseItem>(
+  previousItems: T[],
+  modifiedItems: T[],
+): QueryChangeset<T> {
+  const modifiedIds = new Set(modifiedItems.map(item => item.id))
+  return {
+    upserts: modifiedItems,
+    deletes: previousItems
+      .map(item => item.id)
+      .filter(id => !modifiedIds.has(id)),
+  }
+}
+
 const DEFAULT_RETRY_ATTEMPTS = 3
 const defaultRetryDelay = (attempt: number) => 100 * (4 ** (attempt - 1))
 const wait = (ms: number) => new Promise<void>((resolve) => {
@@ -81,7 +110,14 @@ type QueryRecord<T extends BaseItem<I>, I = any> = {
   state: QueryState,
   error: Error | null,
   items: T[],
-  listeners: Set<(state: QueryState) => void>,
+  // Whether the query has been answered at least once. Until it has, `items` is a placeholder
+  // rather than a result, and there is nothing to bring up to date incrementally.
+  answered?: boolean,
+  // Lazily built from `items`, dropped along with them. Deciding whether a write affects a query is
+  // a question about ids; answering it by scanning the result would make every write cost the size
+  // of every active query's result.
+  itemIds?: Set<any>,
+  listeners: Set<StateChangeCallback<any>>,
 }
 
 /**
@@ -183,7 +219,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     const onQueryStateChange = (
       selector: Selector<T>,
       options: QueryOptions<T> | undefined,
-      callback: (state: QueryState) => void,
+      callback: StateChangeCallback<T>,
     ) => {
       const qid = queryId(selector, options)
       const registry = this.queries.get(collection.name)
@@ -322,8 +358,14 @@ export default class AsyncDataAdapter implements DataAdapter {
       if (!this.queries.get(collectionName)?.has(qid)) return
       try {
         const items = await this.executeQuery<T, I>(collectionName, selector, options)
+        const rec = this.queries.get(collectionName)?.get(qid)
+        // A query answered for the first time has no previous result to be relative to; whoever is
+        // waiting on it holds nothing yet and needs the whole thing.
+        const delta = rec?.answered
+          ? diffQueryResults(rec.items as T[], items)
+          : undefined
         this.publishResult(collectionName, qid, items)
-        this.publishState(collectionName, qid, 'complete', null)
+        this.publishState(collectionName, qid, 'complete', null, delta)
         return
       } catch (error) {
         lastError = error
@@ -348,12 +390,14 @@ export default class AsyncDataAdapter implements DataAdapter {
    * @param qid - query id
    * @param state - new state
    * @param error - error if state is 'error', null otherwise
+   * @param delta - what changed about the result, when that is known
    */
   private publishState(
     collectionName: string,
     qid: string,
     state: QueryState,
     error: Error | null,
+    delta?: QueryDelta<any>,
   ) {
     const rec = this.queries.get(collectionName)?.get(qid)
     if (!rec) return
@@ -367,7 +411,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     const subscribers = [...rec.listeners]
     for (const callback of subscribers) {
       try {
-        callback(state)
+        callWithDelta(callback, state, delta)
       } catch (error_) {
         this.onError(error_ as Error)
       }
@@ -378,6 +422,13 @@ export default class AsyncDataAdapter implements DataAdapter {
     const rec = this.queries.get(collectionName)?.get(qid)
     if (!rec) return
     rec.items = items as any[]
+    rec.itemIds = undefined
+    rec.answered = true
+  }
+
+  private queryItemIds(rec: QueryRecord<any>): Set<any> {
+    if (!rec.itemIds) rec.itemIds = new Set(rec.items.map(item => item.id))
+    return rec.itemIds
   }
 
   private async getIndexInfo<T extends BaseItem<I>, I = any>(
@@ -485,42 +536,61 @@ export default class AsyncDataAdapter implements DataAdapter {
     const skipped = skip ? sorted.slice(skip) : sorted
     const limited = limit ? skipped.slice(0, limit) : skipped
 
-    const idExcluded = fields && fields.id === 0
-    return limited.map((item) => {
-      if (!fields) return item
-      return { ...(idExcluded ? {} : { id: item.id }), ...project(item, fields) } as T
-    })
+    return projectItems(limited, fields)
   }
 
   /**
-   * After mutations, recompute and push updates for affected active queries
+   * After mutations, bring every affected active query up to date.
+   *
+   * A query whose previous result is enough to answer the change is brought up to date from that
+   * result alone — no round trip to the storage, and no detour through `'active'`, because there is
+   * no window in which the query is stale. Only a query the change cannot be reasoned about
+   * locally — a window onto a larger set, or one that has never been answered — goes back to the
+   * store, and that one gets the same retry and reporting behaviour a freshly registered query
+   * gets: a refresh that fails silently leaves exactly the same dead cursor.
    * @param collectionName - name of the collection
-   * @param affectedItems - item states before and/or after the mutation
+   * @param changes - the items the write created, updated or removed
    */
   private async checkQueryUpdates<T extends BaseItem<I>, I = any>(
     collectionName: string,
-    affectedItems: T[],
+    changes: QueryChangeset<T>,
   ) {
     const registry = this.queries.get(collectionName)
     if (!registry) throw new Error(`Collection ${collectionName} not initialized!`)
     if (registry.size === 0) return
+    if (changes.upserts.length === 0 && changes.deletes.length === 0) return
 
-    // Find active queries matching an item state before or after the mutation
-    const affected = [...registry.values()].filter(({ selector }) =>
-      affectedItems.some(item => match(item, selector)),
-    )
+    // A query is affected when the write produces something it should hold, or takes away
+    // something it already holds. The second half is what the written items cannot tell us on
+    // their own: an item that no longer matches, or that is gone, is invisible to the matcher.
+    const affected = [...registry.values()].filter((rec) => {
+      const ids = this.queryItemIds(rec)
+      if (changes.deletes.some(id => ids.has(id))) return true
+      return changes.upserts.some(item => ids.has(item.id) || match(item, rec.selector))
+    })
     if (affected.length === 0) return
 
-    // Mark active and notify…
-    for (const { selector, options } of affected) {
+    const needsReExecution: QueryRecord<any>[] = []
+    for (const rec of affected) {
+      const { selector, options } = rec
+      const incremental = rec.answered
+        ? incrementalQueryUpdate(rec.items as T[], selector, options, changes)
+        : null
+      if (incremental == null) {
+        needsReExecution.push(rec)
+        continue
+      }
       const qid = queryId(selector, options)
-      this.publishState(collectionName, qid, 'active', null)
+      const delta = diffQueryResults(rec.items as T[], incremental)
+      if (isEmptyQueryDelta(delta)) continue
+      this.publishResult(collectionName, qid, incremental)
+      this.publishState(collectionName, qid, 'complete', null, delta)
     }
 
-    // …then recompute and complete, with the same retry/report behaviour a
-    // freshly registered query gets — a mutation-triggered refresh that fails
-    // silently leaves exactly the same dead cursor.
-    await Promise.all(affected.map(({ selector, options }) =>
+    for (const { selector, options } of needsReExecution) {
+      this.publishState(collectionName, queryId(selector, options), 'active', null)
+    }
+    await Promise.all(needsReExecution.map(({ selector, options }) =>
       this.runQuery<T, I>(collectionName, selector, options)))
   }
 
@@ -535,7 +605,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (existingItems.length > 0) throw new Error(`Item with id ${String(newItem.id)} already exists`)
 
     await storage.insert([newItem])
-    await this.checkQueryUpdates(collectionName, [newItem])
+    await this.checkQueryUpdates(collectionName, { upserts: [newItem], deletes: [] })
     return newItem
   }
 
@@ -559,7 +629,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     }
 
     await storage.replace([modified])
-    await this.checkQueryUpdates(collectionName, [item, modified])
+    await this.checkQueryUpdates(collectionName, toChangeset([item], [modified]))
     return [modified]
   }
 
@@ -584,7 +654,7 @@ export default class AsyncDataAdapter implements DataAdapter {
       return modified
     }))
     await storage.replace(changed)
-    await this.checkQueryUpdates(collectionName, [...items, ...changed])
+    await this.checkQueryUpdates(collectionName, toChangeset(items, changed))
     return changed
   }
 
@@ -607,7 +677,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     }
 
     await storage.replace([modified])
-    await this.checkQueryUpdates(collectionName, [item, modified])
+    await this.checkQueryUpdates(collectionName, toChangeset([item], [modified]))
     return [modified]
   }
 
@@ -623,7 +693,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (item == null) return []
 
     await storage.remove([item])
-    await this.checkQueryUpdates(collectionName, [item])
+    await this.checkQueryUpdates(collectionName, { upserts: [], deletes: [item.id] })
     return [item]
   }
 
@@ -638,7 +708,10 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (items.length === 0) return []
 
     await storage.remove(items)
-    await this.checkQueryUpdates(collectionName, items)
+    await this.checkQueryUpdates(collectionName, {
+      upserts: [],
+      deletes: items.map(item => item.id),
+    })
     return items
   }
 }
