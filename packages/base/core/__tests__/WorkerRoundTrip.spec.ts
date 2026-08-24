@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import Collection from '../src/Collection'
+import { createReactivityAdapter } from '../src'
 import type Cursor from '../src/Collection/Cursor'
 import WorkerDataAdapter from '../src/WorkerDataAdapter'
 import WorkerDataAdapterHost from '../src/WorkerDataAdapterHost'
@@ -333,5 +334,50 @@ describe('worker round trip', () => {
       expect(updatesSent).toBeLessThanOrEqual(1)
       cursor.cleanup()
     })
+  })
+})
+
+describe('a query the host has to re-execute', () => {
+  // A window of one — what `findOne` registers — cannot be answered from its previous result once
+  // it is full, so the host announces `'active'`, re-executes, and answers with a delta. That
+  // delta is empty whenever the write left the query's result exactly as it was, and the adapter
+  // used to drop the whole message on that account: the query stayed `'active'` for good, with no
+  // further message coming to correct it. Everything reading `Cursor#isLoading()` afterwards was
+  // told a first result was still pending, and stayed there.
+  const inertReactivity = createReactivityAdapter({
+    create: () => ({ depend: () => {}, notify: () => {} }),
+    isInScope: () => true,
+  })
+
+  it('settles again after a write that leaves its result unchanged', async () => {
+    const pair = createMessagePair()
+    const storage = memoryStorageAdapter<TestItem>([
+      { id: 'item-0', status: 'open', rank: 0, name: 'name-0' },
+      { id: 'item-1', status: 'open', rank: 1, name: 'name-1' },
+    ])
+    new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'settles', storage: () => storage })
+    const adapter = new WorkerDataAdapter(pair.clientEndpoint, { id: 'settles' })
+    const collection = new Collection<TestItem>('items', adapter, { reactivity: inertReactivity })
+    await Promise.resolve(collection.isReady())
+
+    const cursor = collection.find({ id: 'item-1' }, { limit: 1 })
+    const stop = cursor.observeChanges({ added: () => {}, changed: () => {}, removed: () => {} })
+    await vi.waitFor(() => {
+      expect(cursor.fetch()).toHaveLength(1)
+    }, { timeout: 2000, interval: 5 })
+    expect(cursor.isLoading()).toBe(false)
+
+    const before = pair.traffic.messagesToClient
+    await collection.updateOne({ id: 'item-1' }, { $set: { name: 'name-1' } })
+    // The write's own response, the `'active'` announcement, and the answer that follows it.
+    await vi.waitFor(() => {
+      expect(pair.traffic.messagesToClient).toBeGreaterThanOrEqual(before + 3)
+    }, { timeout: 2000, interval: 5 })
+
+    // A fresh cursor, the way a screen mounting after the write reads the same query.
+    expect(collection.find({ id: 'item-1' }, { limit: 1 }).isLoading()).toBe(false)
+
+    stop()
+    await collection.dispose().catch(() => {})
   })
 })
