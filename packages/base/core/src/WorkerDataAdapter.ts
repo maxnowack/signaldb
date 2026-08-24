@@ -215,9 +215,31 @@ export default class WorkerDataAdapter implements DataAdapter {
       // holding something else — a message lost, a query re-registered underneath, a host and an
       // adapter that disagree — applying it anyway would leave a result that silently drifts from
       // the store. Refusing it keeps the last coherent result instead, and the next full answer
-      // puts things right.
-      if (!canApplyQueryDelta(query.items, delta)) return
-      if (isEmptyQueryDelta(delta)) return
+      // puts things right. A delta describing no change at all is refused for the simpler reason
+      // that there is nothing to apply.
+      //
+      // The *state* the message carries is not part of that judgement, and used to be dropped
+      // along with the delta. A host that cannot answer a query from its previous result announces
+      // `'active'`, re-executes, and answers with a delta — which is empty whenever the write left
+      // this query's result as it was. The query then stayed `'active'` here for good, because no
+      // further message was coming to correct it: `Cursor#isLoading()` reported a first result
+      // still pending forever, and every screen gated on it showed its loading state forever.
+      const canApply = canApplyQueryDelta(query.items, delta)
+      if (!canApply || isEmptyQueryDelta(delta)) {
+        if (state === query.state) return
+        this.updateQuery(collectionName, {
+          selector: query.selector,
+          options: query.options,
+        }, { state, error })
+        const settled = collectionQueries.get(id)
+        if (!settled) return
+        // An empty delta is passed on as it came: it settles the query without asking anyone to
+        // recompute a result that did not change. One that could not be applied is not, so the
+        // consumer re-reads and the disagreement ends there.
+        settled.stateChangeCallbacks
+          .forEach(callback => callWithDelta(callback, state, canApply ? delta : undefined))
+        return
+      }
 
       const pendingBefore = this.flattenPendingWrites(collectionName)
       const servedBefore = pendingBefore == null
