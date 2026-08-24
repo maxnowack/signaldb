@@ -1386,3 +1386,54 @@ describe('WorkerDataAdapter', () => {
     })
   })
 })
+
+describe('WorkerDataAdapter readiness', () => {
+  let mockWorker: MockWorker
+  let adapter: WorkerDataAdapter
+  let collection: Collection<TestItem>
+
+  beforeEach(() => {
+    mockWorker = new MockWorker()
+    adapter = new WorkerDataAdapter(mockWorker, { id: 'test-adapter' })
+    collection = { name: 'test' } as unknown as Collection<TestItem>
+    mockWorker.emitReady('test-adapter')
+  })
+
+  // Readiness happens once and never goes back, so asking twice can only get
+  // the same answer — but every question used to cost a worker round trip.
+  // Callers ask a lot: a repository helper awaiting `ready()` before touching
+  // each record turns a thousand-record sync into a thousand extra messages.
+  // One app measured 2,273 `isReady` messages in a single session, more than
+  // any other message type it produced.
+  it('asks the worker whether a collection is ready exactly once', async () => {
+    const backend = adapter.createCollectionBackend(collection, [])
+
+    await backend.isReady()
+    await backend.isReady()
+    await backend.isReady()
+    await waitForBatchedMessage()
+
+    // The one that registration itself started, and no more — the count must
+    // not grow with how often callers ask.
+    expect(mockWorker.sentMessages.filter(message => message.method === 'isReady')).toHaveLength(1)
+  })
+
+  it('still waits for the worker before reporting a collection ready', async () => {
+    const worker = new MockWorker()
+    worker.autoRespondTo = ['registerCollection']
+    const pendingAdapter = new WorkerDataAdapter(worker, { id: 'pending-adapter' })
+    worker.emitReady('pending-adapter')
+    const backend = pendingAdapter.createCollectionBackend(collection, [])
+
+    let ready = false
+    void backend.isReady().then(() => {
+      ready = true
+    })
+    await waitForBatchedMessage()
+    expect(ready).toBe(false)
+
+    worker.respondTo('isReady', undefined)
+    await waitForBatchedMessage()
+    expect(ready).toBe(true)
+  })
+})
