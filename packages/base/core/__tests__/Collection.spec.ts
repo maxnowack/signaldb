@@ -650,6 +650,122 @@ describe('Collection', () => {
       expect(innerRan).toBe(true)
     })
 
+    it('scopes a batch to the collections it was given', async () => {
+      // The whole point of the scoped overload: an unrelated collection must
+      // stay live. A global batch defers every collection's requeries, which
+      // is safe for a few writes belonging to one event and not safe around a
+      // loop whose length comes from the network — while it is open, nothing
+      // anywhere updates.
+      const batched = new Collection<{ id: string, name: string }>()
+      const untouched = new Collection<{ id: string, name: string }>()
+
+      await Collection.batch([batched], async () => {
+        expect(batched.isBatchOperationInProgress()).toBe(true)
+        expect(untouched.isBatchOperationInProgress()).toBe(false)
+        await batched.insert({ id: '1', name: 'John' })
+      })
+
+      expect(batched.isBatchOperationInProgress()).toBe(false)
+      expect(await batched.findOne({ id: '1' }, { async: true })).toEqual({ id: '1', name: 'John' })
+    })
+
+    it('releases a scoped batch when the callback throws', async () => {
+      const batched = new Collection<{ id: string, name: string }>()
+
+      await expect(Collection.batch([batched], async () => {
+        throw new Error('nope')
+      })).rejects.toThrow('nope')
+
+      expect(batched.isBatchOperationInProgress()).toBe(false)
+    })
+
+    it('still batches every collection when none are named', async () => {
+      const one = new Collection<{ id: string, name: string }>()
+      const two = new Collection<{ id: string, name: string }>()
+
+      await Collection.batch(async () => {
+        expect(one.isBatchOperationInProgress()).toBe(true)
+        expect(two.isBatchOperationInProgress()).toBe(true)
+      })
+
+      expect(one.isBatchOperationInProgress()).toBe(false)
+      expect(two.isBatchOperationInProgress()).toBe(false)
+    })
+
+    it('reports a live query that holds more rows than the threshold', async () => {
+      const collectionUnderTest = new Collection<{ id: string, name: string }>()
+      await collectionUnderTest.insertMany([
+        { id: '1', name: 'a' },
+        { id: '2', name: 'b' },
+        { id: '3', name: 'c' },
+      ])
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      Collection.reportLargeQueries(2)
+
+      try {
+        const cursor = collectionUnderTest.find({})
+        cursor.observeChanges({ added: () => {} })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0)
+        })
+
+        expect(warn).toHaveBeenCalledTimes(1)
+        const message = warn.mock.calls[0][0] as string
+        expect(message).toContain('holds 3 rows')
+        expect(message).toContain('selector {}')
+      } finally {
+        Collection.reportLargeQueries(null)
+        warn.mockRestore()
+      }
+    })
+
+    it('reports each large query once, not on every write', async () => {
+      const collectionUnderTest = new Collection<{ id: string, name: string }>()
+      await collectionUnderTest.insertMany([{ id: '1', name: 'a' }, { id: '2', name: 'b' }])
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      Collection.reportLargeQueries(1)
+
+      try {
+        const cursor = collectionUnderTest.find({})
+        cursor.observeChanges({ added: () => {} })
+        await collectionUnderTest.insert({ id: '3', name: 'c' })
+        await collectionUnderTest.insert({ id: '4', name: 'd' })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0)
+        })
+
+        expect(warn).toHaveBeenCalledTimes(1)
+      } finally {
+        Collection.reportLargeQueries(null)
+        warn.mockRestore()
+      }
+    })
+
+    it('stays silent for a query below the threshold, and when switched off', async () => {
+      const collectionUnderTest = new Collection<{ id: string, name: string }>()
+      await collectionUnderTest.insertMany([{ id: '1', name: 'a' }])
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      try {
+        Collection.reportLargeQueries(10)
+        collectionUnderTest.find({}).observeChanges({ added: () => {} })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0)
+        })
+        expect(warn).not.toHaveBeenCalled()
+
+        Collection.reportLargeQueries(null)
+        collectionUnderTest.find({ name: 'a' }).observeChanges({ added: () => {} })
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0)
+        })
+        expect(warn).not.toHaveBeenCalled()
+      } finally {
+        Collection.reportLargeQueries(null)
+        warn.mockRestore()
+      }
+    })
+
     it('isLoading and isReady accessors execute', () => {
       expect(collection.isLoading()).toBe(false)
       // Just call isReady for coverage without strict assertion on value

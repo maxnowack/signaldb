@@ -130,8 +130,32 @@ export default class Collection<
   private static onCreationCallbacks: ((collection: Collection<any>) => void)[] = []
   private static onDisposeCallbacks: ((collection: Collection<any>) => void)[] = []
 
+  // How many rows a live query may hold before it is reported as expensive.
+  // `null` disables the check, which is the default: it costs a stack capture
+  // per registered query, which is worth paying while developing and not in
+  // production. `enableDebugMode()` turns it on.
+  private static largeQueryWarningThreshold: number | null = null
+  private static reportedLargeQueries = new Set<string>()
+
   static getCollections() {
     return Collection.collections
+  }
+
+  /**
+   * Reports live queries whose result is larger than `rows`, once each, with
+   * the stack that registered them.
+   *
+   * A reactive query is re-evaluated whenever the data under it changes, and
+   * one registered from a long-lived place — a navigation bar, a provider
+   * near the root — keeps that cost for the lifetime of the application. There
+   * is otherwise nothing to see: the query works, and its price is only
+   * visible as an application that has grown slow. Finding one such query in a
+   * real app took a purpose-built profiler and the better part of a day.
+   * @param rows - Result size to report above, or `null` to switch the check off.
+   */
+  static reportLargeQueries(rows: number | null) {
+    Collection.largeQueryWarningThreshold = rows
+    if (rows == null) Collection.reportedLargeQueries.clear()
   }
 
   static onCreation(callback: (collection: Collection<any>) => void) {
@@ -147,6 +171,11 @@ export default class Collection<
    */
   static enableDebugMode = () => {
     Collection.debugMode = true
+    // A query large enough to matter is exactly the kind of thing debug mode
+    // exists to surface, and it is invisible otherwise. Call
+    // `reportLargeQueries()` afterwards to pick a different threshold or turn
+    // it off again.
+    if (Collection.largeQueryWarningThreshold == null) Collection.reportLargeQueries(500)
     Collection.collections.forEach((collection) => {
       collection.setDebugMode(true)
     })
@@ -169,15 +198,52 @@ export default class Collection<
    * This improves performance by avoiding repetitive index recalculations and
    * provides atomicity for the batch of operations.
    * Supports both synchronous and asynchronous callbacks.
+   *
+   * **Without a `collections` argument this affects every collection in the
+   * process, not only the ones being written to.** Each of them defers every
+   * live query's requery until the batch ends. That is what makes a batch
+   * cheap for a handful of writes belonging to one event, and what makes it
+   * dangerous around a loop whose length is data-dependent: while it is open
+   * nothing anywhere updates, and everything deferred is flushed at once when
+   * it closes. One application wrapped a sync of roughly 1,100 records this
+   * way and its screens stopped resolving their data for the whole drain.
+   *
+   * Pass the collections being written to whenever that scope is known — it is
+   * both cheaper and safer. `Collection.batch([logs, versions], () => …)`
+   * defers those two and leaves everything else live.
+   * @param collections - The collections to batch. Omit to batch all of them.
    * @param callback - The batch operation to execute.
    * @returns A promise if the callback returns a promise, otherwise `void`.
    */
   static batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
   static batch<ReturnType>(callback: () => ReturnType): void
-  static batch<ReturnType>(callback: () => ReturnType | Promise<ReturnType>): void | Promise<void> {
-    Collection.batchOperationInProgress = true
+  static batch<ReturnType>(
+    collections: Collection<any, any, any, any>[],
+    callback: () => Promise<ReturnType>,
+  ): Promise<void>
 
-    const execute = () => Collection.collections.reduce<
+  static batch<ReturnType>(
+    collections: Collection<any, any, any, any>[],
+    callback: () => ReturnType,
+  ): void
+
+  static batch<ReturnType>(
+    collectionsOrCallback: Collection<any, any, any, any>[]
+      | (() => ReturnType | Promise<ReturnType>),
+    maybeCallback?: () => ReturnType | Promise<ReturnType>,
+  ): void | Promise<void> {
+    const scoped = Array.isArray(collectionsOrCallback)
+    const callback = (scoped ? maybeCallback : collectionsOrCallback) as
+      () => ReturnType | Promise<ReturnType>
+    if (typeof callback !== 'function') throw new TypeError('Collection.batch requires a callback')
+    const collections = scoped ? collectionsOrCallback : Collection.collections
+
+    // Only a batch that really covers every collection may claim the global
+    // flag; a scoped one must not make unrelated collections report themselves
+    // as batching through `isBatchOperationInProgress()`.
+    if (!scoped) Collection.batchOperationInProgress = true
+
+    const execute = () => collections.reduce<
       () => ReturnType | Promise<ReturnType>
     >(
       (memo, collection) => () => {
@@ -187,7 +253,7 @@ export default class Collection<
     )()
 
     const afterBatch = () => {
-      Collection.batchOperationInProgress = false
+      if (!scoped) Collection.batchOperationInProgress = false
     }
 
     let maybePromise: ReturnType | Promise<ReturnType>
@@ -303,6 +369,40 @@ export default class Collection<
       .catch(() => { /* initialization failed; keep not-ready state */ })
 
     Collection.onCreationCallbacks.forEach(callback => callback(this))
+  }
+
+  /**
+   * Reports a live query the first time its result is found to be larger than
+   * the configured threshold. Once per query, because it re-runs on every
+   * write and a warning per write would be its own performance problem.
+   * @param selector - The query's selector.
+   * @param options - The query's options.
+   * @param registrationStack - Where the query was registered, if captured.
+   */
+  private reportIfLargeQuery(
+    selector: Selector<T>,
+    options: QueryOptions<T> | undefined,
+    registrationStack: string | undefined,
+  ) {
+    const threshold = Collection.largeQueryWarningThreshold
+    if (threshold == null) return
+    const id = `${this.name}:${queryId(selector, options)}`
+    if (Collection.reportedLargeQueries.has(id)) return
+
+    const rows = this.backend.getQueryResult(selector, options || {}).length
+    if (rows <= threshold) return
+    Collection.reportedLargeQueries.add(id)
+
+    // The selector's *keys*, never its values: the shape is what identifies the
+    // problem — an empty one means the query holds the whole collection — and
+    // the values would put user data into a log.
+    const keys = selector && typeof selector === 'object' ? Object.keys(selector) : []
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[SignalDB] Live query on "${this.name}" holds ${rows} rows `
+      + `with selector {${keys.join(', ')}}. It is re-evaluated on every write to this `
+      + `collection, for as long as it stays registered. ${registrationStack ?? ''}`,
+    )
   }
 
   public isBatchOperationInProgress() {
@@ -596,6 +696,17 @@ export default class Collection<
           if (didRegister) this.backend.registerQuery(selector, options || {})
           this.queryListeners({ selector, options }, listeners + 1)
 
+          // Captured at registration, not at completion: by the time the result
+          // arrives the stack is the adapter's, and the only useful thing to
+          // report is where the query was asked for.
+          const registrationStack = didRegister && Collection.largeQueryWarningThreshold != null
+            ? new Error('query registered here').stack
+            : undefined
+          // A synchronous adapter already holds the result here and never
+          // reports `'complete'`, so the check has to happen at both points.
+          // Reporting is once per query, which makes the overlap harmless.
+          if (didRegister) this.reportIfLargeQuery(selector, options, registrationStack)
+
           const queryStateChangeCleanup = this.backend.onQueryStateChange(
             selector,
             options || {},
@@ -613,6 +724,7 @@ export default class Collection<
                 return
               }
               if (state !== 'complete') return
+              this.reportIfLargeQuery(selector, options, registrationStack)
               // Inside a batch the update is deferred to the end of it, by which point this delta
               // is one of several and no longer describes the whole change — so the batch always
               // ends in a comparison.
