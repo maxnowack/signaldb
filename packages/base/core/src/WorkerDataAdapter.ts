@@ -772,8 +772,16 @@ export default class WorkerDataAdapter implements DataAdapter {
         this.isDisposed = true
         this.worker.terminate?.()
       },
+      // Awaits the promise `createCollectionBackend` already started rather
+      // than asking the worker again. Readiness happens once and never goes
+      // back, so a repeated question can only get the same answer — but it
+      // still cost a full round trip each time, and callers ask often: a
+      // repository helper that awaits `collection.ready()` before touching a
+      // record turns a thousand-record sync into a thousand extra messages.
+      // One app measured 2,273 `isReady` messages in a single session, more
+      // than any other message type it produced.
       isReady: async () => {
-        await this.exec('isReady', collection.name)
+        await this.collectionReady.get(collection.name)
       },
     }
   }
