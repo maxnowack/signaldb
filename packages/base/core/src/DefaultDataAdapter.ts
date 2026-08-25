@@ -20,6 +20,8 @@ import { callWithDelta, diffQueryResults, isEmptyQueryDelta } from './utils/quer
 import type { QueryDelta } from './utils/queryDelta'
 import queryId from './utils/queryId'
 import serializeValue from './utils/serializeValue'
+import idIndexQuery from './utils/idIndexQuery'
+import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
 
 /**
@@ -120,14 +122,15 @@ export default class DefaultDataAdapter implements DataAdapter {
     collection: Collection<T, I, E, U>,
     selector?: Selector<T>,
   ) {
-    if (selector != null
-      && Object.keys(selector).length === 1
-      && 'id' in selector
-      && typeof selector.id !== 'object') {
-      return {
-        matched: true,
-        ids: [serializeValue(selector.id)],
-        optimizedSelector: {},
+    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
+      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
+      if (idResult.matched) {
+        return {
+          // This adapter keys its in-memory map by `serializeValue(id)`.
+          matched: true,
+          ids: idResult.ids.map(id => serializeValue(id)),
+          optimizedSelector: {},
+        }
       }
     }
 
