@@ -9,8 +9,8 @@ import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
-import getMatchingKeys from './utils/getMatchingKeys'
 import idIndexQuery from './utils/idIndexQuery'
+import storageIndexQuery from './utils/storageIndexQuery'
 import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
 import projectItems from './utils/projectItems'
@@ -225,62 +225,10 @@ export default class WorkerDataAdapterHost<
     const indices = this.collectionIndices.get(collectionName) ?? []
     // `id` first, and always present: it needs no declared index, because
     // `readIds` is exactly the lookup it describes (utils/idIndexQuery.ts).
-    return getIndexInfo(indices.map(field => async (flatSelector: FlatSelector<T>) => {
-      if (!Object.hasOwnProperty.call(flatSelector, field)) {
-        // If the field is not present in the selector, we can't optimize
-        return { matched: false }
-      }
-
-      const index = await storageAdapter.readIndex(field) as Map<string | null, Set<I>>
-
-      const fieldSelector = (flatSelector as Record<string, any>)[field]
-      const filteresForNull = fieldSelector == null || fieldSelector.$exists === false
-      const keys = filteresForNull
-        ? { include: null, exclude: [...index.keys()].filter(key => key != null) }
-        : getMatchingKeys<T, I>(field, flatSelector)
-      if (keys.include == null && keys.exclude == null) return { matched: false }
-
-      // Accumulate included positions
-      let includedIds: I[] = []
-      if (keys.include == null) {
-        for (const set of index.values()) {
-          for (const pos of set) {
-            includedIds.push(pos)
-          }
-        }
-      } else {
-        for (const key of keys.include) {
-          const idSet = index.get(key)
-          if (idSet) {
-            for (const id of idSet) {
-              includedIds.push(id)
-            }
-          }
-        }
-      }
-
-      // If exclusion is specified, build a single set of all positions to exclude.
-      if (keys.exclude != null) {
-        const excludeIds = new Set<I>()
-        for (const key of keys.exclude) {
-          const idSet = index.get(key)
-          if (idSet) {
-            for (const id of idSet) {
-              excludeIds.add(id)
-            }
-          }
-        }
-        // Filter out any position that exists in the exclude set.
-        includedIds = includedIds.filter(pos => !excludeIds.has(pos))
-      }
-
-      return {
-        matched: true,
-        ids: includedIds,
-        fields: [field],
-        keepSelector: filteresForNull,
-      }
-    }), selector)
+    return getIndexInfo(
+      indices.map(field => storageIndexQuery<T, I>(storageAdapter, field)),
+      selector,
+    )
   }
 
   private async queryItems(
