@@ -173,4 +173,29 @@ describe('IndexedDB storage adapter', () => {
       await expect(adapter.readIds([1])).resolves.toEqual([])
     })
   })
+
+  it('keys an index by the serialized value, like every other storage adapter', async () => {
+    // SignalDB looks an index up with `serializeValue(value)` — that is what
+    // `createIndex` stores and what `getMatchingKeys` produces. IndexedDB hands
+    // back its own keys, which are the raw values, so anything that was not
+    // already a string missed entirely: `{ rank: 3 }` found nothing and
+    // `{ rank: { $ne: 3 } }` found everything.
+    //
+    // Booleans are left out on purpose — IndexedDB has no boolean key type, so
+    // a boolean field cannot be indexed there at all, serialization or not.
+    const stamp = new Date('2026-08-26T00:00:00.000Z')
+    const { adapter } = await withAdapter({ indices: ['rank', 'stamp'] })
+    await adapter.insert([
+      { id: 1, rank: 3, stamp },
+      { id: 2, rank: 7, stamp: new Date('2020-01-01T00:00:00.000Z') },
+    ] as unknown as { id: number }[])
+
+    const rank = await adapter.readIndex('rank')
+    expect([...rank.keys()]).toEqual(['3', '7'])
+    expect(rank.get('3')?.has(1)).toBe(true)
+
+    const stamps = await adapter.readIndex('stamp')
+    expect(stamps.get('2026-08-26T00:00:00.000Z')?.has(1)).toBe(true)
+    await adapter.teardown()
+  })
 })
