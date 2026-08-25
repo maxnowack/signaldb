@@ -208,7 +208,7 @@ describe('memoryStorageAdapter', () => {
     let nameIndex = await adapter.readIndex('name')
     let valueIndex = await adapter.readIndex('value')
     expect(nameIndex.get('alice')).toEqual(new Set(['1']))
-    expect(valueIndex.get(10)).toEqual(new Set(['1']))
+    expect(valueIndex.get('10')).toEqual(new Set(['1']))
 
     // Replace item
     await adapter.replace([{ id: '1', name: 'charlie', value: 30 }])
@@ -218,8 +218,8 @@ describe('memoryStorageAdapter', () => {
     valueIndex = await adapter.readIndex('value')
     expect(nameIndex.get('alice')).toBeUndefined()
     expect(nameIndex.get('charlie')).toEqual(new Set(['1']))
-    expect(valueIndex.get(10)).toBeUndefined()
-    expect(valueIndex.get(30)).toEqual(new Set(['1']))
+    expect(valueIndex.get('10')).toBeUndefined()
+    expect(valueIndex.get('30')).toEqual(new Set(['1']))
 
     // Read specific IDs
     const specificItems = await adapter.readIds(['1'])
@@ -236,7 +236,8 @@ describe('memoryStorageAdapter', () => {
     await adapter.createIndex('optional')
 
     const index = await adapter.readIndex('optional')
-    expect(index.get(undefined)).toEqual(new Set(['1']))
+    // `serializeValue` maps both `undefined` and `null` onto the `null` key.
+    expect(index.get(null)).toEqual(new Set(['1']))
     expect(index.get('defined')).toEqual(new Set(['2']))
   })
 
