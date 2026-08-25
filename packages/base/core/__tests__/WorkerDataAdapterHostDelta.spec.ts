@@ -219,10 +219,19 @@ describe('WorkerDataAdapterHost query deltas', () => {
       })
     })
 
-    it('reads the collection back, because the window may have shifted', async () => {
+    it('inserts without reading the collection back', async () => {
+      // This asserted the opposite until the duplicate check inside `insert`
+      // stopped asking for the whole collection. It never observed the window
+      // being re-read: the only `readAll` here came from that check, and the
+      // delta below is produced without touching the store at all.
       const readAll = vi.spyOn(storage, 'readAll')
+      const readIds = vi.spyOn(storage, 'readIds')
+
       await send('insert', ['items', [[{ id: 'd', status: 'open', rank: 1, name: 'Dan' }]]])
-      expect(readAll).toHaveBeenCalled()
+
+      expect(readAll).not.toHaveBeenCalled()
+      expect(readIds).toHaveBeenCalledWith(['d'])
+      expect(lastDelta(qid)?.resultCount).toBe(2)
     })
   })
 
