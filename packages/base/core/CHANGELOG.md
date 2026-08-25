@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `WorkerDataAdapterHost` no longer reads a whole collection out of storage to answer a query that selects several ids at once. `{ id: { $in: [...] } }` is now resolved through the storage adapter's `readIds`, like a single scalar `id` always was, so the query costs the ids it asks for instead of the size of the collection. **This applies to every `insert`**, which checks for existing ids exactly that way — inserting one item into a collection of 2,000 used to read all 2,000 back first. An application reported both: a ledger lookup and each of its writes taking seconds as its history grew.
 * Fixed a bug in `WorkerDataAdapter` where a query going back to the `'active'` state discarded the result it was holding, leaving readers of that query with nothing to show until the recomputation landed.
 * Fixed a bug in `WorkerDataAdapter` where a query using `fields` returned an empty result for as long as any write was in flight. Its stored items are projected, and they were being matched against the selector again — which no field the projection had dropped could satisfy.
 * Fixed `WorkerDataAdapter` letting a failed `registerCollection`, `registerQuery` or `unregisterQuery` escape as an uncaught promise rejection — which a disposed collection produced every time a cursor was cleaned up after it. A query the worker cannot register is now published as failed, so it reaches the collection's `query.error` event instead of waiting forever on an empty result.
