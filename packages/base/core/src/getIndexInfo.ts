@@ -165,11 +165,22 @@ export default function getIndexInfo<
       let hasNonIndexField = false
       const matchedBefore = matched
       const idsBefore = ids
+      // The branches of an $or union with each other, but the $or as a whole
+      // *intersects* with what the flat fields and $and already narrowed down
+      // to. Collecting the branches separately is what keeps those two apart —
+      // folding them into `ids` turns `{ a: 1, $or: [...] }` into a union and
+      // returns items matching neither half of the selector, with an empty
+      // optimized selector that leaves nothing to filter them out again.
+      let orIds: I[] = []
+      let orMatched = false
       const process$or = ($orNew: Selector<T>[] | undefined) => {
         if (hasNonIndexField || ($orNew && $orNew.length > 0)) {
           newSelector.$or = $or
           matched = matchedBefore
           ids = idsBefore
+        } else if (orMatched) {
+          ids = matchedBefore ? intersection(idsBefore, orIds) : orIds
+          matched = true
         }
 
         return {
@@ -182,8 +193,8 @@ export default function getIndexInfo<
       const $orNewOrPromise = Array.isArray($or)
         ? optimizeLogicGate(queryFunctions, $or, (match, selIds) => {
           if (match) {
-            ids = [...new Set([...ids, ...selIds])]
-            matched = true
+            orIds = [...new Set([...orIds, ...selIds])]
+            orMatched = true
           } else {
             hasNonIndexField = true
           }

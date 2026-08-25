@@ -333,6 +333,25 @@ describe('Queries', () => {
     expect(await collection.removeOne({ id: 100 })).toBe(0)
   })
 
+  it('should not widen an indexed field combined with an $or', async () => {
+    // The indices are what make this go wrong: with both fields indexed, the
+    // $or branches were unioned with the ids the flat field had already
+    // narrowed down to, and the optimized selector came back empty — so
+    // nothing filtered the extra items out again and the query answered with
+    // documents matching neither half of its selector.
+    const collection = new Collection<{ id: number, status: string, tag: string }>({
+      indices: ['status', 'tag'],
+    })
+    await collection.insert({ id: 1, status: 'open', tag: 'a' })
+    await collection.insert({ id: 2, status: 'open', tag: 'z' })
+    await collection.insert({ id: 3, status: 'closed', tag: 'a' })
+    await collection.insert({ id: 4, status: 'closed', tag: 'b' })
+
+    const found = collection.find({ status: 'open', $or: [{ tag: 'a' }, { tag: 'b' }] }).fetch()
+
+    expect(found.map(item => item.id)).toEqual([1])
+  })
+
   it('should handle queries for empty values correctly', async () => {
     const collection = new Collection<TestDocument>({ indices: ['name'] })
     await collection.insert({ id: 1, name: 'John' })
