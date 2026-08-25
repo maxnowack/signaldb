@@ -4,7 +4,6 @@ import type DataAdapter from './DataAdapter'
 import type { CollectionBackend, QueryOptions } from './DataAdapter'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
-import type { FlatSelector } from './types/Selector'
 import type Modifier from './types/Modifier'
 import deepClone from './utils/deepClone'
 import match from './utils/match'
@@ -12,7 +11,7 @@ import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
-import getMatchingKeys from './utils/getMatchingKeys'
+import storageIndexQuery from './utils/storageIndexQuery'
 import sortItems from './utils/sortItems'
 import project from './utils/project'
 
@@ -519,47 +518,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
     const indices = this.collectionIndices.get(collectionName) ?? []
     return getIndexInfo(
-      indices.map(field => async (flatSelector: FlatSelector<T>) => {
-        if (!Object.hasOwnProperty.call(flatSelector, field)) return { matched: false as const }
-
-        const index = await storage.readIndex(field) as Map<string | null, Set<I>>
-        const fieldSelector = (flatSelector as Record<string, any>)[field]
-        const filtersForNull = fieldSelector == null || fieldSelector.$exists === false
-
-        const keys = filtersForNull
-          ? { include: null as any, exclude: [...index.keys()].filter(key => key != null) }
-          : getMatchingKeys<T, I>(field, flatSelector)
-
-        if (keys.include == null && keys.exclude == null) return { matched: false as const }
-
-        // Build included ids
-        let includedIds: I[] = []
-        if ((keys as any).include == null) {
-          for (const set of index.values()) for (const pos of set) includedIds.push(pos)
-        } else {
-          for (const key of (keys as any).include as (string | null)[]) {
-            const idSet = index.get(key)
-            if (idSet) for (const id of idSet) includedIds.push(id)
-          }
-        }
-
-        // Apply exclusions
-        if ((keys as any).exclude != null) {
-          const excludeIds = new Set<I>()
-          for (const key of (keys as any).exclude as (string | null)[]) {
-            const idSet = index.get(key)
-            if (idSet) for (const id of idSet) excludeIds.add(id)
-          }
-          includedIds = includedIds.filter(pos => !excludeIds.has(pos))
-        }
-
-        return {
-          matched: true as const,
-          ids: includedIds,
-          fields: [field],
-          keepSelector: filtersForNull,
-        }
-      }),
+      indices.map(field => storageIndexQuery<T, I>(storage, field)),
       selector,
     )
   }

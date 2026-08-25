@@ -5,7 +5,6 @@ import type { CollectionBackend, QueryOptions, StateChangeCallback } from './Dat
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import type Modifier from './types/Modifier'
-import type { FlatSelector } from './types/Selector'
 
 import deepClone from './utils/deepClone'
 import match from './utils/match'
@@ -13,7 +12,7 @@ import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
-import getMatchingKeys from './utils/getMatchingKeys'
+import storageIndexQuery from './utils/storageIndexQuery'
 import sortItems from './utils/sortItems'
 import projectItems from './utils/projectItems'
 import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
@@ -459,42 +458,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
     const indices = this.collectionIndices.get(collectionName) ?? []
     return getIndexInfo(
-      indices.map(field => async (flatSelector: FlatSelector<T>) => {
-        if (!Object.hasOwnProperty.call(flatSelector, field)) return { matched: false }
-
-        const index = await storageAdapter.readIndex(field) as Map<string | null, Set<I>>
-        const fieldSelector = (flatSelector as Record<string, any>)[field]
-        const filtersForNull = fieldSelector == null || fieldSelector.$exists === false
-
-        const keys = filtersForNull
-          ? { include: null, exclude: [...index.keys()].filter(key => key != null) }
-          : getMatchingKeys<T, I>(field, flatSelector)
-
-        if (keys.include == null && keys.exclude == null) return { matched: false }
-
-        // Build included ids
-        let includedIds: I[] = []
-        if (keys.include == null) {
-          for (const set of index.values()) for (const pos of set) includedIds.push(pos)
-        } else {
-          for (const key of keys.include) {
-            const idSet = index.get(key)
-            if (idSet) for (const id of idSet) includedIds.push(id)
-          }
-        }
-
-        // Apply exclusions
-        if (keys.exclude != null) {
-          const excludeIds = new Set<I>()
-          for (const key of keys.exclude) {
-            const idSet = index.get(key)
-            if (idSet) for (const id of idSet) excludeIds.add(id)
-          }
-          includedIds = includedIds.filter(pos => !excludeIds.has(pos))
-        }
-
-        return { matched: true, ids: includedIds, fields: [field], keepSelector: filtersForNull }
-      }),
+      indices.map(field => storageIndexQuery<T, I>(storageAdapter, field)),
       selector,
     )
   }
