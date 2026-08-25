@@ -457,7 +457,36 @@ describe('getIndexInfo', () => {
       ],
     })
     expect(info.matched).toBe(true)
-    expect(info.ids).toEqual(['0'])
+    // `id = '0' AND id = '1'` cannot be satisfied, and an $or beside it does not
+    // widen that back out — the $or intersects with the rest of the selector, it
+    // does not union with it. This expected ['0'] until that was fixed.
+    expect(info.ids).toEqual([])
+  })
+
+  it('intersects an $or with the fields beside it instead of unioning', async () => {
+    const statusIndex = createIndex('status')
+    const tagIndex = createIndex('tag')
+    const items = [
+      { id: '1', status: 'open', tag: 'a' },
+      { id: '2', status: 'open', tag: 'z' },
+      { id: '3', status: 'closed', tag: 'a' },
+      { id: '4', status: 'closed', tag: 'b' },
+    ]
+    statusIndex.rebuild(items)
+    tagIndex.rebuild(items)
+
+    const info = getIndexInfo([statusIndex.query, tagIndex.query], {
+      status: 'open',
+      $or: [{ tag: 'a' }, { tag: 'b' }],
+    })
+
+    // status = 'open' AND (tag = 'a' OR tag = 'b') — only item 1 satisfies both.
+    // Getting this wrong is silent: the optimized selector comes back empty, so
+    // nothing filters the extra items out again and the query answers with rows
+    // that do not match it.
+    expect(info.matched).toBe(true)
+    expect(info.ids).toEqual(['1'])
+    expect(info.optimizedSelector).toEqual({})
   })
 
   it('throws when mixing sync and async providers', async () => {
