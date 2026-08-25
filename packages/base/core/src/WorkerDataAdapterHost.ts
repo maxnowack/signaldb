@@ -10,6 +10,7 @@ import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
 import getMatchingKeys from './utils/getMatchingKeys'
+import idIndexQuery from './utils/idIndexQuery'
 import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
 import projectItems from './utils/projectItems'
@@ -199,14 +200,17 @@ export default class WorkerDataAdapterHost<
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    if (selector != null
-      && Object.keys(selector).length === 1
-      && 'id' in selector
-      && typeof selector.id !== 'object') {
-      return {
-        matched: true,
-        ids: compact([selector.id]),
-        optimizedSelector: {},
+    // `id` needs no declared index: `readIds` is exactly the lookup it
+    // describes, so every inclusive form of it is answered here rather than by
+    // reading the whole collection (utils/idIndexQuery.ts).
+    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
+      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
+      if (idResult.matched) {
+        return {
+          matched: true,
+          ids: compact(idResult.ids),
+          optimizedSelector: {},
+        }
       }
     }
 
@@ -219,6 +223,8 @@ export default class WorkerDataAdapterHost<
     }
 
     const indices = this.collectionIndices.get(collectionName) ?? []
+    // `id` first, and always present: it needs no declared index, because
+    // `readIds` is exactly the lookup it describes (utils/idIndexQuery.ts).
     return getIndexInfo(indices.map(field => async (flatSelector: FlatSelector<T>) => {
       if (!Object.hasOwnProperty.call(flatSelector, field)) {
         // If the field is not present in the selector, we can't optimize

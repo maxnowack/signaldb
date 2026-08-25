@@ -621,6 +621,36 @@ describe('WorkerDataAdapterHost', () => {
       expect(response?.data).toEqual([{ id: '1', name: 'Alice' }])
     })
 
+    it('resolves an $in on id without reading the whole collection', async () => {
+      // Reported from an application: a sync ledger read with
+      // `{ id: { $in: [...] } }` and no declared index took seconds, because
+      // the id fast path only recognised a scalar id and everything else fell
+      // through to readAll(). id is the one field every storage can look up
+      // directly, so it never needs the whole collection.
+      await sendRequest('registerCollection', ['items', []])
+      await vi.waitFor(() => storageAdapters.has('items'))
+      await sendRequest('insert', ['items', [
+        [{ id: '1', name: 'Alice' }],
+        [{ id: '2', name: 'Bob' }],
+        [{ id: '3', name: 'Carol' }],
+      ]])
+
+      const storage = storageAdapters.get('items') as ReturnType<typeof memoryStorageAdapter<TestItem>>
+      const readAll = vi.spyOn(storage, 'readAll')
+      const readIds = vi.spyOn(storage, 'readIds')
+
+      context.clearResponses()
+      const id = await sendRequest('executeQuery', ['items', { id: { $in: ['1', '3'] } }, undefined])
+      const response = await waitForResponse(id)
+
+      expect(response?.data).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '3', name: 'Carol' },
+      ])
+      expect(readIds).toHaveBeenCalledWith(['1', '3'])
+      expect(readAll).not.toHaveBeenCalled()
+    })
+
     it('uses index optimization for indexed field queries', async () => {
       await sendRequest('registerCollection', ['items', ['name']])
       await vi.waitFor(() => storageAdapters.has('items'))
