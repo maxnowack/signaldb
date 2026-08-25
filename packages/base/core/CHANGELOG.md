@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### BREAKING CHANGES
 
+* `StorageAdapter.readIndex` now declares `Map<string | null, Set<I>>` instead of `Map<any, Set<I>>`. The keys always had to be `serializeValue(value)` — that is what SignalDB looks an index up with — but the type did not say so, and an adapter keying its index by the raw field value answered nothing for every non-string field and everything for a `$ne` on one. If your adapter stores raw keys, wrap them in `serializeValue` from `@signaldb/core`.
 * The `insert`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous and return a `Promise<void>`
 * The `createMemoryAdapter` method and `MemoryAdapter` type were removed.
 * The `memory` option for a `Collection` was removed.

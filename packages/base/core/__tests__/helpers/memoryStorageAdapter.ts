@@ -1,4 +1,4 @@
-import { createStorageAdapter } from '../../src'
+import { createStorageAdapter, serializeValue } from '../../src'
 
 /**
  * Creates a memory-based persistence adapter for testing purposes. This adapter
@@ -37,13 +37,17 @@ export default function memoryStorageAdapter<
   // not really a "persistence adapter", but it works for testing
   let items = new Map<I, T>()
   initialData.forEach(item => items.set(item.id, item))
-  const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<I>>>()
+  // Keyed by `serializeValue`, which is what `StorageAdapter.readIndex`
+  // promises — storing the raw values here made every query on a non-string
+  // indexed field silently wrong, and hid that from every test using this
+  // helper.
+  const indexes = new Map<keyof T & string, Map<string | null, Set<I>>>()
 
   const rebuildIndexes = () => {
     indexes.forEach((index, field) => {
       index.clear()
       items.forEach((item) => {
-        const fieldValue = item[field]
+        const fieldValue = serializeValue(item[field])
         if (!index.has(fieldValue)) {
           index.set(fieldValue, new Set())
         }
@@ -75,12 +79,12 @@ export default function memoryStorageAdapter<
       if (indexes.has(field)) {
         throw new Error(`Index on field "${field}" already exists`)
       }
-      const index = new Map<T[keyof T & string], Set<I>>()
+      const index = new Map<string | null, Set<I>>()
       indexes.set(field, index)
 
       // Build index for existing items
       items.forEach((item) => {
-        const fieldValue = (item as any)[field] as T[keyof T & string]
+        const fieldValue = serializeValue((item as any)[field])
         if (!index.has(fieldValue)) {
           index.set(fieldValue, new Set())
         }
