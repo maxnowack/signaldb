@@ -1,4 +1,4 @@
-import { createStorageAdapter } from '@signaldb/core'
+import { createStorageAdapter, serializeValue } from '@signaldb/core'
 
 /**
  * Opens the IndexedDB database and creates the object store if it doesn't exist.
@@ -173,7 +173,10 @@ function createIndexedDBAdapter<
       request.addEventListener('success', () => {
         const cursor = request.result
         if (cursor) {
-          const key = cursor.key as T[keyof T & string]
+          // Serialized, not raw: SignalDB looks an index up by
+          // `serializeValue(value)`, so an IndexedDB key of `3` or `true` would
+          // never be found by a query for it.
+          const key = serializeValue(cursor.key)
           const id = (cursor.value as T).id
           if (!result.has(key)) {
             result.set(key, new Set())
