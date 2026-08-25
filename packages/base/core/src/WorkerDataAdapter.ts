@@ -74,6 +74,31 @@ interface QueryRecord {
   served?: { items: BaseItem[], fromItems: BaseItem[], pendingVersion: number },
 }
 
+// One collection's in-flight writes. The collapsed view used to be rebuilt — the whole pending set
+// copied into an array, sorted, and folded into fresh Maps — on every call that needed it, on the
+// stated assumption that a pending set is a write or two. A caller that issues a burst without
+// awaiting it (a bulk import, a rebuild of a derived index) turns that assumption quadratic: write
+// k of N pays O(k log k), the burst pays O(N² log N) synchronously before any of it settles, and it
+// pays the same again as the writes drop out one by one. Maintaining the view instead costs each
+// write the size of that write.
+interface PendingWriteState {
+  // Every in-flight write by its `seq`, which is what a settling write consults to learn which ids
+  // it has to take back out of the two structures below.
+  writes: Map<number, { upserts: Map<any, BaseItem>, deletes: Set<any> }>,
+  // Per id, the in-flight writes touching it in ascending `seq` order — `item: null` for a delete.
+  // The last entry is what readers see. Keeping the ones underneath is what makes an out-of-order
+  // settle correct: dropping a write from the middle restores whatever the write below it said,
+  // rather than dropping the id entirely.
+  byId: Map<any, { seq: number, item: BaseItem | null }[]>,
+  // The collapsed newest-wins view, derived from `byId` and updated in step with it. Handed to
+  // readers as-is, so it must be treated as read-only.
+  flat: { upserts: Map<any, BaseItem>, deletes: Set<any> },
+  // The ids the most recent change to this state touched, and the version it produced. A query
+  // whose served result is current for the version just before it can be brought up to date from
+  // these ids alone, instead of being rebuilt from every pending write — see `advanceServedResult`.
+  lastChange: { version: number, ids: any[] } | null,
+}
+
 export default class WorkerDataAdapter implements DataAdapter {
   private id: string
   private isDisposed = false
@@ -102,10 +127,12 @@ export default class WorkerDataAdapter implements DataAdapter {
   // own `queryUpdate` has already landed (it is posted before the write's
   // response, and message order is preserved), on failure dropping it is the
   // rollback.
-  private pendingWrites: Map<string, Map<number, {
-    upserts: Map<any, BaseItem>,
-    deletes: Set<any>,
-  }>> = new Map()
+  //
+  // Held in three shapes, because each answers a different question cheaply and none of them
+  // answers all three: `writes` says which ids a settling write touched, `byId` says what an id
+  // looked like before the newest write touched it, and `flat` is the collapsed view every reader
+  // actually wants. They are maintained together, as writes arrive and settle.
+  private pendingWrites: Map<string, PendingWriteState> = new Map()
 
   private pendingWriteSeq = 0
 
@@ -339,31 +366,56 @@ export default class WorkerDataAdapter implements DataAdapter {
 
   // The pending writes of a collection collapsed into one upsert/delete view, newest write winning.
   // `null` when there are none, which is the overwhelmingly common case and the one every caller
-  // below short-circuits on. Pending sets are tiny — a write or two in flight — so this is cheap in
-  // a way that touching each query's items is not.
+  // below short-circuits on. Maintained by the two helpers under it rather than rebuilt here, so
+  // this is a lookup whatever the size of the pending set — see `PendingWriteState`. The returned
+  // view is the live one: callers read it, never mutate it.
   private flattenPendingWrites(
     collectionName: string,
   ): { upserts: Map<any, BaseItem>, deletes: Set<any> } | null {
-    const pending = this.pendingWrites.get(collectionName)
-    if (!pending || pending.size === 0) return null
-    const upserts = new Map<any, BaseItem>()
-    const deletes = new Set<any>()
-    // Ascending seq order — a later write to the same item must win. `sort` rather than
-    // `toSorted`: the array is already a fresh copy, so sorting it in place mutates nothing the
-    // caller holds, and React Native's Hermes engine has no `Array.prototype.toSorted`.
-    ;[...pending.entries()]
-      .sort(([a], [b]) => a - b) // eslint-disable-line unicorn/no-array-sort -- unavailable on Hermes
-      .forEach(([, write]) => {
-        write.upserts.forEach((item, id) => {
-          upserts.set(id, item)
-          deletes.delete(id)
-        })
-        write.deletes.forEach((id) => {
-          deletes.add(id)
-          upserts.delete(id)
-        })
-      })
-    return { upserts, deletes }
+    const state = this.pendingWrites.get(collectionName)
+    if (!state || state.writes.size === 0) return null
+    return state.flat
+  }
+
+  // Records one id's contribution from the write being registered. `seq` only ever grows, so the
+  // new entry is by construction the newest one for this id and therefore the one that wins.
+  private static pushPendingEntry(
+    state: PendingWriteState,
+    id: any,
+    item: BaseItem | null,
+    seq: number,
+  ) {
+    const stack = state.byId.get(id)
+    if (stack) stack.push({ seq, item })
+    else state.byId.set(id, [{ seq, item }])
+    WorkerDataAdapter.writeFlatEntry(state, id, item)
+  }
+
+  // Takes one id's contribution back out as its write settles, and restores whatever the write
+  // below it said — or removes the id entirely when that was the only one.
+  private static dropPendingEntry(state: PendingWriteState, id: any, seq: number) {
+    const stack = state.byId.get(id)
+    if (!stack) return
+    const index = stack.findIndex(entry => entry.seq === seq)
+    if (index !== -1) stack.splice(index, 1)
+    const top = stack.at(-1)
+    if (!top) {
+      state.byId.delete(id)
+      state.flat.upserts.delete(id)
+      state.flat.deletes.delete(id)
+      return
+    }
+    WorkerDataAdapter.writeFlatEntry(state, id, top.item)
+  }
+
+  private static writeFlatEntry(state: PendingWriteState, id: any, item: BaseItem | null) {
+    if (item === null) {
+      state.flat.deletes.add(id)
+      state.flat.upserts.delete(id)
+      return
+    }
+    state.flat.upserts.set(id, item)
+    state.flat.deletes.delete(id)
   }
 
   // The items an active query currently holds, deduplicated by id, plus whatever the pending writes
@@ -438,9 +490,69 @@ export default class WorkerDataAdapter implements DataAdapter {
       return query.served.items
     }
 
-    const items = this.computeServedResult(collectionName, query)
+    const items = this.advanceServedResult(collectionName, query, pendingVersion)
+      ?? this.computeServedResult(collectionName, query)
     query.served = { items, fromItems: query.items, pendingVersion }
     return items
+  }
+
+  // One step forward from the answer this query already had, instead of rebuilding it from every
+  // pending write. Only the ids the newest change touched are looked at, so a burst of writes costs
+  // each of them the size of that write — where rebuilding re-matched and re-projected the whole
+  // pending set per write, which is quadratic in the burst and was measured at twelve seconds for
+  // four thousand unsettled inserts against a single matching query.
+  //
+  // `null` means the step is not available and the caller has to rebuild: nothing to step from, a
+  // gap of more than one version, or a query shape whose result cannot be derived from itself — a
+  // projection cannot be re-matched against a selector naming fields it dropped, and a limited
+  // query is a window whose content can depend on rows it does not hold.
+  private advanceServedResult(
+    collectionName: string,
+    query: QueryRecord,
+    pendingVersion: number,
+  ): BaseItem[] | null {
+    const served = query.served
+    if (!served || served.fromItems !== query.items) return null
+    if (served.pendingVersion !== pendingVersion - 1) return null
+    if (!WorkerDataAdapter.providesFullItems(query) || query.options?.limit != null) return null
+    const state = this.pendingWrites.get(collectionName)
+    if (state?.lastChange == null || state.lastChange.version !== pendingVersion) return null
+
+    return mergeChangesetIntoResult(
+      served.items,
+      query.selector,
+      query.options,
+      this.changesetForIds(collectionName, query, state.lastChange.ids),
+    )
+  }
+
+  // What the named ids look like now — the pending value if one is still in flight for them, and
+  // otherwise whatever the last confirmed result said, which is what a settling write reverts to.
+  // The same rule answers a write arriving and a write settling, so both take the step above.
+  private changesetForIds(
+    collectionName: string,
+    query: QueryRecord,
+    ids: readonly any[],
+  ): { upserts: BaseItem[], deletes: any[] } {
+    const pending = this.flattenPendingWrites(collectionName)
+    const stored = this.queryItemsById(query)
+    const upserts: BaseItem[] = []
+    const deletes: any[] = []
+    ids.forEach((id) => {
+      const pendingItem = pending?.upserts.get(id)
+      if (pendingItem) {
+        upserts.push(pendingItem)
+        return
+      }
+      if (pending?.deletes.has(id)) {
+        deletes.push(id)
+        return
+      }
+      const storedItem = stored.get(id)
+      if (storedItem) upserts.push(storedItem)
+      else deletes.push(id)
+    })
+    return { upserts, deletes }
   }
 
   private computeServedResult(collectionName: string, query: QueryRecord): BaseItem[] {
@@ -488,24 +600,47 @@ export default class WorkerDataAdapter implements DataAdapter {
     const servedBefore = this.servedResults(collectionName, affected)
 
     const seq = this.pendingWriteSeq += 1
-    const pending = this.pendingWrites.get(collectionName)
-      ?? new Map<number, { upserts: Map<any, BaseItem>, deletes: Set<any> }>()
-    pending.set(seq, {
+    const state = this.pendingWrites.get(collectionName)
+      ?? {
+        writes: new Map(),
+        byId: new Map(),
+        flat: { upserts: new Map(), deletes: new Set() },
+        lastChange: null,
+      }
+    const write = {
       upserts: new Map(upserts.map(item => [item.id, item] as [any, BaseItem])),
       deletes: new Set(deletes),
-    })
-    this.pendingWrites.set(collectionName, pending)
+    }
+    state.writes.set(seq, write)
+    // Upserts first, then deletes, so a write naming the same id in both ends as a delete — the
+    // order the collapsed view was folded in when it was still rebuilt from scratch.
+    write.upserts.forEach((item, id) => WorkerDataAdapter.pushPendingEntry(state, id, item, seq))
+    write.deletes.forEach(id => WorkerDataAdapter.pushPendingEntry(state, id, null, seq))
+    this.pendingWrites.set(collectionName, state)
     this.bumpPendingWriteVersion(collectionName)
+    const addedVersion = this.pendingWriteVersions.get(collectionName) ?? 0
+    state.lastChange = { version: addedVersion, ids: [...affectedIds] }
     this.notifyWithDeltas(collectionName, affected, servedBefore)
 
     return () => {
       const current = this.pendingWrites.get(collectionName)
       if (!current) return
+      const settled = current.writes.get(seq)
+      // Already dropped: settling twice must not take a *later* write's contribution back out.
+      if (!settled) return
       const affectedOnDrop = this.affectedQueries(collectionName, upserts, affectedIds)
       const beforeDrop = this.servedResults(collectionName, affectedOnDrop)
-      current.delete(seq)
-      if (current.size === 0) this.pendingWrites.delete(collectionName)
+      current.writes.delete(seq)
+      settled.upserts.forEach((item, id) => WorkerDataAdapter.dropPendingEntry(current, id, seq))
+      settled.deletes.forEach(id => WorkerDataAdapter.dropPendingEntry(current, id, seq))
+      // With nothing left in flight the state is dropped entirely, and a query's served result is
+      // its stored one again — which `computeServedResult` answers without looking at anything.
+      if (current.writes.size === 0) this.pendingWrites.delete(collectionName)
       this.bumpPendingWriteVersion(collectionName)
+      if (current.writes.size > 0) {
+        const droppedVersion = this.pendingWriteVersions.get(collectionName) ?? 0
+        current.lastChange = { version: droppedVersion, ids: [...affectedIds] }
+      }
       // By the time a write settles the host's own answer has usually already landed, so dropping
       // the optimistic copy changes nothing a reader can see and produces no notification at all.
       this.notifyWithDeltas(collectionName, affectedOnDrop, beforeDrop)
