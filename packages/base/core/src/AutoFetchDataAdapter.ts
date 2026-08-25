@@ -12,6 +12,8 @@ import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
 import storageIndexQuery from './utils/storageIndexQuery'
+import idIndexQuery from './utils/idIndexQuery'
+import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
 import project from './utils/project'
 
@@ -507,9 +509,10 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    // Fast path: { id: <scalar> }
-    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector && typeof (selector as any).id !== 'object') {
-      return { matched: true, ids: [(selector as any).id as I], optimizedSelector: {} }
+    // `id` needs no declared index — `readIds` is exactly that lookup.
+    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
+      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
+      if (idResult.matched) return { matched: true, ids: idResult.ids, optimizedSelector: {} }
     }
 
     if (selector == null) {
