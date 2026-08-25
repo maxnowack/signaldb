@@ -13,6 +13,8 @@ import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
 import storageIndexQuery from './utils/storageIndexQuery'
+import idIndexQuery from './utils/idIndexQuery'
+import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
 import projectItems from './utils/projectItems'
 import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
@@ -437,14 +439,14 @@ export default class AsyncDataAdapter implements DataAdapter {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
 
-    if (selector != null
-      && Object.keys(selector).length === 1
-      && 'id' in selector
-      && typeof selector.id !== 'object') {
-      return {
-        matched: true,
-        ids: [selector.id].filter(Boolean),
-        optimizedSelector: {},
+    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
+      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
+      if (idResult.matched) {
+        return {
+          matched: true,
+          ids: idResult.ids.filter(Boolean),
+          optimizedSelector: {},
+        }
       }
     }
 
