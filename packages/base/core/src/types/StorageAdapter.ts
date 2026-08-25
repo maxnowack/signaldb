@@ -16,7 +16,15 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
   // index methods
   createIndex(field: string): Promise<void>,
   dropIndex(field: string): Promise<void>,
-  readIndex(field: string): Promise<Map<any, Set<I>>>,
+  /**
+   * The index, keyed by `serializeValue(value)` — not by the raw field value.
+   *
+   * SignalDB looks an index up with the serialized form, because that is what
+   * makes `3`, `'3'` and `new Date(...)` comparable as map keys at all. An
+   * adapter that stores its backend's own keys instead answers nothing for
+   * every non-string field, and everything for a `$ne` on one.
+   */
+  readIndex(field: string): Promise<Map<string | null, Set<I>>>,
 
   // data manipulation methods
   insert(items: T[]): Promise<void>,
