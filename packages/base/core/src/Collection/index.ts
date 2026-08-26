@@ -742,10 +742,20 @@ export default class Collection<
             queueMicrotask(() => {
               // unregister query if no more listeners
               const newListeners = Math.max(0, this.queryListeners({ selector, options }) - 1)
-              // Only unregister if this observer was the one that registered
-              // This prevents race conditions where a new observer registers
-              // before the old one's cleanup runs
-              if (newListeners === 0 && didRegister) {
+              // The count decides, and only the count. Asking additionally whether *this*
+              // observer was the one that registered leaks the query permanently: a rerun that
+              // creates its replacement before the old one's cleanup runs — which the microtask
+              // above deliberately allows — hands the count to an observer for which
+              // `didRegister` is false, and when that one is disposed the count reaches zero with
+              // nobody left who is allowed to act on it. The backend keeps the query registered
+              // and maintains its result on every write for the rest of the session, while
+              // `queryListeners` reads zero, so the next observer registers it a second time and
+              // is answered with the whole result again.
+              //
+              // The race that guard was written for is already covered here: an observer that
+              // registered in the meantime has incremented the count, so `newListeners` is not
+              // zero and nothing is unregistered.
+              if (newListeners === 0) {
                 this.backend.unregisterQuery(selector, options || {})
                 this.settledQueriesSet.delete(queryId(selector, options))
               }
