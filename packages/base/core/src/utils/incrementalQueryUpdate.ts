@@ -31,8 +31,10 @@ export interface QueryChangeset<T extends BaseItem> {
  * the query after all:
  * - `limit` or `skip`: the result is a window onto a larger set, and an item leaving the window has
  *   to be replaced by one the previous result never contained.
- * - `fields` together with `sort`: the previous items are projected, so the field the sort is keyed
- *   on may no longer be there to sort by.
+ * - `fields` together with a `sort` the projection does not keep: the previous items are
+ *   projected, so a sort key the projection dropped is no longer there to sort by. A projection
+ *   that keeps every sort key is fine, and is the common case — a list sorted by the same date it
+ *   displays.
  * - a `null` selector, which matches nothing and is not worth a special case.
  * @template T - The type of the items.
  * @param previous - The query's previous result.
@@ -50,9 +52,47 @@ export default function incrementalQueryUpdate<T extends BaseItem>(
   if (selector == null) return null
   const { sort, skip, limit, fields } = options || {}
   if (skip != null) return null
-  if (fields != null && sort != null) return null
+  if (fields != null && sort != null && !sortKeysSurviveProjection(sort, fields)) return null
   if (limit != null && !windowStaysClosed(previous, selector, options, changes)) return null
   return mergeChangesetIntoResult(previous, selector, options, changes)
+}
+
+/**
+ * Whether a projection keeps every field a sort is keyed on.
+ *
+ * The previous result is the projected items, so this decides whether they still carry what the
+ * sort needs. Both projection modes are covered, because `project` treats an all-zero spec as an
+ * exclusion and anything else as an inclusion:
+ *
+ * - An inclusion keeps a key when the key itself is included, or an ancestor of it is (`{a: 1}`
+ *   keeps `a.b`), and always keeps `id` unless the spec excludes it outright.
+ * - An exclusion keeps a key unless the key or an ancestor of it is excluded.
+ *
+ * Anything it cannot account for is a "no": re-executing is slower, not wrong.
+ * @template T - The type of the items.
+ * @param sort - The query's sort.
+ * @param fields - The query's projection.
+ * @returns `true` when every sort key survives the projection.
+ */
+function sortKeysSurviveProjection<T extends BaseItem>(
+  sort: SortSpecifier<T>,
+  fields: NonNullable<QueryOptions<T>['fields']>,
+): boolean {
+  const entries = Object.entries(fields)
+  if (entries.length === 0) return true
+  const isExclusion = entries.every(([, value]) => value === 0)
+  // `a.b.c` is kept by `a`, by `a.b` and by `a.b.c`, and dropped by any of them under an
+  // exclusion — so both modes ask about the key and each of its ancestors.
+  const pathsFor = (key: string) => key
+    .split('.')
+    .map((_, index, parts) => parts.slice(0, index + 1).join('.'))
+
+  return Object.keys(sort).every((key) => {
+    const paths = pathsFor(key)
+    if (isExclusion) return paths.every(path => fields[path] !== 0)
+    if (key === 'id') return fields.id !== 0
+    return paths.some(path => fields[path] === 1)
+  })
 }
 
 /**

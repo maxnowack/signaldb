@@ -9,6 +9,7 @@ interface Item {
   status?: string,
   rank?: number,
   name?: string,
+  meta?: { rank?: number },
 }
 
 describe('incrementalQueryUpdate', () => {
@@ -73,7 +74,7 @@ describe('incrementalQueryUpdate', () => {
       expect(result).toBeNull()
     })
 
-    it('should decline a projected query that is also sorted, because the sort key may be projected away', () => {
+    it('should decline a projected query whose sort key the projection drops', () => {
       const result = incrementalQueryUpdate(
         [{ id: 'a' }],
         {},
@@ -81,6 +82,82 @@ describe('incrementalQueryUpdate', () => {
         { upserts: [{ id: 'b' }], deletes: [] },
       )
       expect(result).toBeNull()
+    })
+
+    it('should decline a projected query whose sort key the projection excludes', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a' }],
+        {},
+        { fields: { rank: 0 }, sort: { rank: 1 } },
+        { upserts: [{ id: 'b' }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline sorting by an id the projection excludes', () => {
+      const result = incrementalQueryUpdate(
+        [{ rank: 1 } as Item],
+        {},
+        { fields: { id: 0, rank: 1 }, sort: { id: 1 } },
+        { upserts: [{ id: 'b', rank: 2 }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should decline when only one of several sort keys survives', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a', rank: 1 }],
+        {},
+        { fields: { rank: 1 }, sort: { rank: 1, name: -1 } },
+        { upserts: [{ id: 'b', rank: 2, name: 'Ben' }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    // The case a list screen actually has: it sorts by a date it also displays.
+    // Declining it made every write to that collection re-read, re-sort and
+    // re-project the whole table — 600 ms of database time for a single-row
+    // insert against three thousand rows.
+    it('should answer a projected query whose sort key the projection keeps', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a', rank: 1 }],
+        {},
+        { fields: { rank: 1 }, sort: { rank: 1 } },
+        { upserts: [{ id: 'b', rank: 0, name: 'Ben' }], deletes: [] },
+      )
+      // Sorted by the surviving key, and the new item projected the same way as
+      // the old one — no `name` on it.
+      expect(result).toEqual([{ id: 'b', rank: 0 }, { id: 'a', rank: 1 }])
+    })
+
+    it('should answer when an inclusion of an ancestor keeps a nested sort key', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a', meta: { rank: 1 } } as Item],
+        {},
+        { fields: { meta: 1 }, sort: { 'meta.rank': 1 } },
+        { upserts: [{ id: 'b', meta: { rank: 0 } } as Item], deletes: [] },
+      )
+      expect(result?.map(item => item.id)).toEqual(['b', 'a'])
+    })
+
+    it('should decline when an exclusion of an ancestor drops a nested sort key', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'a' }],
+        {},
+        { fields: { meta: 0 }, sort: { 'meta.rank': 1 } },
+        { upserts: [{ id: 'b' }], deletes: [] },
+      )
+      expect(result).toBeNull()
+    })
+
+    it('should answer a sort by id under an inclusion that keeps id implicitly', () => {
+      const result = incrementalQueryUpdate(
+        [{ id: 'b', rank: 2 }],
+        {},
+        { fields: { rank: 1 }, sort: { id: 1 } },
+        { upserts: [{ id: 'a', rank: 1 }], deletes: [] },
+      )
+      expect(result?.map(item => item.id)).toEqual(['a', 'b'])
     })
 
     it('should decline a null selector', () => {
@@ -252,6 +329,32 @@ describe('incrementalQueryUpdate', () => {
               inserted,
             ],
             changes: { upserts: [updated, inserted], deletes: ['a'] },
+          }
+        })
+      expect(incremental).toEqual(reExecuted)
+    })
+
+    // The shape a list screen has, and the one this used to decline outright.
+    it('should match for a query that is both projected and sorted by a kept field', () => {
+      const { incremental, reExecuted } = bothPaths(
+        { status: 'open' },
+        { fields: { name: 1, rank: 1 }, sort: { rank: 1 } },
+        (items) => {
+          const item: Item = { id: 'e', status: 'open', rank: 0, name: 'Eve' }
+          return { items: [...items, item], changes: { upserts: [item], deletes: [] } }
+        })
+      expect(incremental).toEqual(reExecuted)
+    })
+
+    it('should match when a projected, sorted query loses an item to an update', () => {
+      const { incremental, reExecuted } = bothPaths(
+        { status: 'open' },
+        { fields: { name: 1, rank: 1 }, sort: { rank: -1 } },
+        (items) => {
+          const updated: Item = { ...items[0], status: 'done' }
+          return {
+            items: [...items.filter(item => item.id !== updated.id), updated],
+            changes: { upserts: [updated], deletes: [] },
           }
         })
       expect(incremental).toEqual(reExecuted)
