@@ -182,6 +182,8 @@ export default defineConfig(
       '**/.next/**',
       '**/dist**',
       '**/node_modules/**',
+      // Built output of the v1 documentation, see .scripts/build-v1-docs.js
+      '.cache',
       'coverage',
       'docs/.vitepress/cache',
       'docs/.vitepress/dist',

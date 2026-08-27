@@ -42,9 +42,10 @@ export default withMermaid({
             link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md',
           },
           {
-            // A frozen copy of the v1 documentation, served from `docs/public/v1`.
-            // v1 receives no further changes, so it is built once rather than on
-            // every deploy — see docs/public/v1/README.md.
+            // The v1 documentation, built from its tag by `npm run docs:build-v1`
+            // and placed at `/v1/` after the main build. A local `docs:build`
+            // does not produce it, so this link only resolves on the deployed
+            // site — see .scripts/build-v1-docs.js.
             text: 'v1 documentation',
             link: '/v1/',
           },
