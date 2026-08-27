@@ -502,4 +502,75 @@ describe('serving a query while a write is in flight', () => {
         .toEqual(applyQueryOptions(stored, selector, options))
     })
   })
+
+  describe('a replacement', () => {
+    const options: QueryOptions<TestItem> = { sort: { rank: 1 } }
+
+    beforeEach(() => seed(options))
+
+    it('serves the replacement in place of the item it replaces', async () => {
+      const promise = backend
+        .replaceOne({ id: 'b' }, { status: 'open', rank: 2, name: 'Benjamin' })
+
+      expect(backend.getQueryResult(selector, options)).toEqual(expectedResult(
+        stored.map(item => (item.id === 'b'
+          ? { id: 'b', status: 'open', rank: 2, name: 'Benjamin' }
+          : item)),
+        selector,
+        options,
+      ))
+
+      await flush()
+      worker.respondTo('replaceOne', [[]])
+      await promise
+    })
+
+    it('drops the replaced item when the replacement carries a different id', async () => {
+      const replacement: TestItem = { id: 'b2', status: 'open', rank: 2, name: 'Benjamin' }
+      const promise = backend.replaceOne({ id: 'b' }, replacement)
+
+      expect(backend.getQueryResult(selector, options)).toEqual(expectedResult(
+        [...stored.filter(item => item.id !== 'b'), replacement],
+        selector,
+        options,
+      ))
+
+      await flush()
+      worker.respondTo('replaceOne', [[]])
+      await promise
+    })
+  })
+
+  // A write whose selector names no ids is resolved against everything the active queries show,
+  // and what they show already includes the writes that have not come back yet. Resolving it
+  // against the stored result instead would let a burst of writes undo each other: the second
+  // write would neither see what the first one added nor know what it removed.
+  describe('a write resolved by scanning while other writes are in flight', () => {
+    const options: QueryOptions<TestItem> = { sort: { rank: 1 } }
+
+    beforeEach(() => seed(options))
+
+    it('sees the pending insert and leaves the pending removal removed', async () => {
+      const item: TestItem = { id: 'e', status: 'open', rank: 0, name: 'Eve' }
+      const insert = backend.insert(item)
+      const removal = backend.removeOne({ id: 'a' })
+      const update = backend.updateMany({ status: 'open' }, { $set: { name: 'Renamed' } })
+
+      expect(backend.getQueryResult(selector, options)).toEqual(expectedResult(
+        [
+          { ...item, name: 'Renamed' },
+          { ...stored[1], name: 'Renamed' },
+          { ...stored[2], name: 'Renamed' },
+        ],
+        selector,
+        options,
+      ))
+
+      await flush()
+      worker.respondTo('insert', [item])
+      worker.respondTo('removeOne', [[]])
+      worker.respondTo('updateMany', [[]])
+      await Promise.all([insert, removal, update])
+    })
+  })
 })
