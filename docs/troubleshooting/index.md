@@ -47,8 +47,23 @@ In this section, we've compiled some common issues you might encounter while usi
 **Solution:** Check your Reactivity Adapter and ensure it's working correctly. If you're using a custom adapter, ensure that it correctly implements the Reactivity Adapter interface. Make sure the depend and notify methods in your signals are correctly registering dependencies and notifying them when data changes.
 
 ## Data not saving to the desired location
-**Problem:** Data isn't being saved to the location specified in your Persistence Adapter.
+**Problem:** Data isn't being saved to the location specified in your Storage Adapter.
 
-**Solution:** Double-check the implementation of your save method in your Persistence Adapter. Make sure it correctly writes to the intended location.
+**Solution:** Double-check the implementation of your write methods in your Storage Adapter. Make sure it correctly writes to the intended location.
+
+## The application has slowly grown sluggish
+**Problem:** Nothing is obviously wrong, no single operation is slow, but the application feels heavier than it used to.
+
+**Solution:** Look for live queries holding far more rows than anything on screen. A reactive query registered from a long-lived place — a module scope, a store, a component that is never unmounted — keeps its cost for the lifetime of the application, and there is nothing to see while it happens: the query works, it is simply expensive on every write.
+
+```js
+import { Collection } from '@signaldb/core'
+
+Collection.reportLargeQueries(500)
+```
+
+Each query holding more than that many rows is reported once, together with the stack that registered it, which is what tells you where it came from. [`Collection.enableDebugMode()`](/reference/core/collection/#enabledebugmode) switches this on at 500 rows along with query timings.
+
+Two things usually fix what it finds: give the query a `limit` if the UI only shows a page of it, and project it with `fields` if the UI only renders a few columns.
 
 If you're facing an issue not covered in this guide, please feel free to [raise an issue](https://github.com/maxnowack/signaldb/issues/new) on the SignalDB GitHub page. Include a clear description of your problem, steps to reproduce it, and any error messages you're seeing. The more information you provide, the easier it will be for the community to assist you.

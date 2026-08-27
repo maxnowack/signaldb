@@ -194,12 +194,12 @@ Note: For simple upgrades, you can still pass the deprecated `persistence` optio
 
 ## New DataAdapter Layer
 
-v2 introduces a `DataAdapter` abstraction to separate collection behavior from storage mechanics and to enable advanced scenarios.
+v2 introduces a `DataAdapter` abstraction to separate collection behavior from storage mechanics and to enable advanced scenarios. See the [Data Adapters](/data-adapters/) chapter for the full picture.
 
-- `DefaultDataAdapter`: simple, standard choice that works with a `StorageAdapter`.
-- `AsyncDataAdapter`: async-first flow with explicit storage setup.
-- `WorkerDataAdapter` / `WorkerDataAdapterHost`: run data operations in a Web Worker.
-- `AutoFetchDataAdapter`: replacement for `AutoFetchCollection` (if you previously relied on it).
+- [`DefaultDataAdapter`](/reference/core/defaultdataadapter/): simple, standard choice that works with a `StorageAdapter`.
+- [`AsyncDataAdapter`](/reference/core/asyncdataadapter/): async-first flow with explicit storage setup.
+- [`WorkerDataAdapter` / `WorkerDataAdapterHost`](/reference/core/workerdataadapter/): run data operations in a Web Worker.
+- [`AutoFetchDataAdapter`](/reference/core/autofetchdataadapter/): replacement for `AutoFetchCollection` (if you previously relied on it).
 
 Standard setup with `DefaultDataAdapter` (recommended baseline):
 ```ts

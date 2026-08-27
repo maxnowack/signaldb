@@ -39,6 +39,8 @@ The follwing storage adapters are currently available:
 - [OPFS](/reference/opfs/)
 - [FileSystem](/reference/fs/)
 
+A storage adapter is reached through a [data adapter](/data-adapters/), which is what decides *where* the data operations run.
+
 Building your own storage adapter for your speicific use case is also possible and pretty straight forward.
 See [`createStorageAdapter`](/reference/core/createstorageadapter/) for more information.
 
