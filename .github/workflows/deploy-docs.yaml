@@ -42,8 +42,22 @@ jobs:
       - name: install modules
         run: |
           npm install --no-audit --force --loglevel=error --no-update-notifier
+      # The v1 documentation is a build of a fixed tag, so this cache is a hit
+      # on every run after the first. The key covers the script because that is
+      # where the tag lives — changing it is what should invalidate the cache.
+      - name: Load v1 documentation cache
+        uses: actions/cache@v5
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: .cache/v1-docs
+          key: ${{ runner.OS }}-v1-docs-${{ hashFiles('.scripts/build-v1-docs.js') }}
       - name: Build vitepress
         run: npm run docs:build
+      # After the main build: VitePress empties the output directory, so this
+      # has to put `/v1/` back in afterwards rather than before.
+      - name: Build v1 documentation
+        run: npm run docs:build-v1
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
