@@ -58,6 +58,13 @@ When you make changes to the API, please also update the documentation in the `d
 npm run docs:dev
 ```
 
+The documentation for v1 is not in this tree. It lives at `/v1/` of the
+published site and is built from the `v1.8.1` tag by `npm run docs:build-v1`,
+which the deploy workflow runs after the main build. A local `npm run docs:build`
+does not produce it, so the "v1 documentation" link in the navigation only
+resolves on the deployed site. See `.scripts/build-v1-docs.js` — the tag is the
+only thing to change there.
+
 ## ❓ Questions
 
 If you have any questions, feel free to [open a disscussion on GitHub](https://github.com/maxnowack/signaldb/discussions/new/choose) or join our [Discord server](https://discord.gg/qMvXKXxBTp).

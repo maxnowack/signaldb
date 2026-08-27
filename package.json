@@ -15,6 +15,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "npm run build && npm run build -w examples && npm run copy -w examples && npm run typedoc && npm run docs:build-vitepress",
     "docs:build-vitepress": "vitepress build docs",
+    "docs:build-v1": "node .scripts/build-v1-docs.js",
     "docs:preview": "vitepress preview docs"
   },
   "author": "Max Nowack <max.nowack@gmail.com>",
