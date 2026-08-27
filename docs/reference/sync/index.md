@@ -66,7 +66,7 @@ Creates a new instance of `SyncManager`.
 
   - `registerRemoteChange`: Optional function to register a callback for remote changes. The callback can also return a cleanup function to remove the listener.
   - `id`: Optional unique identifier for the sync manager.
-  - `storageAdapter`: Optional function to create a storage adapter. Takes 2 arguments: `name` and `registerErrorHandler`.
+  - `dataAdapter`: Optional [data adapter](/data-adapters/) for the sync manager's own collections — the ones holding its changes, snapshots and sync operations. Pass the same one your collections use so that everything lives in one place. Defaults to a `DefaultDataAdapter`, which keeps that bookkeeping in memory only, so it does not survive a reload.
   - `reactivity`: Optional reactivity adapter for handling reactivity.
   - `onError`: Optional function to handle errors.
   - `autostart`: Optional flag to start syncing automatically after adding collections (default: `true`).
