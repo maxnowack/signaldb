@@ -14,6 +14,10 @@ export default defineConfig({
       provider: 'istanbul',
       exclude: [
         '**/*.spec.ts',
+        // Test support beside the specs — fixtures, polyfills, wait helpers. Their branches exist
+        // for environments and failure modes the suite deliberately never enters, so counting them
+        // measures the harness rather than the library.
+        '**/__tests__/**',
         '**/dist/**',
         '**/docs/**',
         '**/examples/**',
