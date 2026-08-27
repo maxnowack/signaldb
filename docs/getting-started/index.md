@@ -46,16 +46,22 @@ import { Collection } from '@signaldb/core'
 const posts = new Collection()
 ```
 
-but normally you want to persist your data. Persistence in SignalDB is achieved by using [persistence adapters](/data-persistence/). Choose one that fits your needs and pass it to the collection constructor. Here is an example using [`@signaldb/localstorage`](/reference/localstorage/):
+but normally you want to persist your data. Persistence in SignalDB is achieved by giving the collection a data adapter that is backed by a [storage adapter](/data-persistence/). Choose one that fits your needs. Here is an example using [`@signaldb/localstorage`](/reference/localstorage/):
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createLocalStorageAdapter from '@signaldb/localstorage'
 
-const posts = new Collection({
-  persistence: createLocalStorageAdapter('posts'),
+const dataAdapter = new DefaultDataAdapter({
+  storage: name => createLocalStorageAdapter(name),
 })
+
+const posts = new Collection('posts', dataAdapter)
 ```
+
+One data adapter serves every collection of your application — it is asked for
+the storage belonging to each collection by name, so you build it once and pass
+it to all of them.
 
 That's all you have to do. There a also some optional configuration options you find here: [collections reference](/reference/core/collection/)
 
@@ -67,10 +73,12 @@ After you've created you first collection, you can start to add documents to it.
 ```js
 // ...
 
-const postId = posts.insert({ title: 'Foo', text: 'Lorem ipsum …' })
+const postId = await posts.insert({ title: 'Foo', text: 'Lorem ipsum …' })
 ```
 
-You created your first document in SignalDB! Check out the [data manipulation](/data-manipulation/) page to learn how to update and remove documents.
+Writes are asynchronous — the promise resolves once the data layer has
+confirmed the write, while your queries already show it. You created your first
+document in SignalDB! Check out the [data manipulation](/data-manipulation/) page to learn how to update and remove documents.
 
 ## Querying
 

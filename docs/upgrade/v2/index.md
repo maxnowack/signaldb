@@ -40,7 +40,11 @@ This guide explains what changed in SignalDB v2 and how to migrate your applicat
 - Persistence events on `Collection` were removed. Use `isPulling()` / `isPushing()` / `isLoading()` reactive helpers.
 - `createMemoryAdapter` and the `memory` option were removed.
 - Readiness API changed: `.isReady()` (promise) was renamed to `.ready()`. A new reactive `.isReady()` getter was added.
+- `isLoading()` starts out `false` and turns `true` once a pull actually starts. In v1 it began as `true`.
 - Collection constructor: prefer `new Collection(name, dataAdapter, options?)`; deprecated `persistence` option is still accepted and wrapped by `DefaultDataAdapter`.
+- `SyncManager`: the `persistenceAdapter` option was removed. Use `dataAdapter` instead.
+- `StorageAdapter.readIndex` now declares `Map<string | null, Set<I>>` instead of `Map<any, Set<I>>`. Only relevant if you wrote your own adapter — see [Custom storage adapters](#custom-storage-adapters-index-keys) below.
+- Observer semantics changed in two ways — see [Observer events](#observer-events) below.
 
 ## Core CRUD API (async)
 
@@ -249,6 +253,60 @@ All persistence-level events on `Collection` were removed. Use these instead:
 - `collection.isPulling()` / `collection.isPushing()` / `collection.isLoading()` (reactive)
 - Existing CRUD events remain: `added`, `changed`, `removed` and their corresponding action events (`insert`, `updateOne`, `updateMany`, `replaceOne`, `removeOne`, `removeMany`).
 
+A query that fails now announces itself through the new `query.error` event.
+This matters more than it looks: a cursor whose query failed keeps returning its
+neutral empty result, which is indistinguishable from a query that legitimately
+matched nothing. If your application needs to tell the two apart, listen here.
+
+## Observer events
+
+Two changes to what `observeChanges` reports. Neither changes the data you end
+up with — both change how many events you are told about.
+
+**`movedBefore` reports the minimal set of moves.** In v1, every item whose
+neighbouring item had changed was reported as moved, so moving a single item
+could produce a `movedBefore` for several of them. Applying the reported moves
+still produces the same order. Consumers that count `movedBefore` calls, or that
+rely on being notified about items which did not themselves move, will now see
+fewer events.
+
+**`changed` is no longer emitted for a write that matched nothing.** It
+previously was, whenever the item had still existed at the moment it was read
+back.
+
+## Custom storage adapters: index keys
+
+`StorageAdapter.readIndex` now declares `Map<string | null, Set<I>>` rather than
+`Map<any, Set<I>>`. The keys always had to be `serializeValue(value)` — that is
+what SignalDB looks an index up with — but the type did not say so, and an
+adapter keying its index by the raw field value answered nothing for every
+non-string field and everything for a `$ne` on one.
+
+If your adapter stores raw keys, wrap them:
+
+```ts
+import { serializeValue } from '@signaldb/core'
+
+const key = serializeValue(item[field])
+```
+
+Only string-valued fields were unaffected, which is why this can go unnoticed
+until someone indexes a number or a boolean.
+
+## SyncManager
+
+The `persistenceAdapter` option was removed. Pass a `dataAdapter` instead — the
+same one your collections use:
+
+```js
+const syncManager = new SyncManager({
+  dataAdapter,
+  // …
+})
+```
+
+`@signaldb/sync` v2 requires `@signaldb/core` 2.0.0 or later.
+
 ## Migration Checklist
 
 - Update all write calls to `await` the new async methods and handle new return values.
@@ -256,7 +314,11 @@ All persistence-level events on `Collection` were removed. Use these instead:
 - Rename persistence APIs to storage (`createStorageAdapter`, `StorageAdapter`), remove `combinePersistenceAdapters`.
 - Replace `AutoFetchCollection` with `AutoFetchDataAdapter`.
 - Switch `await collection.isReady()` to `await collection.ready()` and use reactive `collection.isReady()` where needed.
-- Replace persistence events with `isPulling`/`isPushing`/`isLoading`.
+- Check any code that assumed `isLoading()` starts out `true`.
+- Replace persistence events with `isPulling`/`isPushing`/`isLoading`, and consider listening for `query.error`.
 - Remove `createMemoryAdapter` and the `memory` option; implement an in-memory `StorageAdapter` if necessary.
+- Replace the `SyncManager`'s `persistenceAdapter` option with `dataAdapter`.
+- In a custom `StorageAdapter`, key `readIndex` by `serializeValue(value)`.
+- Review anything counting `movedBefore` events or relying on `changed` for a write that matched nothing.
 
 If you run into something not covered here, see the changelog for `@signaldb/core` and the API reference, or open a discussion/issue.

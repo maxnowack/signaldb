@@ -32,10 +32,6 @@ SignalDB consists of several packages of which each has indiviudal exports.
 
 * [`Collection`](/reference/core/collection/)
 * [`Cursor`](/reference/core/cursor/)
-* [`AutoFetchCollection`](/reference/core/autofetchcollection/)
-* [`createIndex`](/reference/core/createindex/)
-* [`createIndexProvider`](/reference/core/createindexprovider/)
-* [`createMemoryAdapter`](/reference/core/creatememoryadapter/)
 * [`createStorageAdapter`](/reference/core/createstorageadapter/)
 * [`createReactivityAdapter`](/reference/core/createreactivityadapter/)
 
@@ -47,10 +43,13 @@ SignalDB consists of several packages of which each has indiviudal exports.
 ### `@signaldb/react`
 * [`createUseReactivityHook`](/reference/react/)
 
-## Persistence Adapters
+## Storage Adapters
 
 ### `@signaldb/fs`
 * [`createFileSystemAdapter`](/reference/fs/)
+
+### `@signaldb/indexeddb`
+* [`createIndexedDBAdapter`](/reference/indexeddb/)
 
 ### `@signaldb/localstorage`
 * [`createLocalStorageAdapter`](/reference/localstorage/)
