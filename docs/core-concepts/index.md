@@ -20,7 +20,7 @@ head:
     content: Learn about the core concepts of SignalDB, including collections, schema-less data storage, optimistic UI, signals and reactivity and data persistence.
 - - meta
   - name: keywords
-    content: SignalDB core concepts, SignalDB collections, schema-less database, optimistic UI, JavaScript reactivity, signals, memory adapters, data persistence, reactive database, frontend development, SignalDB features
+    content: SignalDB core concepts, SignalDB collections, schema-less database, optimistic UI, JavaScript reactivity, signals, data adapters, data persistence, reactive database, frontend development, SignalDB features
 ---
 # Core Concepts
 
@@ -73,7 +73,7 @@ const dataAdapter = new DefaultDataAdapter()
 const Posts = new Collection('posts', dataAdapter)
 ```
 
-See the [data adapters](/data-persistence/) documentation for the adapters that
+See the [data adapters](/data-adapters/) documentation for the adapters that
 ship with SignalDB and when each of them is the right one.
 
 ## Data Persistence
