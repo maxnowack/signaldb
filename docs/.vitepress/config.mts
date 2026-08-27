@@ -41,6 +41,13 @@ export default withMermaid({
             text: 'Contributing',
             link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md',
           },
+          {
+            // A frozen copy of the v1 documentation, served from `docs/public/v1`.
+            // v1 receives no further changes, so it is built once rather than on
+            // every deploy — see docs/public/v1/README.md.
+            text: 'v1 documentation',
+            link: '/v1/',
+          },
         ],
       },
     ],
@@ -66,7 +73,6 @@ export default withMermaid({
             { text: 'Developer Tools', link: '/devtools/' },
             { text: 'Schema Validation', link: '/schema-validation/' },
             { text: 'Upgrade to v2', link: '/upgrade/v2/' },
-            { text: 'Upgrade to v1', link: '/upgrade/v1/' },
           ],
         },
         {
@@ -153,10 +159,6 @@ export default withMermaid({
               items: [
                 { text: 'Collection', link: '/reference/core/collection/' },
                 { text: 'Cursor', link: '/reference/core/cursor/' },
-                { text: 'AutoFetchCollection', link: '/reference/core/autofetchcollection/' },
-                { text: 'createIndex', link: '/reference/core/createindex/' },
-                { text: 'createIndexProvider', link: '/reference/core/createindexprovider/' },
-                { text: 'createMemoryAdapter', link: '/reference/core/creatememoryadapter/' },
                 { text: 'createStorageAdapter', link: '/reference/core/createstorageadapter/' },
                 { text: 'createReactivityAdapter', link: '/reference/core/createreactivityadapter/' },
               ],
@@ -273,6 +275,12 @@ export default withMermaid({
       '/data-persistence/rxdb/index.html': '/data-persistence/',
       '/data-persistence/supabase/index.html': '/sync/',
       '/examples/rxdb/index.html': '/sync/',
+      '/upgrade/v1/index.html': '/upgrade/v2/',
+      // Removed in v2 — the concepts they documented live on elsewhere.
+      '/reference/core/autofetchcollection/index.html': '/reference/core/collection/',
+      '/reference/core/createindex/index.html': '/reference/core/collection/',
+      '/reference/core/createindexprovider/index.html': '/reference/core/collection/',
+      '/reference/core/creatememoryadapter/index.html': '/reference/core/createstorageadapter/',
       '/getting-started.html': '/getting-started/',
       '/installation.html': '/installation/',
       '/integrations/index.html': '/guides/',

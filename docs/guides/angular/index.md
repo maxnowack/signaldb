@@ -91,8 +91,8 @@ const Posts = new Collection<{ id: string, title: string, author: string }>({
 export class AppComponent {
   items: {id: string, title: string, author: string}[] = [];
 
-  insertPost() {
-    Posts.insert({ title: 'Post 1', author: 'Author 1' });
+  async insertPost() {
+    await Posts.insert({ title: 'Post 1', author: 'Author 1' });
   }
 
   constructor() {

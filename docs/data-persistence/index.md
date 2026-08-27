@@ -51,8 +51,12 @@ is the reason the interface is as small as it is:
 ```ts
 readAll(): Promise<T[]>
 readIds(ids: I[]): Promise<T[]>
-readIndex(field: string): Promise<Map<any, Set<I>>>
+readIndex(field: string): Promise<Map<string | null, Set<I>>>
 ```
+
+An index is keyed by `serializeValue(value)`, not by the raw field value — that
+is what SignalDB looks it up with. An adapter that stores raw keys answers
+nothing for every non-string field and everything for a `$ne` on one.
 
 Query semantics live in SignalDB, in one place. A storage backend only has to
 be able to store things and find them again — it never has to understand

@@ -467,17 +467,16 @@ export default class Collection<
   }
 
   /**
-   * Resolves when the persistence adapter finished initializing
+   * Resolves when the storage adapter finished initializing
    * and the collection is ready to be used.
    * @returns A promise that resolves when the collection is ready.
    * @example
    * ```ts
-   * const collection = new Collection({
-   *   persistence: // ...
-   * })
-   * await collection.isReady()
+   * const collection = new Collection('items', dataAdapter)
+   * await collection.ready()
    *
-   * collection.insert({ name: 'Item 1' })
+   * await collection.insert({ name: 'Item 1' })
+   * ```
    */
   public async ready() {
     return this.backend.isReady()

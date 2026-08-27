@@ -27,54 +27,89 @@ head:
 ## createIndexedDBAdapter (`default`)
 
 ```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
-import { Collection } from '@signaldb/core'
 
-const collection = new Collection({
-  persistence: createIndexedDBAdapter('posts'),
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: {
+      posts: ['authorId'],
+    },
+  }),
 })
+
+const Posts = new Collection('posts', dataAdapter)
 ```
 
-Function to create an IndexedDB adapter for use with a collection.
-The IndexedDB Adapter is designed for robust and efficient data storage within a browser environment, especially for larger datasets or those requiring more advanced querying capabilities. To get started, provide a unique name for your collection. This name acts as the identifier for your data, enabling it to be stored and retrieved seamlessly using IndexedDB. The adapter supports advanced operations such as updates, deletions, and batch processing, ensuring data integrity and performance.
+One IndexedDB database holds every collection of your application. You describe
+that database once — its name, its version and its stores — and
+`createIndexedDBAdapter` returns the `storage` function a data adapter asks for
+the store belonging to a collection. Each key of `schema` is a store name and
+must match the name you give the collection; its value lists the fields to
+index inside that store.
 
 ### Parameters
 
-- `name` - A unique name for the collection, used as the database name.
-- `options` - (Optional) Configuration object with the following properties:
-  - `prefix` - (Optional) A string prefix to add to the database name. Default is 'signaldb-'.
+- `options` - Configuration object with the following properties:
+  - `databaseName` - (Optional) The name of the IndexedDB database. Default is `'signaldb'`.
+  - `version` - The version of the database schema. Raise it whenever you change `schema`.
+  - `schema` - An object describing the stores. Keys are store names, values are the fields to index in that store.
+  - `onUpgrade` - (Optional) Callback `(database, transaction, oldVersion, newVersion)` invoked during a version upgrade, before SignalDB reconciles the stores.
+
+Stores present in the database but absent from `schema` are dropped on upgrade,
+so the schema is the complete description of what the database holds.
 
 ### Examples
 
 Basic usage:
 
 ```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
-import { Collection } from '@signaldb/core'
 
-const collection = new Collection({
-  persistence: createIndexedDBAdapter('myCollection'),
-})
-
-// Insert data
-collection.insert({ id: '1', name: 'John Doe' })
-
-// Fetch data
-const items = collection.find().fetch()
-console.log(items) // [{ id: '1', name: 'John Doe' }]
-```
-
-With custom prefix:
-
-```js
-import createIndexedDBAdapter from '@signaldb/indexeddb'
-import { Collection } from '@signaldb/core'
-
-const collection = new Collection({
-  persistence: createIndexedDBAdapter('myCollection', {
-    prefix: 'my-app-'
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { users: [] },
   }),
 })
 
-// This will create a database named 'my-app-myCollection'
+const Users = new Collection('users', dataAdapter)
+
+// Insert data — writes are asynchronous
+await Users.insert({ id: '1', name: 'John Doe' })
+
+// Fetch data
+const items = Users.find().fetch()
+console.log(items) // [{ id: '1', name: 'John Doe' }]
 ```
+
+Several collections in one database, with indices:
+
+```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 2,
+    schema: {
+      'posts': ['authorId', 'status'],
+      'authors': [],
+    },
+  }),
+})
+
+const Posts = new Collection('posts', dataAdapter, {
+  indices: ['authorId', 'status'],
+})
+const Authors = new Collection('authors', dataAdapter)
+```
+
+The fields you list in the store's `schema` entry and the collection's
+`indices` describe the same thing from two sides: the store has to carry the
+index, and the collection has to know it may use it.

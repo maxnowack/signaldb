@@ -27,17 +27,34 @@ head:
 ## createOPFSAdapter (`default`)
 
 ```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createOPFSAdapter from '@signaldb/opfs'
-import { Collection } from '@signaldb/core'
 
-const collection = new Collection({
-  persistence: createOPFSAdapter('path/to/db.json'),
+const dataAdapter = new DefaultDataAdapter({
+  storage: name => createOPFSAdapter(name),
 })
+
+const Posts = new Collection('posts', dataAdapter)
 ```
 
 Function to create a OPFS adapter for use with a collection.
 The OPFS Adapter is another way to store data in a browser environment.
-This adapter is based on the [Origin Private File System API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system). It is a simple and straightforward way to store data in the browser's filesystem. The only thing required is to specify the desired filename for each file.
+This adapter is based on the [Origin Private File System API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system). It is a simple and straightforward way to store data in the browser's filesystem.
+
+A data adapter asks its `storage` function for one adapter per collection and
+passes the collection's name, which is why the function above uses that name as
+the folder.
+
+### Parameters
+
+- `folderName` - The folder this collection lives in, relative to the origin private file system root.
+- `options` - (Optional) Configuration object with the following properties:
+  - `serialize` - (Optional) Turns a stored value into a string. Default is `JSON.stringify`.
+  - `deserialize` - (Optional) Reads that string back. Default is `JSON.parse`.
+
+Like the [Filesystem Adapter](/reference/fs/), the adapter is given a **folder**
+rather than a file: `items/` holds one file per document, `index/` one file per
+indexed value.
 
 The OPFS Adapter is an alternative to the [Filesystem Adapter](https://signaldb.js.org/reference/fs/). The OPFS Adapter can only be used in a browser environment, while the Filesystem Adapter can only be used in a Node.js environment.
 

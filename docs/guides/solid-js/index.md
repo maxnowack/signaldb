@@ -73,7 +73,7 @@ import Posts from './Posts'
 const PostList = () => (
   <ul>
     <li>
-      <button type="button" onClick={() => Posts.insert({ title: 'Test', author: 'Test' })}>
+      <button type="button" onClick={() => { void Posts.insert({ title: 'Test', author: 'Test' }) }}>
         Add
       </button>
     </li>
