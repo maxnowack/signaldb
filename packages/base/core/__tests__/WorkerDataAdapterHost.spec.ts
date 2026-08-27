@@ -603,6 +603,59 @@ describe('WorkerDataAdapterHost', () => {
       expect(updates.length).toBeGreaterThan(0)
     })
 
+    // Between registering a query and its first answer the host holds nothing for it, so there is
+    // no previous result to describe a change against. A write landing in that window has to send
+    // the whole result, the way the registration itself would have.
+    it('sends the full result for a query a write reaches before its first answer', async () => {
+      const storage = memoryStorageAdapter<TestItem>([])
+      let openGate = () => {}
+      const gate = new Promise<void>((resolve) => {
+        openGate = resolve
+      })
+      let firstRead = true
+      const gatedContext = new MockWorkerContext()
+      const gatedHost = new WorkerDataAdapterHost<TestItem>(gatedContext, {
+        id: 'gated-host',
+        storage: () => ({
+          ...storage,
+          readAll: async () => {
+            if (firstRead) {
+              firstRead = false
+              await gate
+            }
+            return storage.readAll()
+          },
+        }),
+      })
+
+      /**
+       * Sends a worker request to the gated host.
+       * @param method - Worker method to invoke.
+       * @param args - Arguments forwarded to the host handler.
+       * @returns Generated request id.
+       */
+      async function send(method: string, args: unknown[]) {
+        const id = Math.random().toString(36).slice(2)
+        await (gatedHost as any).handleMessage('gated-host', id, method, args)
+        return id
+      }
+
+      await send('registerCollection', ['items', []])
+      const registration = send('registerQuery', ['items', { name: 'Alice' }, {}])
+      await vi.waitFor(() => expect(firstRead).toBe(false))
+
+      gatedContext.clearResponses()
+      await send('insert', ['items', [[{ id: '1', name: 'Alice' }]]])
+
+      const update = gatedContext.getQueryUpdates('items')
+        .find(entry => (entry.data as any).state === 'complete')
+      expect((update?.data as any).items).toEqual([{ id: '1', name: 'Alice' }])
+      expect((update?.data as any).delta).toBeUndefined()
+
+      openGate()
+      await registration
+    })
+
     it('responds with error when executing query on unknown collection', async () => {
       const id = await sendRequest('executeQuery', ['missing', { name: 'Unknown' }, undefined])
       const response = await waitForResponse(id)

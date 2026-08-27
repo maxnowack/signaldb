@@ -2,6 +2,7 @@ import { vi, describe, it, expect } from 'vitest'
 import type { ObserveCallbacks, Transform } from '../src'
 import { Collection, Cursor, createReactivityAdapter } from '../src'
 import Observer from '../src/Collection/Observer'
+import { diffQueryResults } from '../src/utils/queryDelta'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => {
@@ -273,6 +274,38 @@ describe('Cursor', async () => {
       expect(callbacks.changed).not.toHaveBeenCalled()
       expect(callbacks.movedBefore).not.toHaveBeenCalled()
       expect(callbacks.removed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 2' }))
+    })
+
+    // A cursor that nothing else drives — the shape an integration is in when it applies the
+    // deltas a data adapter hands it, so the delta is the only thing that can move the observer.
+    it('should bring the cursor up to date from a delta', async () => {
+      let current: TestItem[] = [...items]
+      const cursor = new Cursor<TestItem>(() => current)
+
+      const callbacks = {
+        added: vi.fn(),
+        addedBefore: vi.fn(),
+        changed: vi.fn(),
+        movedBefore: vi.fn(),
+        removed: vi.fn(),
+      }
+      cursor.observeChanges(callbacks, true)
+
+      const before = current
+      current = [...current, { id: 4, name: 'item4' }]
+      cursor.applyDelta(diffQueryResults(before, current))
+
+      await wait() // Wait for all operations to finish
+      expect(callbacks.added).toHaveBeenCalledWith(expect.objectContaining({ id: 4, name: 'item4' }))
+      expect(callbacks.changed).not.toHaveBeenCalled()
+      expect(callbacks.removed).not.toHaveBeenCalled()
+    })
+
+    it('should ignore a delta on a cursor that is not observed', () => {
+      const cursor = new Cursor<TestItem>(() => items)
+      const delta = diffQueryResults(items, [...items, { id: 4, name: 'item4' }])
+
+      expect(() => cursor.applyDelta(delta)).not.toThrow()
     })
 
     it('should call the addedBefore callback when items are added', async () => {
