@@ -80,6 +80,32 @@ collection.find({}, {
 })
 ```
 
+## An empty result is an answer
+
+Depending on the [data adapter](/data-adapters/) you use, a query may not be
+answered the moment you ask for it. Until it is, the cursor publishes a
+**neutral** result: `fetch()` gives you an empty array, `count()` gives you
+zero.
+
+That neutral result is indistinguishable from a real one, because empty is a
+legitimate answer — plenty of queries genuinely match nothing.
+[`Cursor#isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive) is what lets
+you tell the two apart:
+
+```js
+const cursor = collection.find({ status: 'published' })
+
+effect(() => {
+  if (cursor.isLoading()) return renderSpinner()
+  render(cursor.fetch())
+})
+```
+
+With the default in-memory adapter this is `false` as soon as the collection is
+ready, so you rarely need it. With the async, worker and auto-fetch adapters
+there is a real window in which it is `true` — and rendering "no posts yet"
+during that window is the bug this prevents.
+
 ## Field-Level Reactivity
 
 SignalDB introduces a powerful enhancement to its reactivity system called **Field-Level Reactivity**, which ensures that reactive functions (such as `effect` or `autorun`) only rerun when specific fields accessed in your code are changed. Previously, the reactive system would rerun the query if any field in any item of the result set was modified, regardless of whether those fields were actually used in the code. This led to unnecessary reactivity and potential performance bottlenecks, especially with large datasets.
