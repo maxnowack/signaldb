@@ -54,17 +54,27 @@ To learn more about signals, read [The Evolution of Signals in JavaScript](https
 
 Typically, you'll simply use a predefined reactivity adapter for the signal library you're using. Check out the available adapters in the [Reactivity section](/reactivity/) of the documentation.
 
-## Memory Adapters
+## Data Adapters
 
-SignalDB's memory adapters play a critical role in controlling how and where data is stored in memory.
+A data adapter decides *where a collection's data operations actually happen*. A
+collection itself only describes the operation — insert this, update what
+matches that — and hands it to its data adapter, which answers it and reports
+back what changed.
 
-These adapters provide an abstraction over the underlying memory storage mechanism, giving users the flexibility to define custom methods for handling data storage operations.
+That is the seam that lets the same collection API run against very different
+arrangements: in memory on the main thread, asynchronously against storage, or
+in a web worker with only the results crossing back. Which one you pick changes
+nothing about how you query and write.
 
-Simply put, a memory adapter is a piece of code that dictates how your data is stored in memory. When you perform a write or read operation, the adapter is responsible for translating those high-level operations into low-level memory operations.
+```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
-Normally, you don't need to worry about memory adapters because SignalDB comes with a default one. Since a memory adapter is a subset of the `Array` class, the most basic memory adapter is an emtpty array (`[]`).
+const dataAdapter = new DefaultDataAdapter()
+const Posts = new Collection('posts', dataAdapter)
+```
 
-You can also create a MemoryAdapter on your own. See the [createMemoryAdapter reference](/reference/core/creatememoryadapter/) for more information.
+See the [data adapters](/data-persistence/) documentation for the adapters that
+ship with SignalDB and when each of them is the right one.
 
 ## Data Persistence
 

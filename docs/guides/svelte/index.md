@@ -79,7 +79,7 @@ Now let's create a component that lists posts and allows the user to add new one
   let items = $derived(Posts.find({}).fetch());
 </script>
 
-<button onclick={() => Posts.insert({ title: 'Post', author: 'Author' })}>
+<button onclick={() => { void Posts.insert({ title: 'Post', author: 'Author' }) }}>
   Add Post
 </button>
 

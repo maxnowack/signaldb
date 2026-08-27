@@ -50,10 +50,10 @@ Posts.on('validate', (post) => {
 })
 
 // This insertion works because 'title' is provided
-Posts.insert({ title: 'Hello, World!' })
+await Posts.insert({ title: 'Hello, World!' })
 
-// This insertion will throw an error due to the missing 'title'
-Posts.insert({ author: 'Joe' })
+// This insertion rejects due to the missing 'title'
+await Posts.insert({ author: 'Joe' })
 ```
 
 ## Advanced Example with Zod
@@ -105,15 +105,15 @@ const Posts = new SchemaCollection({
 })
 
 // This insertion is valid because it meets the schema requirements
-Posts.insert({ title: 'Hello, World!', content: 'This is a post content.' })
+await Posts.insert({ title: 'Hello, World!', content: 'This is a post content.' })
 
-// This insertion will throw an error because the 'content' field is missing
-Posts.insert({ title: 'Hello, World!' })
+// This insertion rejects because the 'content' field is missing
+await Posts.insert({ title: 'Hello, World!' })
 ```
 
 ## Additional Considerations
 
-- **Error Management:** Ensure that your application catches and handles validation errors appropriately to provide meaningful feedback to the user.
+- **Error Management:** Because writes are asynchronous, a failed validation surfaces as a rejected promise. Await the write and catch it, or the failure ends up in an unhandled rejection instead of in front of the user.
 - **Extensibility:** While the advanced example uses Zod, you can integrate other validation libraries in a similar manner by modifying the event handler.
 - **Type-Safety:** Leveraging schema validation with a tool like Zod not only validates runtime data but also infers types, reducing redundancy in your type definitions.
 

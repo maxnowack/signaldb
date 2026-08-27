@@ -34,15 +34,15 @@ SignalDB is a client-side database optimized for modern web applications. It pro
 import { Collection } from '@signaldb/core'
 
 const Posts = new Collection()
-const postId = Posts.insert({ title: 'Foo', text: 'Lorem ipsum …' })
+const postId = await Posts.insert({ title: 'Foo', text: 'Lorem ipsum …' })
 
-Posts.updateOne({ id: postId }, { // updates the post
+await Posts.updateOne({ id: postId }, { // updates the post
   $set: {
     title: 'New title',
   }
 })
 
-Posts.removeOne({ id: postId }) // removes the post
+await Posts.removeOne({ id: postId }) // removes the post
 
 const cursor = collection.find({})
 

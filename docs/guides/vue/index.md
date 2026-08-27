@@ -67,8 +67,8 @@ watchEffect((onCleanup) => {
   onCleanup(() => cursor.cleanup())
 })
 
-function addPost() {
-  Posts.insert({ title: 'Hello', author: 'World' })
+async function addPost() {
+  await Posts.insert({ title: 'Hello', author: 'World' })
 }
 </script>
 ```

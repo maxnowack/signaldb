@@ -28,19 +28,19 @@ SignalDB provides functionality to add methods to [collections](/reference/core/
 
 ## Adding Instance Methods to Collections
 
-To add new methods to a specific collection instance, we have to create a new class that inherits from the collection class. With this approach, it's also possible to directly define collection options like the name or the persistence adapter.
+To add new methods to a specific collection instance, we have to create a new class that inherits from the collection class. With this approach, it's also possible to directly define collection options like the name or the data adapter.
 
 In the example below, we create a new class `PostsCollection` that inherits from the `Collection` class and add a new method `findPublishedPosts` to the class. This method returns a `Cursor` to all published posts from the collection.
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
+
+const dataAdapter = new DefaultDataAdapter()
 
 class PostsCollection extends Collection {
   constructor() {
-    super({
-      name: 'posts',
+    super('posts', dataAdapter, {
       reactivity: /* specify reactivity options */,
-      persistence: /* specify persistence adapter */,
     })
   }
 
@@ -65,7 +65,7 @@ You can also override existing methods like `removeOne` or `updateOne` to add cu
 To add new instance methods to a specific item instance, we have to create a new class for item instances and transform items to an instance of this class using the [`transform` option](/reference/core/collection/#constructor) of the collection.
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
 class Post {
   constructor(data) {
@@ -77,7 +77,9 @@ class Post {
   }
 }
 
-const Posts = new Collection({ transform: item => new Post(item) })
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
+  transform: item => new Post(item),
+})
 ```
 
 In the example above, we create a new class `Post` that adds a new instance method `hasComments` to the class. This method returns `true` if the post has comments and `false` if not.
@@ -87,7 +89,7 @@ In the example above, we create a new class `Post` that adds a new instance meth
 With the ORM functionality, you can also resolve relationships between items in different collections. You can even chain them together later on in your code to build complex queries that span multiple collections and also reactively rerun on changes.
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
 class Post {
   constructor(data) {
@@ -99,7 +101,7 @@ class Post {
   }
 
   getComments() {
-    return Comments.find({ postId: this._id })
+    return Comments.find({ postId: this.id })
   }
 }
 
@@ -119,13 +121,14 @@ class User {
   }
 
   getPosts() {
-    return Posts.find({ authorId: this._id })
+    return Posts.find({ authorId: this.id })
   }
 }
 
-const Posts = new Collection({ name: 'posts', transform: item => new Post(item) })
-const Users = new Collection({ name: 'users', transform: item => new User(item) })
-const Comments = new Collection({ name: 'comments', transform: item => new Comment(item) })
+const dataAdapter = new DefaultDataAdapter()
+const Posts = new Collection('posts', dataAdapter, { transform: item => new Post(item) })
+const Users = new Collection('users', dataAdapter, { transform: item => new User(item) })
+const Comments = new Collection('comments', dataAdapter, { transform: item => new Comment(item) })
 
 effect(() => {
   const lastPost = Posts.findOne({}, {
@@ -193,7 +196,7 @@ Inside this function, you can:
 1.  **Check `fields`:** Determine if the related data field (e.g., `author`) was actually requested in the query. This prevents unnecessary fetching.
 2.  **Collect Foreign Keys:** Extract the unique IDs (foreign keys) needed to fetch the related data from the `items` array.
 3.  **Bulk Fetch:** Perform a *single* query on the related collection (e.g., `Users`) to retrieve all necessary related items at once using the collected keys (e.g., using `$in`).
-4.  **Map Data:** Iterate through the original `items` and replace the foreign key with the corresponding fetched related object.
+4.  **Map Data:** Return a new list in which each item carries the fetched related object alongside (or instead of) its foreign key.
 
 This process happens automatically whenever a query using the relevant `fields` is executed or re-runs due to reactivity.
 
@@ -202,50 +205,45 @@ This process happens automatically whenever a query using the relevant `fields` 
 Let's redefine our `Posts` and `Users` collections to use transformAll for fetching authors:
 
 ```js
-import { Collection, memoryPersistenceAdapter, primitiveReactivityAdapter, effect } from '@signaldb/core' // Assuming adapters are imported
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
+import maverickjsReactivityAdapter from '@signaldb/maverickjs'
+
+const dataAdapter = new DefaultDataAdapter()
 
 // User Collection (No changes needed here for this example)
-const Users = new Collection({ 
-  name: 'users',
-  reactivity: primitiveReactivityAdapter,
-  persistence: memoryPersistenceAdapter(),
+const Users = new Collection('users', dataAdapter, {
+  reactivity: maverickjsReactivityAdapter,
 })
 
 // Populate Users
-Users.insert({ _id: 'user1', name: 'Alice' })
-Users.insert({ _id: 'user2', name: 'Bob' })
+await Users.insert({ id: 'user1', name: 'Alice' })
+await Users.insert({ id: 'user2', name: 'Bob' })
 
 
 // Post Collection with transformAll
-const Posts = new Collection({
-  name: 'posts',
-  reactivity: primitiveReactivityAdapter,
-  persistence: memoryPersistenceAdapter(),
+const Posts = new Collection('posts', dataAdapter, {
+  reactivity: maverickjsReactivityAdapter,
   // --- transformAll Function ---
   transformAll: (items, fields) => {
     // 1. Check if the 'author' field is requested
-    if (fields?.author) {
-      // 2. Collect unique author IDs
-      const authorIds = [...new Set(items.map(item => item.authorId))]
-      // 3. Bulk fetch authors
-      const relatedAuthors = Users.find({ _id: { $in: authorIds } }).fetch()
-      // 4. Map authors back to posts
-      items.forEach((item) => {
-        // Find the corresponding author and replace the ID
-        // Note: We're replacing/adding the 'author' field, not 'authorId'
-        item.author = relatedAuthors.find(author => author._id === item.authorId)
-        // Optionally delete the original ID field if desired
-        // delete item.authorId; 
-      })
-    }
-    // Note: The function modifies 'items' in place.
-  }
+    if (!fields?.author) return items
+
+    // 2. Collect unique author IDs
+    const authorIds = [...new Set(items.map(item => item.authorId))]
+    // 3. Bulk fetch authors
+    const relatedAuthors = Users.find({ id: { $in: authorIds } }).fetch()
+    // 4. Map authors back to posts
+    return items.map(item => ({
+      ...item,
+      author: relatedAuthors.find(author => author.id === item.authorId),
+    }))
+  },
 })
 
 // Populate Posts
-Posts.insert({ _id: 'post1', title: 'First Post', authorId: 'user1' })
-Posts.insert({ _id: 'post2', title: 'Second Post', authorId: 'user2' })
-Posts.insert({ _id: 'post3', title: 'Third Post', authorId: 'user1' })
+await Posts.insert({ id: 'post1', title: 'First Post', authorId: 'user1' })
+await Posts.insert({ id: 'post2', title: 'Second Post', authorId: 'user2' })
+await Posts.insert({ id: 'post3', title: 'Third Post', authorId: 'user1' })
 
 // --- Usage ---
 
@@ -254,9 +252,9 @@ const postsWithAuthors = Posts.find({}, { fields: { title: 1, author: 1 } }).fet
 console.log(postsWithAuthors)
 /* Output:
 [
-  { _id: 'post1', title: 'First Post', author: { _id: 'user1', name: 'Alice' } },
-  { _id: 'post2', title: 'Second Post', author: { _id: 'user2', name: 'Bob' } },
-  { _id: 'post3', title: 'Third Post', author: { _id: 'user1', name: 'Alice' } }
+  { id: 'post1', title: 'First Post', author: { id: 'user1', name: 'Alice' } },
+  { id: 'post2', title: 'Second Post', author: { id: 'user2', name: 'Bob' } },
+  { id: 'post3', title: 'Third Post', author: { id: 'user1', name: 'Alice' } }
 ]
 */
 
@@ -265,12 +263,16 @@ const postsWithoutAuthors = Posts.find({}, { fields: { title: 1, authorId: 1 } }
 console.log(postsWithoutAuthors)
 /* Output:
 [
-  { _id: 'post1', title: 'First Post', authorId: 'user1' },
-  { _id: 'post2', title: 'Second Post', authorId: 'user2' },
-  { _id: 'post3', title: 'Third Post', authorId: 'user1' }
+  { id: 'post1', title: 'First Post', authorId: 'user1' },
+  { id: 'post2', title: 'Second Post', authorId: 'user2' },
+  { id: 'post3', title: 'Third Post', authorId: 'user1' }
 ]
 */
 ```
+
+`transformAll` **returns** the transformed list rather than modifying `items`
+in place. Returning `items` unchanged, as the early return above does, is how
+you say "nothing to do for this query".
 ### Reactivity
 
 The transformAll process is fully integrated with SignalDB's reactivity system. If the data in the related collection changes (e.g., a user's name is updated), any reactive query that includes the transformAll field will automatically re-run and reflect the changes.
@@ -280,14 +282,14 @@ import { effect, Users, Posts } from './your-setup'; // Assuming Users, Posts, e
 
 effect(() => {
   // This query requests the transformAll 'author' field
-  const posts = Posts.find({ _id: 'post1' }, { fields: { title: 1, author: 1 } }).fetch()
+  const posts = Posts.find({ id: 'post1' }, { fields: { title: 1, author: 1 } }).fetch()
   console.log('Post 1 Author:', posts[0]?.author?.name)
 })
 
 // Initial output: Post 1 Author: Alice
 
 // Now, update the related user
-Users.updateOne({ _id: 'user1' }, { $set: { name: 'Alice Smith' } })
+await Users.updateOne({ id: 'user1' }, { $set: { name: 'Alice Smith' } })
 
 // The effect will re-run automatically due to the change in Users
 // Updated output: Post 1 Author: Alice Smith
