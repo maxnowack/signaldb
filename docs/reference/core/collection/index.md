@@ -83,7 +83,7 @@ developer tools.
 
 Parameters
 * `name`: The name of the collection.
-* `dataAdapter`: The [DataAdapter](/data-persistence/) that answers this collection's data operations. One data adapter usually serves every collection of an application.
+* `dataAdapter`: The [DataAdapter](/reference/core/dataadapter/) that answers this collection's data operations. One data adapter usually serves every collection of an application.
 * `options` (Optional): An object specifying various options for the collection. Options include:
   * reactivity: A [ReactivityAdapter](/reactivity/) for enabling reactivity.
   * transform: A transformation function to be applied to items. The document that should be transformed is passed as the only parameter. The function should return the transformed document (e.g. `(doc: T) => U`)

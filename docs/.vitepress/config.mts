@@ -67,6 +67,7 @@ export default withMermaid({
             { text: 'Querying Data', link: '/queries/' },
             { text: 'Data manipulation', link: '/data-manipulation/' },
             { text: 'Data Storage', link: '/data-persistence/' },
+            { text: 'Data Adapters', link: '/data-adapters/' },
             { text: 'Reactivity', link: '/reactivity/' },
             { text: 'Synchronization', link: '/sync/' },
             { text: 'ORM', link: '/orm/' },
@@ -159,6 +160,11 @@ export default withMermaid({
               items: [
                 { text: 'Collection', link: '/reference/core/collection/' },
                 { text: 'Cursor', link: '/reference/core/cursor/' },
+                { text: 'DataAdapter', link: '/reference/core/dataadapter/' },
+                { text: 'DefaultDataAdapter', link: '/reference/core/defaultdataadapter/' },
+                { text: 'AsyncDataAdapter', link: '/reference/core/asyncdataadapter/' },
+                { text: 'WorkerDataAdapter', link: '/reference/core/workerdataadapter/' },
+                { text: 'AutoFetchDataAdapter', link: '/reference/core/autofetchdataadapter/' },
                 { text: 'createStorageAdapter', link: '/reference/core/createstorageadapter/' },
                 { text: 'createReactivityAdapter', link: '/reference/core/createreactivityadapter/' },
               ],
@@ -277,7 +283,7 @@ export default withMermaid({
       '/examples/rxdb/index.html': '/sync/',
       '/upgrade/v1/index.html': '/upgrade/v2/',
       // Removed in v2 — the concepts they documented live on elsewhere.
-      '/reference/core/autofetchcollection/index.html': '/reference/core/collection/',
+      '/reference/core/autofetchcollection/index.html': '/reference/core/autofetchdataadapter/',
       '/reference/core/createindex/index.html': '/reference/core/collection/',
       '/reference/core/createindexprovider/index.html': '/reference/core/collection/',
       '/reference/core/creatememoryadapter/index.html': '/reference/core/createstorageadapter/',
