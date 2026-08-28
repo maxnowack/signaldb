@@ -1,4 +1,5 @@
 import fs from 'fs/promises'
+import { existsSync } from 'fs'
 import path from 'path'
 import { createRequire } from 'module'
 import { withMermaid } from 'vitepress-plugin-mermaid'
@@ -6,6 +7,37 @@ import llmstxt from 'vitepress-plugin-llms'
 
 const require = createRequire(import.meta.url)
 const package_ = require('../../packages/base/core/package.json')
+
+// The frozen v1 documentation, built into `docs/public/v1` by
+// `npm run docs:build-v1` (see .scripts/build-v1-docs.js). It is not in the
+// repository, so link to it only when it is actually there — otherwise every
+// local docs build would carry a navigation entry that 404s.
+const hasV1Documentation = existsSync(new URL('../public/v1', import.meta.url))
+
+/**
+ * Serves the v1 archive's directory indexes in the dev server.
+ *
+ * A static host resolves `/v1/` to `/v1/index.html` by itself, and the build
+ * output relies on that. Vite does not do it for files under `public/`, so in
+ * development every archive URL would fall through to VitePress' own SPA
+ * handler and render a 404 instead.
+ * @returns A Vite plugin that rewrites those requests.
+ */
+function serveV1DirectoryIndexes() {
+  return {
+    name: 'signaldb-v1-directory-indexes',
+    configureServer(server: { middlewares: { use: (fn: (...args: any[]) => void) => void } }) {
+      server.middlewares.use((request: { url?: string }, _response: unknown, next: () => void) => {
+        const [pathname, query] = (request.url ?? '').split('?')
+        if (pathname === '/v1' || (pathname.startsWith('/v1/') && pathname.endsWith('/'))) {
+          const base = pathname === '/v1' ? '/v1/' : pathname
+          request.url = `${base}index.html${query ? `?${query}` : ''}`
+        }
+        next()
+      })
+    },
+  }
+}
 
 /**
  * Builds an HTML string for redirecting to a specified URL.
@@ -19,7 +51,7 @@ function buildRedirectHtml(to: string) {
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
   vite: {
-    plugins: [llmstxt()],
+    plugins: [llmstxt(), serveV1DirectoryIndexes()],
   },
   title: 'SignalDB',
   description: 'A reactive local JavaScript database with a MongoDB-like interface, first-class TypeScript support and signal-based reactivity.',
@@ -41,14 +73,9 @@ export default withMermaid({
             text: 'Contributing',
             link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md',
           },
-          {
-            // The v1 documentation, built from its tag by `npm run docs:build-v1`
-            // and placed at `/v1/` after the main build. A local `docs:build`
-            // does not produce it, so this link only resolves on the deployed
-            // site — see .scripts/build-v1-docs.js.
-            text: 'v1 documentation',
-            link: '/v1/',
-          },
+          ...hasV1Documentation
+            ? [{ text: 'v1 documentation', link: '/v1/' }]
+            : [],
         ],
       },
     ],
