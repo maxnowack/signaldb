@@ -202,7 +202,7 @@ describe('DefaultDataAdapter', () => {
     await backend.isReady()
     expect(spy).toHaveBeenCalled()
     const message = (spy.mock.calls[0]?.[0] ?? '') as string
-    expect(message).toContain('Error during data persistence operation in collection err')
+    expect(message).toContain('Error during storage operation in collection err')
     spy.mockRestore()
   })
 

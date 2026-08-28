@@ -243,13 +243,13 @@ describe('AutoFetchDataAdapter', () => {
       storage: () => memoryStorageAdapter<Post>([]),
       fetchQueryItems: async () => [],
     })
-    await expect(((adapter as any).getIndexInfo('nope', {}))).rejects.toThrow('No persistence adapter for collection nope')
+    await expect(((adapter as any).getIndexInfo('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
     ;(adapter as any).storageAdapters.set('a', memoryStorageAdapter<Post>([]))
     const fast = await (adapter as any).getIndexInfo('a', { id: '1' })
     expect(fast.matched).toBe(true)
     const nil = await (adapter as any).getIndexInfo('a', null)
     expect(nil.matched).toBe(false)
-    await expect(((adapter as any).queryItems('nope', {}))).rejects.toThrow('No persistence adapter for collection nope')
+    await expect(((adapter as any).queryItems('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
   })
 
   it('checkQueryUpdates missing registry, empty affected, and error path', async () => {
@@ -273,12 +273,12 @@ describe('AutoFetchDataAdapter', () => {
       storage: () => memoryStorageAdapter<Post>([]),
       fetchQueryItems: async () => [],
     })
-    await expect(((adapter as any).insert('m', { id: '1' }))).rejects.toThrow('No persistence adapter for collection m')
-    await expect(((adapter as any).updateOne('m', {}, {}))).rejects.toThrow('No persistence adapter for collection m')
-    await expect(((adapter as any).updateMany('m', {}, {}))).rejects.toThrow('No persistence adapter for collection m')
-    await expect(((adapter as any).replaceOne('m', {}, {}))).rejects.toThrow('No persistence adapter for collection m')
-    await expect(((adapter as any).removeOne('m', {}))).rejects.toThrow('No persistence adapter for collection m')
-    await expect(((adapter as any).removeMany('m', {}))).rejects.toThrow('No persistence adapter for collection m')
+    await expect(((adapter as any).insert('m', { id: '1' }))).rejects.toThrow('No storage adapter for collection m')
+    await expect(((adapter as any).updateOne('m', {}, {}))).rejects.toThrow('No storage adapter for collection m')
+    await expect(((adapter as any).updateMany('m', {}, {}))).rejects.toThrow('No storage adapter for collection m')
+    await expect(((adapter as any).replaceOne('m', {}, {}))).rejects.toThrow('No storage adapter for collection m')
+    await expect(((adapter as any).removeOne('m', {}))).rejects.toThrow('No storage adapter for collection m')
+    await expect(((adapter as any).removeMany('m', {}))).rejects.toThrow('No storage adapter for collection m')
   })
 
   it('purgeSelector does not remove CRUD-inserted items (not auto-fetched)', async () => {
@@ -575,7 +575,7 @@ describe('AutoFetchDataAdapter', () => {
       storage: () => memoryStorageAdapter<Post>([]),
       fetchQueryItems: async () => [],
     })
-    await expect((adapter as any).upsertMerged('nost', [{ id: 'x' }])).rejects.toThrow('No persistence adapter for collection nost')
+    await expect((adapter as any).upsertMerged('nost', [{ id: 'x' }])).rejects.toThrow('No storage adapter for collection nost')
   })
 
   it('fulfillQuery publishes complete with items and publishState no-op when missing record', async () => {
@@ -704,7 +704,7 @@ describe('AutoFetchDataAdapter', () => {
     ;(adapter as any).idRefCounts.set(colName, new Map([['id2', 1]]))
     // ensure autoload mark present
     ;(adapter as any).autoloadIds.set(colName, new Set(['id2']))
-    await expect((adapter as any).purgeSelector(colName, {})).rejects.toThrow('No persistence adapter for collection ps')
+    await expect((adapter as any).purgeSelector(colName, {})).rejects.toThrow('No storage adapter for collection ps')
   })
 
   it('setupStorage throws without storage and ensureStorageAdapter branches', async () => {
@@ -713,7 +713,7 @@ describe('AutoFetchDataAdapter', () => {
       storage: () => memoryStorageAdapter<Post>([]),
       fetchQueryItems: async () => [],
     })
-    await expect((adapter1 as any).setupStorage('nost', [])).rejects.toThrow('No persistence adapter for collection nost')
+    await expect((adapter1 as any).setupStorage('nost', [])).rejects.toThrow('No storage adapter for collection nost')
 
     // has adapter -> early return
     const adapter2 = new AutoFetchDataAdapter({

@@ -319,8 +319,8 @@ export default class Collection<
    * @param options.memory - The in-memory adapter for storing items.
    * @param options.reactivity - The reactivity adapter for observing changes in the collection.
    * @param options.transform - A transformation function to apply to items when retrieving them.
-   * @param options.persistence - The persistence adapter for saving and loading items.
-   * @param options.indices - An array of index providers for optimized querying.
+   * @param options.persistence - Deprecated. A storage adapter for saving and loading items; pass a `DataAdapter` instead.
+   * @param options.indices - An array of field names to index for optimized querying.
    * @param options.enableDebugMode - A boolean to enable or disable debug mode.
    * @param options.fieldTracking - A boolean to enable or disable field tracking by default.
    * @param options.transformAll - A function that will be able to solve the n+1 problem
@@ -412,7 +412,7 @@ export default class Collection<
   /**
    * Checks whether the collection is currently performing a pull operation
    * ⚡️ this function is reactive!
-   * (loading data from the persistence adapter).
+   * (loading data from storage).
    * @returns A boolean indicating if the collection is in the process of pulling data.
    */
   public isPulling() {
@@ -422,7 +422,7 @@ export default class Collection<
   /**
    * Checks whether the collection is currently performing a push operation
    * ⚡️ this function is reactive!
-   * (saving data to the persistence adapter).
+   * (saving data to storage).
    * @returns A boolean indicating if the collection is in the process of pushing data.
    */
   public isPushing() {
@@ -595,7 +595,7 @@ export default class Collection<
   }
 
   /**
-   * Disposes the collection, unregisters persistence adapters, clears memory, and
+   * Disposes the collection, unregisters storage adapters, clears memory, and
    * cleans up all resources used by the collection.
    * @returns A promise that resolves when the collection is disposed.
    */

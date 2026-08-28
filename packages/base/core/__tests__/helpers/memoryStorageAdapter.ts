@@ -1,14 +1,14 @@
 import { createStorageAdapter, serializeValue } from '../../src'
 
 /**
- * Creates a memory-based persistence adapter for testing purposes. This adapter
- * mimics the behavior of a SignalDB persistence adapter, allowing in-memory storage
+ * Creates a memory-based storage adapter for testing purposes. This adapter
+ * mimics the behavior of a SignalDB storage adapter, allowing in-memory storage
  * and change tracking with optional transmission of changes and delays.
  * @template T - The type of the items in the collection.
  * @template I - The type of the unique identifier for the items.
  * @param initialData - An array of initial data items to populate the memory store.
  * @param delay - An optional delay (in milliseconds) for load operations to simulate asynchronous behavior.
- * @returns A memory persistence adapter with additional methods for adding, changing, and removing items.
+ * @returns A memory storage adapter with additional methods for adding, changing, and removing items.
  * @example
  * import memoryStorageAdapter from './memoryStorageAdapter';
  *
@@ -34,7 +34,7 @@ export default function memoryStorageAdapter<
   initialData: T[] = [],
   delay?: number,
 ) {
-  // not really a "persistence adapter", but it works for testing
+  // not really a "storage adapter", but it works for testing
   let items = new Map<I, T>()
   initialData.forEach(item => items.set(item.id, item))
   // Keyed by `serializeValue`, which is what `StorageAdapter.readIndex`
