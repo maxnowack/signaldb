@@ -20,7 +20,7 @@
     "@types/react": "19.2.16",
     "@types/react-dom": "19.2.3",
     "appwrite": "^25.0.0",
-    "next": "16.2.7",
+    "next": "16.2.11",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "typescript": "5.9.3"
