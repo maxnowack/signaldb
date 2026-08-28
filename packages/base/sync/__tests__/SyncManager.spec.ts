@@ -366,9 +366,9 @@ it('should push changes when items are removed locally', async () => {
   useFakeTimers()
   await mockCollection.removeOne({ id: '1' })
   await vi.runAllTimersAsync()
+  expect(mockPush).toHaveBeenCalled()
 
   expect(onError).not.toHaveBeenCalled()
-  expect(mockPush).toHaveBeenCalled()
   await expect(mockCollection.findOne({ id: '1' }, { async: true })).resolves.toBeUndefined()
 })
 
@@ -999,9 +999,9 @@ it('should call onError handler if an async error occurs', async () => {
   useFakeTimers()
   await mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
   await vi.runAllTimersAsync()
+  expect(onError).toHaveBeenCalledTimes(1)
 
   expect(mockPush).toHaveBeenCalled()
-  expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Push failed'))
 })
 
@@ -1606,8 +1606,8 @@ it('should only automatically push if started', async () => {
 
   await syncManager.startSync('test')
   await vi.runAllTimersAsync()
-  expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(1)
+  expect(onError).not.toHaveBeenCalled()
 })
 
 it('should handle an error during registerRemoteChange', async () => {
@@ -1723,8 +1723,8 @@ it('should trigger sync when using $set on an array to modify an object/item inl
 
   await vi.runAllTimersAsync()
 
-  expect(pull).toHaveBeenCalledTimes(2)
   expect(push).toHaveBeenCalledTimes(1)
+  expect(pull).toHaveBeenCalledTimes(2)
 
   await posts.updateOne({ id: postId1 }, { $set: { 'meta.likes': 5 } })
 
