@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 'use strict'
 
-// Builds the frozen v1 documentation and places it at `/v1/` of the published
-// site. v1 receives no further changes, so this is a build of a fixed tag
-// rather than of anything in the working tree.
+// Builds the frozen v1 documentation into `docs/public/v1`, from where the site
+// serves it at `/v1/`. v1 receives no further changes, so this is a build of a
+// fixed tag rather than of anything in the working tree.
+//
+// Run it before `docs:build` — or once, before `docs:dev`, to get the link
+// working locally. Until it has run there is no archive, and the navigation
+// leaves the entry out rather than pointing at nothing.
 //
 // The result is cached under `.cache/v1-docs`, keyed by the tag: the first run
 // pays for a checkout, an install and a build, every run after it copies. CI
@@ -20,7 +24,10 @@ const V1_TAG = 'v1.8.1'
 
 const repoRoot = path.resolve(__dirname, '..')
 const cacheDirectory = path.join(repoRoot, '.cache', 'v1-docs', V1_TAG)
-const outputDirectory = path.join(repoRoot, 'docs', '.vitepress', 'dist', 'v1')
+// VitePress serves `docs/public` in the dev server and copies it verbatim on
+// build, so putting the archive here is what makes `/v1/` resolve in both —
+// rather than only in whatever ran last. Gitignored; nothing built is committed.
+const outputDirectory = path.join(repoRoot, 'docs', 'public', 'v1')
 
 // Parts of the v1 build the live site already serves, or that would compete
 // with it. A second sitemap would push v1 URLs into the search index; a second
@@ -79,6 +86,21 @@ function run(command, args, cwd) {
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
+// The v1 build emits a Markdown copy of every page for `llms.txt`. The live
+// site carries the current ones; a second set describing the previous major is
+// weight at best and a wrong answer at worst.
+async function removeMarkdownFiles(directory) {
+  const entries = await fs.promises.readdir(directory, { withFileTypes: true })
+  await Promise.all(entries.map(async (entry) => {
+    const entryPath = path.join(directory, entry.name)
+    if (entry.isDirectory()) {
+      await removeMarkdownFiles(entryPath)
+    } else if (entry.name.endsWith('.md')) {
+      await fs.promises.rm(entryPath, { force: true })
+    }
+  }))
+}
+
 async function isPopulated(directory) {
   try {
     const entries = await fs.promises.readdir(directory)
@@ -132,9 +154,6 @@ async function buildIntoCache() {
     await fs.promises.rm(cacheDirectory, { recursive: true, force: true })
     await fs.promises.mkdir(path.dirname(cacheDirectory), { recursive: true })
     await fs.promises.cp(built, cacheDirectory, { recursive: true })
-
-    await Promise.all(DROP_FROM_OUTPUT.map(entry =>
-      fs.promises.rm(path.join(cacheDirectory, entry), { recursive: true, force: true })))
   } finally {
     await run('git', ['worktree', 'remove', '--force', checkoutDirectory], repoRoot).catch(() => {})
     await fs.promises.rm(checkoutDirectory, { recursive: true, force: true }).catch(() => {})
@@ -151,6 +170,13 @@ async function buildIntoCache() {
   await fs.promises.rm(outputDirectory, { recursive: true, force: true })
   await fs.promises.mkdir(path.dirname(outputDirectory), { recursive: true })
   await fs.promises.cp(cacheDirectory, outputDirectory, { recursive: true })
+
+  // Trimmed here rather than on the way into the cache, so the cache stays a
+  // faithful copy of the build and changing what we drop costs a copy instead
+  // of a rebuild.
+  await Promise.all(DROP_FROM_OUTPUT.map(entry =>
+    fs.promises.rm(path.join(outputDirectory, entry), { recursive: true, force: true })))
+  await removeMarkdownFiles(outputDirectory)
 
   console.log(`✅ v1 documentation placed at ${path.relative(repoRoot, outputDirectory)}`)
 })().catch((error) => {

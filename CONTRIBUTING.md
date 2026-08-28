@@ -58,12 +58,19 @@ When you make changes to the API, please also update the documentation in the `d
 npm run docs:dev
 ```
 
-The documentation for v1 is not in this tree. It lives at `/v1/` of the
-published site and is built from the `v1.8.1` tag by `npm run docs:build-v1`,
-which the deploy workflow runs after the main build. A local `npm run docs:build`
-does not produce it, so the "v1 documentation" link in the navigation only
-resolves on the deployed site. See `.scripts/build-v1-docs.js` — the tag is the
-only thing to change there.
+The documentation for v1 is not in this tree. It is built from the `v1.8.1` tag
+into `docs/public/v1` by `npm run docs:build-v1`, which the deploy workflow runs
+before the main build:
+
+```sh
+npm run docs:build-v1
+```
+
+You only need this if you are working on the v1 archive itself — the navigation
+leaves its entry out when the directory is absent, so nothing links into the
+void without it. The first run checks the tag out and builds it, which takes a
+few minutes; every run after that copies from `.cache/v1-docs`. See
+`.scripts/build-v1-docs.js` — the tag is the only thing to change there.
 
 ## ❓ Questions
 
