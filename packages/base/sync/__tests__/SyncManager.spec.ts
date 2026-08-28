@@ -344,12 +344,9 @@ it('should push changes when items are removed locally', async () => {
   await syncManager.sync('test')
 
   await mockCollection.removeOne({ id: '1' })
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.waitFor(() => expect(mockPush).toHaveBeenCalled(), { timeout: 5000 })
 
   expect(onError).not.toHaveBeenCalled()
-  expect(mockPush).toHaveBeenCalled()
   await expect(mockCollection.findOne({ id: '1' }, { async: true })).resolves.toBeUndefined()
 })
 
@@ -973,12 +970,9 @@ it('should call onError handler if an async error occurs', async () => {
   await syncManager.sync('test')
 
   await mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1), { timeout: 5000 })
 
   expect(mockPush).toHaveBeenCalled()
-  expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Push failed'))
 })
 
@@ -1582,11 +1576,8 @@ it('should only automatically push if started', async () => {
   expect(mockPush).toHaveBeenCalledTimes(0)
 
   await syncManager.startSync('test')
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.waitFor(() => expect(mockPush).toHaveBeenCalledTimes(1), { timeout: 5000 })
   expect(onError).not.toHaveBeenCalled()
-  expect(mockPush).toHaveBeenCalledTimes(1)
 })
 
 it('should handle an error during registerRemoteChange', async () => {
@@ -1698,20 +1689,12 @@ it('should trigger sync when using $set on an array to modify an object/item inl
     { id: postId2, title: 'Foo', text: 'Riker ipsum …' },
   ])
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
-
+  await vi.waitFor(() => expect(push).toHaveBeenCalledTimes(1), { timeout: 5000 })
   expect(pull).toHaveBeenCalledTimes(2)
-  expect(push).toHaveBeenCalledTimes(1)
 
   await posts.updateOne({ id: postId1 }, { $set: { 'meta.likes': 5 } })
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
-
-  expect(push).toHaveBeenCalledTimes(2)
+  await vi.waitFor(() => expect(push).toHaveBeenCalledTimes(2), { timeout: 5000 })
 })
 
 it('should handle errors with onError handler in event listeners', async () => {
