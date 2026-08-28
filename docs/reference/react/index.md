@@ -1,9 +1,9 @@
 # @signaldb/react
 
-## createUseReactivityHook (`default`)
+## createUseReactivityHook
 
 ```ts
-import createUseReactivityHook from '@signaldb/react'
+import { createUseReactivityHook } from '@signaldb/react'
 import { effect } from '…'
 
 const useReactivity = createUseReactivityHook(effect)
