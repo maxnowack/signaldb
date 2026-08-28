@@ -27,11 +27,11 @@ head:
 ## usignalReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import usignalReactivityAdapter from '@signaldb/usignal'
 import { effect } from 'usignal'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: usignalReactivityAdapter,
 })
 

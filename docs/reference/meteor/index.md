@@ -27,11 +27,11 @@ head:
 ## meteorReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import meteorReactivityAdapter from '@signaldb/meteor'
 import { Tracker } from 'meteor/tracker'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: meteorReactivityAdapter(Tracker),
 })
 

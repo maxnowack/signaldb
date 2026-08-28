@@ -27,11 +27,11 @@ head:
 ## obyReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import obyReactivityAdapter from '@signaldb/oby'
 import { effect } from 'oby'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: obyReactivityAdapter,
 })
 

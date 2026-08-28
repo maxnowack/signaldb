@@ -27,11 +27,11 @@ head:
 ## mobxReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import mobxReactivityAdapter from '@signaldb/mobx'
 import { autorun } from 'mobx'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: mobxReactivityAdapter,
 })
 
