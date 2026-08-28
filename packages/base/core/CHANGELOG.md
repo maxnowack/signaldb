@@ -10,13 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### BREAKING CHANGES
 
 * `StorageAdapter.readIndex` now declares `Map<string | null, Set<I>>` instead of `Map<any, Set<I>>`. The keys always had to be `serializeValue(value)` — that is what SignalDB looks an index up with — but the type did not say so, and an adapter keying its index by the raw field value answered nothing for every non-string field and everything for a `$ne` on one. If your adapter stores raw keys, wrap them in `serializeValue` from `@signaldb/core`.
-* The `insert`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous and return a `Promise<void>`
+* The `insert`, `insertMany`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous. They resolve to what they always returned: `insert` to the new item's id, `insertMany` to the new ids, `updateOne`, `replaceOne` and `removeOne` to `0` or `1`, and `updateMany` and `removeMany` to the number of items they touched. Await them — a rejected write that nobody awaits, a failed validation for instance, surfaces as an unhandled rejection instead of reaching your error handling.
 * The `createMemoryAdapter` method and `MemoryAdapter` type were removed.
 * The `memory` option for a `Collection` was removed.
 * The `AutoFetchCollection` was removed. Use the `AutoFetchDataAdapter` instead.
 * `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
 * Indices on a `Collection` are now specified as an array of strings instead of using `IndexProvider` or `LowLevelIndexProvider` instances.
 * `PersistenceAdapter` was renamed to `StorageAdapter` and the signature was changed in a non backward compatible way.
+* The error messages that named the old concept were renamed with it: `No persistence adapter for collection <name>` is now `No storage adapter for collection <name>`, and the `console.error` for a failed background write says `Error during storage operation in collection <name>`. If you match on either string — in a test, a log filter, or an error reporter's grouping rule — update it.
 * The `createPersistenceAdapter` method was renamed to `createStorageAdapter`.
 * The `combinePersistenceAdapters` method was removed.
 * All persistence events on the `Collection` were removed.

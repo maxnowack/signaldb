@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### BREAKING CHANGES
 
 * Switched to new `StorageAdapter` API.
+* **The localStorage keys changed.** A collection used to live under `signaldb-collection-<name>`; it now lives under `<databaseName>-<name>`, defaulting to `signaldb-<name>`, with one further key per declared index. Data written by v1 is still in localStorage but is not read by v2 — read the old key yourself once and insert its contents into the collection, then remove it.
 * Removed compatibility with `@signaldb/core` versions below `2.0.0`
 
 ### Fixed
