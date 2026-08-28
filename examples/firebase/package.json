@@ -17,12 +17,12 @@
     "@signaldb/react": "*",
     "@signaldb/sync": "*",
     "@types/node": "25.9.5",
-    "@types/react": "19.2.16",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
     "firebase": "^12.7.0",
     "next": "16.2.11",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "typescript": "5.9.3"
   },
   "devDependencies": {
