@@ -15,6 +15,12 @@ import stylisticPlugin from '@stylistic/eslint-plugin'
 import unicornPlugin from 'eslint-plugin-unicorn'
 import FastGlob from 'fast-glob'
 
+// eslint-plugin-react cannot auto-detect the React version on ESLint 10, because its
+// detection relies on the removed `context.getFilename()`. Resolve it ourselves instead.
+const { version: reactVersion } = JSON.parse(
+  fs.readFileSync(new URL(import.meta.resolve('react/package.json')), 'utf8'),
+)
+
 const { workspaces } = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf8'))
 const projectDirectories = workspaces
   .flatMap(pattern => FastGlob.sync(pattern, { onlyDirectories: true }))
@@ -47,7 +53,7 @@ export default defineConfig(
     },
     settings: {
       'react': {
-        version: 'detect',
+        version: reactVersion,
       },
       'import/resolver': {
         typescript: {

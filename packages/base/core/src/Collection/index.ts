@@ -326,13 +326,12 @@ export default class Collection<
       this.persistenceAdapter.register(data => this.loadPersistentData(data, ongoingSaves > 0))
         .then(async () => {
           if (!this.persistenceAdapter) throw new Error('Persistence adapter not found')
-          let currentItems = this.memoryArray()
           await this.loadPersistentData()
           while (hasPendingUpdates(this.pendingUpdates)) {
             const added = this.pendingUpdates.added.splice(0)
             const modified = this.pendingUpdates.modified.splice(0)
             const removed = this.pendingUpdates.removed.splice(0)
-            currentItems = applyUpdates(this.memoryArray(), { added, modified, removed })
+            const currentItems = applyUpdates(this.memoryArray(), { added, modified, removed })
 
             await this.persistenceAdapter.save(currentItems, { added, modified, removed })
               .then(() => {
