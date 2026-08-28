@@ -52,12 +52,12 @@ jobs:
         with:
           path: .cache/v1-docs
           key: ${{ runner.OS }}-v1-docs-${{ hashFiles('.scripts/build-v1-docs.js') }}
-      - name: Build vitepress
-        run: npm run docs:build
-      # After the main build: VitePress empties the output directory, so this
-      # has to put `/v1/` back in afterwards rather than before.
+      # Before the main build: it writes into `docs/public`, which VitePress
+      # copies into the output while building.
       - name: Build v1 documentation
         run: npm run docs:build-v1
+      - name: Build vitepress
+        run: npm run docs:build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
