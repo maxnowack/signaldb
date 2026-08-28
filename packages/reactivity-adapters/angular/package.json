@@ -53,11 +53,11 @@
     "dist"
   ],
   "peerDependencies": {
-    "@angular/core": "16.x.x || 17.x.x || 18.x || 19.x || 20.x || 21.x",
+    "@angular/core": "16.x.x || 17.x.x || 18.x || 19.x || 20.x || 21.x || 22.x",
     "@signaldb/core": "1.x"
   },
   "devDependencies": {
-    "@angular/core": "^21.0.0",
+    "@angular/core": "^22.0.0",
     "rxjs": "^7.8.2"
   }
 }
