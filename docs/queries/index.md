@@ -80,17 +80,42 @@ collection.find({}, {
 })
 ```
 
-## An empty result is an answer
+## Queries that are not answered immediately
 
-Depending on the [data adapter](/data-adapters/) you use, a query may not be
-answered the moment you ask for it. Until it is, the cursor publishes a
-**neutral** result: `fetch()` gives you an empty array, `count()` gives you
-zero.
+The default adapter keeps your data in memory and answers a query on the spot.
+The [async, worker and auto-fetch adapters](/data-adapters/) cannot — they have
+to go to storage, across a worker boundary, or to a server. SignalDB gives you
+two ways to deal with that, and which one you want depends on where you are
+reading from.
+
+### Awaiting the result
+
+Pass `async: true` and the cursor's methods resolve to their result instead of
+returning it:
+
+```js
+const posts = await collection.find({ status: 'published' }, { async: true }).fetch()
+const count = await collection.find({}, { async: true }).count()
+const one = await collection.findOne({ id: 'abc' }, { async: true })
+```
+
+The types follow the option, so a cursor without it stays synchronous and you
+do not end up awaiting things that were never promises.
+
+This is the right form outside a reactive scope: an event handler, a loader, a
+script. It is not reactive — you get the result once.
+
+### Reading reactively
+
+Inside an `effect` or `autorun` you want the query to rerun by itself, so it
+cannot hand you a promise. The cursor gives you what it has, and until the
+query has been answered that is a **neutral** result: `fetch()` gives an empty
+array, `count()` gives zero.
 
 That neutral result is indistinguishable from a real one, because empty is a
 legitimate answer — plenty of queries genuinely match nothing.
-[`Cursor#isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive) is what lets
-you tell the two apart:
+[`Cursor#isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive) is what
+lets you tell the two apart:
 
 ```js
 const cursor = collection.find({ status: 'published' })
@@ -101,10 +126,15 @@ effect(() => {
 })
 ```
 
-With the default in-memory adapter this is `false` as soon as the collection is
-ready, so you rarely need it. With the async, worker and auto-fetch adapters
-there is a real window in which it is `true` — and rendering "no posts yet"
-during that window is the bug this prevents.
+Rendering "no posts yet" during that window is the bug this prevents. With the
+default in-memory adapter `isLoading()` is `false` as soon as the collection is
+ready, so you rarely need it there.
+
+::: tip
+`isLoading()` is always `false` on an `{ async: true }` cursor — its `fetch()`
+already waits for the real result, so there is no window to report. The two
+forms are alternatives, not layers.
+:::
 
 ## Field-Level Reactivity
 

@@ -86,6 +86,7 @@ export default withMermaid({
             { text: '@signaldb/devtools', link: '/changelog/devtools/' },
             { text: '@signaldb/react', link: '/changelog/react/' },
             { text: '@signaldb/fs', link: '/changelog/fs/' },
+            { text: '@signaldb/generic-fs', link: '/changelog/generic-fs/' },
             { text: '@signaldb/indexeddb', link: '/changelog/indexeddb/' },
             { text: '@signaldb/localstorage', link: '/changelog/localstorage/' },
             { text: '@signaldb/opfs', link: '/changelog/opfs/' },
@@ -183,6 +184,7 @@ export default withMermaid({
           text: 'Storage Adapters',
           items: [
             { text: '@signaldb/fs', link: '/reference/fs/' },
+            { text: '@signaldb/generic-fs', link: '/reference/generic-fs/' },
             { text: '@signaldb/indexeddb', link: '/reference/indexeddb/' },
             { text: '@signaldb/localstorage', link: '/reference/localstorage/' },
             { text: '@signaldb/opfs', link: '/reference/opfs/' },
