@@ -27,14 +27,14 @@ head:
 ## svelteReactivityAdapter (`default`)
 
 ```js
-import { Collection } from "@signaldb/core";
+import { Collection, DefaultDataAdapter } from "@signaldb/core";
 import svelteReactivityAdapter from "@signaldb/svelte";
 
-const Posts = new Collection({
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: svelteReactivityAdapter,
 });
 
-let items = $directive(Posts.find({}).fetch());
+let items = $derived(Posts.find({}).fetch());
 ```
 
 Reactivity adapter for usage with [Svelte 5](https://svelte.dev/).

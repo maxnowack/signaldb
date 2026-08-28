@@ -27,11 +27,11 @@ head:
 ## sjsReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import sjsReactivityAdapter from '@signaldb/sjs'
 import S from 's-js'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: sjsReactivityAdapter,
 })
 
