@@ -201,15 +201,24 @@ This page describes how remote synchronization could be implemented on the front
 
 ### Creating a [`SyncManager`](/reference/sync/)
 
-The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a [`SyncManager`](/reference/sync/#syncmanager-default) instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic and also a method to create a `storageAdapter` that will be used internally to store snapshot, changes and sync operations. This is needed in case you need to cache those data offline.
-Additionally a `reactivityAdapter` can be passed to the options object. This adapter is used to make some of the functions provided by the [`SyncManager`](/reference/sync/#syncmanager-default) reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the [`SyncManager`](/reference/sync/#syncmanager-default) about remote changes.
+The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a [`SyncManager`](/reference/sync/#syncmanager-default) instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic.
+
+It also takes a `dataAdapter`. The sync manager keeps three collections of its own — snapshots, changes and sync operations — and that is where they live. Pass the same [data adapter](/data-adapters/) your own collections use, so the bookkeeping is stored alongside your data. Leave it out and it defaults to an in-memory adapter: synchronization works, but a reload loses the record of what was already pushed.
+
+A `reactivity` adapter makes some of the functions provided by the [`SyncManager`](/reference/sync/#syncmanager-default) reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the [`SyncManager`](/reference/sync/#syncmanager-default) about remote changes.
 
 ```ts
+import { DefaultDataAdapter } from '@signaldb/core'
 import { SyncManager } from '@signaldb/sync'
+import createLocalStorageAdapter from '@signaldb/localstorage'
+
+const dataAdapter = new DefaultDataAdapter({
+  storage: name => createLocalStorageAdapter(name),
+})
 
 const syncManager = new SyncManager({
-  reactivityAdapter: someReactivityAdapter,
-  storageAdapter: name => createLocalStorageAdapter(name),
+  dataAdapter,
+  reactivity: someReactivityAdapter,
   pull: async () => {
     // your pull logic
   },
@@ -228,7 +237,7 @@ Before we go in the details of the `pull` and `push` methods, we need to underst
 ```ts
 import { Collection } from '@signaldb/core'
 
-const someCollection = new Collection()
+const someCollection = new Collection('someCollection', dataAdapter)
 
 syncManager.addCollection(someCollection, {
   name: 'someCollection',
@@ -338,11 +347,13 @@ const syncManager = new SyncManager({
 Below is an example implementation of a simple REST API.
 
 ```js
-import { Collection, SyncManager, EventEmitter } from '@signaldb/core'
+import { Collection, DefaultDataAdapter, EventEmitter } from '@signaldb/core'
+import { SyncManager } from '@signaldb/sync'
 
-const Authors = new Collection()
-const Posts = new Collection()
-const Comments = new Collection()
+const dataAdapter = new DefaultDataAdapter()
+const Authors = new Collection('authors', dataAdapter)
+const Posts = new Collection('posts', dataAdapter)
+const Comments = new Collection('comments', dataAdapter)
 
 const errorEmitter = new EventEmitter()
 errorEmitter.on('error', (message) => {

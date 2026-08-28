@@ -44,34 +44,31 @@ To load the developer tools, you need to import `@signaldb/devtools` somewhere i
 Now you should see the SignalDB icon in the bottom left corner of your screen.
 You can open the developer tools by clicking on the icon or by pressing `Ctrl + Shift + S`.
 
-::: info
-In some environments, the automatic loading of the developer tools may not work. In this case, you can manually load the developer tools by calling `loadDeveloperTools()` somewhere in your code.
+Importing the package is all there is to it — the import itself loads the tools,
+there is nothing to call:
 
 ```ts
-import { loadDeveloperTools } from '@signaldb/devtools';
-
-loadDeveloperTools();
+import '@signaldb/devtools'
 ```
-:::
 
 The developer tools will open and you should the following tabs.
 
 ::: tip
-The developer tools will try to resolve names for your collections. You can provide a name for your collection by passing the `name` property to the options of the collection constructor.
+The developer tools will try to resolve names for your collections. Give a collection its name through the constructor: `new Collection('posts', dataAdapter)`.
+:::
+
+::: warning
+Importing the package calls [`Collection.enableDebugMode()`](/reference/core/collection/#enabledebugmode), which since v2 also switches on [`reportLargeQueries()`](/reference/core/collection/#reportlargequeries-rows-number-null) at 500 rows. Expect console output about live queries holding more than that — it is pointing at something worth looking at, see [troubleshooting](/troubleshooting/#the-application-has-slowly-grown-sluggish).
 :::
 
 ### Devtools in production
-Devtools are excluded in production builds. However, it might be desirable to lazy load the devtools in production:
-```ts
-import { loadDeveloperTools } from '@signaldb/devtools';
+Devtools are excluded in production builds. If you want them available in production anyway, import the package lazily behind something you control — a query parameter, a feature flag — so that neither the tools nor debug mode load for ordinary visitors:
 
-if (process.env.NODE_ENV === 'production') {
-  Object.assign(window, {
-    loadDeveloperTools
-  })
+```ts
+if (new URLSearchParams(location.search).has('signaldb-devtools')) {
+  void import('@signaldb/devtools')
 }
 ```
-Then open the browser console and type `loadDeveloperTools()` into it.
 
 ### Data
 
