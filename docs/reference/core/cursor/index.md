@@ -101,8 +101,16 @@ answered from memory, so it is `false` once the collection is ready. With the
 [auto-fetch](/reference/core/autofetchdataadapter/) adapters there is a real
 window in which it is `true`.
 
-A query that *failed* is not loading either — `isLoading()` returns `false` and
-the cursor keeps serving its empty result. Listen for the collection's
+It is always `false` on an `{ async: true }` cursor, whose `fetch()` awaits the
+real result anyway — see [awaiting the result](/queries/#awaiting-the-result).
+
+It reports "no result yet", not "an execution is in flight". A write that
+re-runs an already-settled query does not flip it back to `true`, so a list
+does not fall into a loading state every time one of its rows changes.
+
+A query that *failed* counts as settled — `isLoading()` returns `false` and the
+cursor keeps serving its empty result, because a loading state that never ends
+is the worse answer. Listen for the collection's
 [`query.error`](/reference/core/collection/#events) event to catch that case.
 
 ::: tip Reactive ⚡️

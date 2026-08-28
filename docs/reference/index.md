@@ -53,6 +53,9 @@ SignalDB consists of several packages of which each has indiviudal exports.
 ### `@signaldb/fs`
 * [`createFileSystemAdapter`](/reference/fs/)
 
+### `@signaldb/generic-fs`
+* [`createGenericFSAdapter`](/reference/generic-fs/)
+
 ### `@signaldb/indexeddb`
 * [`createIndexedDBAdapter`](/reference/indexeddb/)
 

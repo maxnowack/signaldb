@@ -150,10 +150,19 @@ Also check out the [queries section](/queries/).
 
 Parameters
 * `selector` (Optional): A function to filter items in the collection.
-* `options` (Optional): Options for the cursor.
+* `options` (Optional): Options for the cursor — `sort`, `skip`, `limit`, `fields`, `reactive`, `fieldTracking`, and `async`.
+
+Pass `async: true` to get a cursor whose methods resolve to their result
+instead of returning it. That is what you want outside a reactive scope when
+the data adapter cannot answer on the spot — see
+[queries that are not answered immediately](/queries/#queries-that-are-not-answered-immediately).
+
+```js
+const posts = await collection.find({ status: 'published' }, { async: true }).fetch()
+```
 
 ### `findOne(selector?: Selector<T>, options?: Options)`
-Behaves the same like [`.find()`](#find-selector-selector-t-options-options) but doesn't return a cursor. Instead it will directly return the first found document.
+Behaves the same like [`.find()`](#find-selector-selector-t-options-options) but doesn't return a cursor. Instead it will directly return the first found document. With `async: true` it returns a promise resolving to that document.
 
 ### Loading state
 
