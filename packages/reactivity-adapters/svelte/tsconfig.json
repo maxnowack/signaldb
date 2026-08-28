@@ -4,7 +4,18 @@
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "outDir": "dist",
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    // This package is built by `tsc`, not by vite, so it has no
+    // `rollupOptions.external` to keep siblings out of its output. The root
+    // config maps `@signaldb/*` onto the packages' *sources*, which would make
+    // tsc compile all of core into this package's `dist`. Clearing the mapping
+    // resolves `@signaldb/core` through node_modules to its built types
+    // instead, the way every consumer resolves it.
+    "paths": {},
+    // And this makes a regression loud: any file pulled in from outside the
+    // package fails the build rather than quietly shifting the output layout
+    // and orphaning the entry points named in `package.json`.
+    "rootDir": "."
   },
   "exclude": [
     "**/*.spec.ts",

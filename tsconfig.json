@@ -35,7 +35,7 @@
       "@signaldb/sinuous": ["packages/reactivity-adapters/sinuous/src/index.ts"],
       "@signaldb/sjs": ["packages/reactivity-adapters/sjs/src/index.ts"],
       "@signaldb/solid": ["packages/reactivity-adapters/solid/src/index.ts"],
-      "@signaldb/svelte": ["packages/reactivity-adapters/svelte/src/index.ts"],
+      "@signaldb/svelte": ["packages/reactivity-adapters/svelte/index.svelte.ts"],
       "@signaldb/sync": ["packages/base/sync/src/index.ts"],
       "@signaldb/usignal": ["packages/reactivity-adapters/usignal/src/index.ts"],
       "@signaldb/vue": ["packages/reactivity-adapters/vue/src/index.ts"]

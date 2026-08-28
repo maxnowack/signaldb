@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* The package built a copy of all of `@signaldb/core` into its own `dist`, and in doing so moved its entry points: `dist/index.svelte.js` and `dist/index.svelte.d.ts` — the files `package.json` points at — were no longer produced, so importing the package resolved to nothing. This one builds with `tsc` rather than vite and therefore has no `rollupOptions.external`; the repository's TypeScript path mapping pointed `@signaldb/core` at its *sources*, which pulled them into the compilation. The mapping is now cleared for this package, so core resolves to its published types like it does for any consumer. The output is back to two files and ~8 kB instead of 98 files and ~370 kB.
+
 ### Changed
 
 * Refactored `create` to use a class-based object, and updated `onDispose` to support zero or multiple callbacks.

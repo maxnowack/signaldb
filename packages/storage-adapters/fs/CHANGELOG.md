@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `@signaldb/generic-fs` is no longer bundled into this package. It was already declared as a dependency, so consumers installed it *and* received a second copy compiled into `dist` — about 7 kB of duplicated code in the shipped bundle, and two separate module instances at runtime. The built package is now roughly a third of its previous size.
 * Custom deserialize function now works correctly when file is empty (thanks to @krolebord!)
 
 ## [1.0.1] - 2025-04-24
