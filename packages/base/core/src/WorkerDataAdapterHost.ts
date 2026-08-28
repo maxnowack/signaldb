@@ -198,7 +198,7 @@ export default class WorkerDataAdapterHost<
     selector: Selector<T>,
   ) {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     // `id` needs no declared index: `readIds` is exactly the lookup it
     // describes, so every inclusive form of it is answered here rather than by
@@ -236,7 +236,7 @@ export default class WorkerDataAdapterHost<
     selector: Selector<T>,
   ): Promise<T[]> {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
     const indexInfo = await this.getIndexInfo(collectionName, selector)
     const matchItems = (item: T) => {
       if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
@@ -393,7 +393,7 @@ export default class WorkerDataAdapterHost<
     this.queries.set(collectionName, new Map())
     this.ensureStorageAdapter(collectionName)
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const setupPromise = (async () => {
       await storageAdapter.setup()
@@ -433,7 +433,7 @@ export default class WorkerDataAdapterHost<
 
   protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, input) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
     const existingItems = await this.executeQuery(
       collectionName,
       { id: { $in: input.map(i => i[0].id) } } as Selector<any>,
@@ -455,7 +455,7 @@ export default class WorkerDataAdapterHost<
 
   protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
     const previousItems: T[] = []
     const result = await Promise.all(parameters.map(async ([selector, modifier]) => {
       const item = await this.executeQuery(
@@ -492,7 +492,7 @@ export default class WorkerDataAdapterHost<
 
   protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const previousItems: T[] = []
     const result = await Promise.all(parameters.map(async ([selector, modifier]) => {
@@ -537,7 +537,7 @@ export default class WorkerDataAdapterHost<
 
   protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const previousItems: T[] = []
     const result = await Promise.all(parameters.map(async ([
@@ -580,7 +580,7 @@ export default class WorkerDataAdapterHost<
 
   protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selectors) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
     const result = await Promise.all(selectors.map(async ([selector]) => {
       const item = await this.executeQuery(
         collectionName,
@@ -604,7 +604,7 @@ export default class WorkerDataAdapterHost<
 
   protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selectors) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
     const result = await Promise.all(selectors.map(async ([selector]) => this.executeQuery(
       collectionName,
       selector,

@@ -300,7 +300,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
   private async setupStorage(collectionName: string, indices: string[]) {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     await storage.setup()
     await Promise.all(indices.map(index => storage.createIndex(index)))
@@ -437,7 +437,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     selector: Selector<T>,
   ) {
     const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
       const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
@@ -470,7 +470,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     selector: Selector<T>,
   ): Promise<T[]> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const index = await this.getIndexInfo<T, I>(collectionName, selector)
     const matchItems = (item: T) => {
@@ -565,7 +565,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     newItem: T,
   ): Promise<T> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const existingItems = await storage.readIds([newItem.id])
     if (existingItems.length > 0) throw new Error(`Item with id ${String(newItem.id)} already exists`)
@@ -581,7 +581,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     modifier: Modifier<T>,
   ): Promise<T[]> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const items = await this.executeQuery<T, I>(collectionName, selector, { limit: 1 })
     const [item] = items
@@ -605,7 +605,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     modifier: Modifier<T>,
   ): Promise<T[]> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const items = await this.executeQuery<T, I>(collectionName, selector)
     if (items.length === 0) return []
@@ -630,7 +630,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
   ): Promise<T[]> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const items = await this.executeQuery<T, I>(collectionName, selector, { limit: 1 })
     const [item] = items
@@ -652,7 +652,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     selector: Selector<T>,
   ): Promise<T[]> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const items = await this.executeQuery<T, I>(collectionName, selector, { limit: 1 })
     const [item] = items
@@ -668,7 +668,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     selector: Selector<T>,
   ): Promise<T[]> {
     const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No persistence adapter for collection ${collectionName}`)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
     const items = await this.executeQuery<T, I>(collectionName, selector)
     if (items.length === 0) return []

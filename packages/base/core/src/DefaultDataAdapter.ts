@@ -99,7 +99,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     collection: Collection<T, I, E, U>,
   ) {
     const storageAdapter = this.storageAdapters.get(collection.name)
-    if (!storageAdapter) return // no persistence adapter available
+    if (!storageAdapter) return // no storage adapter available
 
     return storageAdapter.setup()
       .then(async () => {
@@ -108,7 +108,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       .catch((error) => {
         if (!this.options.onError) {
           // eslint-disable-next-line no-console
-          console.error(`Error during data persistence operation in collection ${collection.name}`, error)
+          console.error(`Error during storage operation in collection ${collection.name}`, error)
           return
         }
         this.options.onError(
@@ -538,7 +538,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     }
 
     const storageAdapter = this.storageAdapters.get(collection.name)
-    if (!storageAdapter) return // no persistence adapter available
+    if (!storageAdapter) return // no storage adapter available
 
     const items: T[] = await storageAdapter.readAll()
     this.items.set(collection.name, items.reduce((map, item) => {
