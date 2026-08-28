@@ -27,11 +27,11 @@ head:
 ## vueReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import vueReactivityAdapter from '@signaldb/vue'
 import { watchEffect } from 'vue'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: vueReactivityAdapter,
 })
 

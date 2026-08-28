@@ -29,9 +29,9 @@ head:
 ```js
 import { effect } from '@maverick-js/signals'
 import maverickjsReactivityAdapter from '@signaldb/maverickjs'
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: maverickjsReactivityAdapter,
 })
 

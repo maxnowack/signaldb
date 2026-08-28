@@ -27,11 +27,11 @@ head:
 ## preactReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import preactReactivityAdapter from '@signaldb/preact'
 import { effect } from '@preact/signals-core'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: preactReactivityAdapter,
 })
 

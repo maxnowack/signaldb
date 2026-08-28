@@ -27,11 +27,11 @@ head:
 ## angularReactivityAdapter (`default`)
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import { effect } from '@angular/core'
 import angularReactivityAdapter from '@signaldb/angular'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: angularReactivityAdapter,
 })
 
