@@ -688,10 +688,10 @@ describe('AsyncDataAdapter', () => {
     const backend = missingAdapter.createCollectionBackend(missingCollection, [])
 
     // Wait for setup to complete (this should fail)
-    await expect(backend.isReady()).rejects.toThrow('No persistence adapter for collection missing-storage')
+    await expect(backend.isReady()).rejects.toThrow('No storage adapter for collection missing-storage')
 
     // Also test that insert fails
-    await expect(backend.insert({ id: '1', name: 'test' })).rejects.toThrow('No persistence adapter for collection missing-storage')
+    await expect(backend.insert({ id: '1', name: 'test' })).rejects.toThrow('No storage adapter for collection missing-storage')
 
     // Ensure no queries are left active to avoid unhandled rejections
     void backend.dispose()
@@ -782,7 +782,7 @@ describe('AsyncDataAdapter', () => {
       storage: () => undefined as any,
     })
     await expect((adapterWithoutStorage as any).queryItems('ghost', {}))
-      .rejects.toThrow('No persistence adapter for collection ghost')
+      .rejects.toThrow('No storage adapter for collection ghost')
   })
 
   it('fulfillQuery error paths: missing registry, missing record, and error publish', async () => {
@@ -809,7 +809,7 @@ describe('AsyncDataAdapter', () => {
 
   it('getIndexInfo error/null selector and non-optimizable cases', async () => {
     const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory })
-    await expect((localAdapter as any).getIndexInfo('nope', {})).rejects.toThrow('No persistence adapter for collection nope')
+    await expect((localAdapter as any).getIndexInfo('nope', {})).rejects.toThrow('No storage adapter for collection nope')
 
     // Seed storage and indices
     ;(localAdapter as any).storageAdapters.set('ci', new MockStorageAdapter('ci'))
@@ -858,12 +858,12 @@ describe('AsyncDataAdapter', () => {
 
   it('private operations throw when storage is missing', async () => {
     const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
-    await expect((localAdapter as any).insert('m', { id: '1' })).rejects.toThrow('No persistence adapter for collection m')
-    await expect((localAdapter as any).updateOne('m', {}, {})).rejects.toThrow('No persistence adapter for collection m')
-    await expect((localAdapter as any).updateMany('m', {}, {})).rejects.toThrow('No persistence adapter for collection m')
-    await expect((localAdapter as any).replaceOne('m', {}, {})).rejects.toThrow('No persistence adapter for collection m')
-    await expect((localAdapter as any).removeOne('m', {})).rejects.toThrow('No persistence adapter for collection m')
-    await expect((localAdapter as any).removeMany('m', {})).rejects.toThrow('No persistence adapter for collection m')
+    await expect((localAdapter as any).insert('m', { id: '1' })).rejects.toThrow('No storage adapter for collection m')
+    await expect((localAdapter as any).updateOne('m', {}, {})).rejects.toThrow('No storage adapter for collection m')
+    await expect((localAdapter as any).updateMany('m', {}, {})).rejects.toThrow('No storage adapter for collection m')
+    await expect((localAdapter as any).replaceOne('m', {}, {})).rejects.toThrow('No storage adapter for collection m')
+    await expect((localAdapter as any).removeOne('m', {})).rejects.toThrow('No storage adapter for collection m')
+    await expect((localAdapter as any).removeMany('m', {})).rejects.toThrow('No storage adapter for collection m')
   })
 
   it('registerQuery twice merges existing record and still fulfills', async () => {
