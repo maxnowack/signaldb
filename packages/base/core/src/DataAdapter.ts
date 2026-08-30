@@ -32,12 +32,30 @@ export type StateChangeCallback<T extends BaseItem = BaseItem> = (
   delta?: QueryDelta<T>,
 ) => void
 
+/**
+ * What a write changed.
+ *
+ * An adapter that also knows what the changed items looked like *before* the write returns the
+ * object form, and the `'changed'` event on the `Collection` then carries that previous state as
+ * its third argument. An adapter that does not returns the changed items on their own, exactly as
+ * before, and the event omits the argument.
+ *
+ * The previous state is reported per item, so `previousItems[n]` is what `items[n]` was before the
+ * write. An adapter that reports it must report it for every item it changed.
+ */
+export interface DetailedWriteResult<T> {
+  items: T[],
+  previousItems: T[],
+}
+
+export type WriteResult<T> = T[] | DetailedWriteResult<T>
+
 export interface CollectionBackend<T extends BaseItem<I>, I> {
   // CRUD operations will be proxied from the collection to the collection interface of the data layer. The CRUD logic itself will be done inside of the data layer.
   insert(item: T): Promise<T>,
-  updateOne(selector: Selector<T>, modifier: Modifier<T>): Promise<T[]>,
-  updateMany(selector: Selector<T>, modifier: Modifier<T>): Promise<T[]>,
-  replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<T[]>,
+  updateOne(selector: Selector<T>, modifier: Modifier<T>): Promise<WriteResult<T>>,
+  updateMany(selector: Selector<T>, modifier: Modifier<T>): Promise<WriteResult<T>>,
+  replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<WriteResult<T>>,
   removeOne(selector: Selector<T>): Promise<T[]>,
   removeMany(selector: Selector<T>): Promise<T[]>,
 

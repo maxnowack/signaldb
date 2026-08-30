@@ -368,13 +368,19 @@ describe('AutoFetchDataAdapter', () => {
     expect(a).toEqual({ id: 'a', title: 't', type: 'x' })
     // updateOne
     const u1 = await backend.updateOne({ id: 'a' }, { $set: { title: 't2' } })
-    expect(u1).toEqual([{ id: 'a', title: 't2', type: 'x' }])
+    expect(u1).toEqual({
+      items: [{ id: 'a', title: 't2', type: 'x' }],
+      previousItems: [{ id: 'a', title: 't', type: 'x' }],
+    })
     // updateMany (change type only to avoid id collision path)
     const u2 = await backend.updateMany({ type: 'x' }, { $set: { type: 'y' } })
-    expect(u2.length === 0 || u2[0].type === 'y').toBe(true)
+    expect(u2.items.length === 0 || u2.items[0].type === 'y').toBe(true)
     // replaceOne
     const r1 = await backend.replaceOne({ id: 'a' }, { title: 'repl' })
-    expect(r1).toEqual([{ id: 'a', title: 'repl' }])
+    expect(r1).toEqual({
+      items: [{ id: 'a', title: 'repl' }],
+      previousItems: [{ id: 'a', title: 't2', type: 'y' }],
+    })
     // removeOne
     const rm1 = await backend.removeOne({ id: 'a' })
     expect(rm1).toEqual([{ id: 'a', title: 'repl' }])

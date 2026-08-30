@@ -98,6 +98,7 @@ describe('what a write asks the data layer for', () => {
       expect(changed).toHaveBeenCalledExactlyOnceWith(
         { id: 'a', status: 'open', rank: 1, name: 'Annabel' },
         { $set: { name: 'Annabel' } },
+        { id: 'a', status: 'open', rank: 1, name: 'Anna' },
       )
     })
 
@@ -121,6 +122,7 @@ describe('what a write asks the data layer for', () => {
       expect(changed).toHaveBeenCalledExactlyOnceWith(
         { id: 'a', status: 'done', rank: 9, name: 'Ann' },
         { status: 'done', rank: 9, name: 'Ann' },
+        { id: 'a', status: 'open', rank: 1, name: 'Anna' },
       )
     })
 

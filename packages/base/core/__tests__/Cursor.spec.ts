@@ -358,7 +358,10 @@ describe('Cursor', async () => {
       await wait() // Wait for all operations to finish
       expect(callbacks.added).not.toHaveBeenCalled()
       expect(callbacks.addedBefore).not.toHaveBeenCalled()
-      expect(callbacks.changed).toHaveBeenCalledWith(expect.objectContaining({ id: 2, name: 'Item 30' }))
+      expect(callbacks.changed).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 2, name: 'Item 30' }),
+        expect.objectContaining({ id: 2, name: 'Item 2' }),
+      )
       // Only what has to move is reported. Sorted by name, renaming "Item 2" to "Item 30" sends
       // it to the end — which is the same order as moving "Item 3" in front of it, and one move
       // is enough either way.

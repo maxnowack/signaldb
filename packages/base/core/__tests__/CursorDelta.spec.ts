@@ -165,6 +165,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
 
     expect(changed).toHaveBeenCalledExactlyOnceWith(
       { id: 'item-5', status: 'open', rank: 5, name: 'renamed' },
+      { id: 'item-5', status: 'open', rank: 5, name: 'name-5' },
     )
     expect(added).not.toHaveBeenCalled()
     expect(removed).not.toHaveBeenCalled()

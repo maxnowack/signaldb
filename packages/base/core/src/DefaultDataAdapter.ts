@@ -371,7 +371,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           modified: [modifiedItem],
           removed: [],
         })
-        return [modifiedItem]
+        return { items: [modifiedItem], previousItems: [item] }
       },
       updateMany: async (selector, modifier) => {
         const { $setOnInsert, ...restModifier } = modifier
@@ -399,7 +399,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           modified: changedItems,
           removed: [],
         })
-        return changedItems
+        return { items: changedItems, previousItems: items }
       },
       replaceOne: async (selector, replacement) => {
         const item = this.getItem(collection, selector)
@@ -423,7 +423,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           modified: [modifiedItem],
           removed: [],
         })
-        return [modifiedItem]
+        return { items: [modifiedItem], previousItems: [item] }
       },
       removeOne: async (selector) => {
         const item = this.getItem(collection, selector)

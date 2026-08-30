@@ -23,8 +23,10 @@ export type {
 export type { default as DataAdapter } from './DataAdapter'
 export type {
   CollectionBackend,
+  DetailedWriteResult,
   QueryOptions,
   StateChangeCallback,
+  WriteResult,
 } from './DataAdapter'
 export type { QueryDelta } from './utils/queryDelta'
 

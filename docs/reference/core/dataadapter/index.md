@@ -60,15 +60,28 @@ The object that answers everything for one collection.
 
 ```ts
 insert(item: T): Promise<T>
-updateOne(selector: Selector<T>, modifier: Modifier<T>): Promise<T[]>
-updateMany(selector: Selector<T>, modifier: Modifier<T>): Promise<T[]>
-replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<T[]>
+updateOne(selector: Selector<T>, modifier: Modifier<T>): Promise<WriteResult<T>>
+updateMany(selector: Selector<T>, modifier: Modifier<T>): Promise<WriteResult<T>>
+replaceOne(selector: Selector<T>, replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<WriteResult<T>>
 removeOne(selector: Selector<T>): Promise<T[]>
 removeMany(selector: Selector<T>): Promise<T[]>
 ```
 
-Each resolves to the items it affected. An empty array means nothing matched —
+Each resolves to the items it affected. An empty result means nothing matched —
 which is what turns an upsert into an insert, so it has to be accurate.
+
+The three updating writes resolve to a `WriteResult<T>`:
+
+```ts
+type WriteResult<T> = T[] | { items: T[], previousItems: T[] }
+```
+
+Returning the items on their own is still valid, so an existing adapter keeps
+compiling and behaving as before. An adapter that also knows what the items
+looked like *before* the write returns the object form instead, and the
+collection's `'changed'` event then carries that previous state as its third
+argument. `previousItems[n]` is what `items[n]` was before the write, so an
+adapter that reports it reports it for every item it changed.
 
 ### Queries
 

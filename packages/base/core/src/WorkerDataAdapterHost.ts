@@ -1,5 +1,5 @@
 import type { BaseItem } from './Collection'
-import type { QueryOptions } from './DataAdapter'
+import type { DetailedWriteResult, QueryOptions } from './DataAdapter'
 import type Modifier from './types/Modifier'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
@@ -62,15 +62,15 @@ type CollectionMethods<T extends BaseItem<I>, I = any> = {
   updateOne: (
     collectionName: string,
     args: [Selector<T>, Modifier<T>][],
-  ) => Promise<(T[] | Error)[]>,
+  ) => Promise<(DetailedWriteResult<T> | Error)[]>,
   updateMany: (
     collectionName: string,
     args: [Selector<T>, Modifier<T>][],
-  ) => Promise<(T[] | Error)[]>,
+  ) => Promise<(DetailedWriteResult<T> | Error)[]>,
   replaceOne: (
     collectionName: string,
     args: [Selector<T>, Omit<T, 'id'> & Partial<Pick<T, 'id'>>][],
-  ) => Promise<(T[] | Error)[]>,
+  ) => Promise<(DetailedWriteResult<T> | Error)[]>,
   removeOne: (
     collectionName: string,
     selectors: [Selector<T>][],
@@ -456,8 +456,9 @@ export default class WorkerDataAdapterHost<
   protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, parameters) => {
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-    const previousItems: T[] = []
-    const result = await Promise.all(parameters.map(async ([selector, modifier]) => {
+    const result = await Promise.all(parameters.map(async (
+      [selector, modifier],
+    ): Promise<DetailedWriteResult<T> | Error> => {
       const item = await this.executeQuery(
         collectionName,
         selector,
@@ -465,9 +466,8 @@ export default class WorkerDataAdapterHost<
       ).then(items => items[0] ?? null)
 
       const { $setOnInsert, ...restModifier } = modifier
-      if (item == null) return []
+      if (item == null) return { items: [], previousItems: [] }
 
-      previousItems.push(item)
       const modifiedItem = modify(deepClone(item), restModifier)
       if (item.id !== modifiedItem.id) {
         const existingItems = await this.executeQuery(
@@ -479,13 +479,18 @@ export default class WorkerDataAdapterHost<
           return new Error(`Item with id ${modifiedItem.id as string} already exists`)
         }
       }
-      return [modifiedItem]
+      return { items: [modifiedItem], previousItems: [item] }
     }))
 
-    const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
+    const written = result
+      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
+    const modifiedItems = compact(written.flatMap(entry => entry.items))
     if (modifiedItems.length > 0) {
       await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
+      await this.checkQueryUpdates(
+        collectionName,
+        toChangeset(compact(written.flatMap(entry => entry.previousItems)), modifiedItems),
+      )
     }
     return result
   }
@@ -494,13 +499,14 @@ export default class WorkerDataAdapterHost<
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
-    const previousItems: T[] = []
-    const result = await Promise.all(parameters.map(async ([selector, modifier]) => {
+    const result = await Promise.all(parameters.map(async (
+      [selector, modifier],
+    ): Promise<DetailedWriteResult<T> | Error> => {
       const items = await this.executeQuery(
         collectionName,
         selector,
       )
-      if (items.length === 0) return [] // no items found, nothing to update
+      if (items.length === 0) return { items: [], previousItems: [] } // no items found
 
       const { $setOnInsert, ...restModifier } = modifier
 
@@ -518,19 +524,23 @@ export default class WorkerDataAdapterHost<
             }
           }
 
-          previousItems.push(item)
           return modifiedItem
         }))
-        return changedItems
+        return { items: changedItems, previousItems: items }
       } catch (error) {
         return error as Error
       }
     }))
 
-    const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
+    const written = result
+      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
+    const modifiedItems = compact(written.flatMap(entry => entry.items))
     if (modifiedItems.length > 0) {
       await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
+      await this.checkQueryUpdates(
+        collectionName,
+        toChangeset(compact(written.flatMap(entry => entry.previousItems)), modifiedItems),
+      )
     }
     return result
   }
@@ -539,19 +549,17 @@ export default class WorkerDataAdapterHost<
     const storageAdapter = this.storageAdapters.get(collectionName)
     if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
 
-    const previousItems: T[] = []
     const result = await Promise.all(parameters.map(async ([
       selector,
       replacement,
-    ]) => {
+    ]): Promise<DetailedWriteResult<T> | Error> => {
       const item = await this.executeQuery(
         collectionName,
         selector,
         { limit: 1 },
       ).then(items => items[0] ?? null)
-      if (item == null) return [] // no item found, nothing to update
+      if (item == null) return { items: [], previousItems: [] } // no item found
 
-      previousItems.push(item)
       const modifiedItem = {
         ...replacement,
         id: replacement.id ?? item.id,
@@ -567,13 +575,18 @@ export default class WorkerDataAdapterHost<
           return new Error(`Item with id ${modifiedItem.id as string} already exists`)
         }
       }
-      return [modifiedItem]
+      return { items: [modifiedItem], previousItems: [item] }
     }))
 
-    const modifiedItems = compact(result.filter(item => !(item instanceof Error)).flat()) as T[]
+    const written = result
+      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
+    const modifiedItems = compact(written.flatMap(entry => entry.items))
     if (modifiedItems.length > 0) {
       await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
+      await this.checkQueryUpdates(
+        collectionName,
+        toChangeset(compact(written.flatMap(entry => entry.previousItems)), modifiedItems),
+      )
     }
     return result
   }
