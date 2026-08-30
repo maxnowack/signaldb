@@ -1930,3 +1930,178 @@ it('schedules a follow-up sync when changes remain after applying snapshot', asy
   syncSpy.mockRestore()
   removeSpy.mockRestore()
 })
+
+it('should push the complete item if an item was updated locally and removed remotely', async () => {
+  interface Category extends BaseItem<string> {
+    id: string,
+    budgetId: string,
+    name: string,
+    updatedAt: number,
+  }
+  const remoteItem: Category = {
+    id: '1', budgetId: 'budget-1', name: 'TEST1', updatedAt: 1,
+  }
+
+  let callCount = 0
+  const mockPull = vi.fn<() => Promise<LoadResponse<Category>>>().mockImplementation(() => {
+    callCount += 1
+    // the first pull returns the item, all following pulls report it as removed
+    if (callCount === 1) return Promise.resolve({ items: [remoteItem] })
+    if (callCount === 2) {
+      return Promise.resolve({
+        changes: { added: [], modified: [], removed: [remoteItem] },
+      })
+    }
+    return Promise.resolve({ items: [] })
+  })
+
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager<Record<string, any>, Category>({
+    onError,
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const collection = withAsyncQueries(new Collection<Category, string, any>())
+  syncManager.addCollection(collection, { name: 'test' })
+  await syncManager.sync('test')
+  await expect(collection.findOne({ id: '1' }, { async: true })).resolves.toEqual(remoteItem)
+
+  // update the item locally while it was already removed on the remote
+  await collection.updateOne({ id: '1' }, { $set: { name: 'TEST2', updatedAt: 2 } })
+  await syncManager.sync('test')
+
+  expect(onError).not.toHaveBeenCalled()
+  expect(mockPush).toHaveBeenCalledTimes(1)
+  expect(mockPush.mock.calls[0][1].changes.added).toEqual([
+    { id: '1', budgetId: 'budget-1', name: 'TEST2', updatedAt: 2 },
+  ])
+})
+
+it('should detach event listeners from user collections on dispose', async () => {
+  const syncManager = new SyncManager<any, any>({
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  const userListener = vi.fn()
+  collection.on('added', userListener)
+
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(collection.listenerCount('added')).toBe(2)
+  expect(collection.listenerCount('changed')).toBe(1)
+  expect(collection.listenerCount('removed')).toBe(1)
+
+  await syncManager.dispose()
+
+  // only the listener registered by the user is left
+  expect(collection.listenerCount('added')).toBe(1)
+  expect(collection.listenerCount('changed')).toBe(0)
+  expect(collection.listenerCount('removed')).toBe(0)
+
+  // the collection itself is still usable and the user listener still works
+  await collection.insert({ id: '1', name: 'Item 1' })
+  expect(userListener).toHaveBeenCalledTimes(1)
+})
+
+it('should allow reusing a collection with a new sync manager after dispose', async () => {
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+
+  /**
+   * Creates a sync manager, registers the shared collection and syncs it.
+   * @returns The created sync manager.
+   */
+  async function login() {
+    const syncManager = new SyncManager<any, any>({
+      pull: vi.fn(() => Promise.resolve({ items: [{ id: '1', name: 'Item 1' }] })),
+      push: vi.fn(),
+    })
+    await syncManager.isReady()
+    syncManager.addCollection(collection, { name: 'test' })
+    await syncManager.syncAll()
+    return syncManager
+  }
+
+  const firstManager = await login()
+  await expect(collection.find().fetch()).resolves.toEqual([{ id: '1', name: 'Item 1' }])
+  await firstManager.dispose()
+
+  // the second cycle must not throw "Collection is disposed"
+  const secondManager = await login()
+  await expect(collection.find().fetch()).resolves.toEqual([{ id: '1', name: 'Item 1' }])
+  expect(collection.listenerCount('added')).toBe(1)
+  await secondManager.dispose()
+  expect(collection.listenerCount('added')).toBe(0)
+})
+
+it('should not register duplicate listeners when adding a collection twice', async () => {
+  const syncManager = new SyncManager<any, any>({
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+
+  syncManager.addCollection(collection, { name: 'test' })
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(collection.listenerCount('added')).toBe(1)
+  expect(collection.listenerCount('changed')).toBe(1)
+  expect(collection.listenerCount('removed')).toBe(1)
+
+  await syncManager.dispose()
+})
+
+it('should detach listeners and stop tracking a collection on removeCollection', async () => {
+  const syncManager = new SyncManager<any, any>({
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  await syncManager.removeCollection('test')
+
+  expect(collection.listenerCount('added')).toBe(0)
+  expect(collection.listenerCount('changed')).toBe(0)
+  expect(collection.listenerCount('removed')).toBe(0)
+  // @ts-expect-error - protected property
+  expect(syncManager.collections.size).toBe(0)
+  expect(() => syncManager.getCollectionProperties('test')).toThrow("Collection with id 'test' not found")
+
+  // removing an unknown collection is a no-op
+  await expect(syncManager.removeCollection('unknown')).resolves.toBeUndefined()
+
+  // mutating the collection afterwards must not record any changes
+  await collection.insert({ id: '1', name: 'Item 1' })
+  // @ts-expect-error - protected property
+  await expect(syncManager.changes.find({}, { async: true }).count()).resolves.toBe(0)
+
+  await syncManager.dispose()
+})
+
+it('should tolerate collection entries without tracked listeners', async () => {
+  const syncManager = new SyncManager<any, any>({
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  // simulate a subclass that populates the protected collections map itself,
+  // without the syncListeners property
+  // @ts-expect-error - protected property
+  const properties = syncManager.collections.get('test')
+  // @ts-expect-error - protected property
+  syncManager.collections.set('test', { ...properties, syncListeners: undefined })
+
+  await expect(syncManager.removeCollection('test')).resolves.toBeUndefined()
+  await expect(syncManager.dispose()).resolves.toBeUndefined()
+})
