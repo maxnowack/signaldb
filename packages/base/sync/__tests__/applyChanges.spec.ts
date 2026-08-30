@@ -99,3 +99,37 @@ it('should not modify the original items array', async () => {
   ])
   expect(items).toEqual([{ id: 1, name: 'Item 1', meta: { likes: 5 } }])
 })
+
+it('should use the fallback items as base for updates of non-existing items', async () => {
+  const items: TestItem[] = []
+  const fallbackItems: TestItem[] = [{ id: 1, name: 'Item 1', meta: { likes: 5 } }]
+  const changes: Change<TestItem, number>[] = [
+    { ...getDefaultChangeItem(), type: 'update', data: { id: 1, modifier: { $set: { name: 'Updated Item 1' } } } },
+  ]
+
+  const result = applyChanges(items, changes, fallbackItems)
+  expect(result).toEqual([{ id: 1, name: 'Updated Item 1', meta: { likes: 5 } }])
+  expect(fallbackItems).toEqual([{ id: 1, name: 'Item 1', meta: { likes: 5 } }])
+})
+
+it('should prefer existing items over fallback items on update', async () => {
+  const items: TestItem[] = [{ id: 1, name: 'Item 1', meta: { likes: 5 } }]
+  const fallbackItems: TestItem[] = [{ id: 1, name: 'Outdated Item 1', meta: { likes: 1 } }]
+  const changes: Change<TestItem, number>[] = [
+    { ...getDefaultChangeItem(), type: 'update', data: { id: 1, modifier: { $set: { name: 'Updated Item 1' } } } },
+  ]
+
+  const result = applyChanges(items, changes, fallbackItems)
+  expect(result).toEqual([{ id: 1, name: 'Updated Item 1', meta: { likes: 5 } }])
+})
+
+it('should not use fallback items for items that were removed by a previous change', async () => {
+  const items: TestItem[] = [{ id: 1, name: 'Item 1' }]
+  const fallbackItems: TestItem[] = [{ id: 1, name: 'Item 1' }]
+  const changes: Change<TestItem, number>[] = [
+    { ...getDefaultChangeItem(), type: 'remove', data: 1 },
+  ]
+
+  const result = applyChanges(items, changes, fallbackItems)
+  expect(result).toEqual([])
+})

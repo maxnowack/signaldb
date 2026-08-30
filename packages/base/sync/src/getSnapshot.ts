@@ -12,7 +12,8 @@ export default function getSnapshot<ItemType extends BaseItem<IdType>, IdType>(
 ) {
   if (data.items != null) return data.items
 
-  const items = lastSnapshot || []
+  // copy the array to not mutate the last snapshot
+  const items = [...lastSnapshot || []]
   data.changes.added.forEach((item) => {
     const index = items.findIndex(i => i.id === item.id)
     if (index === -1) {

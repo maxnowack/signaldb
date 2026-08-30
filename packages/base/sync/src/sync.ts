@@ -77,7 +77,9 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
     const lastSnapshotWithChanges = applyChanges(previousSnapshot, changes)
     if (hasDifference(previousSnapshot, lastSnapshotWithChanges)) {
       // if yes, apply the changes on the newSnapshot and check if there is a difference
-      const newSnapshotWithChanges = applyChanges(newSnapshot, changes)
+      // pass the previous snapshot as fallback to preserve all fields of items that
+      // were removed remotely, but were updated locally
+      const newSnapshotWithChanges = applyChanges(newSnapshot, changes, previousSnapshot)
       const changesToPush = computeChanges<ItemType, IdType>(newSnapshot, newSnapshotWithChanges)
       if (hasChanges(changesToPush)) {
         // if yes, push the changes to the server

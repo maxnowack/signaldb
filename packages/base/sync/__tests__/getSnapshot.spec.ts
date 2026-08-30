@@ -113,3 +113,27 @@ it('should upsert changes', () => {
   const result = getSnapshot(lastSnapshot, data)
   expect(result).toEqual([{ id: 2, name: 'Item 23' }, { id: 3, name: 'Item 3' }])
 })
+
+it('should not modify the last snapshot', () => {
+  const lastSnapshot: TestItem[] = [
+    { id: 1, name: 'Item 1' },
+    { id: 2, name: 'Item 2' },
+  ]
+  const data: LoadResponse<TestItem> = {
+    changes: {
+      added: [{ id: 3, name: 'Item 3' }],
+      modified: [{ id: 1, name: 'Updated Item 1' }],
+      removed: [{ id: 2, name: 'Item 2' }],
+    },
+  }
+
+  const result = getSnapshot(lastSnapshot, data)
+  expect(result).toEqual([
+    { id: 1, name: 'Updated Item 1' },
+    { id: 3, name: 'Item 3' },
+  ])
+  expect(lastSnapshot).toEqual([
+    { id: 1, name: 'Item 1' },
+    { id: 2, name: 'Item 2' },
+  ])
+})

@@ -6,14 +6,22 @@ import type { Change } from './types'
  * applies changes to a collection of items
  * @param items The items to apply the changes to
  * @param changes The changes to apply to the items
+ * @param [fallbackItems] Items that are used as a base for update changes that
+ * target an item which isn't part of `items` anymore (e.g. because it was removed
+ * remotely). Without them, the resulting item would only contain the fields of the
+ * modifier and all other fields would be lost.
  * @returns The new items after applying the changes
  */
 export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
   items: ItemType[],
   changes: Change<ItemType, IdType>[],
+  fallbackItems?: ItemType[],
 ): ItemType[] {
   // Create initial map of items by ID
   const itemMap = new Map(items.map(item => [item.id, item]))
+  const fallbackItemMap = fallbackItems == null
+    ? undefined
+    : new Map(fallbackItems.map(item => [item.id, item]))
 
   changes.forEach((change) => {
     if (change.type === 'remove') {
@@ -25,7 +33,10 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
         existingItem ? { ...existingItem, ...change.data } : change.data,
       )
     } else { // change.type === 'update'
+      // fall back to the last known state of the item to preserve all fields
+      // that aren't part of the modifier
       const existingItem = itemMap.get(change.data.id)
+        ?? fallbackItemMap?.get(change.data.id)
       itemMap.set(
         change.data.id,
         existingItem
