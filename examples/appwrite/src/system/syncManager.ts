@@ -38,7 +38,7 @@ const syncManager = new SyncManager<Record<string, any>, { id: string }>({
       }) => ({
         id: $id,
         ...item,
-      } as unknown as { id: string })) }
+      })) }
   },
   async push({ name }, { changes }) {
     await Promise.all([

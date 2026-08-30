@@ -170,7 +170,7 @@ export default class Observer<T extends { id: any }> {
           ...callback.options,
           isInitial: false,
         },
-      }) as typeof callback) as any
+      })) as any
     })
   }
 

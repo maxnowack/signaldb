@@ -46,8 +46,9 @@ describe('match', () => {
   })
 
   it('should handle $exists operator', () => {
+    const itemWithoutName: { name?: string } = {}
     expect(match({ name: 'John' }, { name: { $exists: true } })).toBe(true)
-    expect(match({} as { name?: string }, { name: { $exists: false } })).toBe(true)
+    expect(match(itemWithoutName, { name: { $exists: false } })).toBe(true)
     expect(match({ name: undefined }, { name: { $exists: false } })).toBe(true)
     expect(match({ name: null }, { name: { $exists: false } })).toBe(false)
   })
