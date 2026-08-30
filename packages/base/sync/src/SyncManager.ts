@@ -4,6 +4,7 @@ import type {
   ReactivityAdapter,
   Changeset,
   LoadResponse,
+  Modifier,
   Selector,
 } from '@signaldb/core'
 import { Collection, randomId, createIndex } from '@signaldb/core'
@@ -17,6 +18,12 @@ type SyncOptions<T extends Record<string, any>> = {
 } & T
 
 type CleanupFunction = (() => void | Promise<void>) | void
+
+interface SyncListeners<ItemType extends BaseItem<IdType>, IdType = any> {
+  added: (item: ItemType) => void,
+  changed: (item: ItemType, modifier: Modifier<ItemType>) => void,
+  removed: (item: ItemType) => void,
+}
 
 interface Options<
   CollectionOptions extends Record<string, any>,
@@ -94,6 +101,7 @@ export default class SyncManager<
     readyPromise: Promise<void>,
     syncPaused: boolean,
     cleanupFunction?: CleanupFunction,
+    syncListeners?: SyncListeners<ItemType, IdType>,
   }> = new Map()
 
   protected changes: Collection<Change<ItemType>, string>
@@ -188,12 +196,49 @@ export default class SyncManager<
   }
 
   /**
+   * Removes the event listeners this sync manager attached to a registered collection.
+   * The collection itself is left untouched, including listeners registered by the user.
+   * @param name Name of the collection
+   */
+  protected detachSyncListeners(name: string) {
+    const collectionParameters = this.collections.get(name)
+    if (collectionParameters == null) return
+    const { collection, syncListeners } = collectionParameters
+    if (syncListeners == null) return
+    collection.off('added', syncListeners.added)
+    collection.off('changed', syncListeners.changed)
+    collection.off('removed', syncListeners.removed)
+  }
+
+  /**
+   * Removes a collection from the sync manager. Pauses the sync process for the collection
+   * and detaches all event listeners the sync manager attached to it. The collection itself
+   * won't be disposed and stays usable afterwards.
+   * @param name Name of the collection
+   */
+  public async removeCollection(name: string) {
+    if (!this.collections.has(name)) return
+    await this.pauseSync(name)
+    this.detachSyncListeners(name)
+    this.collections.delete(name)
+    this.syncQueues.delete(name)
+    this.scheduledPushes.delete(name)
+  }
+
+  /**
    * Clears all internal data structures
    */
   public async dispose() {
     this.isDisposed = true
+    // detach the listeners from the user provided collections before disposing the
+    // internal collections. Otherwise the listeners would stay attached and reference
+    // the disposed internal collections of this sync manager forever.
+    for (const name of this.collections.keys()) {
+      this.detachSyncListeners(name)
+    }
     this.collections.clear()
     this.syncQueues.clear()
+    this.scheduledPushes.clear()
     this.remoteChanges.splice(0)
     await Promise.all([
       this.changes.dispose(),
@@ -238,12 +283,9 @@ export default class SyncManager<
   ) {
     if (this.isDisposed) throw new Error('SyncManager is disposed')
 
-    this.collections.set(options.name, {
-      collection,
-      options,
-      readyPromise: collection.isReady(),
-      syncPaused: true, // always start paused as the autostart will start it
-    })
+    // detach listeners of a previous registration under the same name,
+    // otherwise every re-registration would add another set of listeners
+    this.detachSyncListeners(options.name)
 
     const hasRemoteChange = (change: Omit<Change, 'id' | 'time'>) => {
       for (const remoteChange of this.remoteChanges) {
@@ -270,7 +312,7 @@ export default class SyncManager<
       this.remoteChanges = newRemoteChanges.filter(item => item != null)
     }
 
-    collection.on('added', (item) => {
+    const onAdded: SyncListeners<ItemType, IdType>['added'] = (item) => {
       if (this.isDisposed) return
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'insert', data: item })) {
@@ -286,8 +328,8 @@ export default class SyncManager<
 
       if (this.getCollectionProperties(options.name).syncPaused) return
       this.schedulePush(options.name)
-    })
-    collection.on('changed', ({ id }, modifier) => {
+    }
+    const onChanged: SyncListeners<ItemType, IdType>['changed'] = ({ id }, modifier) => {
       if (this.isDisposed) return
       const data = { id, modifier }
       // skip the change if it was a remote change
@@ -304,8 +346,8 @@ export default class SyncManager<
 
       if (this.getCollectionProperties(options.name).syncPaused) return
       this.schedulePush(options.name)
-    })
-    collection.on('removed', ({ id }) => {
+    }
+    const onRemoved: SyncListeners<ItemType, IdType>['removed'] = ({ id }) => {
       if (this.isDisposed) return
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'remove', data: id })) {
@@ -321,6 +363,18 @@ export default class SyncManager<
 
       if (this.getCollectionProperties(options.name).syncPaused) return
       this.schedulePush(options.name)
+    }
+
+    collection.on('added', onAdded)
+    collection.on('changed', onChanged)
+    collection.on('removed', onRemoved)
+
+    this.collections.set(options.name, {
+      collection,
+      options,
+      readyPromise: collection.isReady(),
+      syncPaused: true, // always start paused as the autostart will start it
+      syncListeners: { added: onAdded, changed: onChanged, removed: onRemoved },
     })
 
     if (this.options.autostart) {

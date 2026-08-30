@@ -84,6 +84,16 @@ Adds a collection to the sync manager.
 - `collection` (`Collection`): The collection to add.
 - `options` (`SyncOptions`): Configuration options for the collection.
 
+Adding a collection registers `added`, `changed` and `removed` listeners on it. Calling `addCollection` again with the same `name` replaces the previous registration instead of adding a second set of listeners.
+
+### `removeCollection(name)`
+
+Removes a collection from the sync manager. This pauses the sync process for the collection and detaches all event listeners the sync manager attached to it. The collection itself isn't disposed and stays usable afterwards. Listeners registered by your application are left untouched.
+
+#### Parameters
+
+- `name` (`string`): The name of the collection.
+
 ### `getCollection(name)` (deprecated)
 
 Retrieves a collection and its options by name.
@@ -161,4 +171,4 @@ Initiates the push process for a collection, syncing only if there are changes.
 
 ### `dispose()`
 
-Disposes all internal collections and other data structures.
+Disposes all internal collections and other data structures. It also detaches the event listeners that the sync manager attached to the registered collections, so those collections can be reused with a new `SyncManager` afterwards (for example on a logout/login cycle).

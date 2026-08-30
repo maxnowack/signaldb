@@ -1509,3 +1509,133 @@ it('should push the complete item if an item was updated locally and removed rem
     { id: '1', budgetId: 'budget-1', name: 'TEST2', updatedAt: 2 },
   ])
 })
+
+it('should detach event listeners from user collections on dispose', async () => {
+  const syncManager = new SyncManager<any, any>({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  const userListener = vi.fn()
+  collection.on('added', userListener)
+
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(collection.listenerCount('added')).toBe(2)
+  expect(collection.listenerCount('changed')).toBe(1)
+  expect(collection.listenerCount('removed')).toBe(1)
+
+  await syncManager.dispose()
+
+  // only the listener registered by the user is left
+  expect(collection.listenerCount('added')).toBe(1)
+  expect(collection.listenerCount('changed')).toBe(0)
+  expect(collection.listenerCount('removed')).toBe(0)
+
+  // the collection itself is still usable and the user listener still works
+  collection.insert({ id: '1', name: 'Item 1' })
+  expect(userListener).toHaveBeenCalledTimes(1)
+})
+
+it('should allow reusing a collection with a new sync manager after dispose', async () => {
+  const collection = new Collection<TestItem, string, any>()
+
+  /**
+   * Creates a sync manager, registers the shared collection and syncs it.
+   * @returns The created sync manager.
+   */
+  async function login() {
+    const syncManager = new SyncManager<any, any>({
+      persistenceAdapter: () => memoryPersistenceAdapter([]),
+      pull: vi.fn(() => Promise.resolve({ items: [{ id: '1', name: 'Item 1' }] })),
+      push: vi.fn(),
+    })
+    await syncManager.isReady()
+    syncManager.addCollection(collection, { name: 'test' })
+    await syncManager.syncAll()
+    return syncManager
+  }
+
+  const firstManager = await login()
+  expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
+  await firstManager.dispose()
+
+  // the second cycle must not throw "Collection is disposed"
+  const secondManager = await login()
+  expect(collection.find().fetch()).toEqual([{ id: '1', name: 'Item 1' }])
+  expect(collection.listenerCount('added')).toBe(1)
+  await secondManager.dispose()
+  expect(collection.listenerCount('added')).toBe(0)
+})
+
+it('should not register duplicate listeners when adding a collection twice', async () => {
+  const syncManager = new SyncManager<any, any>({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+
+  syncManager.addCollection(collection, { name: 'test' })
+  syncManager.addCollection(collection, { name: 'test' })
+
+  expect(collection.listenerCount('added')).toBe(1)
+  expect(collection.listenerCount('changed')).toBe(1)
+  expect(collection.listenerCount('removed')).toBe(1)
+
+  await syncManager.dispose()
+})
+
+it('should detach listeners and stop tracking a collection on removeCollection', async () => {
+  const syncManager = new SyncManager<any, any>({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  await syncManager.removeCollection('test')
+
+  expect(collection.listenerCount('added')).toBe(0)
+  expect(collection.listenerCount('changed')).toBe(0)
+  expect(collection.listenerCount('removed')).toBe(0)
+  // @ts-expect-error - private property
+  expect(syncManager.collections.size).toBe(0)
+  expect(() => syncManager.getCollectionProperties('test')).toThrow("Collection with id 'test' not found")
+
+  // removing an unknown collection is a no-op
+  await expect(syncManager.removeCollection('unknown')).resolves.toBeUndefined()
+
+  // mutating the collection afterwards must not record any changes
+  collection.insert({ id: '1', name: 'Item 1' })
+  // @ts-expect-error - private property
+  expect(syncManager.changes.find().count()).toBe(0)
+
+  await syncManager.dispose()
+})
+
+it('should tolerate collection entries without tracked listeners', async () => {
+  const syncManager = new SyncManager<any, any>({
+    persistenceAdapter: () => memoryPersistenceAdapter([]),
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  const collection = new Collection<TestItem, string, any>()
+  await syncManager.isReady()
+  syncManager.addCollection(collection, { name: 'test' })
+
+  // simulate a subclass that populates the protected collections map itself,
+  // without the syncListeners property
+  // @ts-expect-error - protected property
+  const properties = syncManager.collections.get('test')
+  // @ts-expect-error - protected property
+  syncManager.collections.set('test', { ...properties, syncListeners: undefined })
+
+  await expect(syncManager.removeCollection('test')).resolves.toBeUndefined()
+  await expect(syncManager.dispose()).resolves.toBeUndefined()
+})
