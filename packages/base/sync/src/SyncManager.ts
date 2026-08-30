@@ -285,7 +285,7 @@ export default class SyncManager<
       this.remoteChanges = newRemoteChanges.filter(item => item != null)
     }
 
-    const onAdded: SyncListeners<ItemType, IdType>['added'] = (item) => {
+    const onAdded: SyncListeners<CollectionItem, IdType>['added'] = (item) => {
       if (this.isDisposed) return
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'insert', data: item })) {
@@ -305,7 +305,7 @@ export default class SyncManager<
         this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
     }
-    const onChanged: SyncListeners<ItemType, IdType>['changed'] = ({ id }, modifier) => {
+    const onChanged: SyncListeners<CollectionItem, IdType>['changed'] = ({ id }, modifier) => {
       if (this.isDisposed) return
       const data = { id, modifier }
       // skip the change if it was a remote change
@@ -326,7 +326,7 @@ export default class SyncManager<
         this.options.onError(this.getCollectionProperties(options.name).options, error)
       })
     }
-    const onRemoved: SyncListeners<ItemType, IdType>['removed'] = ({ id }) => {
+    const onRemoved: SyncListeners<CollectionItem, IdType>['removed'] = ({ id }) => {
       if (this.isDisposed) return
       // skip the change if it was a remote change
       if (hasRemoteChange({ collectionName: options.name, type: 'remove', data: id })) {
@@ -351,12 +351,18 @@ export default class SyncManager<
     collection.on('changed', onChanged)
     collection.on('removed', onRemoved)
 
+    const syncListeners = {
+      added: onAdded,
+      changed: onChanged,
+      removed: onRemoved,
+    } as unknown as SyncListeners<ItemType, IdType>
+
     this.collections.set(options.name, {
       collection: collection as unknown as Collection<ItemType, IdType, any>,
       options,
       readyPromise: collection.ready(),
       syncPaused: true, // always start paused as the autostart will start it
-      syncListeners: { added: onAdded, changed: onChanged, removed: onRemoved },
+      syncListeners,
     })
 
     if (this.options.autostart) {
@@ -524,9 +530,9 @@ export default class SyncManager<
     }, { fields: { status: 1 }, async })
     if (itemOrPromise instanceof Promise) {
       return itemOrPromise
-        .then(item => item != null) as Async extends true ? Promise<boolean> : boolean
+        .then(item => item != null)
     }
-    return (itemOrPromise != null) as Async extends true ? Promise<boolean> : boolean
+    return (itemOrPromise != null)
   }
 
   /**

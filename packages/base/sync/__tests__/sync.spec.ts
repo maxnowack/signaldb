@@ -202,9 +202,9 @@ it('should push the full item when updating an item that was removed remotely', 
   const mockPull = vi.fn<() => Promise<LoadResponse<Category>>>()
     .mockResolvedValue({ items: [] })
   const mockPush = vi.fn<(changes: Changeset<Category>) => Promise<void>>()
-  const mockInsert = vi.fn<(item: Category) => void>()
-  const mockUpdate = vi.fn<(id: number, modifier: Modifier<Category>) => void>()
-  const mockRemove = vi.fn<(id: number) => void>()
+  const mockInsert = vi.fn<(item: Category) => Promise<void>>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<Category>) => Promise<void>>()
+  const mockRemove = vi.fn<(id: number) => Promise<void>>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   await sync({
@@ -248,9 +248,9 @@ it('should push the full item when updating an item that is missing in the pulle
   const mockPull = vi.fn<() => Promise<LoadResponse<Category>>>()
     .mockResolvedValue({ items: [] })
   const mockPush = vi.fn<(changes: Changeset<Category>) => Promise<void>>()
-  const mockInsert = vi.fn<(item: Category) => void>()
-  const mockUpdate = vi.fn<(id: number, modifier: Modifier<Category>) => void>()
-  const mockRemove = vi.fn<(id: number) => void>()
+  const mockInsert = vi.fn<(item: Category) => Promise<void>>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<Category>) => Promise<void>>()
+  const mockRemove = vi.fn<(id: number) => Promise<void>>()
   const batch = vi.fn().mockImplementation((fn: () => void) => fn())
 
   await sync({
