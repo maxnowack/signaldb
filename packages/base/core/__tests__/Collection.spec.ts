@@ -920,6 +920,41 @@ describe('Collection', () => {
       const v = (c as any).getItem({}, { async: false })
       expect(v).toBeUndefined()
     })
+
+    it('falls back to a generic query error when the backend reports none', async () => {
+      const mockAdapter: any = {
+        createCollectionBackend: () => ({
+          insert: async (i: any) => i,
+          updateOne: async () => [],
+          updateMany: async () => [],
+          replaceOne: async () => [],
+          removeOne: async () => [],
+          removeMany: async () => [],
+          registerQuery: () => {},
+          unregisterQuery: () => {},
+          getQueryState: () => 'complete',
+          onQueryStateChange: (_s: any, _o: any, callback: (s: any) => void) => {
+            setTimeout(() => callback('error'), 0)
+            return () => {}
+          },
+          getQueryError: () => null,
+          getQueryResult: () => [],
+          executeQuery: async () => [],
+          dispose: async () => {},
+          isReady: async () => {},
+        }),
+      }
+      const c = new Collection<{ id: string }>('mock', mockAdapter as unknown as DataAdapter)
+      const errors: Error[] = []
+      c.on('query.error', (error) => {
+        errors.push(error)
+      })
+      const stop = c.find({}).observeChanges({ added: () => {} })
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(errors).toHaveLength(1)
+      expect(errors[0].message).toBe('Query on "mock" failed')
+      stop()
+    })
   })
 
   describe('Field Tracking', () => {
