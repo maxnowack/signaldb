@@ -37,4 +37,16 @@ describe('set', () => {
     const result = set(object, 'foo', undefined, true)
     expect(result).toEqual({ bar: 'baz' })
   })
+
+  it('should return the original value when object is nullish', () => {
+    expect(set(null as unknown as Record<string, unknown>, 'foo', 'bar')).toBeNull()
+  })
+
+  it('should support bracket paths when deleting values', () => {
+    const object = { foo: [{ bar: 'baz', keep: true }] }
+    const result = set(object, 'foo[0].bar', undefined, true)
+    expect(Array.isArray(result.foo)).toBe(true)
+    expect(result.foo[0]).toHaveProperty('keep', true)
+    expect(result.foo[0]).toHaveProperty('', {})
+  })
 })

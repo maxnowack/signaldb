@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import fs from 'fs'
 import path from 'path'
+import { fixupPluginRules } from '@eslint/compat'
 import eslint from '@eslint/js'
 import { defineConfig } from 'eslint/config'
 import globals from 'globals'
@@ -36,9 +37,8 @@ export default defineConfig(
   unicornPlugin.configs.recommended,
   {
     plugins: {
-      'react': reactPlugin,
-      'jsx-a11y': jsxA11yPlugin,
-      '@stylistic': stylisticPlugin,
+      'react': fixupPluginRules(reactPlugin),
+      'jsx-a11y': fixupPluginRules(jsxA11yPlugin),
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
@@ -174,7 +174,7 @@ export default defineConfig(
   {
     files: ['**/__tests__/**/*.(m)[jt]s?(x)', '**/?(*.)+(spec|test).(m)[jt]s?(x)'],
     plugins: {
-      'testing-library': testingLibraryPlugin,
+      'testing-library': fixupPluginRules(testingLibraryPlugin),
     },
   },
   {
@@ -182,6 +182,8 @@ export default defineConfig(
       '**/.next/**',
       '**/dist**',
       '**/node_modules/**',
+      // Built output of the v1 documentation, see .scripts/build-v1-docs.js
+      '.cache',
       'coverage',
       'docs/.vitepress/cache',
       'docs/.vitepress/dist',
@@ -192,6 +194,18 @@ export default defineConfig(
   },
   { files: ['commitlint.config.js'], languageOptions: { globals: globals.node } },
   { files: ['**/next.config.js'], languageOptions: { globals: globals.commonjs } },
+  {
+    files: ['.scripts/**.js'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      'jsdoc/require-jsdoc': 'off',
+      'no-console': 'off',
+      'unicorn/filename-case': 'off',
+      'unicorn/prefer-top-level-await': 'off',
+    },
+  },
   // https://github.com/import-js/eslint-plugin-import/issues/1913#issuecomment-1034025709
   ...projectDirectories.map(projectDirectory => ({
     files: [`${projectDirectory}/**/*.{t,j}s`, `${projectDirectory}/**/*.m{t,j}s`],

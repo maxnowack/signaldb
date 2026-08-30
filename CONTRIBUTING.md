@@ -22,7 +22,7 @@ All packages are in the `packages` folder. In the folder are some sub-folders to
     - `sync`: Contains `@signaldb/sync`
   - `integrations`: Contains all integrations to frameworks like React for example.
   - `reactivity-adapters`: Contains all reactivity adapters of SignalDB.
-  - `persistence-adapters`: Contains all persistence adapters of SignalDB.
+  - `storage-adapters`: Contains all storage adapters of SignalDB.
 
 ## ✅ Committing your changes
 
@@ -57,6 +57,20 @@ When you make changes to the API, please also update the documentation in the `d
 ```sh
 npm run docs:dev
 ```
+
+The documentation for v1 is not in this tree. It is built from the `v1.8.1` tag
+into `docs/public/v1` by `npm run docs:build-v1`, which the deploy workflow runs
+before the main build:
+
+```sh
+npm run docs:build-v1
+```
+
+You only need this if you are working on the v1 archive itself — the navigation
+leaves its entry out when the directory is absent, so nothing links into the
+void without it. The first run checks the tag out and builds it, which takes a
+few minutes; every run after that copies from `.cache/v1-docs`. See
+`.scripts/build-v1-docs.js` — the tag is the only thing to change there.
 
 ## ❓ Questions
 

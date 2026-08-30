@@ -14,7 +14,32 @@
     "skipDefaultLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@signaldb/angular": ["packages/reactivity-adapters/angular/src/index.ts"],
+      "@signaldb/core": ["packages/base/core/src/index.ts"],
+      "@signaldb/devtools": ["packages/devtools/devtools/src/index.ts"],
+      "@signaldb/fs": ["packages/storage-adapters/fs/src/index.ts"],
+      "@signaldb/generic-fs": ["packages/storage-adapters/generic-fs/src/index.ts"],
+      "@signaldb/indexeddb": ["packages/storage-adapters/indexeddb/src/index.ts"],
+      "@signaldb/localstorage": ["packages/storage-adapters/localstorage/src/index.ts"],
+      "@signaldb/maverickjs": ["packages/reactivity-adapters/maverickjs/src/index.ts"],
+      "@signaldb/meteor": ["packages/reactivity-adapters/meteor/src/index.ts"],
+      "@signaldb/mobx": ["packages/reactivity-adapters/mobx/src/index.ts"],
+      "@signaldb/oby": ["packages/reactivity-adapters/oby/src/index.ts"],
+      "@signaldb/opfs": ["packages/storage-adapters/opfs/src/index.ts"],
+      "@signaldb/preact": ["packages/reactivity-adapters/preact/src/index.ts"],
+      "@signaldb/react": ["packages/integrations/react/src/index.ts"],
+      "@signaldb/reactively": ["packages/reactivity-adapters/reactively/src/index.ts"],
+      "@signaldb/sinuous": ["packages/reactivity-adapters/sinuous/src/index.ts"],
+      "@signaldb/sjs": ["packages/reactivity-adapters/sjs/src/index.ts"],
+      "@signaldb/solid": ["packages/reactivity-adapters/solid/src/index.ts"],
+      "@signaldb/svelte": ["packages/reactivity-adapters/svelte/index.svelte.ts"],
+      "@signaldb/sync": ["packages/base/sync/src/index.ts"],
+      "@signaldb/usignal": ["packages/reactivity-adapters/usignal/src/index.ts"],
+      "@signaldb/vue": ["packages/reactivity-adapters/vue/src/index.ts"]
+    }
   },
   "exclude": [
     "**/node_modules",

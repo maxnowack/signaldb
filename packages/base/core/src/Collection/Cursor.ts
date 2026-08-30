@@ -1,8 +1,6 @@
-import sortItems from '../utils/sortItems'
-import project from '../utils/project'
-import deepClone from '../utils/deepClone'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
-import type { BaseItem, FindOptions, Transform, TransformAll } from './types'
+import type { QueryDelta } from '../utils/queryDelta'
+import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
 
@@ -17,27 +15,46 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
 }
 
+/**
+ * Reports whether the query a cursor stands for has produced an outcome yet.
+ * Supplied by the collection, which owns the query registration; a cursor
+ * built without one simply never reports itself as loading.
+ */
+export interface QueryStateAccessor {
+  /**
+   * Whether the query has settled — completed or failed — at least once
+   * since it was registered.
+   */
+  hasSettled: () => boolean,
+  /**
+   * Subscribes to the query settling. Returns a cleanup function.
+   */
+  onSettled: (callback: () => void) => () => void,
+}
+
 export interface CursorOptions<
   T extends BaseItem,
-  E extends BaseItem = T,
-  U = E,
-> extends FindOptions<T> {
-  transformAll?: TransformAll<T, E>,
-  transform?: Transform<E, U>,
-  bindEvents?: (requery: () => void) => () => void,
+  U = T,
+  Async extends boolean = false,
+> extends FindOptions<T, Async> {
+  transform?: Transform<T, U>,
+  bindEvents?: (
+    requery: () => void,
+    applyDelta: (delta: QueryDelta<T>) => void,
+  ) => () => void,
+  queryState?: QueryStateAccessor,
 }
 
 /**
  * Represents a cursor for querying and observing a filtered, sorted, and transformed
  * subset of items from a collection. Supports reactivity and field tracking.
  * @template T - The type of the items in the collection.
- * @template E - The transformed item type after applying transformAll (default is T).
- * @template U - The transformed item type after applying transform (default is E).
+ * @template U - The transformed item type after applying transform (default is T).
  */
-export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
-  private observer: Observer<E> | undefined
-  private getFilteredItems: () => T[]
-  private options: CursorOptions<T, E, U>
+export default class Cursor<T extends BaseItem, U = T, Async extends boolean = false> {
+  private observer: Observer<T> | undefined
+  private getItems: Async extends true ? () => Promise<T[]> : () => T[]
+  private options: CursorOptions<T, U, Async>
   private onCleanupCallbacks: (() => void)[] = []
 
   /**
@@ -58,14 +75,14 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    * @param options.transformAll - A function that will be able to solve the n+1 problem
    */
   constructor(
-    getItems: () => T[],
-    options?: CursorOptions<T, E, U>,
+    getItems: Async extends true ? () => Promise<T[]> : () => T[],
+    options?: CursorOptions<T, U, Async>,
   ) {
-    this.getFilteredItems = getItems
+    this.getItems = getItems
     this.options = options || {}
   }
 
-  private addGetters(item: E) {
+  private addGetters(item: T) {
     if (!isInReactiveScope(this.options.reactive)) return item
     const depend = this.depend.bind(this)
     return Object.entries(item).reduce((memo, [key, value]) => {
@@ -83,10 +100,10 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
         configurable: true,
       })
       return memo
-    }, {}) as E
+    }, {}) as T
   }
 
-  private transform(rawItem: E): U {
+  private transform(rawItem: T): U {
     const item = this.options.fieldTracking
       ? this.addGetters(rawItem)
       : rawItem
@@ -94,35 +111,19 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
     return this.options.transform(item)
   }
 
-  private getItems() {
-    const items = this.getFilteredItems()
-    const { sort, skip, limit, transformAll, fields } = this.options
-    const sorted = sort ? sortItems(items, sort) : items
-    const skipped = skip ? sorted.slice(skip) : sorted
-    const limited = limit ? skipped.slice(0, limit) : skipped
-    const idExcluded = this.options.fields && this.options.fields.id === 0
-
-    let entries = limited as unknown as E[]
-    if (transformAll) {
-      entries = transformAll(deepClone(limited), fields)
-    }
-    return entries.map((item) => {
-      if (!this.options.fields) return item
-      return {
-        ...idExcluded ? {} : { id: item.id },
-        ...project<E>(item, this.options.fields),
-      }
-    })
-  }
-
   private depend(
     changeEvents: {
-      [P in keyof ObserveCallbacks<E>]?: true
-        | ((notify: () => void) => NonNullable<ObserveCallbacks<E>[P]>)
+      [P in keyof ObserveCallbacks<T>]?: true
+        | ((notify: () => void) => NonNullable<ObserveCallbacks<T>[P]>)
     },
+    bindExtraNotifier?: (notify: () => void) => () => void,
   ) {
+    if (this.options?.async) return
+    if (!isInReactiveScope(this.options.reactive)) {
+      // eslint-disable-next-line no-console
+      console.warn('Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope')
+    }
     if (!this.options.reactive) return
-    if (!isInReactiveScope(this.options.reactive)) return
     const signal = this.options.reactive.create()
     signal.depend()
     const notify = () => signal.notify()
@@ -138,7 +139,7 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
     ) {
       const eventHandler = changeEvents[event]
 
-      return (...args: Parameters<NonNullable<ObserveCallbacks<E>[Event]>>) => {
+      return (...args: Parameters<NonNullable<ObserveCallbacks<T>[Event]>>) => {
         // if the event is just turned on with true, we can notify directly
         if (eventHandler === true) {
           notify()
@@ -149,7 +150,7 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
         if (typeof eventHandler !== 'function') return
 
         // if the event is a function, we call it with the notify function
-        eventHandler(notify)(...args as [E, E & keyof E, E[keyof E], E[keyof E]])
+        eventHandler(notify)(...args as [T, T & keyof T, T[keyof T], T[keyof T]])
       }
     }
 
@@ -165,15 +166,30 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
       this.options.reactive.onDispose(() => stop(), signal)
     }
     this.onCleanup(stop)
+
+    // A notifier that isn't driven by the result set itself — `isLoading()`
+    // needs to re-run its scope when the query settles, which is precisely
+    // the moment the result set may *not* have changed (an empty query
+    // completing produces no diff, so the observer above stays silent).
+    if (!bindExtraNotifier) return
+    const stopExtraNotifier = bindExtraNotifier(notify)
+    if (this.options.reactive.onDispose) {
+      this.options.reactive.onDispose(() => stopExtraNotifier(), signal)
+    }
+    this.onCleanup(stopExtraNotifier)
   }
 
   private ensureObserver() {
     if (!this.observer) {
-      const observer = new Observer<E>(() => {
+      const observer = new Observer<T>(() => {
         const requery = () => {
-          observer.runChecks(this.getItems())
+          observer.runChecks(this.getItems)
         }
-        const cleanup = this.options.bindEvents && this.options.bindEvents(requery)
+        const applyDelta = (delta: QueryDelta<T>) => {
+          observer.applyDelta(delta, this.getItems)
+        }
+        const cleanup = this.options.bindEvents
+          && this.options.bindEvents(requery, applyDelta)
         return () => {
           if (cleanup) cleanup()
         }
@@ -184,10 +200,10 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
     return this.observer
   }
 
-  private observeRawChanges(callbacks: ObserveCallbacks<E>, skipInitial = false) {
+  private observeRawChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
     const observer = this.ensureObserver()
     observer.addCallbacks(callbacks, skipInitial)
-    observer.runChecks(this.getItems())
+    observer.runChecks(this.getItems)
     return () => {
       observer.removeCallbacks(callbacks)
       if (!observer.isEmpty()) return
@@ -225,18 +241,29 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    * ⚡️ this function is reactive!
    * @param callback - A function to execute for each item in the result set.
    * @param callback.item - The transformed item.
+   * @returns A promise that resolves when all items have been processed, or void if not in async mode.
    */
-  public forEach(callback: (item: U) => void) {
-    const items = this.getItems()
+  public forEach(callback: (item: U) => void): Async extends true ? Promise<void> : void {
     this.depend({
       addedBefore: true,
       removed: true,
       movedBefore: true,
       ...this.options.fieldTracking ? {} : { changed: true },
     })
-    items.forEach((item) => {
-      callback(this.transform(item))
-    })
+
+    const executeForEach = (items: T[]) => {
+      items.forEach((item) => {
+        callback(this.transform(item))
+      })
+    }
+
+    const result = this.getItems()
+    if (result instanceof Promise) {
+      return result.then(executeForEach) as Async extends true ? Promise<void> : void
+    } else {
+      executeForEach(result)
+      return undefined as Async extends true ? Promise<void> : void
+    }
   }
 
   /**
@@ -248,12 +275,15 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    * @param callback.item - The transformed item.
    * @returns An array of results after applying the callback to each item.
    */
-  public map<V>(callback: (item: U) => V) {
+  public map<V>(callback: (item: U) => V): Async extends true ? Promise<V[]> : V[] {
     const results: V[] = []
-    this.forEach((item) => {
+    const maybePromise = this.forEach((item) => {
       results.push(callback(item))
     })
-    return results
+    if (maybePromise instanceof Promise) {
+      return maybePromise.then(() => results) as Async extends true ? Promise<V[]> : V[]
+    }
+    return results as Async extends true ? Promise<V[]> : V[]
   }
 
   /**
@@ -262,7 +292,7 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    * ⚡️ this function is reactive!
    * @returns An array of transformed items in the result set.
    */
-  public fetch(): U[] {
+  public fetch(): Async extends true ? Promise<U[]> : U[] {
     return this.map(item => item)
   }
 
@@ -272,13 +302,46 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    * ⚡️ this function is reactive!
    * @returns The total number of items in the result set.
    */
-  public count() {
-    const items = this.getItems()
+  public count(): Async extends true ? Promise<number> : number {
     this.depend({
       added: true,
       removed: true,
     })
-    return items.length
+    const maybePromise = this.getItems()
+    return (maybePromise instanceof Promise
+      ? maybePromise.then(items => items.length)
+      : maybePromise.length) as Async extends true ? Promise<number> : number
+  }
+
+  /**
+   * Whether this cursor's query has yet to deliver a first result.
+   * ⚡️ this function is reactive!
+   *
+   * An asynchronous data adapter answers a newly registered query only after a
+   * round trip, and serves a neutral empty result until it does — which a
+   * consumer cannot otherwise tell apart from "there is nothing to show". This
+   * is that distinction, per query rather than per collection, so one screen
+   * waiting on its own data says nothing about any other query.
+   *
+   * Follows the usual `isLoading`/`isFetching` split: it reports "no result
+   * yet", not "an execution is in flight". A write that re-runs an
+   * already-settled query drives it through `'active'` again while this stays
+   * `false`, so a list does not fall back to a loading state every time one of
+   * its rows changes.
+   *
+   * A query that fails counts as settled — the `query.error` event on the
+   * collection is what surfaces the failure, and a loading state that never
+   * ends is the worse answer. Reading this registers the query if nothing else
+   * has, so it cannot wait on something nobody asked for. It is always `false`
+   * for an `{ async: true }` cursor, whose `fetch()` awaits the real result
+   * anyway, and for a data adapter that answers synchronously.
+   * @returns A boolean indicating whether the first result is still pending.
+   */
+  public isLoading(): boolean {
+    const queryState = this.options.queryState
+    if (!queryState || this.options.async) return false
+    this.depend({}, notify => queryState.onSettled(notify))
+    return !queryState.hasSettled()
   }
 
   /**
@@ -294,14 +357,14 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    * @param skipInitial - A boolean indicating whether to skip the initial notification of the current result set.
    * @returns A function to stop observing changes.
    */
-  public observeChanges(callbacks: ObserveCallbacks<E>, skipInitial = false) {
+  public observeChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
     return this.observeRawChanges(Object
       .entries(callbacks)
       .reduce((memo, [callbackName, callback]) => {
         if (!callback) return memo
         return {
           ...memo,
-          [callbackName]: (item: E, before: E | undefined) => {
+          [callbackName]: (item: T, before: T | undefined) => {
             const transformedValue = this.transform(item)
             const hasBeforeParameter = before !== undefined
             const transformedBeforeValue = hasBeforeParameter && before
@@ -323,6 +386,19 @@ export default class Cursor<T extends BaseItem, E extends BaseItem = T, U = E> {
    */
   public requery() {
     if (!this.observer) return
-    this.observer.runChecks(this.getItems())
+    this.observer.runChecks(this.getItems)
+  }
+
+  /**
+   * Brings the cursor up to date from a description of what changed, rather than by re-running the
+   * query and comparing the result with the previous one.
+   *
+   * Falls back to `requery` when the delta does not fit the result the cursor currently holds, so
+   * a caller never has to decide which of the two is safe.
+   * @param delta - The change to apply.
+   */
+  public applyDelta(delta: QueryDelta<T>) {
+    if (!this.observer) return
+    this.observer.applyDelta(delta, this.getItems)
   }
 }

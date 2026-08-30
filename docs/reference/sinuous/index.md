@@ -29,9 +29,9 @@ head:
 ```js
 import { api } from 'sinuous'
 import sinuousReactivityAdapter from '@signaldb/sinuous'
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: sinuousReactivityAdapter,
 })
 

@@ -2,6 +2,9 @@ dist
 node_modules
 docs/.vitepress/dist
 docs/.vitepress/cache
+.cache
+docs/public/examples
+docs/public/v1
 docs/typedoc.json
 .DS_Store
 coverage

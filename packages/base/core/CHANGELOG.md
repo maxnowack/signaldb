@@ -7,9 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+* `StorageAdapter.readIndex` now declares `Map<string | null, Set<I>>` instead of `Map<any, Set<I>>`. The keys always had to be `serializeValue(value)` — that is what SignalDB looks an index up with — but the type did not say so, and an adapter keying its index by the raw field value answered nothing for every non-string field and everything for a `$ne` on one. If your adapter stores raw keys, wrap them in `serializeValue` from `@signaldb/core`.
+* The `insert`, `insertMany`, `updateOne`, `updateMany`, `replaceOne`, `removeOne` and `removeMany` methods on the `Collection` are now asynchronous. They resolve to what they always returned: `insert` to the new item's id, `insertMany` to the new ids, `updateOne`, `replaceOne` and `removeOne` to `0` or `1`, and `updateMany` and `removeMany` to the number of items they touched. Await them — a rejected write that nobody awaits, a failed validation for instance, surfaces as an unhandled rejection instead of reaching your error handling.
+* The `createMemoryAdapter` method and `MemoryAdapter` type were removed.
+* The `memory` option for a `Collection` was removed.
+* The `AutoFetchCollection` was removed. Use the `AutoFetchDataAdapter` instead.
+* `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
+* Indices on a `Collection` are now specified as an array of strings instead of using `IndexProvider` or `LowLevelIndexProvider` instances.
+* `PersistenceAdapter` was renamed to `StorageAdapter` and the signature was changed in a non backward compatible way.
+* The error messages that named the old concept were renamed with it: `No persistence adapter for collection <name>` is now `No storage adapter for collection <name>`, and the `console.error` for a failed background write says `Error during storage operation in collection <name>`. If you match on either string — in a test, a log filter, or an error reporter's grouping rule — update it.
+* The `createPersistenceAdapter` method was renamed to `createStorageAdapter`.
+* The `LoadResponse` type is no longer exported from `@signaldb/core`. It described the shape a `PersistenceAdapter` loaded, which the new `StorageAdapter` does not have. `@signaldb/sync` still uses a type of that name for what a `pull` resolves to, but does not export it either — if you were naming it explicitly, infer it from the `SyncManager` options instead.
+* The `combinePersistenceAdapters` method was removed.
+* All persistence events on the `Collection` were removed.
+* Exports for `createIndexProvider` and `createIndex` were removed. Specify indices as strings instead.
+* `.isReady()` method on `Collection` was renamed to `.ready()`. A new reactive `.isReady` method was added to check if the collection is ready in a reactive way.
+* Observing a query now reports the *minimal* set of `movedBefore` events for a reordering. In v1, every item whose neighbouring item had changed was reported as moved, so moving a single item could produce a `movedBefore` for several of them. Applying the reported moves still produces the same order, but consumers that count `movedBefore` calls, or that rely on being notified about items which did not themselves move, will now see fewer events.
+
 ### Added
 
-* Added the previous state (before the update) as an argument to `'changed'` event handlers. This provides additional information to handlers, enabling e.g. history functionality (thanks @robot-controller!)
+* Introduced support to use a `DataAdapter` with a `Collection` to handle data operations in a more structured way.
+* Added `DefaultDataAdapter` which provides a basic and backward compatible implementation of the `DataAdapter` interface.
+* Added `AsyncDataAdapter` which provides an asynchronous implementation of the `DataAdapter` interface.
+* Added `WorkerDataAdapter` and `WorkerDataAdapterHost` which provides a `DataAdapter` implementation that runs in a web worker.
+* Added `isBatchOperationInProgress` method to `Collection` to check if a batch operation is currently in progress.
+* Added the previous state (before the update) as an argument to `'changed'` event handlers on the `Collection` and to the `changed` callback of `observeChanges`. This provides additional information to handlers, enabling e.g. history functionality (thanks @robot-controller!)
+* The write methods of a `CollectionBackend` — `updateOne`, `updateMany` and `replaceOne` — may now resolve to `{ items, previousItems }` instead of a plain array, which is what lets the `'changed'` event report the previous state. Returning a plain array is still valid, so a custom adapter keeps working unchanged; the event then omits its third argument. All adapters shipped with SignalDB report the previous state, which grows a `WorkerDataAdapter` write response by the size of the items the write changed.
+* The callback passed to `onQueryStateChange` on a `CollectionBackend` may now receive a second argument describing how the query result changed. Existing callbacks are unaffected — the argument is only passed when the adapter can produce it, and adapters that cannot simply omit it.
+* `CollectionBackend`, `QueryOptions`, `StateChangeCallback`, `WriteResult`, `DetailedWriteResult` and `QueryDelta` are now exported, so a custom `DataAdapter` can name the types it has to implement. `WorkerDataAdapterEndpoint` and `WorkerDataAdapterHostEndpoint` describe what the two halves of the worker adapter need from a `Worker`, so anything with the same shape — a `MessagePort`, a test stub — can take its place.
+* Queries can be run asynchronously: `find(selector, { async: true })` returns a cursor whose `fetch()`, `count()`, `map()` and `forEach()` resolve to their result instead of returning it. The types follow the option, so a synchronous cursor is still synchronous. This is what makes the `AsyncDataAdapter`, the `WorkerDataAdapter` and the `AutoFetchDataAdapter` usable — they cannot answer a query on the spot. `AnyFindOptions`, `AsyncFindOptions` and `SyncFindOptions` are exported for naming the two forms.
+* Added `Cursor.isLoading()`, which reports whether the query behind a cursor has produced an outcome yet. A query that has not been answered publishes a *neutral* result — an empty array, a zero — and that is indistinguishable from a real one, because empty is a legitimate answer. This is the only way to tell the two apart, and it matters as soon as you use an adapter that does not answer on the spot.
+* Added `Cursor.applyDelta(delta)`, which brings a cursor up to date from a description of what changed rather than by re-running its query, falling back to `requery()` when the delta does not fit. For integrations that receive deltas from a data adapter themselves.
+* Added a new `query.error` event on the `Collection`. A query backing a live cursor that fails keeps serving its neutral empty result, which a consumer cannot distinguish from "no data" — this event is how you find out.
+* `serializeValue`, `get`, `reactiveOrAsync` and `unwrap` are now exported. `serializeValue` is the one a custom `StorageAdapter` needs: it produces the keys `readIndex` is looked up with.
+* `QueryStateAccessor` is exported, for supplying a `Cursor` with the query state it reports through `isLoading()`.
+* `Collection.batch` accepts the collections to batch: `Collection.batch([a, b], () => …)`. Without them it still batches every collection in the process, which defers every live query everywhere until the batch ends — fine for a few writes belonging to one event, and harmful around a loop whose length is data-dependent.
+* Added `Collection.reportLargeQueries(rows)`, which reports each live query holding more than `rows` rows once, together with the stack that registered it. `enableDebugMode()` switches it on at 500 rows. A reactive query registered from a long-lived place keeps its cost for the lifetime of the application, and there is otherwise nothing to see: the query works, and its price only shows up as an application that has grown slow.
+
+### Changed
+
+* A write is now propagated to live queries as a description of what changed, instead of by re-running each affected query and comparing its new result against the previous one. A write that touches one item costs the size of that change rather than the size of every result on screen.
+* `WorkerDataAdapterHost` sends the full result only the first time a query is answered; every update after that carries just the change. Editing one field of one row no longer serialises the entire result set across the worker boundary.
+* `WorkerDataAdapter` answers `isReady()` from the promise it already started when the collection registered, instead of asking the worker again every time. Readiness happens once and never goes back, but each question used to cost a round trip — and callers ask often: a helper awaiting `ready()` before touching each record turned a thousand-record sync into a thousand extra messages.
+* `DefaultDataAdapter`, `AsyncDataAdapter` and `WorkerDataAdapterHost` bring a query's result up to date from its previous result where they can, instead of reading the whole collection back from storage on every write. Queries using `limit` or `skip`, and projected queries that are also sorted, still re-execute, because their previous result cannot answer the change on its own.
+* `WorkerDataAdapter` routes every worker message through a single listener instead of adding one per query and per pending request. Previously each incoming message was offered to every listener in turn, and each of them re-serialised its own selector to decide the message was not for it.
+* A write that leaves a query's result unchanged no longer notifies that query's observers at all, and no longer produces a message across the worker boundary.
+* `WorkerDataAdapter` no longer shows a write before the worker confirms it when the item it modifies is known only through a projected query. Applying a modifier to a projected item produces something that is not the item, and a selector naming a projected-away field would no longer match it. The write itself is unaffected; it simply becomes visible when the worker answers rather than immediately.
+* `updateOne`, `updateMany` and `replaceOne` no longer read the items back from the data layer before writing them. The write's own answer says what changed, and an empty answer is what turns an upsert into an insert. The read still happens when something is listening for `validate`, so a validator can still inspect an item — and refuse the write — before it happens.
+* `changed` is no longer emitted for a write that matched nothing. It previously was, whenever the item had still existed at the moment it was read back.
+* A query with a `limit` is now brought up to date from its own window where the window allows it, instead of always being re-executed against the store. A window losing one of its items still needs the store, because what fills the gap is something the window has never held.
+
+### Fixed
+
+* A query combining an indexed field with an `$or` no longer returns documents that do not match it. The `$or` branches were unioned with the ids the rest of the selector had already narrowed down to, rather than intersected with them, and the optimized selector came back empty — so nothing filtered the surplus out again. `find({ status: 'open', $or: [{ tag: 'a' }, { tag: 'b' }] })` returned every indexed document instead of those satisfying both halves. Only queries whose fields are all indexed were affected, so indexing more made it more likely, not less.
+* No data adapter reads a whole collection out of storage any more to answer a query that selects several ids at once. `{ id: { $in: [...] } }` is now resolved through the storage adapter's `readIds`, like a single scalar `id` always was, so the query costs the ids it asks for instead of the size of the collection. **This applies to every `insert`**, which checks for existing ids exactly that way — inserting one item into a collection of 2,000 used to read all 2,000 back first. An application reported both: a ledger lookup and each of its writes taking seconds as its history grew. `DefaultDataAdapter`, `AsyncDataAdapter` and `AutoFetchDataAdapter` had the same restriction and were fixed with it.
+* Fixed a bug in `WorkerDataAdapter` where a query going back to the `'active'` state discarded the result it was holding, leaving readers of that query with nothing to show until the recomputation landed.
+* Fixed a bug in `WorkerDataAdapter` where a query using `fields` returned an empty result for as long as any write was in flight. Its stored items are projected, and they were being matched against the selector again — which no field the projection had dropped could satisfy.
+* Fixed `WorkerDataAdapter` letting a failed `registerCollection`, `registerQuery` or `unregisterQuery` escape as an uncaught promise rejection — which a disposed collection produced every time a cursor was cleaned up after it. A query the worker cannot register is now published as failed, so it reaches the collection's `query.error` event instead of waiting forever on an empty result.
 
 ## [1.8.1] - 2026-03-17
 

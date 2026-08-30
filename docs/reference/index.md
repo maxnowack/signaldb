@@ -32,13 +32,13 @@ SignalDB consists of several packages of which each has indiviudal exports.
 
 * [`Collection`](/reference/core/collection/)
 * [`Cursor`](/reference/core/cursor/)
-* [`AutoFetchCollection`](/reference/core/autofetchcollection/)
-* [`createIndex`](/reference/core/createindex/)
-* [`createIndexProvider`](/reference/core/createindexprovider/)
-* [`createMemoryAdapter`](/reference/core/creatememoryadapter/)
-* [`createPersistenceAdapter`](/reference/core/createpersistenceadapter/)
+* [`DataAdapter`](/reference/core/dataadapter/)
+* [`DefaultDataAdapter`](/reference/core/defaultdataadapter/)
+* [`AsyncDataAdapter`](/reference/core/asyncdataadapter/)
+* [`WorkerDataAdapter`](/reference/core/workerdataadapter/)
+* [`AutoFetchDataAdapter`](/reference/core/autofetchdataadapter/)
+* [`createStorageAdapter`](/reference/core/createstorageadapter/)
 * [`createReactivityAdapter`](/reference/core/createreactivityadapter/)
-* [`combinePersistenceAdapters`](/reference/core/combinepersistenceadapters/)
 
 ### `@signaldb/sync`
 * [`SyncManager`](/reference/sync/)
@@ -48,10 +48,16 @@ SignalDB consists of several packages of which each has indiviudal exports.
 ### `@signaldb/react`
 * [`createUseReactivityHook`](/reference/react/)
 
-## Persistence Adapters
+## Storage Adapters
 
 ### `@signaldb/fs`
 * [`createFileSystemAdapter`](/reference/fs/)
+
+### `@signaldb/generic-fs`
+* [`createGenericFSAdapter`](/reference/generic-fs/)
+
+### `@signaldb/indexeddb`
+* [`createIndexedDBAdapter`](/reference/indexeddb/)
 
 ### `@signaldb/localstorage`
 * [`createLocalStorageAdapter`](/reference/localstorage/)

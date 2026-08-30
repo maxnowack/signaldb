@@ -20,7 +20,7 @@ head:
     content: Learn about the core concepts of SignalDB, including collections, schema-less data storage, optimistic UI, signals and reactivity and data persistence.
 - - meta
   - name: keywords
-    content: SignalDB core concepts, SignalDB collections, schema-less database, optimistic UI, JavaScript reactivity, signals, memory adapters, data persistence, reactive database, frontend development, SignalDB features
+    content: SignalDB core concepts, SignalDB collections, schema-less database, optimistic UI, JavaScript reactivity, signals, data adapters, data persistence, reactive database, frontend development, SignalDB features
 ---
 # Core Concepts
 
@@ -54,28 +54,38 @@ To learn more about signals, read [The Evolution of Signals in JavaScript](https
 
 Typically, you'll simply use a predefined reactivity adapter for the signal library you're using. Check out the available adapters in the [Reactivity section](/reactivity/) of the documentation.
 
-## Memory Adapters
+## Data Adapters
 
-SignalDB's memory adapters play a critical role in controlling how and where data is stored in memory.
+A data adapter decides *where a collection's data operations actually happen*. A
+collection itself only describes the operation — insert this, update what
+matches that — and hands it to its data adapter, which answers it and reports
+back what changed.
 
-These adapters provide an abstraction over the underlying memory storage mechanism, giving users the flexibility to define custom methods for handling data storage operations.
+That is the seam that lets the same collection API run against very different
+arrangements: in memory on the main thread, asynchronously against storage, or
+in a web worker with only the results crossing back. Which one you pick changes
+nothing about how you query and write.
 
-Simply put, a memory adapter is a piece of code that dictates how your data is stored in memory. When you perform a write or read operation, the adapter is responsible for translating those high-level operations into low-level memory operations.
+```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
-Normally, you don't need to worry about memory adapters because SignalDB comes with a default one. Since a memory adapter is a subset of the `Array` class, the most basic memory adapter is an emtpty array (`[]`).
+const dataAdapter = new DefaultDataAdapter()
+const Posts = new Collection('posts', dataAdapter)
+```
 
-You can also create a MemoryAdapter on your own. See the [createMemoryAdapter reference](/reference/core/creatememoryadapter/) for more information.
+See the [data adapters](/data-adapters/) documentation for the adapters that
+ship with SignalDB and when each of them is the right one.
 
 ## Data Persistence
 
 SignalDB only stores the data in memory and it will be lost when the memory is flushed (e.g. page reload).
 
-Normally you don't want to lose data and you want to persist it. This is where persistence adapters come in.
+Normally you don't want to lose data and you want to persist it. This is where storage adapters come in.
 
-Persistence adapters in SignalDB play a critical role in ensuring that your data remains intact across multiple user sessions or application reloads. These adapters facilitate data persistence by providing a standard interface for storing and retrieving data, thereby abstracting from the specifics of the underlying storage mechanism.
+Storage adapters in SignalDB play a critical role in ensuring that your data remains intact across multiple user sessions or application reloads. These adapters facilitate data persistence by providing a standard interface for storing and retrieving data, thereby abstracting from the specifics of the underlying storage mechanism.
 
-A persistence adapter provides the necessary code to interact with a specific storage medium, such as localStorage, IndexedDB, or even a remote server. The role of the adapter is to translate the high-level operations that you perform on your data (such as saving or loading a document) into low-level operations that the storage medium can understand.
+A storage adapter provides the necessary code to interact with a specific storage medium, such as localStorage, IndexedDB, or even a remote server. The role of the adapter is to translate the high-level operations that you perform on your data (such as saving or loading a document) into low-level operations that the storage medium can understand.
 
-The main benefit of using persistence adapters is flexibility. Because they provide an abstraction layer over the storage system, you can switch between different storage systems with minimal impact on the rest of your code.
+The main benefit of using storage adapters is flexibility. Because they provide an abstraction layer over the storage system, you can switch between different storage systems with minimal impact on the rest of your code.
 
-See also the [persistence adapters](/data-persistence/) documentation page.
+See also the [storage adapters](/data-persistence/) documentation page.

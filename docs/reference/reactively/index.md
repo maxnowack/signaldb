@@ -28,10 +28,10 @@ head:
 
 ```js
 import { reactive } from '@reactively/core'
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import reactivelyReactivityAdapter from '@signaldb/reactively'
 
-const posts = new Collection({
+const posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: reactivelyReactivityAdapter,
 })
 
