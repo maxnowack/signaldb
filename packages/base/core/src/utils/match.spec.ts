@@ -61,4 +61,36 @@ describe('match', () => {
     expect(match({ name: undefined as null | undefined }, { name: { $ne: null } })).toBe(false)
     expect(match({ name: undefined as null | undefined }, { name: null })).toBe(true)
   })
+
+  it('should match safe regex selectors', () => {
+    expect(match({ name: 'John' }, { name: { $regex: 'Jo' } })).toBe(true)
+    expect(match({ name: 'John' }, { name: /oh/ })).toBe(true)
+  })
+
+  it('should reject unsafe regex selectors before mingo evaluates them', () => {
+    expect(() => match({ name: 'a'.repeat(28) + '!' }, {
+      name: { $regex: '^(a+)+$' },
+    })).toThrow('Unsafe $regex pattern rejected')
+  })
+
+  it('should reject unsafe regex selectors nested in logical operators', () => {
+    expect(() => match({ name: 'a'.repeat(28) + '!' }, {
+      $or: [
+        { name: 'John' },
+        { name: { $regex: /^(a+)+$/ } },
+      ],
+    })).toThrow('Unsafe $regex pattern rejected')
+  })
+
+  it('should reject unsafe direct regex selector values', () => {
+    expect(() => match({ name: 'a'.repeat(28) + '!' }, {
+      name: /^(a+)+$/,
+    })).toThrow('Unsafe $regex pattern rejected')
+  })
+
+  it('should reject regex selectors over the maximum length', () => {
+    expect(() => match({ name: 'John' }, {
+      name: { $regex: 'a'.repeat(513) },
+    })).toThrow('Unsafe $regex pattern rejected')
+  })
 })
