@@ -54,5 +54,8 @@
   "peerDependencies": {
     "@signaldb/core": "1.x || ^2.0.0-0",
     "vue": "3.x.x"
+  },
+  "devDependencies": {
+    "@signaldb/sync": "^2.0.0-beta.21"
   }
 }
