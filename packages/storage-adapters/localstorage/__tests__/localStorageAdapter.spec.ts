@@ -39,7 +39,7 @@ describe('localStorage adapter', () => {
   const originalStorage = globalThis.localStorage
 
   beforeEach(() => {
-    globalThis.localStorage = new FakeLocalStorage() as unknown as Storage
+    globalThis.localStorage = new FakeLocalStorage()
   })
 
   afterEach(() => {

@@ -32,7 +32,7 @@ describe('createIndex', () => {
     const index = createIndex<Item>('status')
     index.rebuild(baseItems)
 
-    const excludesClosed = index.query({ status: { $nin: ['closed'] } as any })
+    const excludesClosed = index.query({ status: { $nin: ['closed'] } })
     expect(excludesClosed.ids).toEqual(expect.arrayContaining(['1', '3', '4']))
     expect(excludesClosed.ids).not.toContain('2')
 

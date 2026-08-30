@@ -20,5 +20,5 @@ export default function projectItems<T extends BaseItem>(
   return items.map(item => ({
     ...idExcluded ? {} : { id: item.id },
     ...project(item, fields),
-  }) as T)
+  }))
 }

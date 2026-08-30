@@ -14,7 +14,7 @@ const noMatch: IndexResult<string> = { matched: false }
 describe('getIndexInfo', () => {
   it('returns default info for empty selector', () => {
     const p1: SynchronousQueryFunction<Item, string> = () => matchAll
-    const info = getIndexInfo([p1], {} as unknown as Selector<Item>)
+    const info = getIndexInfo([p1], {})
     expect(info.matched).toBe(false)
     expect(info.ids).toEqual([])
   })
@@ -22,7 +22,7 @@ describe('getIndexInfo', () => {
   it('merges sync providers and removes optimized fields', () => {
     const p1: SynchronousQueryFunction<Item, string> = () => matchAll
     const p2: SynchronousQueryFunction<Item, string> = () => matchSubset
-    const info = getIndexInfo([p1, p2], { a: 1, b: 2 } as unknown as Selector<Item>)
+    const info = getIndexInfo([p1, p2], { a: 1, b: 2 })
     expect(info.matched).toBe(true)
     expect(info.ids).toEqual(['2'])
     // optimized selector should be empty after removing both fields
@@ -33,7 +33,7 @@ describe('getIndexInfo', () => {
     const asyncProvider: AsynchronousQueryFunction<Item, string> = async () => matchAll
     const info = await getIndexInfo(
       [asyncProvider],
-      { $and: [{ a: 1 }], $or: [{ b: 2 }, { c: 3 }], d: 4 } as unknown as Selector<Item>,
+      { $and: [{ a: 1 }], $or: [{ b: 2 }, { c: 3 }], d: 4 },
     )
     expect(info.matched).toBe(true)
     expect(Array.isArray(info.ids)).toBe(true)

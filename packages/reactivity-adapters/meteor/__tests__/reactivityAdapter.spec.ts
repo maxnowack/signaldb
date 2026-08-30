@@ -26,12 +26,12 @@ const buildTracker = () => {
 
   const tracker: TrackerLike = {
     ...MeteorTracker,
-    Dependency: LocalDependency as TrackerLike['Dependency'],
+    Dependency: LocalDependency,
     active: true,
-    onInvalidate: vi.fn(((callback) => {
+    onInvalidate: vi.fn((callback) => {
       const computation = new MeteorTracker.Computation(() => {}, null)
       callback(computation)
-    }) as TrackerLike['onInvalidate']),
+    }),
   }
 
   return { tracker, dependSpy, changedSpy }

@@ -188,7 +188,7 @@ describe('IndexedDB storage adapter', () => {
     await adapter.insert([
       { id: 1, rank: 3, stamp },
       { id: 2, rank: 7, stamp: new Date('2020-01-01T00:00:00.000Z') },
-    ] as unknown as { id: number }[])
+    ])
 
     const rank = await adapter.readIndex('rank')
     expect([...rank.keys()]).toEqual(['3', '7'])

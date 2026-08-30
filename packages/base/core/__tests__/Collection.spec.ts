@@ -799,19 +799,19 @@ describe('Collection', () => {
       ).rejects.toThrow('Invalid selector')
       await expect(
         collection.updateOne(
-          {} as unknown as Selector<{ id: string, name: string }>,
+          {},
           undefined as unknown as Modifier<{ id: string, name: string }>,
         ),
       ).rejects.toThrow('Invalid modifier')
       await expect(
         collection.updateMany(
           undefined as unknown as Selector<{ id: string, name: string }>,
-          {} as unknown as Modifier<{ id: string, name: string }>,
+          {},
         ),
       ).rejects.toThrow('Invalid selector')
       await expect(
         collection.updateMany(
-          {} as unknown as Selector<{ id: string, name: string }>,
+          {},
           undefined as unknown as Modifier<{ id: string, name: string }>,
         ),
       ).rejects.toThrow('Invalid modifier')
@@ -844,7 +844,7 @@ describe('Collection', () => {
     it('Cursor.observeChanges default args, ignore falsy callbacks, requery early return', () => {
       const items = [{ id: '1', name: 'n1' }]
       const cursor = new Cursor(() => items)
-      const stop = cursor.observeChanges({ added: undefined as any, removed: () => {} })
+      const stop = cursor.observeChanges({ added: undefined, removed: () => {} })
       stop()
       // Observer not created anymore; requery should early-return without throwing
       cursor.requery()
@@ -891,7 +891,7 @@ describe('Collection', () => {
     })
 
     it('getItems async error path and private getItem sync path', async () => {
-      const mockAdapter: any = {
+      const mockAdapter = {
         createCollectionBackend: () => ({
           insert: async (i: any) => i,
           updateOne: async () => [],
@@ -912,8 +912,8 @@ describe('Collection', () => {
           dispose: async () => {},
           isReady: async () => {},
         }),
-      }
-      const c = new Collection<{ id: string, name?: string }>('mock', mockAdapter as unknown as DataAdapter)
+      } as unknown as DataAdapter
+      const c = new Collection<{ id: string, name?: string }>('mock', mockAdapter)
       // async branch resolves to [] when backend succeeds
       await expect((c as any).getItems({}, { async: true })).resolves.toEqual([])
       // private getItem non-promise path
@@ -922,7 +922,7 @@ describe('Collection', () => {
     })
 
     it('falls back to a generic query error when the backend reports none', async () => {
-      const mockAdapter: any = {
+      const mockAdapter = {
         createCollectionBackend: () => ({
           insert: async (i: any) => i,
           updateOne: async () => [],
@@ -943,8 +943,8 @@ describe('Collection', () => {
           dispose: async () => {},
           isReady: async () => {},
         }),
-      }
-      const c = new Collection<{ id: string }>('mock', mockAdapter as unknown as DataAdapter)
+      } as unknown as DataAdapter
+      const c = new Collection<{ id: string }>('mock', mockAdapter)
       const errors: Error[] = []
       c.on('query.error', (error) => {
         errors.push(error)

@@ -16,7 +16,7 @@ describe('DefaultDataAdapter', () => {
     expect(backend.getQueryError({}, {})).toBeNull()
 
     const calls: string[] = []
-    const sel: Selector<Item> = {} as unknown as Selector<Item>
+    const sel: Selector<Item> = {}
     const unsubscribe = backend.onQueryStateChange(sel, {}, (state) => {
       calls.push(state)
     })
@@ -252,7 +252,7 @@ describe('DefaultDataAdapter', () => {
       expect(result.length).toBe(1)
       // Now force optimizedSelector to be empty object to hit second early-return
       // @ts-expect-error - override private method for targeted coverage
-      adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: {} as any })
+      adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: {} })
       const result2 = backend.getQueryResult({ other: 1 } as unknown as Selector<Item>, {})
       expect(result2.length).toBe(1)
       // @ts-expect-error - restore private method
@@ -270,7 +270,7 @@ describe('DefaultDataAdapter', () => {
     expect(() => adapter.flushQueuedQueryUpdates(col)).not.toThrow()
 
     // Register a query, then remove emitter and perform a change to queue updates
-    const sel: Selector<Item> = { id: 'q1' } as unknown as Selector<Item>
+    const sel: Selector<Item> = { id: 'q1' }
     backend.registerQuery(sel, {})
     // Remove emitter so flush hits the missing-emitter return inside loop
     // @ts-expect-error - access private state
@@ -308,9 +308,9 @@ describe('DefaultDataAdapter', () => {
     const adapter = new DefaultDataAdapter()
     const col = new Collection<Item, string, Item>('upd-none', adapter)
     const backend = adapter.createCollectionBackend<Item, string, Item>(col, [])
-    const result1 = await backend.updateOne({ id: 'nope' } as Selector<Item>, { $set: { x: 5 } })
+    const result1 = await backend.updateOne({ id: 'nope' }, { $set: { x: 5 } })
     expect(result1).toEqual([])
-    const result2 = await backend.replaceOne({ id: 'nope' } as Selector<Item>, { id: 'new', x: 1 } as Item)
+    const result2 = await backend.replaceOne({ id: 'nope' }, { id: 'new', x: 1 })
     expect(result2).toEqual([])
   })
 

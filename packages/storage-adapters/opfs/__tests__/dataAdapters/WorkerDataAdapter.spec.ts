@@ -205,7 +205,7 @@ function createWorkerLoop() {
       queueMicrotask(() => {
         hostListener?.({ data: payload } as MessageEvent)
       })
-    }) as unknown as Worker['postMessage'],
+    }),
     addEventListener: vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
       if (type !== 'message') return
       const handler: (event: MessageEvent) => void = typeof listener === 'function'
@@ -217,7 +217,7 @@ function createWorkerLoop() {
         }
       listenerMap.set(listener, handler)
       workerListeners.push(handler)
-    }) as unknown as Worker['addEventListener'],
+    }),
     removeEventListener: vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
       if (type !== 'message') return
       const handler = listenerMap.get(listener)
@@ -225,7 +225,7 @@ function createWorkerLoop() {
       const index = workerListeners.indexOf(handler)
       if (index !== -1) workerListeners.splice(index, 1)
       listenerMap.delete(listener)
-    }) as unknown as Worker['removeEventListener'],
+    }),
   }
 
   const workerContext = {
