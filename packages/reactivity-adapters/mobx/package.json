@@ -53,7 +53,7 @@
   ],
   "peerDependencies": {
     "@signaldb/core": "1.x",
-    "mobx": "6.x.x"
+    "mobx": "6.x.x || 7.x"
   },
   "devDependencies": {
     "mobx": "^7.0.0"
