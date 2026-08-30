@@ -343,7 +343,7 @@ export default class WorkerDataAdapter implements DataAdapter {
   private execInBackground(
     method: string,
     collectionName: string,
-    args: unknown[] = [],
+    args: unknown[],
     onError?: (error: Error) => void,
   ) {
     this.exec(method, collectionName, ...args).catch((error: Error) => {
