@@ -1,7 +1,7 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
 import type DataAdapter from './DataAdapter'
-import type { CollectionBackend, QueryOptions, StateChangeCallback } from './DataAdapter'
+import type { CollectionBackend, QueryOptions, StateChangeCallback, WriteResult } from './DataAdapter'
 import type Modifier from './types/Modifier'
 import type Selector from './types/Selector'
 import queryId from './utils/queryId'
@@ -48,7 +48,7 @@ function selectorIds(selector: Selector<any>): any[] | null {
   const value = (selector as Record<string, unknown>).id
   if (value == null) return null
   if (typeof value !== 'object') return [value]
-  const valueKeys = Object.keys(value as Record<string, unknown>)
+  const valueKeys = Object.keys(value)
   if (valueKeys.length !== 1 || valueKeys[0] !== '$in') return null
   const inValues = (value as { $in: unknown }).$in
   return Array.isArray(inValues) ? inValues : null
@@ -826,14 +826,14 @@ export default class WorkerDataAdapter implements DataAdapter {
         return this.withPendingWrite(
           collection.name,
           this.resolveUpdate(collection.name, selector, modifier, true),
-          () => this.enqueueBatched<T[]>(collection.name, 'updateOne', [selector, modifier]),
+          () => this.enqueueBatched<WriteResult<T>>(collection.name, 'updateOne', [selector, modifier]),
         )
       },
       updateMany: async (selector, modifier) => {
         return this.withPendingWrite(
           collection.name,
           this.resolveUpdate(collection.name, selector, modifier, false),
-          () => this.enqueueBatched<T[]>(collection.name, 'updateMany', [selector, modifier]),
+          () => this.enqueueBatched<WriteResult<T>>(collection.name, 'updateMany', [selector, modifier]),
         )
       },
       replaceOne: async (selector, replacement) => {
@@ -843,7 +843,7 @@ export default class WorkerDataAdapter implements DataAdapter {
           item == null
             ? { upserts: [], deletes: [] }
             : this.resolveReplacement(item, replacement),
-          () => this.enqueueBatched<T[]>(collection.name, 'replaceOne', [selector, replacement]),
+          () => this.enqueueBatched<WriteResult<T>>(collection.name, 'replaceOne', [selector, replacement]),
         )
       },
       removeOne: async (selector) => {

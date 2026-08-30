@@ -1,7 +1,7 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
 import type DataAdapter from './DataAdapter'
-import type { CollectionBackend, QueryOptions } from './DataAdapter'
+import type { CollectionBackend, QueryOptions, WriteResult } from './DataAdapter'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import type Modifier from './types/Modifier'
@@ -566,7 +566,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     const idExcluded = fields && (fields as any).id === 0
     return limited.map((item) => {
       if (!fields) return item
-      return { ...(idExcluded ? {} : { id: item.id }), ...project(item, fields) } as T
+      return { ...(idExcluded ? {} : { id: item.id }), ...project(item, fields) }
     })
   }
 
@@ -628,7 +628,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     collectionName: string,
     selector: Selector<T>,
     modifier: Modifier<T>,
-  ): Promise<T[]> {
+  ): Promise<WriteResult<T>> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
@@ -649,14 +649,14 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
     await storage.replace([modified])
     await this.checkQueryUpdates(collectionName, [item, modified])
-    return [modified]
+    return { items: [modified], previousItems: [item] }
   }
 
   private async updateMany<T extends BaseItem<I>, I = any>(
     collectionName: string,
     selector: Selector<T>,
     modifier: Modifier<T>,
-  ): Promise<T[]> {
+  ): Promise<WriteResult<T>> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
@@ -678,14 +678,14 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     }))
     await storage.replace(changed)
     await this.checkQueryUpdates(collectionName, [...items, ...changed])
-    return changed
+    return { items: changed, previousItems: items }
   }
 
   private async replaceOne<T extends BaseItem<I>, I = any>(
     collectionName: string,
     selector: Selector<T>,
     replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
-  ): Promise<T[]> {
+  ): Promise<WriteResult<T>> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
@@ -705,7 +705,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
     await storage.replace([modified])
     await this.checkQueryUpdates(collectionName, [item, modified])
-    return [modified]
+    return { items: [modified], previousItems: [item] }
   }
 
   private async removeOne<T extends BaseItem<I>, I = any>(

@@ -346,10 +346,13 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[{ id: '1', name: 'Alice', age: 31 }]])
+      expect(response?.data).toEqual([{
+        items: [{ id: '1', name: 'Alice', age: 31 }],
+        previousItems: [{ id: '1', name: 'Alice', age: 30 }],
+      }])
     })
 
-    it('updateOne returns empty array when no item matches', async () => {
+    it('updateOne reports nothing when no item matches', async () => {
       await sendRequest('registerCollection', ['items', []])
       await vi.waitFor(() => storageAdapters.has('items'))
 
@@ -360,7 +363,7 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[]])
+      expect(response?.data).toEqual([{ items: [], previousItems: [] }])
     })
 
     it('updateOne ignores $setOnInsert when item exists', async () => {
@@ -375,7 +378,10 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[{ id: '1', name: 'Updated' }]])
+      expect(response?.data).toEqual([{
+        items: [{ id: '1', name: 'Updated' }],
+        previousItems: [{ id: '1', name: 'Alice' }],
+      }])
     })
 
     it('updateOne returns error when trying to change id to existing id', async () => {
@@ -408,13 +414,19 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[
-        { id: '1', status: 'done' },
-        { id: '2', status: 'done' },
-      ]])
+      expect(response?.data).toEqual([{
+        items: [
+          { id: '1', status: 'done' },
+          { id: '2', status: 'done' },
+        ],
+        previousItems: [
+          { id: '1', status: 'pending' },
+          { id: '2', status: 'pending' },
+        ],
+      }])
     })
 
-    it('updateMany returns empty array when no items match', async () => {
+    it('updateMany reports nothing when no items match', async () => {
       await sendRequest('registerCollection', ['items', []])
       await vi.waitFor(() => storageAdapters.has('items'))
 
@@ -425,7 +437,7 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[]])
+      expect(response?.data).toEqual([{ items: [], previousItems: [] }])
     })
 
     it('updateMany returns error when trying to change id to existing id', async () => {
@@ -457,7 +469,10 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[{ id: '1', name: 'Alicia' }]])
+      expect(response?.data).toEqual([{
+        items: [{ id: '1', name: 'Alicia' }],
+        previousItems: [{ id: '1', name: 'Alice', age: 30 }],
+      }])
     })
 
     it('replaceOne preserves id when not in replacement', async () => {
@@ -472,10 +487,13 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[{ id: '1', name: 'Alicia' }]])
+      expect(response?.data).toEqual([{
+        items: [{ id: '1', name: 'Alicia' }],
+        previousItems: [{ id: '1', name: 'Alice' }],
+      }])
     })
 
-    it('replaceOne returns empty array when no item matches', async () => {
+    it('replaceOne reports nothing when no item matches', async () => {
       await sendRequest('registerCollection', ['items', []])
       await vi.waitFor(() => storageAdapters.has('items'))
 
@@ -486,7 +504,7 @@ describe('WorkerDataAdapterHost', () => {
       ])
       const response = await waitForResponse(id)
 
-      expect(response?.data).toEqual([[]])
+      expect(response?.data).toEqual([{ items: [], previousItems: [] }])
     })
 
     it('replaceOne returns error when trying to use existing id', async () => {
@@ -846,7 +864,7 @@ describe('WorkerDataAdapterHost', () => {
       await sendRequest('insert', ['items', [[{ id: '1' }]]])
 
       context.clearResponses()
-      const id = await sendRequest('executeQuery', ['items', null as any, undefined])
+      const id = await sendRequest('executeQuery', ['items', null, undefined])
       const response = await waitForResponse(id)
       expect(response?.data).toEqual([])
     })

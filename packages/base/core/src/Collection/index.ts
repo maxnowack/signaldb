@@ -5,7 +5,7 @@ import type Modifier from '../types/Modifier'
 import type Signal from '../types/Signal'
 import createSignal from '../utils/createSignal'
 import type DataAdapter from '../DataAdapter'
-import type { CollectionBackend, QueryOptions } from '../DataAdapter'
+import type { CollectionBackend, QueryOptions, WriteResult } from '../DataAdapter'
 import randomId from '../utils/randomId'
 import DefaultDataAdapter from '../DefaultDataAdapter'
 import type StorageAdapter from '../types/StorageAdapter'
@@ -59,9 +59,21 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
   fieldTracking?: boolean,
 }
 
+/**
+ * Splits what a backend returned from a write into the changed items and their previous state.
+ * @param result - What the backend's write method returned.
+ * @returns The changed items, and what each of them was before the write. An adapter that cannot
+ * report the previous state yields an empty list, and the `'changed'` event omits its third
+ * argument.
+ */
+function splitWriteResult<T extends BaseItem>(result: WriteResult<T>) {
+  if (Array.isArray(result)) return { items: result, previousItems: [] as T[] }
+  return result
+}
+
 interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
   'added': (item: T) => void,
-  'changed': (item: T, modifier: Modifier<T>) => void,
+  'changed': (item: T, modifier: Modifier<T>, previousItem?: T) => void,
   'removed': (item: T) => void,
 
   'observer.created': <O extends QueryOptions<T>>(selector?: Selector<T>, options?: O) => void,
@@ -945,7 +957,9 @@ export default class Collection<
       if (item != null) this.emit('validate', modify(deepClone(item), restModifier))
     }
 
-    const changes = await this.withPushState(() => this.backend.updateOne(selector, modifier))
+    const { items: changes, previousItems } = splitWriteResult(
+      await this.withPushState(() => this.backend.updateOne(selector, modifier)),
+    )
     if (changes.length === 0) {
       if (!options?.upsert) return 0 // no item found, and upsert is not enabled
       const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
@@ -955,11 +969,11 @@ export default class Collection<
           ...restModifier.$set,
         },
       })
-      await this.insert(newItem as T)
+      await this.insert(newItem)
       return 1
     }
 
-    changes.forEach(item => this.emit('changed', item, restModifier))
+    changes.forEach((item, index) => this.emit('changed', item, restModifier, previousItems[index]))
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return changes.length
@@ -992,7 +1006,9 @@ export default class Collection<
       })
     }
 
-    const changes = await this.withPushState(() => this.backend.updateMany(selector, modifier))
+    const { items: changes, previousItems } = splitWriteResult(
+      await this.withPushState(() => this.backend.updateMany(selector, modifier)),
+    )
     if (changes.length === 0) {
       if (!options?.upsert) return 0 // no items found, and upsert is not enabled
       const newItem: Omit<T, 'id'> & Partial<Pick<T, 'id'>> = modify({} as T, {
@@ -1002,12 +1018,12 @@ export default class Collection<
           ...restModifier.$set,
         },
       })
-      await this.insert(newItem as T)
+      await this.insert(newItem)
       return 1
     }
 
-    changes.forEach((item) => {
-      this.emit('changed', item, restModifier)
+    changes.forEach((item, index) => {
+      this.emit('changed', item, restModifier, previousItems[index])
     })
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
@@ -1037,14 +1053,16 @@ export default class Collection<
       if (item != null) this.emit('validate', { id: item.id, ...replacement } as T)
     }
 
-    const changes = await this.withPushState(() => this.backend.replaceOne(selector, replacement))
+    const { items: changes, previousItems } = splitWriteResult(
+      await this.withPushState(() => this.backend.replaceOne(selector, replacement)),
+    )
     if (changes.length === 0) {
       if (!options?.upsert) return 0 // no item found, and upsert is not enabled
-      await this.insert(replacement as T)
+      await this.insert(replacement)
       return 1
     }
 
-    changes.forEach(item => this.emit('changed', item, replacement as Modifier<T>))
+    changes.forEach((item, index) => this.emit('changed', item, replacement as Modifier<T>, previousItems[index]))
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
     return changes.length

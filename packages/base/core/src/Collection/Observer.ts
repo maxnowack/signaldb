@@ -171,21 +171,21 @@ export default class Observer<T extends { id: any }> {
     }
 
     const beforeOf = (index: number) => nextItems[index + 1] || null
-    // Indexing the previous result costs its whole length, and most deltas do not need it: an item
-    // that changed is reported by its new value, and only a listener asking which *field* changed,
-    // or one asking about a removal, needs to see what was there before.
+    // Indexing the previous result costs its whole length, and most deltas do not need it: only a
+    // listener that is told what an item looked like before — 'changed', 'changedField' or
+    // 'removed' — needs the previous result at all.
     const needsPreviousItems = (delta.removed.length > 0 && this.hasCallbacks(['removed']))
-      || (delta.changed.length > 0 && this.hasCallbacks(['changedField']))
+      || (delta.changed.length > 0 && this.hasCallbacks(['changed', 'changedField']))
     const previousById = needsPreviousItems
       ? new Map(this.previousItems.map(item => [item.id, item]))
       : null
 
     if (this.hasCallbacks(['changed', 'changedField'])) {
       delta.changed.forEach((item) => {
-        this.call('changed', item)
-        if (!this.hasCallbacks(['changedField'])) return
         const oldItem = previousById?.get(item.id)
         if (!oldItem) return
+        this.call('changed', item, oldItem)
+        if (!this.hasCallbacks(['changedField'])) return
         const keys = uniqueBy([
           ...Object.keys(item) as (keyof T)[],
           ...Object.keys(oldItem) as (keyof T)[],

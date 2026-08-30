@@ -129,7 +129,7 @@ describe('Observer', () => {
       const items2: TestItem[] = [{ id: 1, name: 'Item 1 Updated' }]
       observer.runChecks(() => items2)
 
-      expect(changedCallback).toHaveBeenCalledWith(items2[0])
+      expect(changedCallback).toHaveBeenCalledWith(items2[0], items1[0])
     })
 
     it('should trigger changedField callback for specific field changes', () => {

@@ -226,8 +226,10 @@ describe('AsyncDataAdapter', () => {
     // Then update it
     const result = await backend.updateOne({ id: '1' }, { $set: { name: 'updated' } })
 
-    expect(result).toHaveLength(1)
-    expect(result[0]).toEqual({ id: '1', name: 'updated' })
+    expect(result).toEqual({
+      items: [{ id: '1', name: 'updated' }],
+      previousItems: [{ id: '1', name: 'test' }],
+    })
   })
 
   it('should handle updateOne with no matching items', async () => {
@@ -248,9 +250,16 @@ describe('AsyncDataAdapter', () => {
     // Update items with matching name
     const result = await backend.updateMany({ name: 'test' }, { $set: { value: 100 } })
 
-    expect(result).toHaveLength(2)
-    expect(result[0]).toEqual({ id: '1', name: 'test', value: 100 })
-    expect(result[1]).toEqual({ id: '2', name: 'test', value: 100 })
+    expect(result).toEqual({
+      items: [
+        { id: '1', name: 'test', value: 100 },
+        { id: '2', name: 'test', value: 100 },
+      ],
+      previousItems: [
+        { id: '1', name: 'test' },
+        { id: '2', name: 'test' },
+      ],
+    })
   })
 
   it('should handle updateMany with no matching items', async () => {
@@ -288,8 +297,10 @@ describe('AsyncDataAdapter', () => {
     // Then replace it
     const result = await backend.replaceOne({ id: '1' }, { name: 'replaced', value: 100 })
 
-    expect(result).toHaveLength(1)
-    expect(result[0]).toEqual({ id: '1', name: 'replaced', value: 100 })
+    expect(result).toEqual({
+      items: [{ id: '1', name: 'replaced', value: 100 }],
+      previousItems: [{ id: '1', name: 'test', value: 50 }],
+    })
   })
 
   it('should handle replaceOne with no matching items', async () => {
@@ -491,14 +502,14 @@ describe('AsyncDataAdapter', () => {
     await backend.insert({ id: '2', name: 'test2' })
 
     // Register a query with null selector
-    backend.registerQuery({} as TestItem, {})
+    backend.registerQuery({}, {})
 
     // Query should be registered
-    expect(backend.getQueryState({} as TestItem, {})).toBe('active')
-    expect(backend.getQueryResult({} as TestItem, {})).toEqual([])
+    expect(backend.getQueryState({}, {})).toBe('active')
+    expect(backend.getQueryResult({}, {})).toEqual([])
 
     // Cleanup
-    backend.unregisterQuery({} as TestItem, {})
+    backend.unregisterQuery({}, {})
   })
 
   it('should handle empty selector', async () => {

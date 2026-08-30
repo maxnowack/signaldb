@@ -1,7 +1,7 @@
 import type { BaseItem } from './Collection'
 import type Collection from './Collection'
 import type DataAdapter from './DataAdapter'
-import type { CollectionBackend, QueryOptions, StateChangeCallback } from './DataAdapter'
+import type { CollectionBackend, QueryOptions, StateChangeCallback, WriteResult } from './DataAdapter'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import type Modifier from './types/Modifier'
@@ -579,7 +579,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     collectionName: string,
     selector: Selector<T>,
     modifier: Modifier<T>,
-  ): Promise<T[]> {
+  ): Promise<WriteResult<T>> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
@@ -596,14 +596,14 @@ export default class AsyncDataAdapter implements DataAdapter {
 
     await storage.replace([modified])
     await this.checkQueryUpdates(collectionName, toChangeset([item], [modified]))
-    return [modified]
+    return { items: [modified], previousItems: [item] }
   }
 
   private async updateMany<T extends BaseItem<I>, I = any>(
     collectionName: string,
     selector: Selector<T>,
     modifier: Modifier<T>,
-  ): Promise<T[]> {
+  ): Promise<WriteResult<T>> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
@@ -621,14 +621,14 @@ export default class AsyncDataAdapter implements DataAdapter {
     }))
     await storage.replace(changed)
     await this.checkQueryUpdates(collectionName, toChangeset(items, changed))
-    return changed
+    return { items: changed, previousItems: items }
   }
 
   private async replaceOne<T extends BaseItem<I>, I = any>(
     collectionName: string,
     selector: Selector<T>,
     replacement: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
-  ): Promise<T[]> {
+  ): Promise<WriteResult<T>> {
     const storage = this.storageAdapters.get(collectionName)
     if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
 
@@ -644,7 +644,7 @@ export default class AsyncDataAdapter implements DataAdapter {
 
     await storage.replace([modified])
     await this.checkQueryUpdates(collectionName, toChangeset([item], [modified]))
-    return [modified]
+    return { items: [modified], previousItems: [item] }
   }
 
   private async removeOne<T extends BaseItem<I>, I = any>(

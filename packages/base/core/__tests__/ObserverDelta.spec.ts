@@ -64,7 +64,7 @@ describe('Observer.applyDelta', () => {
     const changed = { id: 2, name: 'Zwei' }
     observer.applyDelta(deltaTo([initial[0], changed, initial[2]]), () => initial)
 
-    expect(callbacks.changed).toHaveBeenCalledExactlyOnceWith(changed)
+    expect(callbacks.changed).toHaveBeenCalledExactlyOnceWith(changed, initial[1])
   })
 
   it('should report which field of a changed item differs', () => {
