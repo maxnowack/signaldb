@@ -3,13 +3,13 @@ import type { ReplicatedCollectionOptions } from '../src/ReplicatedCollection'
 import ReplicatedCollection, { createReplicationAdapter } from '../src/ReplicatedCollection'
 import type { BaseItem } from '../src/Collection'
 import Collection from '../src/Collection'
-import type { Changeset, LoadResponse } from '../src/types/PersistenceAdapter'
+import type { Changeset } from '../src/types/PersistenceAdapter'
 import createPersistenceAdapter from '../src/persistence/createPersistenceAdapter'
 import waitForEvent from './helpers/waitForEvent'
 
 describe('createReplicationAdapter', () => {
   it('should call registerRemoteChange and register onChange', async () => {
-    const pull = vi.fn().mockResolvedValue({} as LoadResponse<any>)
+    const pull = vi.fn().mockResolvedValue({})
     const push = vi.fn().mockResolvedValue(undefined)
     const registerRemoteChange = vi.fn().mockResolvedValue(undefined)
     const onChange = vi.fn()
@@ -28,7 +28,7 @@ describe('createReplicationAdapter', () => {
   })
 
   it('should not call registerRemoteChange if it is not provided', async () => {
-    const pull = vi.fn().mockResolvedValue({} as LoadResponse<any>)
+    const pull = vi.fn().mockResolvedValue({})
     const push = vi.fn().mockResolvedValue(undefined)
     const onChange = vi.fn()
 
@@ -44,7 +44,7 @@ describe('createReplicationAdapter', () => {
   })
 
   it('should call pull when load is called', async () => {
-    const pull = vi.fn().mockResolvedValue({} as LoadResponse<any>)
+    const pull = vi.fn().mockResolvedValue({})
     const push = vi.fn().mockResolvedValue(undefined)
 
     const options = {
@@ -59,7 +59,7 @@ describe('createReplicationAdapter', () => {
   })
 
   it('should call push when save is called', async () => {
-    const pull = vi.fn().mockResolvedValue({} as LoadResponse<any>)
+    const pull = vi.fn().mockResolvedValue({})
     const push = vi.fn().mockResolvedValue(undefined)
     const items = [{ id: 1, name: 'Item 1' }]
     const changes: Changeset<any> = { added: [], modified: [], removed: [] }
@@ -81,7 +81,7 @@ describe('createReplicationAdapter', () => {
 describe('ReplicatedCollection', () => {
   it('should create a ReplicatedCollection instance', () => {
     const options: ReplicatedCollectionOptions<BaseItem<number>, number> = {
-      pull: vi.fn().mockResolvedValue({} as LoadResponse<BaseItem<number>>),
+      pull: vi.fn().mockResolvedValue({}),
       push: vi.fn().mockResolvedValue(undefined),
     }
 
@@ -92,13 +92,13 @@ describe('ReplicatedCollection', () => {
   })
 
   it('should combine persistence and replication adapters', async () => {
-    const pull = vi.fn().mockResolvedValue({ items: [] } as LoadResponse<any>)
+    const pull = vi.fn().mockResolvedValue({ items: [] })
     const push = vi.fn().mockResolvedValue(undefined)
     const registerRemoteChange = vi.fn().mockResolvedValue(undefined)
 
     const persistenceAdapter = createPersistenceAdapter({
       register: vi.fn().mockResolvedValue(undefined),
-      load: vi.fn().mockResolvedValue({ items: [] } as LoadResponse<any>),
+      load: vi.fn().mockResolvedValue({ items: [] }),
       save: vi.fn().mockResolvedValue(undefined),
     })
 
@@ -120,7 +120,7 @@ describe('ReplicatedCollection', () => {
 
   it('should output the correct isLoading state', async () => {
     const pull = vi.fn().mockImplementation(() => new Promise((resolve) => {
-      setTimeout(() => resolve({ items: [{ id: '1', name: 'Item 1' }] } as LoadResponse<any>), 10)
+      setTimeout(() => resolve({ items: [{ id: '1', name: 'Item 1' }] }), 10)
     }))
     const push = vi.fn().mockResolvedValue(() => new Promise<void>((resolve) => {
       setTimeout(() => resolve(), 10)
@@ -129,7 +129,7 @@ describe('ReplicatedCollection', () => {
 
     const persistenceAdapter = createPersistenceAdapter({
       register: vi.fn().mockResolvedValue(undefined),
-      load: vi.fn().mockResolvedValue({ items: [] } as LoadResponse<any>),
+      load: vi.fn().mockResolvedValue({ items: [] }),
       save: vi.fn().mockResolvedValue(undefined),
     })
 
