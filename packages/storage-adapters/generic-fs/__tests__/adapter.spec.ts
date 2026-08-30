@@ -101,7 +101,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
 
   beforeEach(async () => {
     driver = new MemDriver<Item, string>()
-    adapter = createGenericFSAdapter<Item, string>(driver, folder) as any
+    adapter = createGenericFSAdapter<Item, string>(driver, folder)
     await adapter.setup()
   })
 
@@ -206,7 +206,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     expect(archived).toEqual(new Set(['bb2']))
 
     // Replace non-existent -> throws and does not mutate
-    await expect(adapter.replace([{ id: 'zz9', status: 'noop' } as Item])).rejects.toThrow('Item with id "zz9" does not exist')
+    await expect(adapter.replace([{ id: 'zz9', status: 'noop' }])).rejects.toThrow('Item with id "zz9" does not exist')
 
     // Remove: one file becomes empty -> driver.removeEntry(filePath) branch; others rewritten
     await adapter.remove([{ id: 'cc3' }])
@@ -215,7 +215,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     expect(driver.deletedPaths.some(p => p.includes('cc'))).toBe(true) // ensure empty-file deletion path taken
 
     // Remove non-existent -> error
-    await expect(adapter.remove([{ id: 'zz9' } as Item])).rejects.toThrow('Item with id "zz9" does not exist')
+    await expect(adapter.remove([{ id: 'zz9' }])).rejects.toThrow('Item with id "zz9" does not exist')
   })
 
   it('tracks index deltas when values change to and from null', async () => {
@@ -224,7 +224,7 @@ describe('createGenericFSAdapter (generic-fs)', () => {
 
     await adapter.createIndex('category')
 
-    await adapter.replace([{ id: 'aa1', status: 'new', category: null as any }])
+    await adapter.replace([{ id: 'aa1', status: 'new', category: null }])
     let index = await adapter.readIndex('category')
     expect(index.get('A')).toBeUndefined()
 

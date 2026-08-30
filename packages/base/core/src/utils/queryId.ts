@@ -44,7 +44,7 @@ export default function queryId(selector: Selector<any>, options?: QueryOptions<
     return `${JSON.stringify(selector)}:${optionsId}`
   }
 
-  const optionsKey = (options ?? noOptions) as object
+  const optionsKey = (options ?? noOptions)
   const cachedForSelector = cache.get(selector as object)
   const cached = cachedForSelector?.get(optionsKey)
   if (cached != null) return cached

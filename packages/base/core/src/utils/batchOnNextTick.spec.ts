@@ -93,7 +93,7 @@ describe('batchOnNextTick', () => {
     {
       const onFlush = vi.fn(async () => [])
       const batcher = batchOnNextTick(onFlush)
-      await batcher.flush('Z' as any)
+      await batcher.flush('Z')
       expect(onFlush).not.toHaveBeenCalled()
     }
 

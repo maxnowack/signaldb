@@ -132,10 +132,10 @@ describe('incrementalQueryUpdate', () => {
 
     it('should answer when an inclusion of an ancestor keeps a nested sort key', () => {
       const result = incrementalQueryUpdate(
-        [{ id: 'a', meta: { rank: 1 } } as Item],
+        [{ id: 'a', meta: { rank: 1 } }],
         {},
         { fields: { meta: 1 }, sort: { 'meta.rank': 1 } },
-        { upserts: [{ id: 'b', meta: { rank: 0 } } as Item], deletes: [] },
+        { upserts: [{ id: 'b', meta: { rank: 0 } }], deletes: [] },
       )
       expect(result?.map(item => item.id)).toEqual(['b', 'a'])
     })

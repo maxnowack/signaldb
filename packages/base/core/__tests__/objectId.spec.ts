@@ -19,8 +19,8 @@ describe('objectId', () => {
 
   it('works with arrays (objects)', () => {
     const array: unknown[] = []
-    const id1 = objectId(array as object)
-    const id2 = objectId(array as object)
+    const id1 = objectId(array)
+    const id2 = objectId(array)
     expect(id1).toBe(id2)
   })
 

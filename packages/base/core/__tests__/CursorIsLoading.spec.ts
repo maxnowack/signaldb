@@ -186,7 +186,7 @@ describe('Cursor#isLoading', () => {
       replace: () => Promise.resolve(),
       remove: () => Promise.resolve(),
       removeAll: () => Promise.resolve(),
-    } as unknown as StorageAdapter<TestItem, string>
+    }
     const collection = new Collection<TestItem>(
       'failing',
       new AsyncDataAdapter({

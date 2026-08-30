@@ -153,5 +153,5 @@ export default function reactiveOrAsync<TThis, P extends any[], R, N>(
   }
 
   method.generator = gen
-  return method as unknown as ReactiveOrAsyncMethod<TThis, P, R, N>
+  return method
 }
