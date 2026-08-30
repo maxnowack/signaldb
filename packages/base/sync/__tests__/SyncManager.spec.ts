@@ -1458,3 +1458,54 @@ it('should trigger sync when using $set on an array to modify an object/item inl
 
   expect(push).toHaveBeenCalledTimes(2)
 })
+
+it('should push the complete item if an item was updated locally and removed remotely', async () => {
+  interface Category extends BaseItem<string> {
+    id: string,
+    budgetId: string,
+    name: string,
+    updatedAt: number,
+  }
+  const remoteItem: Category = {
+    id: '1', budgetId: 'budget-1', name: 'TEST1', updatedAt: 1,
+  }
+
+  let callCount = 0
+  const mockPull = vi.fn<() => Promise<LoadResponse<Category>>>().mockImplementation(() => {
+    callCount += 1
+    // the first pull returns the item, all following pulls report it as removed
+    if (callCount === 1) return Promise.resolve({ items: [remoteItem] })
+    if (callCount === 2) {
+      return Promise.resolve({
+        changes: { added: [], modified: [], removed: [remoteItem] },
+      })
+    }
+    return Promise.resolve({ items: [] })
+  })
+
+  const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
+    .mockResolvedValue()
+  const onError = vi.fn()
+
+  const syncManager = new SyncManager<Record<string, any>, Category>({
+    onError,
+    persistenceAdapter: () => memoryPersistenceAdapter<Category, string>([]),
+    pull: mockPull,
+    push: mockPush,
+  })
+
+  const collection = new Collection<Category, string, any>()
+  syncManager.addCollection(collection, { name: 'test' })
+  await syncManager.sync('test')
+  expect(collection.findOne({ id: '1' })).toEqual(remoteItem)
+
+  // update the item locally while it was already removed on the remote
+  collection.updateOne({ id: '1' }, { $set: { name: 'TEST2', updatedAt: 2 } })
+  await syncManager.sync('test')
+
+  expect(onError).not.toHaveBeenCalled()
+  expect(mockPush).toHaveBeenCalledTimes(1)
+  expect(mockPush.mock.calls[0][1].changes.added).toEqual([
+    { id: '1', budgetId: 'budget-1', name: 'TEST2', updatedAt: 2 },
+  ])
+})

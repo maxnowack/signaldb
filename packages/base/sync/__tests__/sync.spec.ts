@@ -172,3 +172,101 @@ it('should pull new data after pushing changes to the server', async () => {
   expect(mockUpdate).not.toHaveBeenCalled()
   expect(mockRemove).not.toHaveBeenCalled()
 })
+
+it('should push the full item when updating an item that was removed remotely', async () => {
+  interface Category extends BaseItem<number> {
+    id: number,
+    budgetId: string,
+    name: string,
+    updatedAt: number,
+  }
+  const lastSnapshot: Category[] = [
+    { id: 1, budgetId: 'budget-1', name: 'TEST1', updatedAt: 1 },
+  ]
+  // the remote item was deleted in the meantime
+  const data: LoadResponse<Category> = {
+    changes: {
+      added: [],
+      modified: [],
+      removed: [{ id: 1, budgetId: 'budget-1', name: 'TEST1', updatedAt: 1 }],
+    },
+  }
+  const changes: Change<Category, number>[] = [{
+    id: '1',
+    collectionName: 'test',
+    time: Date.now(),
+    type: 'update',
+    data: { id: 1, modifier: { $set: { name: 'TEST2', updatedAt: 2 } } },
+  }]
+
+  const mockPull = vi.fn<() => Promise<LoadResponse<Category>>>()
+    .mockResolvedValue({ items: [] })
+  const mockPush = vi.fn<(changes: Changeset<Category>) => Promise<void>>()
+  const mockInsert = vi.fn<(item: Category) => void>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<Category>) => void>()
+  const mockRemove = vi.fn<(id: number) => void>()
+  const batch = vi.fn().mockImplementation((fn: () => void) => fn())
+
+  await sync({
+    changes,
+    lastSnapshot,
+    data,
+    pull: mockPull,
+    push: mockPush,
+    insert: mockInsert,
+    update: mockUpdate,
+    remove: mockRemove,
+    batch,
+  })
+
+  expect(mockPush).toHaveBeenCalledTimes(1)
+  expect(mockPush.mock.calls[0][0].added).toEqual([
+    { id: 1, budgetId: 'budget-1', name: 'TEST2', updatedAt: 2 },
+  ])
+})
+
+it('should push the full item when updating an item that is missing in the pulled items', async () => {
+  interface Category extends BaseItem<number> {
+    id: number,
+    budgetId: string,
+    name: string,
+    updatedAt: number,
+  }
+  const lastSnapshot: Category[] = [
+    { id: 1, budgetId: 'budget-1', name: 'TEST1', updatedAt: 1 },
+  ]
+  // the remote doesn't return the item anymore because it was deleted
+  const data: LoadResponse<Category> = { items: [] }
+  const changes: Change<Category, number>[] = [{
+    id: '1',
+    collectionName: 'test',
+    time: Date.now(),
+    type: 'update',
+    data: { id: 1, modifier: { $set: { name: 'TEST2', updatedAt: 2 } } },
+  }]
+
+  const mockPull = vi.fn<() => Promise<LoadResponse<Category>>>()
+    .mockResolvedValue({ items: [] })
+  const mockPush = vi.fn<(changes: Changeset<Category>) => Promise<void>>()
+  const mockInsert = vi.fn<(item: Category) => void>()
+  const mockUpdate = vi.fn<(id: number, modifier: Modifier<Category>) => void>()
+  const mockRemove = vi.fn<(id: number) => void>()
+  const batch = vi.fn().mockImplementation((fn: () => void) => fn())
+
+  await sync({
+    changes,
+    lastSnapshot,
+    data,
+    pull: mockPull,
+    push: mockPush,
+    insert: mockInsert,
+    update: mockUpdate,
+    remove: mockRemove,
+    batch,
+  })
+
+  expect(mockPush).toHaveBeenCalledTimes(1)
+  expect(mockPush.mock.calls[0][0].added).toEqual([
+    { id: 1, budgetId: 'budget-1', name: 'TEST2', updatedAt: 2 },
+  ])
+})
