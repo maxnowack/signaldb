@@ -34,4 +34,34 @@ describe('@signaldb/vue', () => {
     expect(callback).toHaveBeenCalledTimes(2)
     scope.stop()
   })
+
+  it('should stay reactive over several writes', async () => {
+    const collection = new Collection<{ id: string, name: string }>({
+      reactivity: vueReactivityAdapter,
+    })
+    const seen: number[] = []
+
+    const scope = effectScope()
+    scope.run(() => {
+      watchEffect((onCleanup) => {
+        const cursor = collection.find()
+        seen.push(cursor.count())
+        onCleanup(() => cursor.cleanup())
+      })
+    })
+    await nextTick()
+
+    for (let index = 0; index < 3; index += 1) {
+      await collection.insert({ id: `${index}`, name: `name-${index}` })
+      await nextTick()
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
+    }
+
+    // Every rerun cleans its cursor up and observes again. The observation the rerun creates
+    // must survive the cleanup of the one it replaced, or the effect stops after the first write.
+    expect(seen.at(-1)).toBe(3)
+    scope.stop()
+  })
 })
