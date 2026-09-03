@@ -46,7 +46,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-testing-library": "^7.15.4",
     "eslint-plugin-tsdoc": "^0.5.0",
-    "eslint-plugin-unicorn": "^64.0.0",
+    "eslint-plugin-unicorn": "^74.0.0",
     "fast-glob": "^3.3.3",
     "globals": "^17.11.0",
     "happy-dom": "20.13.2",
