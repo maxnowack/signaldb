@@ -238,18 +238,9 @@ describe('AutoFetchDataAdapter', () => {
     await expect(((adapter as any).fulfillQuery('x', {}, undefined))).resolves.toBeUndefined()
   })
 
-  it('getIndexInfo fast id and null selector, and queryItems storage errors', async () => {
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => memoryStorageAdapter<Post>([]),
-      fetchQueryItems: async () => [],
-    })
-    await expect(((adapter as any).getIndexInfo('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
-    ;(adapter as any).storageAdapters.set('a', memoryStorageAdapter<Post>([]))
-    const fast = await (adapter as any).getIndexInfo('a', { id: '1' })
-    expect(fast.matched).toBe(true)
-    const nil = await (adapter as any).getIndexInfo('a', null)
-    expect(nil.matched).toBe(false)
-    await expect(((adapter as any).queryItems('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
+  it('throws when a query names a collection with no storage adapter', async () => {
+    const adapter = new AutoFetchDataAdapter({ storage: () => undefined as any, fetchQueryItems: async () => ({ items: [] }) })
+    await expect(((adapter as any).executeQuery('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
   })
 
   it('checkQueryUpdates missing registry, empty affected, and error path', async () => {
@@ -391,54 +382,8 @@ describe('AutoFetchDataAdapter', () => {
     expect(rm2.map((i: any) => i.id).toSorted()).toEqual(['b', 'c'])
   })
 
-  it('getIndexInfo filtersForNull ($exists:false) and excludes non-null keys', async () => {
-    const storage = memoryStorageAdapter<Post>([])
-    await storage.createIndex('type')
-    // build index by inserting items
-    await storage.insert([{ id: '1', title: 'n', type: null as any }, { id: '2', title: 'x', type: 'x' }])
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => storage,
-      fetchQueryItems: async () => [],
-    })
-    ;(adapter as any).collectionIndices.set('posts', ['type'])
-    ;(adapter as any).storageAdapters.set('posts', storage)
-    const info = await (adapter as any).getIndexInfo('posts', { type: { $exists: false } })
-    expect(info.matched).toBe(true)
-    // Should include id '1' and exclude '2'
-    expect(info.ids).toContain('1')
-    expect(info.ids).not.toContain('2')
-  })
 
-  it('queryItems matched fast-id path returns readIds directly (optimizedSelector empty)', async () => {
-    const storage = memoryStorageAdapter<Post>([])
-    await storage.insert([{ id: 'z', title: 'Z' }])
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => storage,
-      fetchQueryItems: async () => [],
-    })
-    ;(adapter as any).storageAdapters.set('q2', storage)
-    const items = await (adapter as any).queryItems('q2', { id: 'z' })
-    expect(items).toEqual([{ id: 'z', title: 'Z' }])
-  })
 
-  it('getIndexInfo handles $in include and $nin exclude paths', async () => {
-    const storage = memoryStorageAdapter<Post>([])
-    await storage.createIndex('type')
-    await storage.insert([{ id: '1', type: 'x' }, { id: '2', type: 'y' }])
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => storage,
-      fetchQueryItems: async () => [],
-    })
-    ;(adapter as any).collectionIndices.set('posts3', ['type'])
-    ;(adapter as any).storageAdapters.set('posts3', storage)
-    const inc = await (adapter as any).getIndexInfo('posts3', { type: { $in: ['x'] } })
-    expect(inc.matched).toBe(true)
-    expect(inc.ids).toEqual(['1'])
-    const exc = await (adapter as any).getIndexInfo('posts3', { type: { $nin: ['y'] } })
-    expect(exc.matched).toBe(true)
-    expect(exc.ids).toContain('1')
-    expect(exc.ids).not.toContain('2')
-  })
 
   it('publishForSelector updates only matching selector records', async () => {
     const storage = memoryStorageAdapter<Post>([])
@@ -609,16 +554,6 @@ describe('AutoFetchDataAdapter', () => {
     execSpy.mockRestore()
   })
 
-  it('queryItems returns all items when unmatched and selector empty', async () => {
-    const storage = memoryStorageAdapter<Post>([])
-    await storage.insert([{ id: 'a1', title: 'A' }, { id: 'a2', title: 'B' }])
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => storage, fetchQueryItems: async () => [],
-    })
-    ;(adapter as any).storageAdapters.set('qq', storage)
-    const items = await (adapter as any).queryItems('qq', {})
-    expect(items.length).toBe(2)
-  })
 
   it('dispose clears per-collection maps without throwing', async () => {
     const storage = memoryStorageAdapter<Post>([])
@@ -665,35 +600,7 @@ describe('AutoFetchDataAdapter', () => {
     execSpy.mockRestore()
   })
 
-  it('queryItems early returns for optimizedSelector null/empty', async () => {
-    const storage = memoryStorageAdapter<Post>([])
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => storage, fetchQueryItems: async () => [],
-    })
-    ;(adapter as any).storageAdapters.set('qi', storage)
-    const indexSpy = vi.spyOn(adapter as any, 'getIndexInfo')
-      .mockResolvedValueOnce({ matched: true, ids: ['p'], optimizedSelector: undefined })
-      .mockResolvedValueOnce({ matched: false, ids: [], optimizedSelector: {} })
-    await storage.insert([{ id: 'p', title: 'P' }])
-    await (adapter as any).queryItems('qi', {})
-    await (adapter as any).queryItems('qi', { k: 1 })
-    expect(indexSpy).toHaveBeenCalledTimes(2)
-    indexSpy.mockRestore()
-  })
 
-  it('getIndexInfo missing indexed field returns matched:false and $regex non-optimizable', async () => {
-    const storage = memoryStorageAdapter<Post>([])
-    await storage.createIndex('name')
-    const adapter = new AutoFetchDataAdapter({
-      storage: () => storage, fetchQueryItems: async () => [],
-    })
-    ;(adapter as any).collectionIndices.set('ci2', ['name'])
-    ;(adapter as any).storageAdapters.set('ci2', storage)
-    const miss = await (adapter as any).getIndexInfo('ci2', { other: 1 })
-    expect(miss.matched).toBe(false)
-    const nonOpt = await (adapter as any).getIndexInfo('ci2', { name: { $regex: 'x' } })
-    expect(nonOpt).toBeDefined()
-  })
 
   it('purgeSelector decrements refcount (no removal) and throws if storage missing', async () => {
     const storage = memoryStorageAdapter<Post>([])

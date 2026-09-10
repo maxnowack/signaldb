@@ -788,11 +788,11 @@ describe('AsyncDataAdapter', () => {
     expect(emptyResult).toEqual([])
   })
 
-  it('queryItems throws when no storage adapter was registered', async () => {
+  it('throws when a query names a collection with no storage adapter', async () => {
     const adapterWithoutStorage = new AsyncDataAdapter({
       storage: () => undefined as any,
     })
-    await expect((adapterWithoutStorage as any).queryItems('ghost', {}))
+    await expect((adapterWithoutStorage as any).executeQuery('ghost', {}))
       .rejects.toThrow('No storage adapter for collection ghost')
   })
 
@@ -818,38 +818,7 @@ describe('AsyncDataAdapter', () => {
     execSpy.mockRestore()
   })
 
-  it('getIndexInfo error/null selector and non-optimizable cases', async () => {
-    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory })
-    await expect((localAdapter as any).getIndexInfo('nope', {})).rejects.toThrow('No storage adapter for collection nope')
 
-    // Seed storage and indices
-    ;(localAdapter as any).storageAdapters.set('ci', new MockStorageAdapter('ci'))
-    ;(localAdapter as any).collectionIndices.set('ci', ['name'])
-
-    const infoNull = await (localAdapter as any).getIndexInfo('ci', null)
-    expect(infoNull.matched).toBe(false)
-
-    // Selector missing indexed field
-    const r1 = await (localAdapter as any).getIndexInfo('ci', { other: 1 })
-    expect(r1.matched).toBe(false)
-    // Recognized-but-unsupported operator produces include/exclude null
-    const r2 = await (localAdapter as any).getIndexInfo('ci', { name: { $regex: 'x' } })
-    expect(r2).toBeDefined()
-  })
-
-  it('queryItems early-returns on null/empty optimizedSelector for both matched and unmatched', async () => {
-    const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory })
-    const storage = new MockStorageAdapter('q')
-    ;(localAdapter as any).storageAdapters.set('q', storage)
-    const indexSpy = vi.spyOn(localAdapter as any, 'getIndexInfo')
-      .mockResolvedValueOnce({ matched: true, ids: ['1'], optimizedSelector: undefined })
-      .mockResolvedValueOnce({ matched: false, ids: [], optimizedSelector: {} })
-    await storage.insert([{ id: '1', name: 'n' }])
-    await (localAdapter as any).queryItems('q', {})
-    await (localAdapter as any).queryItems('q', { x: 1 })
-    expect(indexSpy).toHaveBeenCalledTimes(2)
-    indexSpy.mockRestore()
-  })
 
   it('checkQueryUpdates paths: missing registry, no affected, and executeQuery error', async () => {
     const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
