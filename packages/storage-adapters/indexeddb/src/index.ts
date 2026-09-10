@@ -209,6 +209,36 @@ function createIndexedDBAdapter<
     })))
   }
 
+  /**
+   * Whether a value can be an IndexedDB key that compares as `match` would.
+   *
+   * IndexedDB keys are numbers, strings, dates, binary and arrays of those.
+   * `null`, `undefined` and booleans are not keys at all, and `NaN` is not a
+   * valid one — asking for any of them throws rather than answering nothing.
+   * Everything outside this set is left to the caller.
+   * @param value - The value from the selector.
+   * @returns `true` when the value may be used as a key.
+   */
+  const isUsableKey = (value: unknown): value is IDBValidKey => {
+    if (typeof value === 'string') return true
+    if (typeof value === 'number') return Number.isFinite(value)
+    return value instanceof Date && !Number.isNaN(value.getTime())
+  }
+
+  /**
+   * Reads everything in a key range from a store or one of its indexes.
+   * @param source - The store or index to read from.
+   * @param range - The key range to read.
+   * @returns The matching items.
+   */
+  const readRange = (source: IDBObjectStore | IDBIndex, range: IDBKeyRange) => (
+    new Promise<T[]>((resolve, reject) => {
+      const request = source.getAll(range)
+      request.addEventListener('success', () => resolve(request.result as T[]))
+      request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
+    })
+  )
+
   return createStorageAdapter<T, I>({
     // lifecycle methods
     setup: async () => {
@@ -230,6 +260,58 @@ function createIndexedDBAdapter<
         request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
       })
     },
+    /**
+     * Narrows a read to one equality the store can answer with a key range.
+     *
+     * IndexedDB is the one shipped adapter that can read less than everything:
+     * an object store has a key path and named indexes, and both answer a key
+     * range directly. So a selector holding an equality on either becomes a
+     * range read instead of `getAll()` over the whole store, which is what
+     * this capability exists for. The blob-backed adapters — localstorage, fs,
+     * generic-fs, opfs — deliberately do not implement it: they read one
+     * serialized array and cannot answer less than all of it, so a `query`
+     * there would be the fallback path behind a new name.
+     *
+     * It claims nothing beyond the narrowing, deliberately. It never reports
+     * `sorted`: an index read comes back in index-key order and `readAll` in
+     * primary-key order, and neither is what `sortItems` produces. So it never
+     * reports `windowed` either, because a window is only meaningful over an
+     * order — and never `projected`, since a stored record is read whole.
+     * @param query - The query to answer.
+     * @param query.selector - The selector to narrow on.
+     * @returns The narrowed items and whatever is left of the selector.
+     */
+    query: async ({ selector }) => {
+      const entries = Object.entries(selector ?? {})
+      const store = await getStore()
+      const keyPath = typeof store.keyPath === 'string' ? store.keyPath : null
+      // Narrowed in a loop rather than with `find`: a predicate's type guard
+      // does not narrow the tuple it was called on, and the cast that would
+      // paper over that is the kind this capability must not carry.
+      let usable: { field: string, key: IDBValidKey } | null = null
+      for (const [field, value] of entries) {
+        if (!isUsableKey(value)) continue
+        if (field !== keyPath && !store.indexNames.contains(field)) continue
+        usable = { field, key: value }
+        break
+      }
+
+      if (!usable) {
+        const items = await new Promise<T[]>((resolve, reject) => {
+          const request = store.getAll()
+          request.addEventListener('success', () => resolve(request.result as T[]))
+          request.addEventListener('error', () => reject(new Error(request.error?.message || 'Error fetching items')))
+        })
+        return { items, residualSelector: selector }
+      }
+
+      const narrowed = usable
+      const source = narrowed.field === keyPath ? store : store.index(narrowed.field)
+      const items = await readRange(source, IDBKeyRange.only(narrowed.key))
+      const residual = Object.fromEntries(entries.filter(([other]) => other !== narrowed.field))
+      return { items, residualSelector: residual as typeof selector }
+    },
+
     readIds: async (ids) => {
       const results = await Promise.all(ids.map(id => getById(id)))
       return results.filter(item => item !== null)
