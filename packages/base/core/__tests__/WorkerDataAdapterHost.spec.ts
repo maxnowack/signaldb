@@ -293,6 +293,38 @@ describe('WorkerDataAdapterHost', () => {
       expect(response).toBeDefined()
       expect(response?.type).toBe('response')
     })
+
+    it('still answers when the collection\'s storage setup failed', async () => {
+      // The setup promise is kept per collection and awaited on the way into
+      // *every* later message. Awaited outside the try/catch that answers, its
+      // rejection escaped past the only `respond` call, leaving the caller
+      // waiting for a message that was never going to come — and a client
+      // cursor `'active'` for the rest of the session.
+      const setupError = new Error('storage setup failed')
+      const failingContext = new MockWorkerContext()
+      const failingHost = new WorkerDataAdapterHost<TestItem>(failingContext, {
+        id: 'test-host',
+        onError: () => {},
+        storage: () => ({
+          ...memoryStorageAdapter<TestItem>([]),
+          setup: () => Promise.reject(setupError),
+        }),
+      })
+      const send = async (method: string, args: unknown[]) => {
+        const id = Math.random().toString(36).slice(2)
+        await (failingHost as any).handleMessage('test-host', id, method, args)
+          .catch(() => undefined)
+        return id
+      }
+
+      await send('registerCollection', ['items', []])
+      failingContext.clearResponses()
+
+      const queryRequestId = await send('registerQuery', ['items', {}, {}])
+
+      expect(failingContext.getResponse(queryRequestId)).toBeDefined()
+      expect(failingContext.getResponse(queryRequestId)?.error).toBe(setupError)
+    })
   })
 
   describe('Insert Operations', () => {
