@@ -313,7 +313,7 @@ describe('WorkerDataAdapterHost', () => {
       const send = async (method: string, args: unknown[]) => {
         const id = Math.random().toString(36).slice(2)
         await (failingHost as any).handleMessage('test-host', id, method, args)
-          .catch(() => undefined)
+          .catch(() => {})
         return id
       }
 
@@ -928,12 +928,15 @@ describe('WorkerDataAdapterHost', () => {
       expect((update.data as any).qid).toBe(queryId({ name: 'Alice' }, { limit: 1 }))
     })
 
-    it('returns non-matching index info for null selectors', async () => {
+    it('answers a null selector with nothing', async () => {
+      // A null selector matches nothing, which is what `incrementalQueryUpdate`
+      // assumes too. The index-info shape this used to assert now lives in
+      // `executeStorageQuery`, along with the rest of the read path.
       await sendRequest('registerCollection', ['items', []])
       await vi.waitFor(() => storageAdapters.has('items'))
 
-      const info = await (host as any).getIndexInfo('items', null)
-      expect(info).toEqual({ matched: false, ids: [], optimizedSelector: {} })
+      const result = await (host as any).executeQuery('items', null)
+      expect(result).toEqual([])
     })
   })
 })

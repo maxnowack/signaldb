@@ -10,12 +10,7 @@ import match from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
-import getIndexInfo from './getIndexInfo'
 import executeStorageQuery from './utils/executeStorageQuery'
-import idIndexQuery from './utils/idIndexQuery'
-import type { FlatSelector } from './types/Selector'
-import sortItems from './utils/sortItems'
-import project from './utils/project'
 
 /**
  * Default merge strategy: shallow spread (right wins)
@@ -508,6 +503,12 @@ export default class AutoFetchDataAdapter implements DataAdapter {
    * Shares `executeStorageQuery` with the other adapters — the projection this
    * used to do by hand was `projectItems` spelled out, so nothing about the
    * result changes.
+   * @template T - The type of the items.
+   * @template I - The type of the item ids.
+   * @param collectionName - The collection to read from.
+   * @param selector - The query's selector.
+   * @param options - The query's sort, window and projection.
+   * @returns The query result.
    */
   private async executeQuery<T extends BaseItem<I>, I = any>(
     collectionName: string,
