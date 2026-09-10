@@ -13,7 +13,9 @@ interface Item { id: string, name?: string, rank?: number, secret?: string }
  *
  * `getIndexInfo`'s own selector handling ($in, $nin, $exists, non-optimizable
  * operators) is covered by `getIndexInfo.spec.ts` and deliberately not
- * repeated.
+ * @param items - The items the fake store holds.
+ * @param overrides - Adapter methods to replace, above all `query`.
+ * @returns A storage adapter over those items.
  */
 function storage(items: Item[], overrides: Partial<StorageAdapter<Item, string>> = {}) {
   const byId = new Map(items.map(item => [item.id, item]))
@@ -28,8 +30,9 @@ function storage(items: Item[], overrides: Partial<StorageAdapter<Item, string>>
       const index = new Map<string | null, Set<string>>()
       for (const item of byId.values()) {
         const value = String((item as Record<string, any>)[field])
-        if (!index.has(value)) index.set(value, new Set())
-        index.get(value)!.add(item.id)
+        const ids = index.get(value) ?? new Set<string>()
+        ids.add(item.id)
+        index.set(value, ids)
       }
       return index
     }),
@@ -97,11 +100,16 @@ describe('executeStorageQuery — without a `query` capability', () => {
 })
 
 describe('executeStorageQuery — with a `query` capability', () => {
-  const answering = (answer: (query: StorageQuery<Item>) => StorageQueryAnswer<Item>) =>
-    storage(items, { query: vi.fn(async (query: StorageQuery<Item>) => answer(query as StorageQuery<Item>)) })
+  const answering = (
+    answer: (query: StorageQuery<Item>) => StorageQueryAnswer<Item>,
+  ) => storage(items, {
+    query: vi.fn(async (query: StorageQuery<Item>) => answer(query)),
+  })
 
   it('hands the whole question over and reads nothing else', async () => {
-    const adapter = answering(() => ({ items: [items[1]], sorted: true, windowed: true, projected: true }))
+    const adapter = answering(() => ({
+      items: [items[1]], sorted: true, windowed: true, projected: true,
+    }))
 
     const result = await executeStorageQuery<Item>(adapter, ['name'], { rank: 1 }, { sort: { rank: 1 }, limit: 1, fields: { name: 1 } })
 
@@ -124,7 +132,9 @@ describe('executeStorageQuery — with a `query` capability', () => {
   it('sorts, windows and projects whatever the adapter did not', async () => {
     const adapter = answering(() => ({ items }))
 
-    const result = await executeStorageQuery<Item>(adapter, [], {}, { sort: { rank: 1 }, limit: 2, fields: { rank: 1 } })
+    const result = await executeStorageQuery<Item>(adapter, [], {}, {
+      sort: { rank: 1 }, limit: 2, fields: { rank: 1 },
+    })
 
     expect(result).toEqual([{ id: '2', rank: 1 }, { id: '3', rank: 2 }])
   })
@@ -146,14 +156,20 @@ describe('executeStorageQuery — with a `query` capability', () => {
   it('refuses a projection that drops the key the caller still has to sort by', async () => {
     const adapter = answering(() => ({ items, projected: true }))
 
-    await expect(executeStorageQuery<Item>(adapter, [], {}, { sort: { rank: 1 }, fields: { name: 1 } }))
+    await expect(executeStorageQuery<Item>(adapter, [], {}, {
+      sort: { rank: 1 }, fields: { name: 1 },
+    }))
       .rejects.toThrow('the projection drops a key the sort needs')
   })
 
   it('accepts a projection that keeps the sort key', async () => {
-    const adapter = answering(() => ({ items: items.map(({ id, rank }) => ({ id, rank })), projected: true }))
+    const adapter = answering(() => ({
+      items: items.map(({ id, rank }) => ({ id, rank })), projected: true,
+    }))
 
-    const result = await executeStorageQuery<Item>(adapter, [], {}, { sort: { rank: 1 }, fields: { rank: 1 } })
+    const result = await executeStorageQuery<Item>(adapter, [], {}, {
+      sort: { rank: 1 }, fields: { rank: 1 },
+    })
 
     expect(result.map(item => item.id)).toEqual(['2', '3', '1'])
   })

@@ -818,8 +818,6 @@ describe('AsyncDataAdapter', () => {
     execSpy.mockRestore()
   })
 
-
-
   it('checkQueryUpdates paths: missing registry, no affected, and executeQuery error', async () => {
     const localAdapter = new AsyncDataAdapter({ storage: mockStorageFactory, onError: () => {} })
     const changes = { upserts: [{ id: '1', name: 'n' }], deletes: [] }

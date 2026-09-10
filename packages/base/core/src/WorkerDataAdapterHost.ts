@@ -7,13 +7,7 @@ import deepClone from './utils/deepClone'
 import match from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
-import isEqual from './utils/isEqual'
-import getIndexInfo from './getIndexInfo'
-import idIndexQuery from './utils/idIndexQuery'
-import storageIndexQuery from './utils/storageIndexQuery'
-import type { FlatSelector } from './types/Selector'
-import sortItems from './utils/sortItems'
-import projectItems from './utils/projectItems'
+import executeStorageQuery from './utils/executeStorageQuery'
 import compact from './utils/compact'
 import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
 import type { QueryChangeset } from './utils/incrementalQueryUpdate'
@@ -203,82 +197,34 @@ export default class WorkerDataAdapterHost<
     }
   }
 
-  private async getIndexInfo(
-    collectionName: string,
-    selector: Selector<T>,
-  ) {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    // `id` needs no declared index: `readIds` is exactly the lookup it
-    // describes, so every inclusive form of it is answered here rather than by
-    // reading the whole collection (utils/idIndexQuery.ts).
-    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
-      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
-      if (idResult.matched) {
-        return {
-          matched: true,
-          ids: compact(idResult.ids),
-          optimizedSelector: {},
-        }
-      }
-    }
-
-    if (selector == null) {
-      return {
-        matched: false,
-        ids: [],
-        optimizedSelector: {},
-      }
-    }
-
-    const indices = this.collectionIndices.get(collectionName) ?? []
-    // `id` first, and always present: it needs no declared index, because
-    // `readIds` is exactly the lookup it describes (utils/idIndexQuery.ts).
-    return getIndexInfo(
-      indices.map(field => storageIndexQuery<T, I>(storageAdapter, field)),
-      selector,
-    )
-  }
-
-  private async queryItems(
-    collectionName: string,
-    selector: Selector<T>,
-  ): Promise<T[]> {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-    const indexInfo = await this.getIndexInfo(collectionName, selector)
-    const matchItems = (item: T) => {
-      if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
-      if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
-      const matches = match(item, indexInfo.optimizedSelector)
-      return matches
-    }
-    if (indexInfo.matched) {
-      const items = await storageAdapter.readIds(indexInfo.ids)
-      if (isEqual(indexInfo.optimizedSelector, {})) return items
-      return items.filter(matchItems)
-    } else {
-      const allItems = await storageAdapter.readAll()
-      if (isEqual(selector, {})) return allItems
-      return allItems.filter(matchItems)
-    }
-  }
-
+  /**
+   * Reads one query's result from the storage adapter.
+   *
+   * Shares `executeStorageQuery` with `AsyncDataAdapter` and
+   * `AutoFetchDataAdapter`. It used to be the same eight lines in all three,
+   * which is how a storage-adapter capability ends up honoured by one of them
+   * and silently missing from the others — and how the primary-key fast path
+   * came to be maintained three times over.
+   * @template T - The type of the items.
+   * @template I - The type of the item ids.
+   * @param collectionName - The collection to read from.
+   * @param selector - The query's selector.
+   * @param options - The query's sort, window and projection.
+   * @returns The query result.
+   */
   private async executeQuery(
     collectionName: string,
     selector: Selector<T>,
     options?: QueryOptions<T>,
   ): Promise<T[]> {
-    // null selector means no matches
-    if (selector === null) return []
-
-    const items = await this.queryItems(collectionName, selector || {})
-    const { sort, skip, limit, fields } = options || {}
-    const sorted = sort ? sortItems(items, sort) : items
-    const skipped = skip ? sorted.slice(skip) : sorted
-    const limited = limit ? skipped.slice(0, limit) : skipped
-    return projectItems(limited, fields)
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+    return executeStorageQuery<T, I>(
+      storageAdapter,
+      this.collectionIndices.get(collectionName) ?? [],
+      selector,
+      options,
+    )
   }
 
   private ensureQuery(

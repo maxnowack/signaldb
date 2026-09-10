@@ -10,13 +10,7 @@ import deepClone from './utils/deepClone'
 import match from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
-import isEqual from './utils/isEqual'
-import getIndexInfo from './getIndexInfo'
 import executeStorageQuery from './utils/executeStorageQuery'
-import idIndexQuery from './utils/idIndexQuery'
-import type { FlatSelector } from './types/Selector'
-import sortItems from './utils/sortItems'
-import projectItems from './utils/projectItems'
 import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
 import type { QueryChangeset } from './utils/incrementalQueryUpdate'
 import { callWithDelta, diffQueryResults, isEmptyQueryDelta } from './utils/queryDelta'
@@ -431,6 +425,7 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (!rec.itemIds) rec.itemIds = new Set(rec.items.map(item => item.id))
     return rec.itemIds
   }
+
   /**
    * Reads one query's result from the storage adapter.
    *
@@ -439,6 +434,12 @@ export default class AsyncDataAdapter implements DataAdapter {
    * `WorkerDataAdapterHost` — as the same eight lines, which is how a storage
    * adapter capability ends up honoured by one adapter and silently ignored by
    * the others.
+   * @template T - The type of the items.
+   * @template I - The type of the item ids.
+   * @param collectionName - The collection to read from.
+   * @param selector - The query's selector.
+   * @param options - The query's sort, window and projection.
+   * @returns The query result.
    */
   private async executeQuery<T extends BaseItem<I>, I = any>(
     collectionName: string,

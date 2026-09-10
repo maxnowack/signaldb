@@ -239,7 +239,10 @@ describe('AutoFetchDataAdapter', () => {
   })
 
   it('throws when a query names a collection with no storage adapter', async () => {
-    const adapter = new AutoFetchDataAdapter({ storage: () => undefined as any, fetchQueryItems: async () => ({ items: [] }) })
+    const adapter = new AutoFetchDataAdapter({
+      storage: () => undefined as any,
+      fetchQueryItems: async () => ({ items: [] }),
+    })
     await expect(((adapter as any).executeQuery('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
   })
 
@@ -381,9 +384,6 @@ describe('AutoFetchDataAdapter', () => {
     const rm2 = await backend.removeMany({ type: 'k' })
     expect(rm2.map((i: any) => i.id).toSorted()).toEqual(['b', 'c'])
   })
-
-
-
 
   it('publishForSelector updates only matching selector records', async () => {
     const storage = memoryStorageAdapter<Post>([])
@@ -554,7 +554,6 @@ describe('AutoFetchDataAdapter', () => {
     execSpy.mockRestore()
   })
 
-
   it('dispose clears per-collection maps without throwing', async () => {
     const storage = memoryStorageAdapter<Post>([])
     const adapter = new AutoFetchDataAdapter({
@@ -599,8 +598,6 @@ describe('AutoFetchDataAdapter', () => {
     expect(execSpy).toHaveBeenCalled()
     execSpy.mockRestore()
   })
-
-
 
   it('purgeSelector decrements refcount (no removal) and throws if storage missing', async () => {
     const storage = memoryStorageAdapter<Post>([])
