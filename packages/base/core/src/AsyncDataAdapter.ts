@@ -12,7 +12,7 @@ import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
-import storageIndexQuery from './utils/storageIndexQuery'
+import executeStorageQuery from './utils/executeStorageQuery'
 import idIndexQuery from './utils/idIndexQuery'
 import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
@@ -431,78 +431,28 @@ export default class AsyncDataAdapter implements DataAdapter {
     if (!rec.itemIds) rec.itemIds = new Set(rec.items.map(item => item.id))
     return rec.itemIds
   }
-
-  private async getIndexInfo<T extends BaseItem<I>, I = any>(
-    collectionName: string,
-    selector: Selector<T>,
-  ) {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
-      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
-      if (idResult.matched) {
-        return {
-          matched: true,
-          ids: idResult.ids.filter(Boolean),
-          optimizedSelector: {},
-        }
-      }
-    }
-
-    if (selector == null) {
-      return {
-        matched: false,
-        ids: [],
-        optimizedSelector: {},
-      }
-    }
-
-    const indices = this.collectionIndices.get(collectionName) ?? []
-    return getIndexInfo(
-      indices.map(field => storageIndexQuery<T, I>(storageAdapter, field)),
-      selector,
-    )
-  }
-
-  private async queryItems<T extends BaseItem<I>, I = any>(
-    collectionName: string,
-    selector: Selector<T>,
-  ): Promise<T[]> {
-    const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    const index = await this.getIndexInfo<T, I>(collectionName, selector)
-    const matchItems = (item: T) => {
-      if (index.optimizedSelector == null) return true
-      if (Object.keys(index.optimizedSelector).length <= 0) return true
-      return match(item, index.optimizedSelector)
-    }
-
-    if (index.matched) {
-      const items = await storage.readIds(index.ids)
-      if (isEqual(index.optimizedSelector, {})) return items
-      return items.filter(matchItems)
-    } else {
-      const allItems = await storage.readAll()
-      if (isEqual(selector, {})) return allItems
-      return allItems.filter(matchItems)
-    }
-  }
-
+  /**
+   * Reads one query's result from the storage adapter.
+   *
+   * The work lives in `executeStorageQuery` because this method used to exist
+   * three times over — here, in `AutoFetchDataAdapter` and in
+   * `WorkerDataAdapterHost` — as the same eight lines, which is how a storage
+   * adapter capability ends up honoured by one adapter and silently ignored by
+   * the others.
+   */
   private async executeQuery<T extends BaseItem<I>, I = any>(
     collectionName: string,
     selector: Selector<T>,
     options?: QueryOptions<T>,
   ): Promise<T[]> {
-    const items = await this.queryItems<T, I>(collectionName, selector || {})
-    const { sort, skip, limit, fields } = options || {}
-
-    const sorted = sort ? sortItems(items, sort) : items
-    const skipped = skip ? sorted.slice(skip) : sorted
-    const limited = limit ? skipped.slice(0, limit) : skipped
-
-    return projectItems(limited, fields)
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+    return executeStorageQuery<T, I>(
+      storageAdapter,
+      this.collectionIndices.get(collectionName) ?? [],
+      selector,
+      options,
+    )
   }
 
   /**

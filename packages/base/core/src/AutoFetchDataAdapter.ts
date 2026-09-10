@@ -11,7 +11,7 @@ import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import getIndexInfo from './getIndexInfo'
-import storageIndexQuery from './utils/storageIndexQuery'
+import executeStorageQuery from './utils/executeStorageQuery'
 import idIndexQuery from './utils/idIndexQuery'
 import type { FlatSelector } from './types/Selector'
 import sortItems from './utils/sortItems'
@@ -502,72 +502,26 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     }
   }
 
-  private async getIndexInfo<T extends BaseItem<I>, I = any>(
-    collectionName: string,
-    selector: Selector<T>,
-  ) {
-    const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    // `id` needs no declared index — `readIds` is exactly that lookup.
-    if (selector != null && Object.keys(selector).length === 1 && 'id' in selector) {
-      const idResult = idIndexQuery<T, I>(selector as FlatSelector<T>)
-      if (idResult.matched) return { matched: true, ids: idResult.ids, optimizedSelector: {} }
-    }
-
-    if (selector == null) {
-      return { matched: false, ids: [], optimizedSelector: {} }
-    }
-
-    const indices = this.collectionIndices.get(collectionName) ?? []
-    return getIndexInfo(
-      indices.map(field => storageIndexQuery<T, I>(storage, field)),
-      selector,
-    )
-  }
-
-  private async queryItems<T extends BaseItem<I>, I = any>(
-    collectionName: string,
-    selector: Selector<T>,
-  ): Promise<T[]> {
-    const storage = this.storageAdapters.get(collectionName)
-    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    const index = await this.getIndexInfo<T, I>(collectionName, selector)
-    const matchItems = (item: T) => {
-      if (index.optimizedSelector == null) return true
-      if (Object.keys(index.optimizedSelector).length <= 0) return true
-      return match(item, index.optimizedSelector)
-    }
-
-    if ((index as any).matched) {
-      const items = await storage.readIds(index.ids)
-      if (isEqual((index as any).optimizedSelector, {})) return items
-      return items.filter(matchItems)
-    } else {
-      const allItems = await storage.readAll()
-      if (isEqual(selector, {})) return allItems
-      return allItems.filter(matchItems)
-    }
-  }
-
+  /**
+   * Reads one query's result from the local storage adapter.
+   *
+   * Shares `executeStorageQuery` with the other adapters — the projection this
+   * used to do by hand was `projectItems` spelled out, so nothing about the
+   * result changes.
+   */
   private async executeQuery<T extends BaseItem<I>, I = any>(
     collectionName: string,
     selector: Selector<T>,
     options?: QueryOptions<T>,
   ): Promise<T[]> {
-    const items = await this.queryItems<T, I>(collectionName, selector || {})
-    const { sort, skip, limit, fields } = options || {}
-
-    const sorted = sort ? sortItems(items, sort) : items
-    const skipped = skip ? sorted.slice(skip) : sorted
-    const limited = limit ? skipped.slice(0, limit) : skipped
-
-    const idExcluded = fields && (fields as any).id === 0
-    return limited.map((item) => {
-      if (!fields) return item
-      return { ...(idExcluded ? {} : { id: item.id }), ...project(item, fields) }
-    })
+    const storage = this.storageAdapters.get(collectionName)
+    if (!storage) throw new Error(`No storage adapter for collection ${collectionName}`)
+    return executeStorageQuery<T, I>(
+      storage,
+      this.collectionIndices.get(collectionName) ?? [],
+      selector,
+      options,
+    )
   }
 
   private async checkQueryUpdates<T extends BaseItem<I>, I = any>(
