@@ -183,9 +183,19 @@ export default class WorkerDataAdapterHost<
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.log(method, ...args)
 
-    // wait for the storage adapter to be ready
-    await this.isReady(args[0] as string)
     try {
+      // Inside the try, not before it. `isReady` hands back the setup promise
+      // `registerCollection` stored for this collection, and a storage adapter
+      // whose `setup()` or `createIndex()` failed leaves a *rejected* promise
+      // there. Awaited outside, that rejection escaped past the only place that
+      // answers, was swallowed by the message listener's own catch into
+      // `onError`, and the caller was never told anything at all — so every
+      // later message for that collection went unanswered, `getQueryState`
+      // stayed `'active'` on the client, and every screen gated on
+      // `Cursor#isLoading()` waited for the rest of the session. A failed setup
+      // is a query error, which the client already knows how to surface; it is
+      // never a reason to stop responding.
+      await this.isReady(args[0] as string)
       const result = await fn.apply(this, args)
       this.respond(id, result)
     } catch (error) {
