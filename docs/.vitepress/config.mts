@@ -189,6 +189,7 @@ export default withMermaid({
               items: [
                 { text: 'Collection', link: '/reference/core/collection/' },
                 { text: 'Cursor', link: '/reference/core/cursor/' },
+                { text: 'reactiveTransaction', link: '/reference/core/reactivetransaction/' },
                 { text: 'DataAdapter', link: '/reference/core/dataadapter/' },
                 { text: 'DefaultDataAdapter', link: '/reference/core/defaultdataadapter/' },
                 { text: 'AsyncDataAdapter', link: '/reference/core/asyncdataadapter/' },
