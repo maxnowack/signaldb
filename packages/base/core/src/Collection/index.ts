@@ -223,6 +223,12 @@ export default class Collection<
    * Pass the collections being written to whenever that scope is known — it is
    * both cheaper and safer. `Collection.batch([logs, versions], () => …)`
    * defers those two and leaves everything else live.
+   *
+   * For an operation that spans `await`s — a write followed by whatever
+   * derives from it — reach for `reactiveTransaction` instead. It holds only
+   * the notification of reactive scopes, not the query pipeline, so it is safe
+   * to keep open for as long as the operation takes, and every scope is woken
+   * once at the end rather than once per phase (reactiveTransaction.ts).
    * @param collections - The collections to batch. Omit to batch all of them.
    * @param callback - The batch operation to execute.
    * @returns A promise if the callback returns a promise, otherwise `void`.

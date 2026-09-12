@@ -33,6 +33,7 @@ export type { QueryDelta } from './utils/queryDelta'
 export { default as Cursor } from './Collection/Cursor'
 
 export { default as Collection } from './Collection'
+export { default as reactiveTransaction, isInReactiveTransaction } from './reactiveTransaction'
 export { default as createStorageAdapter } from './createStorageAdapter'
 export { default as createReactivityAdapter } from './createReactivityAdapter'
 

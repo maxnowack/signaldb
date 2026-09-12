@@ -249,6 +249,14 @@ event, and the wrong thing around anything whose length depends on the data.
 Name the collections you are actually writing to.
 :::
 
+::: tip
+For an operation that spans `await`s — a write, then whatever derives from it
+— reach for [`reactiveTransaction`](/reference/core/reactivetransaction/)
+instead. It holds only the notification of reactive scopes, not the query
+pipeline, so it is safe to keep open for as long as the operation takes, and
+every scope updates once at the end rather than once per phase.
+:::
+
 ### `isBatchOperationInProgress()`
 
 Returns whether an unscoped `Collection.batch()` — one covering every

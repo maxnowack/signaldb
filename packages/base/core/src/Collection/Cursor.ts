@@ -1,5 +1,6 @@
 import type ReactivityAdapter from '../types/ReactivityAdapter'
 import type { QueryDelta } from '../utils/queryDelta'
+import { holdNotification, isInReactiveTransaction, releaseNotification } from '../reactiveTransaction'
 import type { BaseItem, FindOptions, Transform } from './types'
 import type { ObserveCallbacks } from './Observer'
 import Observer from './Observer'
@@ -126,7 +127,20 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     if (!this.options.reactive) return
     const signal = this.options.reactive.create()
     signal.depend()
-    const notify = () => signal.notify()
+    // Held rather than dropped while a reactive transaction is open: the scope
+    // is woken once when the transaction ends, however many writes it made
+    // (reactiveTransaction.ts). Identity matters — one notifier per dependency,
+    // so a transaction that touched this query fifty times wakes it once.
+    const wake = () => signal.notify()
+    const notify = () => {
+      if (isInReactiveTransaction()) {
+        holdNotification(wake)
+        return
+      }
+      wake()
+    }
+    // A cursor disposed while a transaction is open must not be woken by it.
+    this.onCleanup(() => releaseNotification(wake))
 
     /**
      * Builds a notifier function for the specified event.
