@@ -123,6 +123,9 @@ export default class WorkerDataAdapterHost<
     // question about ids, and answering it by scanning the result would cost the size of every
     // active query's result on every write — the very thing sending deltas is here to avoid.
     itemIds?: Set<any>,
+    // Set when a re-read failed: `items` is still what the adapters hold, so a delta against it
+    // stays coherent, but it no longer describes the store and must not be updated incrementally.
+    stale?: boolean,
   }>> = new Map()
 
   private onError: (error: Error) => void = (error) => {
@@ -245,11 +248,12 @@ export default class WorkerDataAdapterHost<
   }
 
   private setQueryItems(
-    query: { items: BaseItem[] | null, itemIds?: Set<any> },
+    query: { items: BaseItem[] | null, itemIds?: Set<any>, stale?: boolean },
     items: BaseItem[] | null,
   ) {
     query.items = items
     query.itemIds = undefined
+    query.stale = false
   }
 
   private queryItemIds(query: { items: BaseItem[] | null, itemIds?: Set<any> }): Set<any> {
@@ -280,7 +284,8 @@ export default class WorkerDataAdapterHost<
     this.respond(
       id,
       { collectionName, qid: id, selector, options, state, error, items, delta },
-      null,
+      // The adapter reads a query's error from the message, not from `data`.
+      error,
       'queryUpdate',
     )
   }
@@ -313,7 +318,7 @@ export default class WorkerDataAdapterHost<
     await Promise.all(affectedQueries.map(async (query) => {
       const { selector, options } = query
       const previous = query.items
-      const incremental = previous == null
+      const incremental = previous == null || query.stale
         ? null
         : incrementalQueryUpdate(previous, selector, options, changes)
 
@@ -330,7 +335,21 @@ export default class WorkerDataAdapterHost<
       }
 
       this.emitQueryUpdate(collectionName, selector, options, 'active', null)
-      const queryItems = await this.executeQuery(collectionName, selector, options)
+      let queryItems: T[]
+      try {
+        queryItems = await this.executeQuery(collectionName, selector, options)
+      } catch (error) {
+        // The `'active'` above has to be answered, and a failed re-read is an answer. Left to
+        // reject, it went back as the *write's* error — a write that had in fact succeeded — while
+        // the query stayed `'active'` on every adapter holding it, so `Cursor#isLoading()` reported
+        // a result still pending for the rest of the session and every screen gated on it showed
+        // its loading state until the app was restarted. The previous result is kept: it is the
+        // last one the store vouched for, and the next write that touches the query tries again.
+        query.stale = true
+        this.onError(error as Error)
+        this.emitQueryUpdate(collectionName, selector, options, 'error', error as Error)
+        return
+      }
       if (previous == null) {
         this.setQueryItems(query, queryItems)
         this.emitQueryUpdate(collectionName, selector, options, 'complete', null, queryItems)

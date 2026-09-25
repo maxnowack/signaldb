@@ -233,6 +233,49 @@ describe('WorkerDataAdapterHost query deltas', () => {
       expect(readIds).toHaveBeenCalledWith(['d'])
       expect(lastDelta(qid)?.resultCount).toBe(2)
     })
+
+    // A re-read that throws used to leave the `'active'` it had announced unanswered, and the
+    // query then read as loading on every adapter for the rest of the session.
+    describe('when the re-read fails', () => {
+      const failWindowReads = () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        const execute = (host as any).executeQuery.bind(host)
+        return vi.spyOn(host as any, 'executeQuery').mockImplementation((...args: any[]) => {
+          const [, querySelector] = args as [string, Record<string, unknown>]
+          if (querySelector.status === 'open') return Promise.reject(new Error('disk I/O error'))
+          return execute(...args)
+        })
+      }
+
+      it('answers the query with an error and still reports the write as done', async () => {
+        failWindowReads()
+        const writeId = await send('removeOne', ['items', [[{ id: 'c' }]]])
+
+        expect(context.queryUpdates(qid).map(update => update.data.state)).toEqual(['active', 'error'])
+        expect(context.queryUpdates(qid).at(-1)?.error).toEqual(new Error('disk I/O error'))
+        const writeResponse = context.responses.find(response => response.id === writeId && response.type === 'response')
+        expect(writeResponse?.error).toBeNull()
+      })
+
+      it('reads the window from the store again on the next write, not from the result that went stale', async () => {
+        const failing = failWindowReads()
+        await send('removeOne', ['items', [[{ id: 'c' }]]])
+        failing.mockRestore()
+        context.clearResponses()
+
+        await send('insert', ['items', [[{ id: 'd', status: 'open', rank: 1, name: 'Dan' }]]])
+
+        const update = context.queryUpdates(qid).at(-1)
+        expect(update?.data.state).toBe('complete')
+        expect(update?.data.delta).toEqual({
+          added: [{ index: 0, item: { id: 'd', status: 'open', rank: 1, name: 'Dan' } }],
+          changed: [],
+          removed: ['c'],
+          moved: [],
+          resultCount: 2,
+        })
+      })
+    })
   })
 
   describe('a query registered a second time', () => {
