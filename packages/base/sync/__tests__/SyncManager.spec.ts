@@ -1,5 +1,5 @@
 /* @vitest-environment happy-dom */
-import { it, expect, vi } from 'vitest'
+import { it, expect, vi, onTestFinished } from 'vitest'
 import { Collection, createPersistenceAdapter } from '@signaldb/core'
 import type { BaseItem, LoadResponse, PersistenceAdapter } from '@signaldb/core'
 import { SyncManager } from '../src'
@@ -83,7 +83,21 @@ interface TestItem extends BaseItem<string> {
   name: string,
 }
 
+/**
+ * Replaces the timers with fake ones for the current test, so that debounced
+ * pushes and the syncs they trigger can be flushed deterministically instead
+ * of waiting for real time to pass.
+ */
+function useFakeTimers() {
+  vi.useFakeTimers()
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
+}
+
 it('should add a collection and register sync events', async () => {
+  useFakeTimers()
+
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
   })
@@ -103,12 +117,19 @@ it('should add a collection and register sync events', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  // push is debounced, so nothing happens before the debounce time elapsed
+  await vi.advanceTimersByTimeAsync(99)
+  expect(mockPush).not.toHaveBeenCalled()
+
+  // flush the debounced push and the sync it triggers
+  await vi.advanceTimersByTimeAsync(1)
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
-  expect(mockPush).toHaveBeenCalled()
+  expect(mockPush).toHaveBeenCalledTimes(1)
+  expect(mockPush).toHaveBeenCalledWith({ name: 'test' }, expect.objectContaining({
+    changes: expect.objectContaining({ added: [{ id: '2', name: 'New Item' }] }),
+  }))
 })
 
 it('should handle pull and apply new changes during sync', async () => {
@@ -177,6 +198,8 @@ it('should handle updates correctly during sync', async () => {
 })
 
 it('should push changes when items are added locally', async () => {
+  useFakeTimers()
+
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [],
   })
@@ -198,9 +221,7 @@ it('should push changes when items are added locally', async () => {
 
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -236,10 +257,9 @@ it('should push changes when items are updated locally', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
   await syncManager.sync('test')
 
+  useFakeTimers()
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -276,10 +296,9 @@ it('should push changes when items are removed locally', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
   await syncManager.sync('test')
 
+  useFakeTimers()
   mockCollection.removeOne({ id: '1' })
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalled()
@@ -287,6 +306,8 @@ it('should push changes when items are removed locally', async () => {
 })
 
 it('should debounce push requests', async () => {
+  useFakeTimers()
+
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [],
   })
@@ -310,15 +331,18 @@ it('should debounce push requests', async () => {
   mockCollection.insert({ id: '2', name: 'First Item' })
   mockCollection.insert({ id: '3', name: 'Second Item' })
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 50)
-  })
+  await vi.advanceTimersByTimeAsync(24)
+  expect(mockPush).not.toHaveBeenCalled()
+
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(1)
 })
 
 it('should debounce push requests for multiple collections', async () => {
+  useFakeTimers()
+
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [],
   })
@@ -344,10 +368,11 @@ it('should debounce push requests for multiple collections', async () => {
   collection1.insert({ id: '1', name: 'Collection 1 Item' })
   collection2.insert({ id: '2', name: 'Collection 2 Item' })
 
+  await vi.advanceTimersByTimeAsync(24)
+  expect(mockPush).not.toHaveBeenCalled()
+
   // Wait for debounce period to complete
-  await new Promise((resolve) => {
-    setTimeout(resolve, 50)
-  })
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(2)
@@ -694,6 +719,7 @@ it('should sync after a empty remote change was received', async () => {
     },
   })
   await syncManager.isReady()
+  useFakeTimers()
 
   const mockCollection = new Collection<TestItem, string, any>()
 
@@ -703,9 +729,7 @@ it('should sync after a empty remote change was received', async () => {
   onRemoteChangeHandler()
 
   // wait until sync finished
-  await new Promise((resolve) => {
-    setTimeout(resolve, 100)
-  })
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   // Verify that the collection includes the remote change
@@ -742,10 +766,9 @@ it('should call onError handler if an async error occurs', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
   await syncManager.sync('test')
 
+  useFakeTimers()
   mockCollection.updateOne({ id: '1' }, { $set: { name: 'Updated Locally' } })
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(mockPush).toHaveBeenCalled()
   expect(onError).toHaveBeenCalledTimes(1)
@@ -1299,6 +1322,8 @@ it('should not trigger sync if collection is paused', async () => {
 })
 
 it('should only automatically push if started', async () => {
+  useFakeTimers()
+
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockResolvedValue({
     items: [{ id: '1', name: 'Test Item' }],
   })
@@ -1319,17 +1344,13 @@ it('should only automatically push if started', async () => {
   syncManager.addCollection(mockCollection, { name: 'test' })
   mockCollection.insert({ id: '2', name: 'New Item' })
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(0)
 
   await syncManager.startSync('test')
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
   expect(onError).not.toHaveBeenCalled()
   expect(mockPush).toHaveBeenCalledTimes(1)
 })
@@ -1403,6 +1424,8 @@ it('should pause and resume sync all collections', async () => {
 })
 
 it('should trigger sync when using $set on an array to modify an object/item inline', async () => {
+  useFakeTimers()
+
   type ItemType = {
     id: string,
     title: string,
@@ -1443,18 +1466,14 @@ it('should trigger sync when using $set on an array to modify an object/item inl
     { id: postId2, title: 'Foo', text: 'Riker ipsum …' },
   ])
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(pull).toHaveBeenCalledTimes(2)
   expect(push).toHaveBeenCalledTimes(1)
 
   posts.updateOne({ id: postId1 }, { $set: { 'meta.likes': 5 } })
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 110)
-  })
+  await vi.runAllTimersAsync()
 
   expect(push).toHaveBeenCalledTimes(2)
 })
