@@ -106,6 +106,6 @@ A client-side database like SignalDB is a good fit when:
 
 ## How SignalDB compares
 
-SignalDB focuses on signal-based reactivity, a familiar MongoDB-style query API and backend-agnostic sync. See the [comparison of offline-first JavaScript databases](/offline-first/#javascript-databases-for-offline-applications) for how it relates to RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB, or read [JavaScript Signals Explained](/signals/) for the reactivity model behind it.
+SignalDB focuses on signal-based reactivity, a familiar MongoDB-style query API and backend-agnostic sync. See the [JavaScript database comparison](/comparison/) for how it relates to RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB, or read [JavaScript Signals Explained](/signals/) for the reactivity model behind it.
 
 [Get started →](/getting-started/)

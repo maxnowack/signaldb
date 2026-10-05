@@ -130,6 +130,7 @@ export default withMermaid({
           text: 'Articles',
           collapsed: true,
           items: [
+            { text: 'Database Comparison', link: '/comparison/' },
             { text: 'Signals', link: '/signals/' },
             { text: 'Live Updates', link: '/live-updates/' },
             { text: 'Optimistic UI', link: '/optimistic-ui/' },

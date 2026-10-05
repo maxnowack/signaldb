@@ -66,7 +66,7 @@ The table compares popular open-source databases you can use for offline-first J
 | **[TinyBase](https://tinybase.org/)** | In-memory store of tables and values, persisted via persisters (IndexedDB, localStorage, SQLite, …) | Listeners and React hooks | Synchronizers based on CRDTs | MIT | Small to medium reactive app state with peer or server sync |
 | **[TanStack DB](https://tanstack.com/db)** | In-memory collections | Live queries with optimistic mutations | Via collection types (TanStack Query, ElectricSQL and others) | MIT | Apps already using TanStack Query |
 
-*Last reviewed: October 2026. Features change quickly. Check each project's documentation before you decide.*
+*Last reviewed: October 2026. Features change quickly. Check each project's documentation before you decide. For a detailed feature matrix and a one-to-one comparison with each project, see the [JavaScript database comparison](/comparison/).*
 
 ### Factors to Consider When Choosing a Database
 
