@@ -1,4 +1,5 @@
 ---
+title: 'Vue Signals: Reactivity Adapter for Vue.js'
 head:
 - - link
   - rel: canonical
@@ -11,18 +12,22 @@ head:
     content: https://signaldb.js.org/reference/vue/
 - - meta
   - name: og:title
-    content: '@signaldb/vue - SignalDB Reactivity Adapter for Vue.js'
+    content: 'Vue Signals: SignalDB Reactivity Adapter for Vue.js'
 - - meta
   - name: og:description
-    content: Discover how to integrate Vue.js with SignalDB using the reactivity adapter for seamless reactive database integration.
+    content: Vue refs and computed work like signals. Learn how @signaldb/vue connects Vue reactivity to SignalDB for reactive database queries in watchEffect and computed.
 - - meta
   - name: description
-    content: Discover how to integrate Vue.js with SignalDB using the reactivity adapter for seamless reactive database integration.
+    content: Vue refs and computed work like signals. Learn how @signaldb/vue connects Vue reactivity to SignalDB for reactive database queries in watchEffect and computed.
 - - meta
   - name: keywords
     content: SignalDB, Vue.js, reactivity adapter, integration guide, JavaScript, TypeScript, real-time updates, @signaldb/vue, watchEffect, component state, dynamic UI
 ---
 # @signaldb/vue
+
+**Does Vue have signals?** Yes. Vue's `ref()` and `computed()` are signals in everything but name: they hold a value, track who reads them, and trigger updates in `watchEffect()`, `computed()` and templates when the value changes. Vue's documentation describes refs as its equivalent of the signals found in Solid, Preact or Angular. For a general introduction, see [JavaScript Signals Explained](/signals/).
+
+`@signaldb/vue` connects this reactivity system to SignalDB: queries on a SignalDB collection that run inside `watchEffect()` (or a `computed()`) become reactive and re-run whenever matching documents are inserted, updated or removed, locally or through [sync](/sync/).
 
 ## vueReactivityAdapter (`default`)
 

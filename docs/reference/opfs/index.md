@@ -1,4 +1,5 @@
 ---
+title: 'OPFS Adapter: Store Data in the Origin Private File System'
 head:
 - - link
   - rel: canonical
@@ -11,18 +12,31 @@ head:
     content: https://signaldb.js.org/reference/opfs/
 - - meta
   - name: og:title
-    content: '@signaldb/opfs | SignalDB'
+    content: 'OPFS Adapter: Store Data in the Origin Private File System | SignalDB'
 - - meta
   - name: og:description
-    content: Learn about the OPFS Adapter for SignalDB, a simple and straightforward way to store data in a browser's filesystem using the Origin Private File System API.
+    content: What OPFS (Origin Private File System) is, how it compares to localStorage and IndexedDB, and how to persist SignalDB collections in OPFS with @signaldb/opfs.
 - - meta
   - name: description
-    content: Learn about the OPFS Adapter for SignalDB, a simple and straightforward way to store data in a browser's filesystem using the Origin Private File System API.
+    content: What OPFS (Origin Private File System) is, how it compares to localStorage and IndexedDB, and how to persist SignalDB collections in OPFS with @signaldb/opfs.
 - - meta
   - name: keywords
     content: OPFS Adapter, SignalDB, Origin Private File System API, data persistence, browser storage, Filesystem Adapter, JavaScript, TypeScript
 ---
 # @signaldb/opfs
+
+**What is OPFS?** The [Origin Private File System](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system) (OPFS) is a private file system that browsers provide to each website (origin). Pages can create, read and write files in it without any permission prompt, and the files are invisible to the user and to other sites. OPFS is part of the File System API and is supported in all current major browsers (Chrome, Edge, Firefox and Safari).
+
+Compared to other browser storage:
+
+| | localStorage | IndexedDB | OPFS |
+|---|---|---|---|
+| Data model | string key/value | object store with indexes | files and directories |
+| API | synchronous | asynchronous (event-based) | asynchronous; fast synchronous access in Web Workers |
+| Capacity | a few MB per origin | large (quota-based) | large (quota-based) |
+| Typical use | small settings | structured app data | large files, databases, binary data |
+
+`@signaldb/opfs` stores the documents of a SignalDB collection as a file in OPFS. This gives you persistent local storage for your data with a single line of configuration, which is useful for [offline-first](/offline-first/) apps.
 
 ## createOPFSAdapter (`default`)
 

@@ -11,119 +11,197 @@ head:
     content: https://signaldb.js.org/optimistic-ui/
 - - meta
   - name: og:title
-    content: 'Optimistic UI: How Local Databases Transform User Experience'
+    content: 'Optimistic UI: What It Is and How to Implement It'
 - - meta
   - name: og:description
-    content: Learn how Optimistic UI and local databases enhance user interactions in web apps. Discover their integration for improved responsiveness and experience.
+    content: What optimistic UI is, how optimistic updates and rollbacks work, when to use them, and how to implement them with React's useOptimistic, React Query or a local database.
 - - meta
   - name: description
-    content: Learn how Optimistic UI and local databases enhance user interactions in web apps. Discover their integration for improved responsiveness and experience.
+    content: What optimistic UI is, how optimistic updates and rollbacks work, when to use them, and how to implement them with React's useOptimistic, React Query or a local database.
 - - meta
   - name: keywords
-    content: optimistic UI, local databases, real-time updates, user experience, web development, app development, SQLite, IndexedDB, Realm Database, real-time responsiveness, digital interfaces
+    content: optimistic UI, optimistic updates, what is optimistic UI, optimistic UI updates, useOptimistic, React Query optimistic updates, rollback, local database, local-first, offline-first, SignalDB
 ---
-# Optimistic UI: How Local Databases Transform User Experience
-
-
+# Optimistic UI: What It Is and How to Implement It
 
 ## Introduction to Optimistic UI
 
-At the forefront of web and app development is a transformative concept: the **Optimistic User Interface (UI)**. This innovative approach is redefining user interaction with digital platforms by offering immediate feedback in response to user actions. An optimistic UI functions on the premise of 'assuming success,' where user inputs are instantly acknowledged, providing a dynamic and seamless interaction, even if the backend processes are still ongoing.
+**Optimistic UI is a pattern where the interface shows the result of a user action immediately, before the server has confirmed it, and only corrects itself if the request fails.** Instead of showing a spinner while waiting for the server, the app assumes success. Most requests do succeed.
 
-An optimistic UI is more than just a design choice; it's about enhancing real-time interaction. By predicting successful outcomes and immediately reflecting user actions, these interfaces bring a sense of fluidity and continuity to digital interactions. The result is a digital environment where user inputs are met with instant visual confirmation, fostering a smooth and engaging user experience.
+A familiar example is the "like" button in social apps: the heart turns red the moment you tap it. The request to the server happens in the background. If it fails, the heart quietly turns grey again and an error is shown.
 
-This introduction will lead us through the nuances of optimistic UI, including their fundamental principles, operational mechanisms, and how they are reshaping user expectations in the digital world. Our journey will lay the groundwork for understanding the pivotal role these interfaces play in modern application design.
+Optimistic updates make apps feel instant, because the perceived latency of an action drops from a network round trip (often hundreds of milliseconds) to a single render.
 
+## How Optimistic Updates Work
 
+Every optimistic update follows the same four steps:
 
+1. **Apply locally**: update the UI state as if the action had succeeded, and remember what it looked like before.
+2. **Send the request**: send the change to the server in the background.
+3. **Reconcile**: when the server responds, replace the optimistic data with the server's version, for example to get the real ID or a server-side timestamp.
+4. **Roll back on failure**: if the request fails, restore the previous state and tell the user.
 
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as UI / local state
+  participant S as Server
+  U->>UI: Click "Add todo"
+  UI->>UI: Show new todo immediately
+  UI->>S: POST /todos (in background)
+  alt Success
+    S-->>UI: 201 Created (server data)
+    UI->>UI: Replace optimistic item with server data
+  else Failure
+    S-->>UI: Error
+    UI->>UI: Roll back and show error
+  end
+```
+
+The hard parts are steps 3 and 4: keeping track of which changes are still pending, applying server responses that arrive out of order, and rolling back correctly when several optimistic changes touch the same data.
+
+## When to Use Optimistic UI
+
+Optimistic UI works best when:
+
+- the action **almost always succeeds** (likes, toggles, reordering, adding items to a list, editing text);
+- a failure is **cheap to undo** and easy to explain to the user;
+- the user benefits from **continuing immediately**, for example when adding several items in a row.
+
+Avoid it, or show explicit pending states instead, when:
+
+- the outcome **depends on the server** (payments, bookings, stock availability, permission checks);
+- the action is **irreversible** or has side effects outside the app (sending an email, publishing);
+- a rollback would **destroy user input** that is hard to recreate.
+
+## Optimistic Updates in React: useOptimistic and React Query
+
+In React, there are two common ways to implement optimistic updates for a single mutation.
+
+**React's `useOptimistic` hook** (React 19) shows a temporary state while an async action is running:
+
+```jsx
+import { useOptimistic } from 'react'
+
+function TodoList({ todos, addTodo }) {
+  const [optimisticTodos, addOptimisticTodo] = useOptimistic(
+    todos,
+    (state, newTodo) => [...state, { ...newTodo, pending: true }],
+  )
+
+  async function formAction(formData) {
+    const todo = { title: formData.get('title') }
+    addOptimisticTodo(todo)
+    await addTodo(todo) // when this settles, optimisticTodos falls back to todos
+  }
+
+  return (
+    <form action={formAction}>
+      {optimisticTodos.map(todo => <p key={todo.title}>{todo.title}</p>)}
+      <input name="title" />
+    </form>
+  )
+}
+```
+
+**TanStack Query (React Query)** uses the `onMutate`, `onError` and `onSettled` callbacks of a mutation: write the optimistic value into the query cache in `onMutate`, restore the snapshot in `onError`, and refetch in `onSettled`.
+
+Both approaches work well for individual actions, but they have the same limits:
+
+- Optimistic state lives **per mutation or per component**, and you write the rollback logic yourself.
+- Pending changes are **lost on reload**, and nothing works **offline**.
+- Every view that shows the same data has to be updated separately.
 
 ## Understanding Local Databases
 
-Local databases are the unsung heroes in the world of modern web and app development. They serve as the backbone for storing and managing data directly on a user's device, enabling swift and efficient data access. This capability is crucial for applications that require immediate responsiveness and offline functionality.
+A local database stores application data on the user's device, for example in the browser's IndexedDB or OPFS, or in SQLite on mobile, and answers queries without a network round trip. Many local databases can also **replicate** data from a server: they keep a local copy in sync with the backend in both directions.
 
-There are various types of local databases, each with its unique strengths. For instance, SQLite is renowned for its light footprint and robust feature set, making it a popular choice for mobile applications. IndexedDB shines in web applications, providing rich query capabilities in a browser environment. Moreover, Realm Database offers a blend of simplicity and performance, particularly favored in reactive mobile apps.
-
-Another key aspect of local databases is their ability to replicate external data. This feature allows them to synchronize with a central database, ensuring data consistency across different devices and states. Such replication plays a pivotal role in maintaining data integrity, especially in scenarios where real-time updates and offline access are critical. By leveraging local databases, developers can create user experiences that are not only seamless and intuitive but also resilient in the face of connectivity challenges.
-
-
-
-
+This changes how optimistic UI works.
 
 ## The Connection Between Local Databases and Optimistic UI
 
-Have you ever wondered what makes your favorite apps so responsive and intuitive? The answer often lies in the seamless integration of **local databases** with **optimistic UI**. This combination is transforming how we interact with digital platforms, making experiences more fluid and user-friendly.
+With a local database, the UI does not render server responses. It renders the result of **local queries**. Every write goes to the local database first, and the database syncs with the server in the background.
 
-At its core, _optimistic UI_ is about anticipating user actions to deliver a more dynamic and engaging experience. It's a design choice that assumes a successful outcome from user interactions, updating the user interface instantly before any backend processes are completed. But how does it manage to be so quick and efficient? That's where local databases come into play.
+That makes every write optimistic by default:
 
-Local databases store data on the user's device, allowing for almost instantaneous access. When you interact with an app using optimistic UI, the app updates your view using this locally stored data, without waiting for server responses. This approach not only speeds up interactions but also enhances the overall user experience by providing real-time feedback and updates.
+- **Apply locally**: writing to the local database *is* the optimistic update. Every view that queries the affected data updates, not just the component that triggered the action.
+- **Send the request**: the sync layer pushes the change and keeps it queued (and persisted) until the server accepts it, even across reloads and offline periods.
+- **Reconcile and roll back**: after a push, the next pull brings the server's version of the data into the local database. If the server rejected a change, the server state replaces the local change, which acts as a rollback.
 
-The **relationship** between local databases and optimistic UI is symbiotic. While local databases provide the necessary data speed and accessibility, optimistic UI leverages this capability to create a more responsive and engaging user interface. It's a match made in tech heaven, revolutionizing how we design and experience digital interfaces.
+This is the core idea of [offline-first](/offline-first/) and local-first apps: the UI never waits for the network.
 
+## Optimistic UI with SignalDB
 
+[SignalDB](/getting-started/) is a reactive local database that implements this pattern. Queries run inside your framework's effects are reactive, so a local write updates the UI immediately:
 
+```js
+import { Collection } from '@signaldb/core'
+import { SyncManager } from '@signaldb/sync'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+import solidReactivityAdapter from '@signaldb/solid'
 
+const todos = new Collection({
+  reactivity: solidReactivityAdapter,
+  persistence: createIndexedDBAdapter('todos'),
+})
+
+const syncManager = new SyncManager({
+  persistenceAdapter: name => createIndexedDBAdapter(name),
+  pull: async ({ apiPath }) => ({ items: await fetch(apiPath).then(res => res.json()) }),
+  push: async ({ apiPath }, { changes }) => {
+    const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(changes) })
+    if (response.status >= 400 && response.status < 500) {
+      // validation error: don't retry; the next pull restores the server state
+      showError(await response.text())
+      return
+    }
+    if (!response.ok) throw new Error('Push failed') // network/server error: retried on next sync
+  },
+})
+syncManager.addCollection(todos, { name: 'todos', apiPath: '/api/todos' })
+
+// In your UI: the new todo appears instantly, before the server has answered
+todos.insert({ title: 'Write docs', completed: false })
+```
+
+- **Instant updates everywhere**: every reactive query that matches the new todo re-runs, in every component.
+- **Retries and offline**: if the push fails because of a network or server error, the change stays queued and is pushed again on the next sync, also after a reload.
+- **Rollback for rejected changes**: validation errors are handled in `push`; the following pull replaces the local data with the server's version.
+- **Conflicts**: local changes are replayed on top of the latest server data, and the most recent change wins (see [Sync Flow & Conflict Resolution](/sync/#sync-flow-conflict-resolution)).
+
+SignalDB works with the signals of your framework. See the guides for [React](/guides/react/), [Vue](/guides/vue/), [Angular](/guides/angular/), [Svelte](/guides/svelte/) and [Solid](/guides/solid-js/), or the examples for [Supabase](/supabase/) and [Firebase](/firebase/).
 
 ## Improving User Experience with Optimistic UI
 
-In the realm of web and app development, the primary goal of **Optimistic UI** is to enhance the overall user experience (UX). By instantly reflecting user actions in the interface, these UI eliminate the traditional wait times associated with server responses, thereby streamlining user interactions and reducing frustration.
+A few UX details make optimistic interfaces trustworthy:
 
-The implementation of an optimistic UI plays a pivotal role in how users perceive and interact with applications. This user-centered approach not only offers speed but also builds trust and confidence. When users witness immediate responses to their actions, they perceive the application as more reliable and efficient. This enhanced perception significantly contributes to user satisfaction and continued engagement with the platform.
-
-This section delves deeper into the practical benefits of optimistic UI in improving UX. We'll explore how this approach can be strategically implemented to create more interactive, engaging, and user-friendly digital environments. By focusing on real-world applications and user feedback, we'll illustrate the tangible impact of optimistic UI on everyday digital experiences.
-
-
-
-
+- **Mark pending items subtly**, for example with reduced opacity or a small sync icon, so users know a change has not reached the server yet.
+- **Explain rollbacks**: when a change is reverted, say why ("Couldn't save: title is required") and, if possible, keep the user's input so it can be fixed.
+- **Show global sync state**: a small "Saving…/All changes saved" indicator is enough. With SignalDB, `syncManager.isSyncing()` can drive it directly. It is reactive when you pass a reactivity adapter to the `SyncManager`.
+- **Don't fake irreversible actions**: for payments or sends, show a real pending state instead.
 
 ## Real-time UI Updates with Local Databases
 
-Imagine a world where your application responds instantaneously to every user action. That's the power of _real-time UI updates_ enabled by local databases. In this landscape, the term "waiting" becomes obsolete. Every click, swipe, or typed character is immediately reflected, creating an interactive, dynamic user experience.
+Optimistic UI covers *your own* changes. Changes from other users or devices arrive through sync: with live updates (WebSockets or server-sent events), the server notifies the client, the client pulls the new data into the local database, and every reactive query updates. Local writes and remote changes go through the same path, so the UI code doesn't care where a change came from. See [Real-Time Web Apps](/real-time/) and [Live Updates](/live-updates/) for the underlying techniques.
 
-Local databases, like SQLite or IndexedDB, are the unsung heroes here. They store data locally on the user's device, allowing apps to function smoothly even with poor or no internet connectivity. When a user performs an action, the change is first made in the local database, giving the illusion of instant responsiveness. This technique, a cornerstone of the "optimistic UI" concept, is not just about speed but also about user perception.
+## Frequently Asked Questions
 
-Consider an e-commerce app. When a user adds an item to their cart, they don't have to wait for the server to confirm. The item appears in their cart immediately, thanks to the local database. This seamless experience, often backed by sophisticated background processes for synchronizing with the server, is the essence of **"real-time UI updates with local databases"**.
+### What is optimistic UI?
 
-However, integrating real-time updates is not without its challenges. Developers must carefully manage data synchronization to ensure consistency between the local and server databases. Nevertheless, the payoff in user satisfaction and engagement is immense, solidifying the role of local databases in crafting future-ready, responsive UI.
+A UI pattern that shows the result of an action immediately, assuming it will succeed, and rolls it back if the server reports an error.
 
+### What is the difference between optimistic and pessimistic UI?
 
+A pessimistic UI waits for the server's confirmation before showing the result, usually with a spinner. An optimistic UI shows the result first and confirms or corrects it afterwards.
 
+### How do you roll back an optimistic update?
 
+Keep the previous state (or the list of pending changes) until the server confirms the change. If the request fails, restore that state. With a local database and sync, the next pull from the server restores the authoritative state automatically.
 
-## Challenges and Considerations
+### Is optimistic UI the same as offline-first?
 
-Implementing optimistic UI with local databases, while transformative, is not without its challenges. One of the primary complexities lies in the _replication of external data_. Synchronizing data between local and external databases requires meticulous planning to ensure data consistency and reliability.
-
-Furthermore, the implementation of _real-time updates_ presents another significant hurdle. Real-time responsiveness is crucial in optimistic UI, but achieving this involves complex backend logic and efficient data handling. Developers must carefully design systems that can handle concurrent data updates without conflicts or loss of information.
-
-Despite these challenges, the benefits of a well-implemented optimistic UI are undeniable. It requires a strategic approach, focusing on robust error handling, fallback mechanisms, and a deep understanding of user interactions. Developers and designers should prioritize user experience, ensuring that the UI remains responsive and intuitive, even when data synchronization issues arise.
-
-To navigate these challenges effectively, embracing best practices in software development, such as modular design, thorough testing, and user-centered design principles, is essential. By doing so, the potential hurdles in creating an optimistic UI can be transformed into opportunities for creating more engaging and dynamic user experiences.
-
-
-
-
-
-## Future Trends and Developments
-
-In the ever-evolving world of user interface design, the marriage between **optimistic UI** and **local databases** is set to redefine our digital experiences. As we look to the future, several trends and developments promise to further enhance this dynamic duo's impact.
-
-One significant trend is the _increasing sophistication of local databases_. With advancements in technology, these databases are becoming more capable of handling complex queries and larger datasets, enabling even more responsive and intuitive UI. This progression will not only streamline user experiences but also open doors to new functionalities that were previously challenging to implement.
-
-Another key development is the integration of _machine learning and artificial intelligence_ with optimistic UI. AI algorithms can predict user actions and pre-load data, making interactions with applications virtually seamless. This predictive approach could dramatically reduce load times and enhance user satisfaction.
-
-Moreover, the rise of _edge computing_ is poised to take optimistic UI to new heights. By processing data closer to the user, edge computing ensures even faster data retrieval and update times, further enhancing the user experience.
-
-In conclusion, as these technologies continue to advance, they will undoubtedly bring about more intuitive, efficient, and user-centric designs, making optimistic UI an even more integral part of our digital lives.
-
-
-
-
+No, but they are closely related. Optimistic UI is about not waiting for the server for a single action. [Offline-first](/offline-first/) applies the same idea to the whole app: all reads and writes are local, and sync runs in the background.
 
 ## Conclusion
 
-Our journey through the intricacies of **Optimistic UI** and **local databases** reveals a significant trend in web and app development. These technologies are not just advancements in the digital realm; they represent a fundamental shift towards more intuitive and seamless user experiences. By anticipating user actions and utilizing local databases for instant updates, optimistic UI significantly enhance efficiency and user satisfaction.
-
-This exploration has highlighted the crucial balance between technological innovation and user-centric design. While optimistic UI offer numerous benefits, their implementation comes with challenges like data synchronization and real-time updates. These complexities require a thoughtful approach, blending technical skills with an understanding of user needs.
-
-Looking ahead, the evolution of these technologies promises even more sophisticated and user-friendly digital interactions. As developers and designers, our goal should be to stay abreast of these changes, continually adapting our methods to prioritize user experience. In this dynamic landscape, the role of optimistic UI is more critical than ever, embodying the perfect synergy between advanced technology and human-centered design.
+Optimistic UI makes apps feel instant by showing the result of an action before the server confirms it. For single actions, React's `useOptimistic` or React Query's mutation callbacks are enough. When many views share the same data, or the app should keep working offline, a reactive local database such as [SignalDB](/getting-started/) makes every write optimistic by default and handles retries, persistence and reconciliation for you.

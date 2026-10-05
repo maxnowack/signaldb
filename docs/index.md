@@ -78,3 +78,34 @@ features:
 ---
 
 <SyncExample />
+
+## What is SignalDB?
+
+SignalDB is an open-source, **reactive local JavaScript database**. Your app keeps its data in collections on the client, queries them with a MongoDB-like API, and gets results that update automatically through the signals of the framework you already use. Data is persisted locally ([IndexedDB, OPFS, localStorage](/data-persistence/)) and synchronized with [any backend](/sync/) in the background.
+
+```js
+import { Collection } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const posts = new Collection({
+  persistence: createIndexedDBAdapter('posts'),
+})
+
+posts.insert({ title: 'Hello SignalDB', published: true })
+posts.find({ published: true }).fetch() // reactive inside your framework's effects
+```
+
+## When to use a local-first JavaScript database
+
+A client-side database like SignalDB is a good fit when:
+
+- the UI should react **instantly** to user actions ([optimistic UI](/optimistic-ui/)) instead of waiting for the server;
+- the app should **keep working offline** and sync later ([offline-first](/offline-first/));
+- several views show **the same data** and must stay consistent without manual cache updates;
+- you want **real-time updates** from your existing REST, GraphQL or WebSocket API without changing the backend.
+
+## How SignalDB compares
+
+SignalDB focuses on signal-based reactivity, a familiar MongoDB-style query API and backend-agnostic sync. See the [comparison of offline-first JavaScript databases](/offline-first/#javascript-databases-for-offline-applications) for how it relates to RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB, or read [JavaScript Signals Explained](/signals/) for the reactivity model behind it.
+
+[Get started →](/getting-started/)

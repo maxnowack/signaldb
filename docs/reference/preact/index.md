@@ -1,4 +1,5 @@
 ---
+title: '@preact/signals-core: Reactivity Adapter for Preact Signals'
 head:
 - - link
   - rel: canonical
@@ -11,18 +12,22 @@ head:
     content: https://signaldb.js.org/reference/preact/
 - - meta
   - name: og:title
-    content: '@signaldb/preact - SignalDB Reactivity Adapter for @preact/signals'
+    content: '@preact/signals-core: SignalDB Reactivity Adapter for Preact Signals'
 - - meta
   - name: og:description
-    content: Discover how to integrate Preact Signals with SignalDB using the reactivity adapter for seamless reactive database integration.
+    content: What @preact/signals-core is and how @signaldb/preact connects Preact Signals to SignalDB for reactive database queries in effect() and computed().
 - - meta
   - name: description
-    content: Discover how to integrate Preact Signals with SignalDB using the reactivity adapter for seamless reactive database integration.
+    content: What @preact/signals-core is and how @signaldb/preact connects Preact Signals to SignalDB for reactive database queries in effect() and computed().
 - - meta
   - name: keywords
     content: SignalDB, Preact, @preact/signals, reactivity adapter, real-time updates, JavaScript, state management, Preact integration, SignalDB plugin, data synchronization
 ---
 # @signaldb/preact
+
+**What is `@preact/signals-core`?** It is the framework-independent core of [Preact Signals](https://preactjs.com/guide/v10/signals/): a small library that provides `signal()`, `computed()`, `effect()` and `batch()`. It has no dependency on Preact and can be used in any JavaScript project. `@preact/signals` and `@preact/signals-react` build on it to integrate signals into Preact and React components. For a general introduction, see [JavaScript Signals Explained](/signals/).
+
+`@signaldb/preact` connects `@preact/signals-core` to SignalDB: queries on a SignalDB collection that run inside an `effect()` or `computed()` become reactive and re-run whenever matching documents change, locally or through [sync](/sync/).
 
 ## preactReactivityAdapter (`default`)
 

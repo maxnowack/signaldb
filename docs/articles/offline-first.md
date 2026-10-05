@@ -11,317 +11,228 @@ head:
     content: https://signaldb.js.org/offline-first/
 - - meta
   - name: og:title
-    content: Offline-First Approach with Reactive JavaScript Databases
+    content: 'Offline-First Databases for JavaScript: How They Work and Which to Choose'
 - - meta
   - name: og:description
-    content: Explore the offline-first approach in web development and learn how reactive JavaScript databases like SignalDB are revolutionizing modern applications.
+    content: What an offline-first database is, how sync and conflict resolution work, and how SignalDB, RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB compare.
 - - meta
   - name: description
-    content: Explore the offline-first approach in web development and learn how reactive JavaScript databases like SignalDB are revolutionizing modern applications.
+    content: What an offline-first database is, how sync and conflict resolution work, and how SignalDB, RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB compare.
 - - meta
   - name: keywords
-    content: offline-first, offline-first development, reactive JavaScript databases, SignalDB, web development, offline functionality, data synchronization, JavaScript, seamless UX, resilient apps
+    content: offline-first database, offline first database, offline database javascript, offline-first web app, local-first, IndexedDB, sync, conflict resolution, RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase, TanStack DB, SignalDB, Angular offline database
 ---
-# Offline-First Approach with Reactive JavaScript Databases
+# Offline-First Databases for JavaScript
 
 ## Understanding the Offline-First Approach
 
-In today’s digital landscape, connectivity is no longer guaranteed, making the **offline-first approach** an essential design philosophy for modern web development. But what exactly does "offline-first" mean? It is the practice of designing applications to function seamlessly without an active internet connection, prioritizing offline functionality as a core feature rather than an afterthought.
+**An offline-first app reads and writes data locally first and synchronizes with the server in the background.** The network becomes an optimization instead of a requirement: the app starts, shows data and accepts changes even without a connection, and reconciles with the backend once it is back online.
 
-Imagine a user on a subway, in a remote area, or experiencing spotty internet. An **offline-first application** ensures their experience remains uninterrupted, offering inclusivity and accessibility regardless of network status. This approach not only enhances usability but also fosters engagement and reliability, providing users with a consistent and dependable application experience.
+The core building block is an **offline-first database**: a database that runs inside the app (in the browser, in Electron or on a mobile device), persists data locally, and keeps a queue of local changes that it syncs with the server.
 
-The benefits of **offline-first design** extend beyond user convenience—it builds resilient applications that stand out in an increasingly mobile-first world. Implementing this approach, however, requires a shift in mindset. Developers must anticipate offline scenarios and prioritize technologies that enable seamless data synchronization and user interaction.
+Offline-first matters well beyond "no internet". The same architecture makes apps feel instant on slow or flaky connections, because every interaction is answered from local data, and it makes [optimistic UI](/optimistic-ui/) the default rather than an extra feature.
 
-At the heart of the offline-first philosophy are **reactive JavaScript databases**, which are designed to maintain functionality both offline and online. These databases ensure data integrity, syncing seamlessly when connectivity is restored, and empowering developers to create robust, resilient applications.
-
-In this article, we’ll explore the challenges, tools, and best practices of building offline-first applications, and why embracing this paradigm is vital for future-proofing modern applications. Whether you're new to the concept or seeking ways to refine your strategy, this guide provides a comprehensive dive into **offline-first development** and the transformative role of reactive databases.
+This guide covers the challenges of offline-first development, how offline-first JavaScript databases work, how the popular options compare, and how to build an offline-first app step by step.
 
 ## Challenges in Implementing Offline-First Applications
 
-Building **offline-first applications** requires a paradigm shift—treating offline functionality as a priority, not an afterthought. This approach introduces unique challenges that demand creative solutions and robust technology. Let’s explore the key hurdles and how **JavaScript** plays a central role in overcoming them.
+Offline-first moves work from the server to the client. These are the problems you need to solve:
 
-### Key Challenges
-1. **Data Availability and Synchronization**:
-   - Offline-first apps must ensure user actions are recorded accurately even without connectivity.
-   - Seamless synchronization of data when transitioning back online is crucial, avoiding visible delays or disruptions for the user.
+1. **Local persistence**: data has to survive reloads and app restarts. In the browser this means IndexedDB, OPFS or localStorage, each with different limits (see [data persistence](/data-persistence/)).
+2. **Change tracking and sync**: every local insert, update and removal must be recorded and replayed against the server when the connection is back, in the right order.
+3. **Conflict resolution**: if the same record was changed locally and on the server, the app needs a deterministic rule for which change wins.
+4. **Reactivity**: when synced data arrives, every part of the UI that shows it must update without a reload.
+5. **Asset caching**: the app shell (HTML, JavaScript, CSS) must be available offline too, which is the job of a Service Worker, not the database.
 
-2. **Conflict Resolution**:
-   - When users make changes offline, conflicts can arise if the same data is modified online.
-   - Effective conflict resolution mechanisms are necessary to maintain data integrity without confusing the user.
-
-3. **Performance Optimization**:
-   - Ensuring quick data access and UI responsiveness, even with large datasets stored locally, is critical for a positive user experience.
-
-### Role of JavaScript
-JavaScript, as the backbone of modern web development, offers powerful tools to address these challenges:
-- **Service Workers**: Enable offline caching of assets and background data synchronization, ensuring smooth functionality even without a connection.
-- **Asynchronous Operations**: JavaScript’s non-blocking nature keeps the UI responsive, allowing background processes like data synchronization to run seamlessly.
-- **Reactive Libraries and Databases**: Tools like SignalDB or PouchDB integrate natively with JavaScript, providing real-time data updates and robust syncing capabilities.
-
-By leveraging these technologies, developers can craft **offline-first applications** that deliver a seamless, intuitive experience across all connectivity states. With thoughtful design and the right tools, the challenges of offline-first development transform into opportunities to innovate and elevate user experiences.
+A good offline-first database handles points 1–4 for you; the Service Worker handles point 5.
 
 ## Overview of Reactive JavaScript Databases
 
-In the world of **offline-first applications**, one technology stands out for its transformative capabilities: **reactive JavaScript databases**. These databases redefine how data is managed and synchronized, providing the backbone for seamless, user-friendly applications.
+Most modern offline-first databases for JavaScript are **reactive**: instead of running a query once, you subscribe to it, and the result updates automatically whenever the underlying data changes, whether through a local write or a sync from the server.
 
-### What Are Reactive JavaScript Databases?
-Reactive databases automatically update the user interface in real-time as data changes occur, removing the need for manual intervention. Unlike traditional databases, which are static repositories, reactive databases actively sync data across devices and states, even in offline scenarios.
-
-- **Real-Time Updates**: The UI instantly reflects changes, creating a dynamic and engaging experience.
-- **Offline Synchronization**: Data modified offline is stored locally and synced automatically when connectivity is restored.
-- **Continuous Data Flow**: Rather than relying on explicit requests, reactive databases ensure a smooth, uninterrupted data exchange.
-
-### Why Are They Essential for Offline-First?
-The **offline-first approach** demands robust data management systems capable of handling disconnections gracefully. Reactive JavaScript databases excel in this domain by:
-- Maintaining **data integrity** during offline interactions.
-- Automating conflict resolution when syncing data after reconnecting.
-- Offering seamless integration with **JavaScript frameworks** like React, Vue, or Angular.
-
-### SignalDB as an Example
-SignalDB is a leading example of a reactive database designed specifically for offline-first applications. With features like real-time reactivity and automatic synchronization, it enables developers to create applications that are not only robust but also highly responsive to user interactions.
-
-By incorporating **reactive JavaScript databases**, developers can unlock new possibilities in web development, transforming offline-first challenges into innovative solutions. These databases are the key to building applications that are reliable, resilient, and delightful to use.
-
-## SignalDB: A Case Study in Offline-First Applications
-
-Among the many tools available for offline-first development, **SignalDB** stands out as a prime example of a **reactive JavaScript database** built to meet the unique challenges of modern web applications. Let’s explore how SignalDB empowers developers and enhances user experiences.
-
-### What Makes SignalDB Unique?
-1. **Inherent Reactivity**:
-   - Any data changes in SignalDB are instantly reflected in the application’s user interface, ensuring a smooth and responsive experience.
-2. **Offline Data Management**:
-   - SignalDB gracefully handles offline modifications, storing changes locally and syncing them seamlessly once the connection is restored.
-3. **Conflict Resolution**:
-   - Built-in mechanisms automatically resolve conflicts during synchronization, preserving data integrity without requiring manual intervention.
-
-### Benefits of SignalDB for Offline-First Applications
-- **Simplified Development**: Developers don’t need to write extensive code for tasks like data syncing or conflict management, as SignalDB automates these processes.
-- **Enhanced User Experience**: Real-time updates and seamless transitions between online and offline states foster trust and engagement among users.
-- **Reliability**: SignalDB ensures that no data is lost during offline interactions, making applications more robust and dependable.
-
-### Real-World Applications
-SignalDB has been successfully integrated into applications across industries:
-- **Retail**: Offline-first shopping carts that sync automatically when connectivity is restored.
-- **Education**: Platforms that allow students to access and modify their content offline, syncing seamlessly when back online.
-- **IoT**: Managing device data in environments with intermittent connectivity.
-
-By addressing the core challenges of **offline-first design**, SignalDB proves that reactive databases are not just theoretical solutions—they are practical tools that drive innovation and elevate the quality of web applications. Whether you’re building a small app or a complex system, SignalDB provides the reliability and performance needed to succeed in an **offline-first** world.
-
-## Building Offline-First JavaScript Apps
-
-Developing **offline-first JavaScript applications** is a rewarding yet complex process that requires a strategic approach. By following proven steps and leveraging the right tools, you can create applications that remain functional, engaging, and responsive—even without an internet connection.
-
-### Step 1: Understand Offline-First Needs
-- Identify the data and features users will need offline.
-- Plan for scenarios where users may transition between online and offline states frequently.
-- Consider edge cases like prolonged offline periods or network interruptions during synchronization.
-
-### Step 2: Choose the Right Tools
-- Use **JavaScript frameworks** like React, Vue, or Angular for building dynamic user interfaces.
-- Integrate **reactive JavaScript databases** like SignalDB for real-time updates and offline data management.
-- Employ **Service Workers** to cache assets and handle background syncing.
-
-### Step 3: Implement Effective Caching
-- Use Service Workers to cache key resources like HTML, CSS, and JavaScript files, ensuring the app loads offline.
-- Adopt appropriate caching strategies:
-  - **Cache-first**: Prioritize cached content, ideal for static resources.
-  - **Network-first**: Fetch the latest data online but fall back to cache if offline.
-  - **Hybrid approaches** for scenarios with mixed needs.
-
-### Step 4: Handle Data Synchronization
-- Queue user actions performed offline and synchronize them automatically when the app reconnects.
-- Use reactive databases like SignalDB, which automate syncing and resolve conflicts transparently.
-
-### Step 5: Test Rigorously
-- Simulate various offline scenarios, such as:
-  - Initial load without an internet connection.
-  - Sudden disconnection during critical operations.
-  - Conflicting data changes in offline and online modes.
-- Validate performance, responsiveness, and user experience under all conditions.
-
-### Step 6: Optimize User Experience
-- Provide visual feedback for offline status and syncing progress.
-- Ensure the user interface remains responsive, even during background operations.
-- Avoid overwhelming users with technical details; keep interactions intuitive and smooth.
-
-By following these steps, you can create **offline-first JavaScript applications** that are resilient, user-friendly, and built for real-world use cases. Leveraging tools like SignalDB and modern JavaScript frameworks ensures a streamlined development process and delivers exceptional user experiences.
-
-## Enhanced User Experience (UX) with Reactive Databases
-
-The **user experience (UX)** is at the heart of any successful application, and in the realm of **offline-first development**, delivering a seamless UX is paramount. Reactive JavaScript databases play a transformative role in ensuring that applications are intuitive and responsive, regardless of network conditions.
-
-### Real-Time Data Updates
-Reactive databases like SignalDB ensure that:
-- **Data changes are instantly reflected** in the user interface.
-- Users enjoy a smooth, dynamic experience without needing manual refreshes.
-- Changes made offline are automatically synchronized once the app reconnects, ensuring consistency.
-
-### Seamless Offline and Online Transitions
-- Reactive databases handle the switch between offline and online states gracefully, allowing users to interact with the app without disruptions.
-- Synchronization processes are invisible to the user, maintaining focus on their tasks rather than technical details.
-
-### Practical Examples
-1. **Retail Applications**:
-   - Users can browse products and add items to their cart offline.
-   - The cart syncs seamlessly when the user reconnects, providing a frustration-free shopping experience.
-2. **Educational Platforms**:
-   - Students can access and modify course content offline.
-   - Updates sync in real-time upon reconnection, ensuring no loss of progress.
-3. **Collaboration Tools**:
-   - Teams working offline can make edits, which are merged and synced automatically when online, resolving conflicts effectively.
-
-### User-Centric Design
-To maximize the benefits of reactive databases, developers should:
-- **Provide offline status indicators**: Clearly show when the app is in offline mode.
-- **Use progress indicators**: Display syncing activity to reassure users that their data is safe.
-- **Ensure responsive UIs**: Minimize latency during operations, even with large datasets.
-
-By integrating **reactive databases** into offline-first applications, developers can deliver a superior **UX** that enhances engagement and builds trust. These databases make it possible to create apps that not only function offline but also provide a seamless, modern user experience that exceeds expectations.
+This is what makes offline-first practical. Without reactivity, every sync would require you to find and refresh every affected view by hand. With a reactive database, the UI is simply a function of the local data, and sync only needs to update that data.
 
 ## JavaScript Databases for Offline Applications
 
-The success of **offline-first applications** hinges on selecting the right **JavaScript database**. With numerous options available, it’s essential to evaluate each database’s performance, features, and suitability for your specific needs. This section explores some of the most popular JavaScript databases for offline applications and highlights their strengths.
+The table compares popular open-source databases you can use for offline-first JavaScript apps. It focuses on how each one stores data, how you get reactive query results, and how sync works.
 
-### Popular JavaScript Databases for Offline Applications
-1. **PouchDB**:
-   - Known for its simplicity and ease of use.
-   - Features built-in synchronization with CouchDB, making it ideal for apps requiring frequent cloud sync.
-   - Offers offline capabilities with robust conflict resolution.
+| Database | Storage | Reactive queries | Sync | License | Good fit for |
+|---|---|---|---|---|---|
+| **[SignalDB](/getting-started/)** | In-memory collections, persisted via adapters (IndexedDB, OPFS, localStorage, file system) | MongoDB-like queries, reactive through the signal library you use (Solid, Angular, Vue, Preact, Svelte, MobX, …) | Built-in sync layer: you implement `pull`/`push` for any backend (REST, GraphQL, WebSockets) | MIT | Reactive web apps that need optimistic UI and sync with an existing backend |
+| **[RxDB](https://rxdb.info/)** | Pluggable storages (IndexedDB, OPFS, SQLite and more; some are paid premium plugins) | Mango (MongoDB-style) queries as RxJS observables | Replication plugins for many backends (HTTP, GraphQL, CouchDB, Firestore, Supabase, …) | Apache 2.0 core, paid premium plugins | Feature-rich offline-first apps across browser, Electron and React Native |
+| **[Dexie.js](https://dexie.org/)** | IndexedDB wrapper | `liveQuery()` | Via the Dexie Cloud service or your own code | Apache 2.0 | Web apps that want a convenient API directly on top of IndexedDB |
+| **[PouchDB](https://pouchdb.com/)** | IndexedDB (browser), LevelDB (Node.js) | Changes feed | Built-in two-way sync with CouchDB-compatible servers | Apache 2.0 | Apps with a CouchDB-compatible backend |
+| **[WatermelonDB](https://watermelondb.dev/)** | SQLite on React Native, LokiJS adapter on the web | Observable queries | Sync protocol you implement on your backend | MIT | React Native apps with large datasets |
+| **[TinyBase](https://tinybase.org/)** | In-memory store of tables and values, persisted via persisters (IndexedDB, localStorage, SQLite, …) | Listeners and React hooks | Synchronizers based on CRDTs | MIT | Small to medium reactive app state with peer or server sync |
+| **[TanStack DB](https://tanstack.com/db)** | In-memory collections | Live queries with optimistic mutations | Via collection types (TanStack Query, ElectricSQL and others) | MIT | Apps already using TanStack Query |
 
-2. **Dexie.js**:
-   - Provides a developer-friendly API for IndexedDB with advanced querying capabilities.
-   - Great for apps that require fine-grained control over local data storage.
-   - Features a promise-based API for clean and intuitive code.
-
-3. **SignalDB**:
-   - Specifically designed for **reactive offline-first applications**.
-   - Automatically handles real-time data updates and synchronization across online and offline states.
-   - Simplifies development with built-in conflict resolution and seamless integration with JavaScript frameworks.
-
-4. **LokiJS**:
-   - A lightweight and in-memory database.
-   - Best suited for performance-critical applications with smaller datasets.
-   - Offers optional persistence for offline use.
+*Last reviewed: October 2026. Features change quickly. Check each project's documentation before you decide.*
 
 ### Factors to Consider When Choosing a Database
-- **Data Synchronization**:
-   - Does the database support syncing data between offline and online states?
-   - How robust is the conflict resolution mechanism?
-- **Performance**:
-   - Can the database handle large datasets efficiently?
-   - Is the local data access fast and reliable?
-- **Ease of Integration**:
-   - How well does the database work with your existing frameworks or libraries (e.g., React, Angular, Vue)?
-   - Is the learning curve manageable for your development team?
-- **Features and Scalability**:
-   - Does the database support complex queries or indexing?
-   - Can it scale with your application’s growing data needs?
 
-### Summary
-Each **JavaScript database** has its strengths and is tailored for different offline application scenarios. For example:
-- Choose **PouchDB** for applications needing robust cloud synchronization.
-- Use **Dexie.js** for enhanced querying capabilities and intuitive APIs.
-- Opt for **SignalDB** when building reactive, offline-first apps with seamless synchronization.
+- **Backend**: do you already have a REST or GraphQL API? Then you need a database whose sync can talk to *your* API (SignalDB, RxDB). If you can choose the backend, a database with a matching server (PouchDB with CouchDB, a hosted sync service) can save work.
+- **Framework**: check how query results reach your components. SignalDB plugs into the framework's own signals; RxDB uses RxJS observables; Dexie and TinyBase ship React hooks.
+- **Platform**: browser only, or also React Native and Electron? Storage options differ per platform.
+- **Data size**: in-memory databases (SignalDB, TinyBase, TanStack DB) are extremely fast for typical app data, but every record lives in memory. For hundreds of thousands of records, a database that queries storage directly (Dexie, WatermelonDB, RxDB with an indexed storage) is a better fit.
+- **License and cost**: all options above are open source, but some features (RxDB premium plugins, Dexie Cloud) are commercial.
 
-By carefully evaluating your application’s needs and matching them with the right database, you can ensure a smooth development process and a superior user experience for offline-first functionality.
+## SignalDB: A Case Study in Offline-First Applications
+
+SignalDB is a reactive, local-first JavaScript database. Here is how it handles the challenges listed above.
+
+**1. Local persistence.** Every collection can be persisted with a [persistence adapter](/data-persistence/). Data is loaded into memory on start and written back on every change:
+
+```js
+import { Collection } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const todos = new Collection({
+  persistence: createIndexedDBAdapter('todos'),
+})
+
+todos.insert({ title: 'Buy milk', completed: false }) // works offline
+```
+
+**2. Change tracking and sync.** The [`SyncManager`](/reference/sync/) records every local change, persists the change queue (so it survives reloads while offline), and calls your `pull` and `push` functions when it syncs:
+
+```js
+import { SyncManager } from '@signaldb/sync'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const syncManager = new SyncManager({
+  persistenceAdapter: name => createIndexedDBAdapter(name),
+  pull: async ({ apiPath }) => {
+    const items = await fetch(apiPath).then(res => res.json())
+    return { items }
+  },
+  push: async ({ apiPath }, { changes }) => {
+    await fetch(apiPath, { method: 'POST', body: JSON.stringify(changes) })
+  },
+})
+
+syncManager.addCollection(todos, { name: 'todos', apiPath: '/api/todos' })
+syncManager.syncAll()
+```
+
+**3. Conflict resolution.** During sync, SignalDB pulls the latest server data and *replays* the local changes on top of it. Only the resulting differences are pushed, and the most recent change operation wins. See [Sync Flow & Conflict Resolution](/sync/#sync-flow-conflict-resolution) for details.
+
+**4. Reactivity.** Queries run inside an effect of your signal library are reactive, so data from a sync shows up in the UI immediately (see the framework examples below).
+
+Because it is backend-agnostic, SignalDB fits apps that already have an API. There are examples for a [plain HTTP API](https://signaldb.js.org/examples/replication-http/), [Firebase](https://signaldb.js.org/examples/firebase/), [Supabase](https://signaldb.js.org/examples/supabase/) and [Appwrite](https://signaldb.js.org/examples/appwrite/).
+
+## Offline-First in Angular, React and Vue
+
+The database layer is the same in every framework. Only the way query results reach your components differs.
+
+**Angular** uses Angular Signals through [`@signaldb/angular`](/reference/angular/):
+
+```ts
+import { effect } from '@angular/core'
+import { Collection } from '@signaldb/core'
+import angularReactivityAdapter from '@signaldb/angular'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const todos = new Collection({
+  reactivity: angularReactivityAdapter,
+  persistence: createIndexedDBAdapter('todos'),
+})
+
+effect((onCleanup) => {
+  const cursor = todos.find({ completed: false })
+  console.log(cursor.fetch()) // re-runs on local writes and synced changes
+  onCleanup(() => cursor.cleanup())
+})
+```
+
+**React** uses the `useReactivity` hook from [`@signaldb/react`](/guides/react/):
+
+```jsx
+const openTodos = useReactivity(() => todos.find({ completed: false }).fetch())
+```
+
+**Vue** uses Vue's refs through [`@signaldb/vue`](/reference/vue/):
+
+```js
+watchEffect((onCleanup) => {
+  const cursor = todos.find({ completed: false })
+  openTodos.value = cursor.fetch()
+  onCleanup(() => cursor.cleanup())
+})
+```
+
+Full setup instructions are in the guides for [Angular](/guides/angular/), [React](/guides/react/), [Vue](/guides/vue/), [Svelte](/guides/svelte/) and [Solid](/guides/solid-js/).
+
+## Building Offline-First JavaScript Apps
+
+### Step 1: Understand Offline-First Needs
+- Identify the data and features users need offline. Not everything has to be available offline.
+- Plan for users switching between online and offline often, and for long offline periods.
+
+### Step 2: Choose the Right Tools
+- Pick an offline-first database that matches your backend and framework (see the [comparison](#javascript-databases-for-offline-applications)).
+- Add a **Service Worker** (for example with Workbox) so the app shell loads offline.
+
+### Step 3: Implement Effective Caching
+- Cache static assets (HTML, CSS, JavaScript) with a **cache-first** strategy.
+- Keep *data* in the database, not in the HTTP cache. That way it stays queryable and writable offline.
+
+### Step 4: Handle Data Synchronization
+- Queue local changes and push them when the app reconnects. A sync layer such as SignalDB's [`SyncManager`](/sync/) does this for you.
+- Use live updates (WebSockets or server-sent events) to pull remote changes as soon as they happen.
+
+### Step 5: Test Rigorously
+- Test the first load without a connection, a disconnect in the middle of a write, and conflicting edits on two devices.
+- Use the browser devtools' offline mode and network throttling.
+
+### Step 6: Optimize User Experience
+- Show offline status and pending sync state. SignalDB exposes a reactive `isSyncing()` for this.
+- Never block the UI on the network: write locally, sync in the background.
+
+## Enhanced User Experience (UX) with Reactive Databases
+
+Reactive offline-first databases improve UX in three ways:
+
+- **Instant feedback**: every action is applied locally first, so there are no loading spinners for writes ([optimistic UI](/optimistic-ui/)).
+- **Seamless transitions**: going offline or coming back online does not interrupt the user. Sync happens in the background.
+- **Always up to date**: when synced data arrives, reactive queries update the affected views automatically.
+
+To get the most out of this, show a clear offline indicator, communicate pending changes ("3 changes waiting to sync"), and explain conflicts in plain language when they need the user's attention.
 
 ## Best Practices and Tips for Offline-First Development
 
-Building **offline-first applications** requires more than just technical expertise—it demands a strategic approach to design, implementation, and testing. By following these best practices, developers can create robust, user-friendly applications that shine in any connectivity scenario.
-
 ### Best Practices for Offline-First Development
 
-#### 1. Prioritize Offline Functionality from the Start
-- Design with offline-first principles in mind from the beginning rather than retrofitting them later.
-- Identify essential features and data that users will need access to while offline.
-
-#### 2. Implement Robust Data Synchronization
-- Queue user actions performed offline and synchronize them seamlessly when connectivity is restored.
-- Use databases like **SignalDB**, which offer built-in conflict resolution and real-time data syncing.
-
-#### 3. Leverage Effective Caching Strategies
-- Use **Service Workers** to cache critical assets and data, ensuring the app is usable offline.
-- Choose the right caching strategy:
-  - **Cache-first**: For frequently accessed static resources.
-  - **Network-first**: For dynamic data requiring the latest updates.
-  - **Stale-while-revalidate**: For balancing performance and freshness.
-
-#### 4. Optimize Data Storage
-- Store only the necessary data offline to avoid bloating storage and slowing performance.
-- Consider data compression techniques to save space and improve retrieval times.
-
-#### 5. Design for a Seamless User Experience
-- Clearly indicate offline status and provide feedback during synchronization (e.g., progress bars).
-- Ensure the user interface remains responsive, even during intensive background processes.
-
-### Tips for Smooth Development
-
-- **Use Reactive Databases**: Integrate tools like **SignalDB** or **PouchDB** to simplify offline functionality and data synchronization.
-- **Test in Real-World Scenarios**:
-  - Simulate prolonged offline periods and sudden reconnections.
-  - Validate synchronization processes and conflict resolution under various conditions.
-- **Monitor Performance**:
-  - Use profiling tools to identify bottlenecks in offline data access or syncing.
-  - Optimize resource usage for better performance on mobile devices.
+1. **Design for offline from the start.** Retrofitting offline support into an app that assumes the server is always reachable is much harder.
+2. **Keep the local dataset focused.** Sync only what the current user needs offline, for example their own projects instead of the whole database.
+3. **Make writes idempotent on the server.** Sync may retry a push; the server should handle the same change twice without side effects.
+4. **Choose a clear conflict strategy.** "Last write wins" is simple and fits most apps. Collaborative editing of the same text needs specialised approaches such as CRDTs.
+5. **Persist the sync queue.** Changes made offline must survive a reload or app restart before they are pushed.
 
 ### Common Pitfalls to Avoid
-- Ignoring potential **data conflicts**: Without a robust resolution mechanism, user data may be overwritten or lost during synchronization.
-- Over-caching: Storing unnecessary resources can lead to bloated storage and poor performance.
-- Poor UX for offline users: Ensure clear communication about offline status and syncing progress to build user trust.
+- Storing data only in memory or in the HTTP cache: it disappears on reload or cannot be queried offline.
+- Ignoring storage limits: browsers can evict data under storage pressure. Request persistent storage (`navigator.storage.persist()`) for important data.
+- Silent conflicts: if your conflict rule can discard user input, make it visible.
 
-### Conclusion
-By adhering to these best practices, developers can overcome the challenges of **offline-first development** and create applications that are not only resilient but also provide a seamless and engaging user experience. Thoughtful design, combined with tools like SignalDB, ensures your application excels in any connectivity scenario.
+## Frequently Asked Questions
 
-## Future Trends and Developments in Offline-First Applications
+### What is an offline-first database?
 
-The future of **offline-first applications** is brimming with innovation, driven by advancements in technology and evolving user needs. This section explores emerging trends and developments that will shape the next generation of offline-first applications and **reactive JavaScript databases**.
+A database that runs inside the client application, stores data locally and synchronizes with a server in the background, so the app keeps working without a network connection.
 
-### 1. AI and Machine Learning Integration
-- **Smarter Offline Experiences**: AI and ML will enable predictive caching, allowing apps to pre-load data based on user behavior.
-- **Enhanced Data Syncing**: Intelligent algorithms will optimize synchronization processes, reducing conflicts and improving efficiency.
+### What is the difference between offline-first and local-first?
 
-### 2. Edge Computing Advancements
-- **Faster Processing**: By processing data closer to the user, edge computing reduces latency and ensures quicker responses, even in offline scenarios.
-- **Better Offline-First Performance**: Applications leveraging edge computing can handle more complex tasks locally, enhancing functionality during disconnections.
+Offline-first means the app keeps working without a network. Local-first goes further: the local copy is the primary copy of the data, and the server is mainly used for sync, backup and collaboration. An offline-first database is the technical foundation for both.
 
-### 3. Internet of Things (IoT) Expansion
-- IoT devices often operate in areas with intermittent connectivity, making offline-first principles crucial.
-- Future **reactive JavaScript databases** will be optimized for IoT applications, providing better data management and syncing capabilities in constrained environments.
+### Which JavaScript database works offline?
 
-### 4. Enhanced Security for Local Data
-- As offline-first applications store sensitive data locally, robust encryption techniques and security protocols will become standard.
-- Future databases will likely include built-in tools for secure data handling, even in offline states.
+All databases in the [comparison above](#javascript-databases-for-offline-applications) work offline. They differ in storage, reactivity and how they sync with your backend.
 
-### 5. Progressive Web App (PWA) Evolution
-- PWAs are already a natural fit for offline-first design, but future updates to Service Workers and browser APIs will further enhance their capabilities.
-- Offline-first PWAs will increasingly blur the line between native apps and web apps, offering richer features and better offline performance.
+### Do I need a Service Worker for an offline-first app?
 
-### 6. Real-Time Collaboration in Offline-First Apps
-- Advances in conflict resolution algorithms will enable real-time collaborative features, even in offline modes.
-- Users will be able to work together seamlessly, with changes synced intelligently when connectivity is restored.
-
-### 7. Customization and Flexibility in Databases
-- Future **JavaScript databases** like SignalDB will provide developers with more tools to tailor their offline-first solutions, including:
-  - Advanced syncing rules.
-  - Fine-grained control over conflict resolution.
-  - Enhanced support for hybrid online/offline states.
-
-### Conclusion
-The next wave of **offline-first development** will be marked by smarter, faster, and more secure applications that push the boundaries of what’s possible. With technologies like AI, edge computing, and IoT driving innovation, the role of **reactive JavaScript databases** will continue to grow. Staying ahead of these trends will empower developers to craft future-proof applications that deliver exceptional user experiences, regardless of connectivity.
+For a web app, yes, if it should *load* without a connection: the Service Worker caches the app's files. The offline-first database handles the *data*.
 
 ## Conclusion
 
-The **offline-first approach** is more than just a trend—it’s a fundamental shift in how we design and develop modern web applications. By prioritizing offline functionality and leveraging the power of **reactive JavaScript databases**, developers can create robust, user-centric applications that excel in today’s unpredictable connectivity landscape.
+Offline-first apps answer every interaction from local data and sync in the background, which makes them faster and more resilient than apps that depend on the network. The key decision is the database: it has to persist data locally, track and sync changes, resolve conflicts and keep the UI reactive.
 
-### Key Takeaways:
-- **Seamless Offline Functionality**: Offline-first design ensures applications remain usable and responsive, regardless of internet availability.
-- **Reactive JavaScript Databases**: Tools like **SignalDB** automate data synchronization, conflict resolution, and real-time updates, significantly simplifying the development process.
-- **User Experience Excellence**: By integrating offline-first principles, applications deliver consistent, intuitive, and reliable experiences that users trust.
-
-### Future-Proofing Applications
-The future of **offline-first applications** is bright, with emerging technologies like AI, edge computing, and IoT opening new possibilities. Staying ahead of these advancements will be crucial for developers looking to build scalable, secure, and innovative solutions.
-
-
-If you’re ready to embrace the **offline-first approach**, explore how **SignalDB** can revolutionize your development process. With its real-time reactivity and seamless offline capabilities, SignalDB is the perfect companion for creating applications that thrive in any connectivity scenario.
-
-Take a look at the [Getting Started](/getting-started/) page to learn more and start building your offline-first application today!
+If you are building a reactive web app with an existing backend, [get started with SignalDB](/getting-started/). It persists data locally, syncs with any API and plugs into the signals of your framework.
