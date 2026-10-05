@@ -231,7 +231,6 @@ export default withMermaid({
     ['link', { rel: 'mask-icon', href: '/safari-pinned-tab.svg', color: '#0367e9' }],
     ['meta', { name: 'msapplication-TileColor', content: '#0367e9' }],
     ['meta', { name: 'theme-color', content: '#ffffff' }],
-    ['script', { 'defer': '', 'data-domain': 'signaldb.js.org', 'src': 'https://plausible.unsou.de/js/script.js' }],
   ],
 
   sitemap: {
