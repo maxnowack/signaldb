@@ -25,7 +25,7 @@ head:
 ---
 # JavaScript Database Comparison
 
-There are several good databases for building local-first and offline-first JavaScript apps. They differ in how they store data, how query results reach your UI, how they sync with a server and what they cost. This page compares **SignalDB, RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB** and helps you pick the right one for your project.
+There are several good databases for building [local-first](/local-first/) and [offline-first](/offline-first/) JavaScript apps. They differ in how they store data, how query results reach your UI, how they sync with a server and what they cost. This page compares **SignalDB, RxDB, Dexie.js, PouchDB, WatermelonDB, TinyBase and TanStack DB** and helps you pick the right one for your project.
 
 ::: info About this comparison
 This page is written by the SignalDB maintainers. We try to be fair and point out where other projects are the better choice. Information was checked against each project's official documentation and repository. **Last reviewed: October 2026.** If something is outdated, please [open an issue](https://github.com/maxnowack/signaldb/issues/new) or [edit this page](https://github.com/maxnowack/signaldb/edit/main/docs/articles/comparison.md).

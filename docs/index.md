@@ -100,7 +100,7 @@ posts.find({ published: true }).fetch() // reactive inside your framework's effe
 A client-side database like SignalDB is a good fit when:
 
 - the UI should react **instantly** to user actions ([optimistic UI](/optimistic-ui/)) instead of waiting for the server;
-- the app should **keep working offline** and sync later ([offline-first](/offline-first/));
+- the app should **keep working offline** and sync later ([offline-first](/offline-first/), [local-first](/local-first/));
 - several views show **the same data** and must stay consistent without manual cache updates;
 - you want **real-time updates** from your existing REST, GraphQL or WebSocket API without changing the backend.
 

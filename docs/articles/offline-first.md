@@ -221,7 +221,7 @@ A database that runs inside the client application, stores data locally and sync
 
 ### What is the difference between offline-first and local-first?
 
-Offline-first means the app keeps working without a network. Local-first goes further: the local copy is the primary copy of the data, and the server is mainly used for sync, backup and collaboration. An offline-first database is the technical foundation for both.
+Offline-first means the app keeps working without a network. [Local-first](/local-first/) goes further: the local copy is the primary copy of the data, and the server is mainly used for sync, backup and collaboration. An offline-first database is the technical foundation for both.
 
 ### Which JavaScript database works offline?
 

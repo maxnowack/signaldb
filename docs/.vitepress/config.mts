@@ -130,6 +130,7 @@ export default withMermaid({
           text: 'Articles',
           collapsed: true,
           items: [
+            { text: 'Local-First Software', link: '/local-first/' },
             { text: 'Database Comparison', link: '/comparison/' },
             { text: 'Signals', link: '/signals/' },
             { text: 'Live Updates', link: '/live-updates/' },

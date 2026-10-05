@@ -322,7 +322,7 @@ To handle remote changes for a specific collection, you have to get the event ha
 ```ts
 const syncManager = new SyncManager({
   // …
-  registerRemoteChanges: (collectionOptions, onChange) => {
+  registerRemoteChange: (collectionOptions, onChange) => {
     someRemoteEventSource.addEventListener('change', (collection) => {
       if (collectionOptions.name === collection) onChange()
     })
