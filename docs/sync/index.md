@@ -1,4 +1,5 @@
 ---
+title: 'Sync Engine: Sync SignalDB with Any Backend'
 head:
 - - link
   - rel: canonical
@@ -11,20 +12,22 @@ head:
     content: https://signaldb.js.org/sync/
 - - meta
   - name: og:title
-    content: Overview of Synchronization in SignalDB
+    content: 'Sync Engine: Sync SignalDB with Any Backend'
 - - meta
   - name: og:description
-    content: Discover how SignalDB handles synchronization. Learn about the local-first approach, backend compatibility and conflict resolution to keep your data consistent.
+    content: 'SignalDB includes a sync engine for local-first apps: push and pull changes with any backend (REST, GraphQL, WebSockets), with offline queueing and conflict resolution.'
 - - meta
   - name: description
-    content: Discover how SignalDB handles synchronization. Learn about the local-first approach, backend compatibility and conflict resolution to keep your data consistent.
+    content: 'SignalDB includes a sync engine for local-first apps: push and pull changes with any backend (REST, GraphQL, WebSockets), with offline queueing and conflict resolution.'
 - - meta
   - name: keywords
     content: SignalDB, synchronization, SyncManager, local-first synchronization, on-demand fetching, data consistency, backend integration, conflict resolution, real-time updates, REST API, GraphQL, data sync
 ---
-# Overview of Synchronization in SignalDB
+# Sync Engine: Synchronization in SignalDB
 
 ## Introduction to Sync in SignalDB
+
+SignalDB ships with a **sync engine** for [local-first](/local-first/) and [offline-first](/offline-first/) apps. It records every local change, persists the queue of pending changes, pushes them to your backend, pulls remote changes, and resolves conflicts, while your app keeps reading and writing local data. Unlike sync engines that require a specific server or database, SignalDB's sync engine works with any backend: you provide a `pull` and a `push` function.
 
 SignalDB is designed to handle synchronization efficiently and flexibly, making it adaptable to various backend systems. At its core, synchronization in SignalDB revolves around ensuring that data across multiple collections remains consistent and up-to-date, whether you are working with a local-first approach or integrating with remote servers.
 

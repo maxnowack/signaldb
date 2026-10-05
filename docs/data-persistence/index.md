@@ -32,7 +32,9 @@ Persistence adapters are responsible for transforming the high-level operations 
 
 The main benefit of using persistence adapters is the abstraction they provide. They allow SignalDB to remain agnostic to the underlying storage system. This means that you can switch between different systems without changing the rest of your code.
 
-The follwing persistence adapters are currently available:
+Not sure which browser storage to use? See [localStorage vs IndexedDB vs OPFS](/browser-storage/) for a comparison.
+
+The following persistence adapters are currently available:
 
 - [IndexedDB](/reference/indexeddb/)
 - [localStorage](/reference/localstorage/)

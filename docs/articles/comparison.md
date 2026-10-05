@@ -66,6 +66,8 @@ This page is written by the SignalDB maintainers. We try to be fair and point ou
 - **Scope and size**: SignalDB is deliberately smaller. It focuses on collections, queries, reactivity, persistence and sync, and leaves validation, schemas and storage details to adapters and your own code.
 - **Cost**: all SignalDB packages, including the OPFS adapter, are MIT-licensed.
 
+For a detailed one-to-one comparison with code examples, see [SignalDB vs RxDB](/signaldb-vs-rxdb/).
+
 **Choose RxDB if** you need its breadth: many storages, ready-made replication plugins, encryption, React Native/Capacitor support today, or professional support. **Choose SignalDB if** you want a lightweight, signal-native data layer for a web app and sync with your own API.
 
 ## SignalDB vs. Dexie.js

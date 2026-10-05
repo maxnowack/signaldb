@@ -1,4 +1,5 @@
 ---
+title: 'Real-Time Web Apps: How They Work and How to Build Them'
 head:
 - - link
   - rel: canonical
@@ -11,13 +12,13 @@ head:
     content: https://signaldb.js.org/real-time/
 - - meta
   - name: og:title
-    content: Real-Time Web Apps
+    content: 'Real-Time Web Apps: How They Work and How to Build Them'
 - - meta
   - name: og:description
-    content: Learn about essentials of real-time web applications and the evolution of real-time technologies, their technical aspects.
+    content: 'How real-time web apps work (WebSockets, server-sent events, polling) and how a reactive local database like SignalDB keeps the UI in sync with real-time data.'
 - - meta
   - name: description
-    content: Learn about essentials of real-time web applications and the evolution of real-time technologies, their technical aspects.
+    content: 'How real-time web apps work (WebSockets, server-sent events, polling) and how a reactive local database like SignalDB keeps the UI in sync with real-time data.'
 - - meta
   - name: keywords
     content: real-time web apps, SignalDB, real-time data, WebSockets, Server-Sent Events, AJAX, Comet, reactive programming, data synchronization, live updates, JavaScript frameworks, in-memory database, reactive data flows

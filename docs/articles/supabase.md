@@ -1,4 +1,5 @@
 ---
+title: 'Offline-First Supabase: Optimistic UI with a Local Database'
 head:
 - - link
   - rel: canonical
@@ -11,18 +12,22 @@ head:
     content: https://signaldb.js.org/supabase/
 - - meta
   - name: og:title
-    content: Optimistic UI with Client-side Databases and Supabase
+    content: 'Offline-First Supabase: Optimistic UI with a Local Database'
 - - meta
   - name: og:description
-    content: Explore how Supabase integrates with client-side databases to enhance real-time data synchronization and create a powerful optimistic UI.
+    content: 'Supabase has no built-in offline support. Learn how to add offline-first sync and optimistic UI to a Supabase app with a reactive local database like SignalDB.'
 - - meta
   - name: description
-    content: Explore how Supabase integrates with client-side databases to enhance real-time data synchronization and create a powerful optimistic UI.
+    content: 'Supabase has no built-in offline support. Learn how to add offline-first sync and optimistic UI to a Supabase app with a reactive local database like SignalDB.'
 - - meta
   - name: keywords
     content: Supabase, SignalDB, optimistic UI, real-time data synchronization, client-side databases, Backend-as-a-Service, BaaS, JavaScript databases, web development, real-time updates, integration, data synchronization, user experience, reactive UI, local-first databases
 ---
-# Optimistic UI with Client-side Databases and Supabase
+# Offline-First Supabase: Optimistic UI with a Local Database
+
+::: info Short answer
+The Supabase JavaScript client talks to the server directly and has no built-in offline storage or sync queue. To make a Supabase app work offline and update the UI optimistically, put a local database between your UI and Supabase: the app reads and writes locally, and a sync layer pushes changes to Supabase and pulls updates (for example triggered by Supabase Realtime). This article shows how this works with SignalDB. A runnable example is available in the [Supabase example](https://signaldb.js.org/examples/supabase/).
+:::
 
 ## Introduction to Supabase
 

@@ -30,6 +30,10 @@ When you run a query with `.find()`, the query doesn’t execute right away. Ins
 
 A unique feature of SignalDB is that all queries are reactive by default. This means if you run a query and use a function on the returned cursor within the `effect` or `autorun` function of your reactivity library, the query will automatically rerun whenever the data changes.
 
+## MongoDB-Style Queries in the Browser
+
+SignalDB brings a MongoDB-like query API to the client. Selectors such as `{ age: { $gte: 18 }, tags: { $in: ['admin'] } }`, sort and projection options and cursors work the way MongoDB developers expect, but run against local data in the browser or in Node.js. If you know Meteor's Minimongo, SignalDB will feel familiar: it offers a similar API outside of Meteor, works with any framework through [reactivity adapters](/reactivity/), and adds [persistence](/data-persistence/) and [sync with any backend](/sync/).
+
 ## Queries
 
 You can query you data by calling the [`.find()`](/reference/core/collection/#find-selector-selector-t-options-options) or [`.findOne()`](/reference/core/collection/#findone-selector-selector-t-options-options) method of your collection.

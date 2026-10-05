@@ -1,4 +1,5 @@
 ---
+title: 'Firebase Offline Persistence with a Reactive Local Database'
 head:
 - - link
   - rel: canonical
@@ -11,18 +12,22 @@ head:
     content: https://signaldb.js.org/firebase/
 - - meta
   - name: og:title
-    content: Combining Firebase with Reactive Local Databases
+    content: 'Firebase Offline Persistence with a Reactive Local Database'
 - - meta
   - name: og:description
-    content: Integrate Firebase with SignalDB for modern app development. Enhance performance, user experience, and real-time sync with this powerful combination.
+    content: 'Firestore''s offline persistence vs. a reactive local database: how to combine Firebase with SignalDB for offline-first data, optimistic UI and reactive queries in your framework.'
 - - meta
   - name: description
-    content: Integrate Firebase with SignalDB for modern app development. Enhance performance, user experience, and real-time sync with this powerful combination.
+    content: 'Firestore''s offline persistence vs. a reactive local database: how to combine Firebase with SignalDB for offline-first data, optimistic UI and reactive queries in your framework.'
 - - meta
   - name: keywords
     content: Firebase, SignalDB, reactive local databases, real-time sync, app development, JavaScript, cloud database, local-first, performance optimization, user experience, data synchronization, mobile apps, development trends, data security
 ---
-# Combining Firebase with Reactive Local Databases
+# Firebase Offline Persistence with a Reactive Local Database
+
+::: info Short answer
+Cloud Firestore's web SDK has built-in offline persistence: enable it with `initializeFirestore(app, { localCache: persistentLocalCache() })` and Firestore caches documents in IndexedDB and queues writes while offline. The Realtime Database's web SDK keeps its cache in memory only; disk persistence is available in the Apple and Android SDKs. A reactive local database such as SignalDB is useful on top of that when you want to query local data with your framework's signals, combine Firebase with other data sources, or keep your data layer independent of Firebase. See the runnable [Firebase example](https://signaldb.js.org/examples/firebase/).
+:::
 
 ## Introduction to Firebase and Reactive Local Databases
 
@@ -96,17 +101,15 @@ Another critical aspect is data privacy. With regulations like GDPR and CCPA, it
 
 In summary, security in the context of Firebase and reactive local databases is a dynamic challenge. It requires a proactive approach, where developers not only utilize the inherent security features of these platforms but also continuously adapt to emerging threats and regulations. By prioritizing security in every aspect of app development, developers can build trust with their users, ensuring the longevity and success of their applications.
 
-## Case Studies and Real-World Applications
+## Example Use Cases
 
-The true value of combining Firebase with reactive local databases like SignalDB is best illustrated through real-world applications and case studies. These examples provide a window into how this technology fusion can revolutionize app development, offering insights and lessons learned from actual implementations.
+Typical scenarios where combining Firebase with a reactive local database pays off:
 
-Consider the case of a popular mobile gaming app. By integrating Firebase, the app is able to store user profiles, game progress, and leaderboards in the cloud. Meanwhile, SignalDB manages the game state locally, ensuring fast load times and immediate responsiveness. The result is a gaming experience that is both dynamic and seamless, keeping players engaged and connected, no matter their internet connectivity.
+- **Apps with intermittent connectivity**, such as field-service or note-taking apps: users keep reading and editing local data, and changes are synced to Firestore once a connection is available.
+- **Dashboards and lists with complex filters**: data is queried locally with MongoDB-like selectors instead of building a Firestore query and index for every view.
+- **Apps that combine several data sources**: Firebase data and data from other APIs live in the same local collections and are queried the same way.
 
-Another compelling example is a health and fitness app. This app utilizes Firebase to store user health data securely in the cloud, while SignalDB tracks and updates user activity and progress in real-time on the device. This combination ensures that users have immediate access to their daily activity logs and health insights, enhancing the user experience and encouraging consistent app usage.
-
-These case studies highlight the advantages of using Firebase with SignalDB: improved app performance, enhanced user experience, and the ability to handle complex data management tasks efficiently. They also shed light on the challenges, such as synchronizing data between the cloud and local storage and ensuring consistent app performance across various devices and network conditions.
-
-Lessons learned from these real-world applications emphasize the importance of strategic planning in data management, the need for robust testing to ensure seamless synchronization, and the value of a user-centric approach in app development. These insights can guide developers in harnessing the full potential of Firebase and SignalDB in their own projects, enabling them to create apps that are not only functional but also engaging and reliable.
+The main challenges are the same in every scenario: decide which data to sync to each client, handle conflicts consistently, and keep Firestore security rules as the final authority for every write.
 
 ## Future Trends and Developments
 

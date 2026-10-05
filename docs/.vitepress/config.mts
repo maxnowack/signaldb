@@ -132,6 +132,8 @@ export default withMermaid({
           items: [
             { text: 'Local-First Software', link: '/local-first/' },
             { text: 'Database Comparison', link: '/comparison/' },
+            { text: 'SignalDB vs RxDB', link: '/signaldb-vs-rxdb/' },
+            { text: 'Browser Storage', link: '/browser-storage/' },
             { text: 'Signals', link: '/signals/' },
             { text: 'Live Updates', link: '/live-updates/' },
             { text: 'Optimistic UI', link: '/optimistic-ui/' },

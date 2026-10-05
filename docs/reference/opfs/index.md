@@ -27,7 +27,7 @@ head:
 
 **What is OPFS?** The [Origin Private File System](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system) (OPFS) is a private file system that browsers provide to each website (origin). Pages can create, read and write files in it without any permission prompt, and the files are invisible to the user and to other sites. OPFS is part of the File System API and is supported in all current major browsers (Chrome, Edge, Firefox and Safari).
 
-Compared to other browser storage:
+Compared to other browser storage (see [localStorage vs IndexedDB vs OPFS](/browser-storage/) for details):
 
 | | localStorage | IndexedDB | OPFS |
 |---|---|---|---|

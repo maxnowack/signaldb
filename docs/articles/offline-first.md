@@ -38,7 +38,7 @@ This guide covers the challenges of offline-first development, how offline-first
 
 Offline-first moves work from the server to the client. These are the problems you need to solve:
 
-1. **Local persistence**: data has to survive reloads and app restarts. In the browser this means IndexedDB, OPFS or localStorage, each with different limits (see [data persistence](/data-persistence/)).
+1. **Local persistence**: data has to survive reloads and app restarts. In the browser this means IndexedDB, OPFS or localStorage, each with different limits (see [localStorage vs IndexedDB vs OPFS](/browser-storage/)).
 2. **Change tracking and sync**: every local insert, update and removal must be recorded and replayed against the server when the connection is back, in the right order.
 3. **Conflict resolution**: if the same record was changed locally and on the server, the app needs a deterministic rule for which change wins.
 4. **Reactivity**: when synced data arrives, every part of the UI that shows it must update without a reload.
