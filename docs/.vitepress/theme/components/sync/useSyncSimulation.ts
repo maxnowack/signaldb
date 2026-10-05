@@ -1,4 +1,4 @@
-import { reactive, watch, watchEffect } from 'vue'
+import { effectScope, onBeforeUnmount, onMounted, reactive, watch, watchEffect } from 'vue'
 import { Collection } from '@signaldb/core'
 import type { BaseItem } from '@signaldb/core'
 import { SyncManager } from '@signaldb/sync'
@@ -44,8 +44,9 @@ type ServerState = {
 
 type ClientRuntime = {
   state: ClientState,
-  collection: Collection<Todo, string>,
-  syncManager: SyncManager<{ clientId: ClientId }, Todo, string>,
+  // Only set in the browser after mount; undefined during SSR.
+  collection?: Collection<Todo, string>,
+  syncManager?: SyncManager<{ clientId: ClientId }, Todo, string>,
 }
 
 type ServerRuntime = {
@@ -93,8 +94,24 @@ const collectionName = (clientId: ClientId) => `todos_${clientId}`
  */
 export function useSyncSimulation() {
   const server = createServer()
-  const clientA = createClient('A', server)
-  const clientB = createClient('B', server)
+  const clientA = createClient('A')
+  const clientB = createClient('B')
+
+  // Collections and sync managers are browser-only: setup() also runs during
+  // SSR, where starting sync would leave async work and listeners behind.
+  // Both SSR and hydration render the same initial (unsynced) state.
+  const scope = effectScope()
+  onMounted(() => {
+    scope.run(() => {
+      startClient(clientA, server)
+      startClient(clientB, server)
+    })
+  })
+  onBeforeUnmount(() => {
+    scope.stop()
+    void stopClient(clientA)
+    void stopClient(clientB)
+  })
 
   const actions = {
     addTodo: (clientId: ClientId) => addTodo(clientId, clientA, clientB),
@@ -154,12 +171,11 @@ function createServer(): ServerRuntime {
 }
 
 /**
- * Create a client runtime bound to the server.
+ * Create the reactive client state without starting any sync work.
  * @param id Client identifier.
- * @param server Server runtime.
- * @returns Client runtime.
+ * @returns Client runtime without collection and sync manager.
  */
-function createClient(id: ClientId, server: ServerRuntime): ClientRuntime {
+function createClient(id: ClientId): ClientRuntime {
   const state = reactive<ClientState>({
     id,
     offline: false,
@@ -172,7 +188,18 @@ function createClient(id: ClientId, server: ServerRuntime): ClientRuntime {
     editDraft: '',
   })
 
-  const name = collectionName(id)
+  return { state }
+}
+
+/**
+ * Create the collection and sync manager for a client and start syncing.
+ * Must be called in the browser inside an effect scope.
+ * @param client Client runtime.
+ * @param server Server runtime.
+ */
+function startClient(client: ClientRuntime, server: ServerRuntime) {
+  const { state } = client
+  const name = collectionName(state.id)
   const collection = new Collection<Todo, string>({
     reactivity: vueReactivityAdapter,
   })
@@ -211,7 +238,9 @@ function createClient(id: ClientId, server: ServerRuntime): ClientRuntime {
     },
   })
 
-  syncManager.addCollection(collection, { name, clientId: id })
+  syncManager.addCollection(collection, { name, clientId: state.id })
+  client.collection = collection
+  client.syncManager = syncManager
 
   void syncManager.startSync(name)
 
@@ -245,8 +274,21 @@ function createClient(id: ClientId, server: ServerRuntime): ClientRuntime {
     },
     { immediate: true },
   )
+}
 
-  return { state, collection, syncManager }
+/**
+ * Stop syncing and dispose the collection and sync manager of a client.
+ * @param client Client runtime.
+ */
+async function stopClient(client: ClientRuntime) {
+  const { collection, syncManager } = client
+  client.collection = undefined
+  client.syncManager = undefined
+  if (!collection || !syncManager) return
+  // pauseSync unregisters the remote change listener, dispose does not.
+  await syncManager.pauseSync(collectionName(client.state.id))
+  await syncManager.dispose()
+  await collection.dispose()
 }
 
 /**
@@ -512,7 +554,7 @@ function addTodo(clientId: ClientId, clientA: ClientRuntime, clientB: ClientRunt
   const order = nextOrder(client.state.items)
   const id = `${clientId}-${Math.random().toString(36).slice(2, 8)}`
 
-  client.collection.insert({ id, title, completed: false, order })
+  client.collection?.insert({ id, title, completed: false, order })
   client.state.newTitle = ''
 }
 
@@ -543,7 +585,7 @@ function toggleComplete(
   const client = getClient(clientId, clientA, clientB)
   const item = client.state.items.find(todo => todo.id === id)
   if (!item) return
-  client.collection.updateOne({ id }, { $set: { completed: !item.completed } })
+  client.collection?.updateOne({ id }, { $set: { completed: !item.completed } })
 }
 
 /**
@@ -586,7 +628,7 @@ function finishEdit(
     client.state.editingId = null
     return
   }
-  client.collection.updateOne({ id }, { $set: { title } })
+  client.collection?.updateOne({ id }, { $set: { title } })
   client.state.editingId = null
 }
 
@@ -629,7 +671,7 @@ function onDrop(
   else if (before && !after) order = before.order + 1
   else if (before && after) order = (before.order + after.order) / 2
 
-  client.collection.updateOne({ id: dragging.id }, { $set: { order } })
+  client.collection?.updateOne({ id: dragging.id }, { $set: { order } })
   dragging.clientId = null
   dragging.id = null
 }
@@ -652,7 +694,7 @@ function onDropEnd(
     .findLast(item => item.id !== dragging.id)
   const order = last ? last.order + 1 : 1
 
-  client.collection.updateOne({ id: dragging.id }, { $set: { order } })
+  client.collection?.updateOne({ id: dragging.id }, { $set: { order } })
   dragging.clientId = null
   dragging.id = null
 }
