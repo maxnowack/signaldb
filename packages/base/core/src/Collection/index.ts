@@ -428,30 +428,30 @@ export default class Collection<
   }
 
   /**
-   * Checks whether the collection is currently performing a pull operation
+   * Checks whether a `find(…, { async: true })` query is currently running on the collection.
+   * It does not describe the initial load from storage; use `ready()` or `isReady()` for that.
    * ⚡️ this function is reactive!
-   * (loading data from storage).
-   * @returns A boolean indicating if the collection is in the process of pulling data.
+   * @returns A boolean indicating if an async query is running.
    */
   public isPulling() {
     return this.isPullingSignal.get() ?? false
   }
 
   /**
-   * Checks whether the collection is currently performing a push operation
+   * Checks whether a write is currently running on the collection.
    * ⚡️ this function is reactive!
-   * (saving data to storage).
-   * @returns A boolean indicating if the collection is in the process of pushing data.
+   * @returns A boolean indicating if a write is running.
    */
   public isPushing() {
     return this.isPushingSignal.get() ?? false
   }
 
   /**
-   * Checks whether the collection is currently performing either a pull or push operation,
+   * Checks whether `isPulling()` or `isPushing()` is `true`, i.e. whether an async query
+   * or a write is currently running. It does not describe the initial load from storage;
+   * use `ready()` or `isReady()` for that, and `Cursor#isLoading()` for a single query.
    * ⚡️ this function is reactive!
-   * indicating that it is loading or saving data.
-   * @returns A boolean indicating if the collection is in the process of loading or saving data.
+   * @returns A boolean indicating if an async query or a write is running.
    */
   public isLoading() {
     const isPulling = this.isPulling()

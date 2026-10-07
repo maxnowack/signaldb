@@ -128,21 +128,6 @@ effect(() => {
 })
 ```
 
-### `resetData()`
-
-Clears the current in-memory data and reloads items from the configured storage adapter.
-If there are pending local updates queued during initialization, `resetData()` waits until they are transmitted before reloading.
-
-Example:
-```ts
-const collection = new Collection('items', dataAdapter)
-await collection.ready()
-
-await collection.resetData()
-```
-
-This method requires a data adapter with a configured storage adapter.
-
 ### `find(selector?: Selector<T>, options?: Options)`
 
 Returns a new [cursor object](/reference/core/cursor/) for the items in the collection that match a given selector and options.
@@ -169,9 +154,13 @@ Behaves the same like [`.find()`](#find-selector-selector-t-options-options) but
 Three reactive methods report what the collection is currently doing. All of
 them register a dependency in a reactive scope.
 
-* `isLoading()`: ⚡️ reactive — whether the collection is currently pulling or pushing data. Initially `false`; it turns `true` once a pull actually starts.
-* `isPulling()`: ⚡️ reactive — whether data is currently being loaded.
-* `isPushing()`: ⚡️ reactive — whether data is currently being saved.
+* `isLoading()`: ⚡️ reactive — whether `isPulling()` or `isPushing()` is `true`. Initially `false`.
+* `isPulling()`: ⚡️ reactive — whether a `find(…, { async: true })` query is currently running.
+* `isPushing()`: ⚡️ reactive — whether a write is currently running.
+
+None of them describes the initial load from storage: use [`ready()`](#ready)
+or [`isReady()`](#isready) for that. Whether a single query has been answered
+yet is told by [`Cursor#isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive).
 
 ### `insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>)`
 Inserts an item into the collection and returns a promise resolving to the ID of the newly inserted item.
@@ -299,10 +288,11 @@ In addition to these, there are events about the queries a collection is serving
 * `getItems`: Items were read for a selector. The event handler receives the selector.
 
 ::: warning Removed in v2
-The `persistence.init`, `persistence.error`, `persistence.transmitted` and
-`persistence.received` events no longer exist. Use the reactive
-`isLoading()`, `isPulling()` and `isReady()` methods instead, and `query.error`
-for failures. See the [upgrade guide](/upgrade/v2/).
+The `persistence.*` events no longer exist. Use [`ready()`](#ready) /
+[`isReady()`](#isready) for the initial load, `Cursor#isLoading()` for a single
+query, the promise a write returns for its completion or failure, and the data
+adapter's `onError` option and `query.error` for other failures. See the
+[upgrade guide](/upgrade/v2/#event-changes).
 :::
 
 These events empower developers to build dynamic and responsive applications by reacting to changes in the collection and facilitating synchronization with external data sources.

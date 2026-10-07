@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The `createMemoryAdapter` method and `MemoryAdapter` type were removed.
 * The `memory` option for a `Collection` was removed.
 * The `AutoFetchCollection` was removed. Use the `AutoFetchDataAdapter` instead.
-* `isLoading` on the `Collection` now is initially `false` and will be set to `true` when the `persistence.pullStarted` event is emitted.
+* `Collection#resetData()` was removed without replacement. To reload a collection from storage, dispose it and create it again.
+* `isLoading()` on the `Collection` no longer describes the initial load. It is initially `false` and is `true` only while a `find(…, { async: true })` query (`isPulling()`) or a write (`isPushing()`) is running. Code that waited for `isLoading()` to turn `false` before showing data should use `ready()` / `isReady()` for the collection, or `Cursor#isLoading()` for a single query.
 * Indices on a `Collection` are now specified as an array of strings instead of using `IndexProvider` or `LowLevelIndexProvider` instances.
 * `PersistenceAdapter` was renamed to `StorageAdapter` and the signature was changed in a non backward compatible way.
 * The error messages that named the old concept were renamed with it: `No persistence adapter for collection <name>` is now `No storage adapter for collection <name>`, and the `console.error` for a failed background write says `Error during storage operation in collection <name>`. If you match on either string — in a test, a log filter, or an error reporter's grouping rule — update it.
