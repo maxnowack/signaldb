@@ -142,6 +142,7 @@ interface StorageAdapter<T extends { id: I }, I> {
   // reads
   readAll(): Promise<T[]>
   readIds(ids: I[]): Promise<T[]>
+  query?(query: StorageQuery<T>): Promise<StorageQueryAnswer<T>> // optional
 
   // indices
   createIndex(field: string): Promise<void>

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * **One database now holds every collection, and the adapter is configured accordingly.** `createIndexedDBAdapter('posts')` used to open a database of its own per collection (`signaldb-posts`, single store `items`). It now takes a description of one database — `databaseName`, `version` and a `schema` mapping each store name to the fields to index — and returns the `storage` function a data adapter asks for a collection's store. Stores present in the database but absent from `schema` are dropped on upgrade, so the schema is the complete description of what the database holds. The old per-collection databases are untouched and unread: open them yourself once and insert their contents if you need to keep the data.
 * Removed compatibility with `@signaldb/core` versions below `2.0.0`.
 
+### Added
+
+* A query with an equality on the primary key or on an indexed field reads only the matching key range instead of the whole object store, when the collection uses the `AsyncDataAdapter`, the `AutoFetchDataAdapter` or the `WorkerDataAdapter`. Results are unchanged; the remaining selector, sort and window are still applied by SignalDB.
+
 ### Fixed
 
 * Queries on an indexed field that is not a string now return the right documents. The index was keyed by IndexedDB's own keys — the raw values — while SignalDB looks an index up by `serializeValue(value)`, so `{ rank: 3 }` matched nothing and `{ rank: { $ne: 3 } }` matched everything. Only string-valued fields were unaffected, which is why the existing tests did not catch it.

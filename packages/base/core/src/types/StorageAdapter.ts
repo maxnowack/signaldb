@@ -77,10 +77,14 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
    * **Optional, and a pure optimisation.** An adapter that does not implement
    * it is read through `readIds`/`readAll` and filtered, sorted, windowed and
    * projected in JavaScript, which is what every adapter did before this
-   * existed and what several of them can only ever do: a store that holds one
-   * blob — `localstorage`, `fs`, `opfs` — has no way to answer less than all of
-   * it, and implementing this to do the same work behind a new name would buy
-   * nothing.
+   * existed and what several of them can only ever do: a store that can only
+   * read everything or a document by its id — `localstorage`, `fs`, `opfs`,
+   * `generic-fs` — has no way to evaluate a predicate itself, and implementing
+   * this to do the same work behind a new name would buy nothing.
+   *
+   * Consulted by the data adapters that read from storage on every query
+   * (`AsyncDataAdapter`, `AutoFetchDataAdapter`, `WorkerDataAdapterHost`); the
+   * `DefaultDataAdapter` reads a collection once through `readAll`.
    *
    * It exists because without it there is no way to *express* a bounded read.
    * `limit` costs exactly what no limit costs when the store hands over every

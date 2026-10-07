@@ -31,8 +31,9 @@ import { createStorageAdapter } from '@signaldb/core'
 While SignalDB comes with a few built-in storage adapters, there may be
 scenarios where you need to write one for a backend of your own.
 
-A storage adapter persists documents and finds them again. It never sees a
-query — see [why that is](/data-persistence/#why-a-storage-adapter-never-sees-a-selector).
+A storage adapter persists documents and finds them again. Query semantics stay
+in SignalDB — see [why that is](/data-persistence/#why-query-semantics-stay-in-signaldb);
+an adapter may optionally narrow a read with [`query`](#answering-queries-with-query).
 It is reached through a [data adapter](/data-adapters/), which is what decides
 *where* the data operations run.
 
@@ -48,6 +49,7 @@ interface StorageAdapter<T extends { id: I }, I> {
   // reading
   readAll(): Promise<T[]>
   readIds(ids: I[]): Promise<T[]>
+  query?(query: StorageQuery<T>): Promise<StorageQueryAnswer<T>>
 
   // indices
   createIndex(field: string): Promise<void>
@@ -66,6 +68,7 @@ interface StorageAdapter<T extends { id: I }, I> {
 * **teardown** is called when the collection is disposed. Clean up what `setup` acquired.
 * **readAll** returns every document. This is what answers a query no index covers, so it is the cost you pay for an unindexed selector.
 * **readIds** returns the documents for the given ids, in any order, omitting ids that do not exist. Every backend can look something up by its key, which is why this is part of the interface rather than something you declare — `{ id: 'x' }` and `{ id: { $in: [...] } }` are resolved through it.
+* **query** (optional) answers a whole query as far as the backend can — see [below](#answering-queries-with-query).
 * **createIndex** / **dropIndex** are called for the fields a collection declares in `indices`. An adapter that cannot index may implement them as no-ops, as long as `readIndex` then reports what it actually has.
 * **readIndex** returns the index for one field: a map from value to the set of ids carrying it. **The keys are `serializeValue(value)`, not the raw field values** — see below.
 * **insert**, **replace**, **remove** write and delete the given documents; **removeAll** empties the collection.
@@ -88,6 +91,64 @@ const key = serializeValue(item[field])
 ```
 
 `@signaldb/indexeddb` shipped with this bug in v1 for precisely that reason.
+
+## Answering queries with `query`
+
+`query` is optional and a pure optimisation. Without it, a query is answered
+through `readIds`, `readIndex` or `readAll`, and filtered, sorted, windowed and
+projected in JavaScript. Implement it when your backend can read *less than
+everything* for a query — an equality it can turn into a key lookup, an order it
+can return rows in, a limit it can apply — so that a bounded query does not have
+to read the whole collection first.
+
+```ts
+import type { StorageQuery, StorageQueryAnswer } from '@signaldb/core'
+
+interface StorageQuery<T> {
+  selector: Selector<T>
+  sort?: SortSpecifier<T>
+  skip?: number
+  limit?: number
+  fields?: FieldSpecifier<T>
+}
+
+interface StorageQueryAnswer<T> {
+  items: T[]
+  residualSelector?: Selector<T> // the part of the selector you did not apply
+  sorted?: boolean // items are in the requested order
+  windowed?: boolean // skip and limit were applied
+  projected?: boolean // items carry only the requested fields
+}
+```
+
+An adapter answers as much as it can and says what it did. Every flag defaults
+to "no", and SignalDB applies whatever the adapter declined, so partial support
+is the normal case: translate an equality and hand back a `$regex` as
+`residualSelector`, sort but leave the window to SignalDB. Omit
+`residualSelector` (or return `{}`) only if `items` matches the whole selector.
+
+Three answers are contradictions, and SignalDB throws on them instead of
+returning a wrong result:
+
+* `windowed` while a `residualSelector` remains — the window was taken over rows
+  that were going to be filtered out.
+* `windowed` without `sorted` when a sort was requested — a window over an
+  unordered set is an arbitrary subset.
+* `projected` without `sorted` when the sort is on a field the projection
+  dropped — the rows can no longer be sorted.
+
+`readIndex` is not consulted for a query the adapter answered through `query`.
+
+`query` is used by the data adapters that read from storage on every query:
+[`AsyncDataAdapter`](/reference/core/asyncdataadapter/),
+[`AutoFetchDataAdapter`](/reference/core/autofetchdataadapter/) and the
+[`WorkerDataAdapterHost`](/reference/core/workerdataadapter/). The
+`DefaultDataAdapter` keeps a collection in memory and reads it from storage
+once, through `readAll`.
+
+`@signaldb/indexeddb` implements `query` to turn an equality on the primary key
+or an indexed field into a key-range read; it reports nothing as `sorted`,
+`windowed` or `projected`.
 
 ## Example
 

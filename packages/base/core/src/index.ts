@@ -2,6 +2,8 @@ export type { default as ReactivityAdapter } from './types/ReactivityAdapter'
 export type {
   default as StorageAdapter,
   Changeset,
+  StorageQuery,
+  StorageQueryAnswer,
 } from './types/StorageAdapter'
 export type { default as Selector } from './types/Selector'
 export type { default as Modifier } from './types/Modifier'

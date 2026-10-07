@@ -46,11 +46,11 @@ A storage adapter is reached through a [data adapter](/data-adapters/), which is
 Building your own storage adapter for your speicific use case is also possible and pretty straight forward.
 See [`createStorageAdapter`](/reference/core/createstorageadapter/) for more information.
 
-## Why a storage adapter never sees a selector
+## Why query semantics stay in SignalDB
 
-A storage adapter is asked for *all* items, for items *by id*, or for the
-contents of *one index*. It is never handed a query. That is deliberate, and it
-is the reason the interface is as small as it is:
+A storage adapter has to answer three questions: *all* items, items *by id*,
+and the contents of *one index*. That is deliberate, and it is the reason the
+required interface is as small as it is:
 
 ```ts
 readAll(): Promise<T[]>
@@ -74,11 +74,27 @@ a query language, and none of them can quietly disagree with another about what
 a selector means. One implementation of the semantics means one place to fix a
 bug in them and one suite to test them.
 
-The alternative — letting adapters answer queries when they can — sounds
-attractive for backends that *do* have a query language, but it puts the
-selector semantics into every adapter that opts in, makes an adapter's
-capabilities unpredictable from the outside, and turns "which adapter am I
-using" into something that changes results rather than just performance.
+Letting adapters answer whole queries instead would put the selector
+semantics into every adapter that opts in, make an adapter's capabilities
+unpredictable from the outside, and turn "which adapter am I using" into
+something that changes results rather than just performance.
+
+### Narrowing a read with `query`
+
+A backend that *can* read less than everything may implement the optional
+[`query`](/reference/core/createstorageadapter/#answering-queries-with-query)
+method. It receives the whole query — selector, sort, window and projection —
+and answers as much of it as it can, saying what it did and handing back the
+part of the selector it did not apply. SignalDB applies everything the adapter
+declined, so the result is the same with or without `query`; only the cost
+differs. `@signaldb/indexeddb` uses it to turn an equality on the primary key
+or an indexed field into a key-range read instead of reading the whole store.
+
+`query` is consulted by the data adapters that read from storage on every
+query — [`AsyncDataAdapter`](/reference/core/asyncdataadapter/),
+[`AutoFetchDataAdapter`](/reference/core/autofetchdataadapter/) and the
+[`WorkerDataAdapterHost`](/reference/core/workerdataadapter/). The
+`DefaultDataAdapter` loads everything into memory once and does not use it.
 
 ### What this means for your collections
 
