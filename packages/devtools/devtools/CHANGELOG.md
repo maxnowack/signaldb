@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `import '@signaldb/devtools'` is no longer removed by bundlers. The package declared `"sideEffects": false`, although importing it is the only way to use it, so a bundler that honours the flag — esbuild, Rollup, webpack in production mode — dropped the import and the devtools never loaded.
 * The Mutations tab now lists `replaceOne` calls, with the replacement document in the Modifier column. They were not recorded at all before.
 * The Data tab works with `@signaldb/core` v2 again. It read the items from the collection's `memory` option, which v2 removed, and crashed the devtools as soon as a collection was selected. It now shows the collection through a live query, so it works with every data adapter — including the `AsyncDataAdapter` and the `WorkerDataAdapter` — and a write only costs the devtools the size of the change. While the tab shows a collection of more than 500 items, that query is itself reported by `Collection.reportLargeQueries()`.
 

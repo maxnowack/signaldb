@@ -37,7 +37,7 @@
   ],
   "author": "Max Nowack <max.nowack@gmail.com>",
   "license": "MIT",
-  "sideEffects": false,
+  "sideEffects": true,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
