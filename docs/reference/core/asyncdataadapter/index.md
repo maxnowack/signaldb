@@ -64,7 +64,7 @@ new AsyncDataAdapter(options: {
 
 * `storage`: Called once per collection with the collection's name, and returns the storage adapter it reads from. Required — an async adapter with nothing to read from has nothing to do.
 * `id`: A logical name, handy when several adapters run side by side.
-* `onError`: Called when an operation fails outside of a query.
+* `onError`: Called with errors the adapter cannot hand to a caller: a storage adapter that fails to set up, and a live query that still fails after all `retry` attempts (as a `QueryError` naming the collection, selector and attempts; the query is also reported through the collection's `query.error` event). Defaults to `console.error`.
 * `retry.attempts`: Total attempts for a failing query, including the first. Default `3`.
 * `retry.delay`: Delay in milliseconds before attempt N+1. Default `100 * 4 ** (attempt - 1)`.
 
