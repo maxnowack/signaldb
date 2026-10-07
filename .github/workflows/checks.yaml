@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: latest
+          node-version: 26.x
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache/restore@v6
@@ -54,7 +54,7 @@ jobs:
           fail-on-cache-miss: true
           path: |
             **/node_modules
-          key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-26.x-${{ hashFiles('**/package-lock.json') }}
       - name: linting
         run: |
           npm run build
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: latest
+          node-version: 26.x
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache/restore@v6
@@ -77,7 +77,7 @@ jobs:
           fail-on-cache-miss: true
           path: |
             **/node_modules
-          key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-26.x-${{ hashFiles('**/package-lock.json') }}
       - name: typecheck
         run: |
           npm run build
@@ -159,7 +159,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: 24.x
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache/restore@v6
@@ -169,7 +169,7 @@ jobs:
           fail-on-cache-miss: true
           path: |
             **/node_modules
-          key: ${{ runner.OS }}-modules-20.x-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-modules-24.x-${{ hashFiles('**/package-lock.json') }}
       - name: build docs
         run: |
           npm run docs:build
