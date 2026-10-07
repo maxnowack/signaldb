@@ -140,6 +140,81 @@ already waits for the real result, so there is no window to report. The two
 forms are alternatives, not layers.
 :::
 
+## Observing changes
+
+Reactive queries rerun a scope and hand you the whole result again. When you
+need to know *what* changed instead — to drive an animation, keep a third-party
+widget in step, or log activity — observe the cursor:
+
+```js
+const cursor = Posts.find({ status: 'published' }, { sort: { createdAt: -1 } })
+
+const stop = cursor.observeChanges({
+  added: item => {},
+  addedBefore: (item, before) => {},
+  changed: (item, previousItem) => {},
+  changedField: (item, field, oldValue, newValue) => {},
+  movedBefore: (item, before) => {},
+  removed: item => {},
+})
+
+// later
+stop()
+```
+
+* `added(item)` — an item entered the result.
+* `addedBefore(item, before)` — the same, with the item it now sits in front of,
+  or `null` when it was added at the end.
+* `changed(item, previousItem)` — an item in the result changed; you get it as
+  it is now and as it was before.
+* `changedField(item, field, oldValue, newValue)` — called once per top-level field that differs between the
+  two versions.
+* `movedBefore(item, before)` — an item changed its position in a sorted result;
+  `before` is the item it now precedes, or `null` at the end.
+* `removed(item)` — an item left the result, either because it was removed or
+  because it no longer matches.
+
+All callbacks are optional, and the items have the collection's `transform`
+applied. Unless you pass `true` as the second argument (`skipInitial`), the
+items already in the result are reported through `added` and `addedBefore`
+straight away. `observeChanges` returns the function that stops observing; call
+it, or `cursor.cleanup()`, once you are done, otherwise the query stays live.
+See the [`Cursor` reference](/reference/core/cursor/) for details.
+
+### Collection events
+
+A collection is also an event emitter. Its events describe the writes made
+through its own methods, independent of any query, and fire once the data layer
+has confirmed the write:
+
+```js
+const onChanged = (item, modifier, previousItem) => {
+  console.log(`${item.id} changed`, modifier, previousItem)
+}
+
+Posts.on('added', item => {})
+Posts.on('changed', onChanged)
+Posts.on('removed', item => {})
+Posts.once('query.error', (error, selector, options) => {})
+
+// later
+Posts.off('changed', onChanged)
+```
+
+* `added(item)` — an item was inserted.
+* `changed(item, modifier, previousItem)` — an item was updated or replaced:
+  the item as it is now, the modifier (or replacement) that was applied, and
+  the item as it was before. All data adapters shipped with SignalDB report
+  `previousItem`; a custom one may leave it out.
+* `removed(item)` — an item was removed; fired once per item.
+* `query.error(error, selector, options)` — a live query failed and will not
+  deliver a result. Its cursor keeps serving the neutral empty result, so this
+  event is the only way to tell a failed query from one that matched nothing.
+
+`on` subscribes, `once` subscribes for a single call, `off` unsubscribes a
+listener registered with `on`. The full list of events is in the
+[`Collection` reference](/reference/core/collection/#events).
+
 ## Field-Level Reactivity
 
 SignalDB introduces a powerful enhancement to its reactivity system called **Field-Level Reactivity**, which ensures that reactive functions (such as `effect` or `autorun`) only rerun when specific fields accessed in your code are changed. Previously, the reactive system would rerun the query if any field in any item of the result set was modified, regardless of whether those fields were actually used in the code. This led to unnecessary reactivity and potential performance bottlenecks, especially with large datasets.

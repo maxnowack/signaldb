@@ -82,8 +82,36 @@ const dataAdapter = new DefaultDataAdapter({
 
 Answers every query by going to storage, without holding the collection in
 memory. Right when the data does not fit in memory, or when something else can
-change the underlying storage. Queries become asynchronous, which is what
-[`Cursor#isLoading()`](/reference/core/cursor/) is for.
+change the underlying storage.
+
+```js
+import { Collection, AsyncDataAdapter } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const dataAdapter = new AsyncDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { posts: ['authorId'] },
+  }),
+  onError: error => reportToCrashReporter(error),
+  retry: {
+    attempts: 5,
+    delay: attempt => 250 * attempt,
+  },
+})
+
+const Posts = new Collection('posts', dataAdapter, { indices: ['authorId'] })
+```
+
+* `storage` is called once per collection with its name and is required.
+* A query that fails is retried before it is given up: `retry.attempts` counts
+  every attempt including the first (default `3`), `retry.delay` returns the
+  wait in milliseconds before the next one (default `100 * 4 ** (attempt - 1)`).
+  Only once every attempt has failed is the query published as failed — see
+  [below](#queries-on-these-adapters-are-asynchronous).
+* `onError` receives what fails inside the adapter, including a query that has
+  run out of attempts. Without it, the error goes to `console.error`.
 
 [Reference →](/reference/core/asyncdataadapter/)
 
@@ -94,7 +122,48 @@ worker and owns the storage; `WorkerDataAdapter` lives on the main thread and
 talks to it. Right when queries or writes are large enough that doing them on
 the main thread costs you frames.
 
-The two are a pair and are documented together.
+The worker file constructs the host with the worker's global scope and the
+storage:
+
+```js
+// data-worker.js
+import { WorkerDataAdapterHost } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+new WorkerDataAdapterHost(self, {
+  id: 'app-data',
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { posts: ['authorId'] },
+  }),
+  onError: error => console.error('[data worker]', error),
+})
+```
+
+The main thread starts the worker and hands it to the adapter, which your
+collections are then constructed with:
+
+```js
+import { Collection, WorkerDataAdapter } from '@signaldb/core'
+
+const worker = new Worker(new URL('./data-worker.js', import.meta.url), {
+  type: 'module',
+})
+const dataAdapter = new WorkerDataAdapter(worker, { id: 'app-data' })
+
+const Posts = new Collection('posts', dataAdapter, { indices: ['authorId'] })
+```
+
+Both halves must use the **same `id`** — every message carries it, and each side
+ignores messages with a different one. That is what lets several adapters share
+a worker, or several workers share a page. If you omit it on both sides they
+agree on the default, `'default-worker-data-adapter'`.
+
+The host announces itself when it is constructed. If the main thread does not
+hear from it within five seconds — the worker failed to load, or the ids do not
+match — every operation of the adapter fails with
+`WorkerDataAdapter initialization timed out`.
 
 [Reference →](/reference/core/workerdataadapter/)
 
@@ -105,7 +174,77 @@ registered, and drops them again when nothing is watching it any more. Right
 for data you want to pull on demand rather than sync in full — the successor to
 v1's `AutoFetchCollection`.
 
+```js
+import { Collection, AutoFetchDataAdapter } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+
+const dataAdapter = new AutoFetchDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app-cache',
+    version: 1,
+    schema: { posts: [] },
+  }),
+  fetchQueryItems: async (collectionName, selector) => {
+    const query = encodeURIComponent(JSON.stringify(selector))
+    const response = await fetch(`/api/${collectionName}?selector=${query}`)
+    return response.json() // an array of items, each with an `id`
+  },
+  registerRemoteChange: async (onChange) => {
+    const socket = new WebSocket('wss://example.com/changes')
+    socket.addEventListener('message', () => { void onChange() })
+  },
+})
+
+const Posts = new Collection('posts', dataAdapter)
+```
+
+* `storage` is the local cache the fetched items are written to and every query
+  is answered from. The type marks it optional, but every operation needs it —
+  without it they fail with `No storage adapter for collection <name>`.
+* `fetchQueryItems(collectionName, selector)` is called when a selector is
+  registered by its first observer. It must resolve to an array of items; an
+  item that already exists locally is combined with the fetched one through
+  `mergeItems` (default: a shallow spread, the fetched fields win).
+* `registerRemoteChange` is called once, when the adapter is constructed. Call
+  the `onChange` it hands you whenever the remote data changed, and every
+  selector that is currently observed is fetched again.
+* When the last observer of a selector goes away, the adapter waits
+  `purgeDelay` milliseconds (default `10000`, `0` purges at once) and then
+  removes the items that selector fetched, unless another selector that has
+  not been purged yet fetched them as well. Only items a fetch delivered are purged — even if you have
+  written to them since; an item that only ever came from your own writes stays.
+
+A query is answered from the local cache first, and the fetched items arrive
+afterwards as an ordinary update. `isLoading()` and an `{ async: true }` read
+reflect that first, local answer — they do not wait for the fetch.
+
 [Reference →](/reference/core/autofetchdataadapter/)
+
+### Queries on these adapters are asynchronous
+
+The async, worker and auto-fetch adapters cannot answer a query on the spot. A
+reactive cursor serves its neutral result — an empty list, a count of zero —
+until the answer arrives, so either await the result or check
+[`Cursor#isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive) inside the
+reactive scope:
+
+```js
+// outside a reactive scope: wait for the answer
+const posts = await Posts.find({ authorId: 'user1' }, { async: true }).fetch()
+
+// inside one: tell "not answered yet" apart from "nothing matched"
+effect(() => {
+  const cursor = Posts.find({ authorId: 'user1' })
+  if (cursor.isLoading()) return renderSpinner()
+  render(cursor.fetch())
+})
+```
+
+A query that fails for good does not throw anywhere — the cursor keeps its
+neutral result and the collection emits
+[`query.error`](/queries/#collection-events). See
+[Queries that are not answered immediately](/queries/#queries-that-are-not-answered-immediately)
+for the full picture.
 
 ## Writing your own
 

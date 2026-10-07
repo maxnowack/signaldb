@@ -34,12 +34,12 @@ In this section, we've compiled some common issues you might encounter while usi
 ## Errors when creating a new SignalDB instance
 **Problem:** You may get errors when trying to create a new instance of SignalDB.
 
-**Solution:** Check your configuration object passed into the SignalDB constructor. Ensure that all required properties are present and are of the correct type. If you're using a custom Persistence Adapter or Reactivity Adapter, verify that they correctly implement their respective interfaces.
+**Solution:** Check the arguments passed to the `Collection` constructor — `new Collection(name, dataAdapter, options)` — and to the data adapter. Ensure that all required options are present and are of the correct type. If you're using a custom Storage Adapter, Data Adapter or Reactivity Adapter, verify that it correctly implements its interface.
 
 ## Problems with data persistence
 **Problem:** You may notice that your data is not persisting across sessions or application reloads.
 
-**Solution:** Verify that you're using a Persistence Adapter and that it's working correctly. Check your adapter's save, load, and delete methods for any errors or unexpected behavior. If you're using a built-in adapter like the localStorage adapter, check if there are any limitations, like storage quotas, that might be affecting your application.
+**Solution:** Verify that the collection's data adapter has a `storage` option that returns a [Storage Adapter](/data-persistence/) for the collection — a `DefaultDataAdapter` without one keeps the data in memory only. If you wrote your own storage adapter, check its `setup`, `readAll`, `insert`, `replace` and `remove` methods for any errors or unexpected behavior. If you're using a built-in adapter like the localStorage adapter, check if there are any limitations, like storage quotas, that might be affecting your application.
 
 ## Issues with reactivity
 **Problem:** Reactive queries aren't updating when the data changes.
@@ -50,6 +50,56 @@ In this section, we've compiled some common issues you might encounter while usi
 **Problem:** Data isn't being saved to the location specified in your Storage Adapter.
 
 **Solution:** Double-check the implementation of your write methods in your Storage Adapter. Make sure it correctly writes to the intended location.
+
+## Unhandled promise rejection after a write
+**Problem:** A write seems to do nothing, or the console reports an unhandled promise rejection, for example after a [schema validation](/schema-validation/) failed.
+
+**Solution:** Every write — `insert`, `updateOne`, `removeMany` and the rest — is asynchronous and reports failure by rejecting its promise. A validation error thrown from a `validate` listener, a write to a disposed collection, or a storage adapter that failed to persist the change all end up there. Await the write and handle the error where you make it:
+
+```js
+try {
+  await Posts.insert({ title: '' })
+} catch (error) {
+  showValidationMessage(error)
+}
+```
+
+A write you neither await nor give a `.catch()` turns its failure into an unhandled rejection that is easy to miss.
+
+## Error: "No storage adapter for collection &lt;name&gt;"
+**Problem:** Operations on a collection fail with `No storage adapter for collection <name>`.
+
+**Solution:** The `AsyncDataAdapter`, the `AutoFetchDataAdapter` and the `WorkerDataAdapterHost` read and write everything through a storage adapter, and this collection has none. Check that the `storage` option is set and that the function returns a storage adapter for *this* collection's name — a factory that only knows some names returns `undefined` for the others. The `AutoFetchDataAdapter` accepts a missing `storage` option at construction, but cannot do anything without it. The error also appears for operations that were still running when the collection was disposed. (The `DefaultDataAdapter` never throws it: without storage it simply keeps the collection in memory.)
+
+## A list is empty although there is data
+**Problem:** A reactive query renders an empty list or a count of zero, at least for a moment, even though matching items exist.
+
+**Solution:** With the async, worker and auto-fetch [data adapters](/data-adapters/), a query is not answered the moment you ask for it. Until it is, the cursor returns a neutral result — an empty list, a count of zero — that looks exactly like a query that matched nothing. Check [`Cursor#isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive) in the same reactive scope and only render "nothing found" once it is `false`, or use `{ async: true }` and await the result outside a reactive scope. See [Queries that are not answered immediately](/queries/#queries-that-are-not-answered-immediately).
+
+## A query stays empty without throwing
+**Problem:** A query stays empty for good, `isLoading()` has turned `false`, and no error was thrown anywhere.
+
+**Solution:** The query may have failed. A failed query does not throw into your code — there is no call that could receive the error — so its cursor keeps serving the neutral empty result. The collection reports the failure through its `query.error` event:
+
+```js
+Posts.on('query.error', (error, selector, options) => {
+  reportToCrashReporter(error)
+})
+```
+
+The `AsyncDataAdapter` and the `AutoFetchDataAdapter` usually also pass the error to their `onError` option, which logs it to the console by default, but the event is the one place every failed query reaches. See [Collection events](/queries/#collection-events).
+
+## Console: "Error during storage operation in collection &lt;name&gt;"
+**Problem:** The console shows `Error during storage operation in collection <name>`, and data saved in an earlier session is missing.
+
+**Solution:** The `DefaultDataAdapter` logs this when the storage adapter of that collection failed to set up or to load the stored items. The collection carries on in memory without them. The logged error says what went wrong — often a storage quota, a blocked database upgrade or a corrupt record. To handle it yourself instead of logging it, pass `onError` to the adapter; it receives the collection name and the error:
+
+```js
+const dataAdapter = new DefaultDataAdapter({
+  storage: name => createLocalStorageAdapter(name),
+  onError: (collectionName, error) => reportToCrashReporter(error),
+})
+```
 
 ## The application has slowly grown sluggish
 **Problem:** Nothing is obviously wrong, no single operation is slow, but the application feels heavier than it used to.

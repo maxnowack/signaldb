@@ -87,11 +87,11 @@ Getting your documents back is also very easy.
 ```js
 // ...
 
-const cursor = collection.find({})
+const cursor = posts.find({})
 console.log(cursor.fetch()) // returns an array with all documents in the collection
 ```
 
-You've finished the Getting Started Guide! The next steps are getting reactivity to work. Check out the [core concepts about reactivity](/core-concepts/#signals-and-reactivity-adapters) to learn how to do this.
+You've finished the Getting Started Guide! The next steps are getting reactivity to work. Check out the [core concepts about reactivity](/core-concepts/#signals-and-reactivity) to learn how to do this.
 
 ## Next steps
 

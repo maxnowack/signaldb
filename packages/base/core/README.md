@@ -44,7 +44,7 @@ await Posts.updateOne({ id: postId }, { // updates the post
 
 await Posts.removeOne({ id: postId }) // removes the post
 
-const cursor = collection.find({})
+const cursor = Posts.find({})
 
 // returns an array with all documents in the collection
 // reruns automatically in a reactive context
