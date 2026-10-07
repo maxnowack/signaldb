@@ -241,7 +241,7 @@ describe('AutoFetchDataAdapter', () => {
   it('throws when a query names a collection with no storage adapter', async () => {
     const adapter = new AutoFetchDataAdapter({
       storage: () => undefined as any,
-      fetchQueryItems: async () => ({ items: [] }),
+      fetchQueryItems: async () => [],
     })
     await expect(((adapter as any).executeQuery('nope', {}))).rejects.toThrow('No storage adapter for collection nope')
   })

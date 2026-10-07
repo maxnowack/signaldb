@@ -34,16 +34,12 @@ export async function waitForLocalInsert(
 
   await changes.ready()
 
-  const hasInsert = async () => {
-    const selector = id
-      ? { collectionName, 'type': 'insert', 'data.id': id }
-      : { collectionName, type: 'insert' }
-    const existing = await changes.find(selector, { async: true }).fetch()
-    return existing.length > 0
-  }
+  const selector = id
+    ? { collectionName, 'type': 'insert', 'data.id': id }
+    : { collectionName, type: 'insert' }
 
-  if (await hasInsert()) return
-
+  // subscribe before querying, otherwise an insert recorded while the query
+  // is running is neither part of its result nor observed by the listener
   await new Promise<void>((resolve, reject) => {
     const timeoutReference = {
       current: setTimeout(() => {
@@ -53,9 +49,14 @@ export async function waitForLocalInsert(
     }
 
     /**
-     *
-     * @param change
+     * Stops waiting and resolves.
      */
+    function done() {
+      clearTimeout(timeoutReference.current)
+      changes.off('added', handler)
+      resolve()
+    }
+
     /**
      * Handle inserts from the changes collection.
      * @param change Recorded change entry.
@@ -64,11 +65,18 @@ export async function waitForLocalInsert(
       if (change.collectionName !== collectionName) return
       if (change.type !== 'insert') return
       if (id && change.data?.id !== id) return
-      clearTimeout(timeoutReference.current)
-      changes.off('added', handler)
-      resolve()
+      done()
     }
 
     changes.on('added', handler)
+    changes.find(selector, { async: true }).fetch()
+      .then((existing) => {
+        if (existing.length > 0) done()
+      })
+      .catch((error: unknown) => {
+        clearTimeout(timeoutReference.current)
+        changes.off('added', handler)
+        reject(error instanceof Error ? error : new Error(String(error)))
+      })
   })
 }
