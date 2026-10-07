@@ -201,6 +201,42 @@ describe('Cursor', async () => {
       expect(callbacks.removed).not.toHaveBeenCalled()
     })
 
+    it('should pass the field and its old and new value to changedField', async () => {
+      const col = new Collection<TestItem>()
+      await Promise.all(items.map(item => col.insert(item)))
+
+      const changedField = vi.fn()
+      const cursor = col.find()
+      cursor.observeChanges({ changedField }, true)
+      await col.updateOne({ id: 1 }, { $set: { name: 'item1_modified' } })
+      cursor.requery()
+
+      await wait()
+      expect(changedField).toHaveBeenCalledTimes(1)
+      expect(changedField).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, name: 'item1_modified' }),
+        'name',
+        'Item 1',
+        'item1_modified',
+      )
+    })
+
+    it('should apply transform only to the item passed to changedField', async () => {
+      const col = new Collection<TestItem, number, { label: string }>({
+        transform: item => ({ label: `#${item.id} ${item.name}` }),
+      })
+      await Promise.all(items.map(item => col.insert(item)))
+
+      const changedField = vi.fn()
+      const cursor = col.find()
+      cursor.observeChanges({ changedField }, true)
+      await col.updateOne({ id: 1 }, { $set: { name: 'renamed' } })
+      cursor.requery()
+
+      await wait()
+      expect(changedField).toHaveBeenCalledWith({ label: '#1 renamed' }, 'name', 'Item 1', 'renamed')
+    })
+
     it('should call the changed callback when items are changed', async () => {
       const col = new Collection<TestItem>()
       await Promise.all(items.map(item => col.insert(item)))

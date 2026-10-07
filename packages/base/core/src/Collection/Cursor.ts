@@ -396,6 +396,16 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
       .entries(callbacks)
       .reduce((memo, [callbackName, callback]) => {
         if (!callback) return memo
+        if (callbackName === 'changedField') {
+          return {
+            ...memo,
+            // the arguments after the item are a field name and its values, not items
+            [callbackName]: (item: T, ...fieldChange: unknown[]) => callback(
+              this.transform(item),
+              ...fieldChange,
+            ),
+          }
+        }
         return {
           ...memo,
           [callbackName]: (item: T, before: T | undefined) => {
