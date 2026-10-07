@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed compatibility with `@signaldb/core` versions below `2.0.0`
 * Removed `persistenceAdapter` option from `SyncManager` constructor options. Use `dataAdapter` option instead.
 
+### Added
+
+* `isSyncing(name, true)` returns a `Promise<boolean>` and reads the active sync operations through an `{ async: true }` query. Use it when the sync manager's `dataAdapter` cannot answer a query on the spot, such as an `AsyncDataAdapter` or a `WorkerDataAdapter`. `isSyncing(name)` stays synchronous and reactive.
+
+### Changed
+
+* `addCollection` is generic over the item type of the collection passed to it, so a collection whose item type extends the sync manager's item type can be added without a cast.
+
+### Fixed
+
+* Remote changes delivered with data through `registerRemoteChange` are applied in the collection's sync queue. They could previously run at the same time as a sync of the same collection and interleave with it.
+
 ## [1.3.1] - 2025-04-29
 
 ### Fixed

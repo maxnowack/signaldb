@@ -56,6 +56,8 @@ Creates a new instance of `SyncManager`.
   - `pull`: Function to fetch data from the remote source. The function gets the collection options as the first parameter. The second parameter is an object containing the following properties:
     - `lastFinishedSyncStart`: The start time of the last finished sync (if available).
     - `lastFinishedSyncEnd`: The end time of the last finished sync (if available).
+
+    It must return a promise resolving to either `{ items }` — **all** items of the collection on the server, which the sync manager compares against its last snapshot — or `{ changes: { added, modified, removed } }` — only what changed since the last sync. See [implementing the `pull` method](/sync/#implementing-the-pull-method).
   - `push`: Function to send changes to the remote source. The function gets the collection options as the first parameter. The second parameter is an object that contains the following properties:
     - `changes`:
       - `added`: An array of added items.
@@ -74,6 +76,11 @@ Creates a new instance of `SyncManager`.
 
 
 ## Methods
+
+All methods that start, pause or perform work — `removeCollection`, `syncAll`,
+`sync`, `startSync`, `pauseSync`, `startAll`, `pauseAll`, `pushChanges` and
+`dispose` — return a promise. Await it, or handle its rejection: a failed sync
+rejects the promise of the call that started it.
 
 ### `addCollection(collection, options)`
 
@@ -96,11 +103,11 @@ Removes a collection from the sync manager. This pauses the sync process for the
 
 ### `getCollection(name)` (deprecated)
 
-Retrieves a collection and its options by name.
+Retrieves a collection and its options by name, as a tuple `[collection, options]`. Use [`getCollectionProperties`](#getcollectionproperties-name) instead.
 
 ### `getCollectionProperties(name)`
 
-Retrieves the collection options by name.
+Retrieves a registered collection and its options by name. Throws if no collection with that name was added.
 
 #### Parameters
 
@@ -108,23 +115,31 @@ Retrieves the collection options by name.
 
 #### Returns
 
-- `Tuple<Collection, SyncOptions>`: The collection and its options.
+- An object with the properties `collection` (the `Collection`), `options` (the `SyncOptions` passed to `addCollection`), `readyPromise` (resolves when the collection is ready) and `syncPaused` (`boolean`).
 
 ### `syncAll()`
 
-Starts the sync process for all collections managed by the sync manager.
+Starts the sync process for all collections managed by the sync manager. The returned promise rejects with one combined error if syncing any of the collections failed.
 
-### `isSyncing(name?)`
+### `isSyncing(name?, async?)`
 
-Checks if a specific collection or any collection is currently being synced.
+⚡️ this function is reactive!
+
+Checks if a specific collection or any collection is currently being synced. Called in a reactive scope of the `reactivity` adapter passed to the sync manager, it reruns when that changes.
 
 #### Parameters
 
 - `name` (`string`, optional): The name of the collection. If omitted, checks all collections.
+- `async` (`boolean`, optional): If `true`, the active sync operations are read through an `{ async: true }` query and a promise is returned. Use this when the sync manager's `dataAdapter` cannot answer a query on the spot — an `AsyncDataAdapter` or a `WorkerDataAdapter` — or when several instances of the application share its storage.
 
 #### Returns
 
 - `boolean`: `true` if syncing, `false` otherwise.
+- `Promise<boolean>` if `async` is `true`.
+
+### `isReady()`
+
+Returns a promise that resolves once the sync manager's own collections — changes, snapshots and sync operations — are ready. `sync` and `syncAll` wait for it themselves; you only need it to wait for the sync manager before calling anything else.
 
 ### `sync(name, options)`
 

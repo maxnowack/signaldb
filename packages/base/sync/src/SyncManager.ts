@@ -118,7 +118,7 @@ export default class SyncManager<
    * @param options.push Function to push data to remote source.
    * @param [options.registerRemoteChange] Function to register a callback for remote changes.
    * @param [options.id] Unique identifier for this sync manager. Only nessesary if you have multiple sync managers.
-   * @param [options.storageAdapter] Storage adapter to use for storing changes, snapshots and sync operations.
+   * @param [options.dataAdapter] Data adapter for the collections holding changes, snapshots and sync operations. Defaults to an in-memory `DefaultDataAdapter`.
    * @param [options.reactivity] Reactivity adapter to use for reactivity.
    * @param [options.onError] Function to handle errors that occur async during syncing.
    * @param [options.autostart] Whether to automatically start syncing new collections.
@@ -506,6 +506,7 @@ export default class SyncManager<
 
   /**
    * Checks if a collection is currently beeing synced
+   * ⚡️ this function is reactive!
    * @param [name] Name of the collection. If not provided, it will check if any collection is currently beeing synced.
    * @param [async] If true, it will check for active syncs in the database. This is useful if you have multiple instances of the application running.
    * @returns True if the collection is currently beeing synced, false otherwise. If async is true, it will return a promise that resolves to true or false.
