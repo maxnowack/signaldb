@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Importing this package calls `Collection.enableDebugMode()`, which in `@signaldb/core` v2 also switches on `Collection.reportLargeQueries()` at 500 rows. You will therefore see console output naming each live query that holds more than 500 rows, together with the stack that registered it. That report is the point — such a query keeps its cost for the lifetime of the application and is otherwise invisible — but it is new output where there was none. Call `Collection.reportLargeQueries(null)` after the import to switch it off, or a different number to pick your own threshold.
 
+### Fixed
+
+* The Data tab works with `@signaldb/core` v2 again. It read the items from the collection's `memory` option, which v2 removed, and crashed the devtools as soon as a collection was selected. It now shows the collection through a live query, so it works with every data adapter — including the `AsyncDataAdapter` and the `WorkerDataAdapter` — and a write only costs the devtools the size of the change. While the tab shows a collection of more than 500 items, that query is itself reported by `Collection.reportLargeQueries()`.
+
 ## [1.0.0-beta.4] - 2025-02-18
 
 ### Added
