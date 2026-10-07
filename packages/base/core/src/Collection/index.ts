@@ -986,8 +986,7 @@ export default class Collection<
   /**
    * Inserts multiple items into the collection. Generates unique IDs for items if not provided.
    * @param items - The items to insert.
-   * @returns A promise that resolves to the IDs of the inserted items. The order follows the
-   * completion of the individual inserts, not necessarily the order of `items`.
+   * @returns A promise that resolves to the IDs of the inserted items, in the order of `items`.
    * @throws {Error} If the collection is disposed or the items are invalid.
    */
   public async insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
@@ -995,11 +994,9 @@ export default class Collection<
     if (!items) throw new Error('Invalid items')
     if (items.length === 0) return []
 
-    const ids: I[] = []
+    let ids: I[] = []
     await this.batch(async () => {
-      await Promise.all(items.map(async (item) => {
-        ids.push(await this.insert(item))
-      }))
+      ids = await Promise.all(items.map(item => this.insert(item)))
     })
     return ids
   }

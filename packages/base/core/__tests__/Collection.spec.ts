@@ -167,6 +167,26 @@ describe('Collection', () => {
   })
 
   describe('insertMany', () => {
+    it('should resolve to the ids in the order of the items, however the inserts complete', async () => {
+      const storage = memoryStorageAdapter<{ id: string }, string>([])
+      const delays: Record<string, number> = { a: 30, b: 0, c: 10 }
+      const slowStorage = {
+        ...storage,
+        insert: async (items: { id: string }[]) => {
+          await new Promise(resolve => setTimeout(resolve, delays[items[0].id]))
+          return storage.insert(items)
+        },
+      }
+      const ordered = new Collection<{ id: string }, string>(
+        'ordered',
+        new DefaultDataAdapter({ storage: () => slowStorage }),
+      )
+      await ordered.ready()
+
+      await expect(ordered.insertMany([{ id: 'a' }, { id: 'b' }, { id: 'c' }]))
+        .resolves.toEqual(['a', 'b', 'c'])
+    })
+
     it('should insert multiple items into the collection', async () => {
       const items = [
         { id: '1', name: 'John' },
