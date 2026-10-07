@@ -1,5 +1,7 @@
 /**
- * A strongly‑typed EventEmitter.
+ * A strongly-typed event emitter, the base class of `Collection`. Listeners are kept in a set
+ * per event, so registering the same function twice for one event registers it once.
+ * @template Events - Maps each event name to the signature of its listeners.
  */
 export default class EventEmitter<Events extends Record<string | symbol, any>> {
   private _maxListeners = 100
@@ -12,6 +14,12 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
     Set<Events[keyof Events]>
   >()
 
+  /**
+   * Sets how many listeners an event may have before `on` warns about a possible memory leak
+   * (default: 100). The warning is only logged; listeners are never rejected.
+   * @param max - The number of listeners above which to warn.
+   * @returns The emitter instance (for chaining).
+   */
   public setMaxListeners(max: number): this {
     this._maxListeners = max
     return this
@@ -19,9 +27,9 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Subscribe to an event with a listener function.
-   * @param eventName The event name (key of E).
-   * @param listener  A function that receives the emitted arguments.
-   * @returns         The emitter instance (for chaining).
+   * @param eventName - The event name.
+   * @param listener - A function that receives the emitted arguments.
+   * @returns The emitter instance (for chaining).
    */
   public on<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     // Get or create the Map for this particular event name.
@@ -49,9 +57,9 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Subscribe to an event with a listener function.
-   * @param eventName The event name (key of E).
-   * @param listener  A function that receives the emitted arguments.
-   * @returns         The emitter instance (for chaining).
+   * @param eventName - The event name.
+   * @param listener - A function that receives the emitted arguments.
+   * @returns The emitter instance (for chaining).
    */
   public addListener<K extends keyof Events>(
     eventName: K,
@@ -62,10 +70,11 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Subscribe to an event, handling it only once. Automatically removes
-   * the listener after it fires the first time.
-   * @param eventName The event name (key of E).
-   * @param listener  A function that receives the emitted arguments.
-   * @returns         The emitter instance (for chaining).
+   * the listener after it fires the first time. The listener is registered wrapped, so passing
+   * it to `off` does not remove it.
+   * @param eventName - The event name.
+   * @param listener - A function that receives the emitted arguments.
+   * @returns The emitter instance (for chaining).
    */
   public once<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     // We define a wrapper that calls the listener once, then unsubscribes itself.
@@ -80,9 +89,9 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Unsubscribe a previously subscribed listener.
-   * @param eventName The event name (key of E).
-   * @param listener  The original function passed to `on` or `once`.
-   * @returns         The emitter instance (for chaining).
+   * @param eventName - The event name.
+   * @param listener - The function passed to `on`.
+   * @returns The emitter instance (for chaining).
    */
   public off<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     const listenersSet = this._listenerStore.get(eventName)
@@ -100,9 +109,9 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Unsubscribe a previously subscribed listener.
-   * @param eventName The event name (key of E).
-   * @param listener  The original function passed to `on` or `once`.
-   * @returns         The emitter instance (for chaining).
+   * @param eventName - The event name.
+   * @param listener - The function passed to `on`.
+   * @returns The emitter instance (for chaining).
    */
   public removeListener<K extends keyof Events>(
     eventName: K,
@@ -112,9 +121,10 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
   }
 
   /**
-   * Emit (dispatch) an event with a variable number of arguments.
-   * @param eventName The event name (key of E).
-   * @param args      The arguments to pass to subscribed listeners.
+   * Emit (dispatch) an event with a variable number of arguments. Listeners are called
+   * synchronously, in the order they were added.
+   * @param eventName - The event name.
+   * @param args - The arguments to pass to subscribed listeners.
    */
   public emit<K extends keyof Events>(
     eventName: K,
@@ -127,8 +137,8 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Returns the array of listener functions currently registered for a given event.
-   * @param eventName The event name (key of E).
-   * @returns         An array of listener functions.
+   * @param eventName - The event name.
+   * @returns A copy of the listener functions.
    */
   public listeners<K extends keyof Events>(
     eventName: K,
@@ -140,8 +150,8 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Returns the number of listeners for a given event.
-   * @param eventName The event name (key of E).
-   * @returns         The number of listeners.
+   * @param eventName - The event name.
+   * @returns The number of listeners.
    */
   public listenerCount<K extends keyof Events>(eventName: K): number {
     const listenersSet = this._listenerStore.get(eventName)
@@ -150,8 +160,8 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Removes all listeners for a given event, or all events if none is specified.
-   * @param eventName Optional. If omitted, clears all events’ listeners.
-   * @returns         The emitter instance (for chaining).
+   * @param [eventName] - The event name. If omitted, clears all events' listeners.
+   * @returns The emitter instance (for chaining).
    */
   public removeAllListeners<K extends keyof Events>(eventName?: K): this {
     if (eventName === undefined) {

@@ -38,16 +38,21 @@ function selectorId<T extends BaseItem>(selector: Selector<T>) {
  * the auto-fetch behavior inspired by AutoFetchCollection.
  */
 export interface AutoFetchDataAdapterOptions {
-  /** Factory to obtain a StorageAdapter per collection name */
+  /**
+   * Factory to obtain a StorageAdapter per collection name. Required in practice: a collection
+   * without a storage adapter never becomes ready.
+   */
   storage?: (name: string) => StorageAdapter<any, any>,
   /** Optional logical id (handy if you run multiple adapters side-by-side) */
   id?: string,
-  /** Optional error hook */
+  /** Called with errors of fetches and queries; defaults to `console.error`. */
   onError?: (error: Error) => void,
 
   /**
    * Fetch hook: given a selector, retrieve items from a remote source.
-   * Must resolve to an object with an `items` array. Items MUST include an `id`.
+   * Must resolve to the array of fetched items; every item MUST include an `id`. Resolving to
+   * `undefined` (or anything that is not an array) counts as a failed fetch: the queries with
+   * this selector are published as `'error'` and `onError` is called.
    */
   fetchQueryItems: (
     collectionName: string,
@@ -124,6 +129,22 @@ export default class AutoFetchDataAdapter implements DataAdapter {
   private idRefCounts: Map<string, Map<any, number>> = new Map() // per-collection: id -> refcount (for auto-fetched items)
   private autoloadIds: Map<string, Set<any>> = new Map() // per-collection: ids that were introduced via auto-fetch
 
+  /**
+   * Creates an `AutoFetchDataAdapter` and, if `registerRemoteChange` is given, calls it once to
+   * subscribe to remote changes.
+   * @param options - Configuration of the adapter.
+   * @param options.storage - Returns the storage adapter that caches a collection's items.
+   * @param options.id - Optional logical id of the adapter.
+   * @param options.onError - Called with errors of fetches and queries; defaults to
+   * `console.error`.
+   * @param options.fetchQueryItems - Fetches the items for a selector from the remote source.
+   * @param options.registerRemoteChange - Subscribes to remote changes; the callback re-fetches
+   * every active selector.
+   * @param options.mergeItems - Merges a fetched item into the stored one (default: shallow
+   * spread, fetched item wins).
+   * @param options.purgeDelay - Milliseconds before the items fetched for a query that is no longer
+   * observed are purged (default: 10 000; 0 purges immediately).
+   */
   constructor(private options: AutoFetchDataAdapterOptions) {
     this.id = options.id || 'autofetch-data-adapter'
     this.onError = options.onError ?? ((error) => {
@@ -739,8 +760,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
  *   storage: (name) => new IndexedDBStorage(name),
  *   fetchQueryItems: async (collectionName, selector) => {
  *     const res = await fetch(`/api/${collectionName}?q=${encodeURIComponent(JSON.stringify(selector||{}))}`)
- *     const items = await res.json()
- *     return { items }
+ *     return res.json() // the items, each with an `id`
  *   },
  *   registerRemoteChange: (onChange) => subscribeToWS(onChange),
  *   mergeItems: (a, b) => ({ ...a, ...b }),

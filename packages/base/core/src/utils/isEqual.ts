@@ -1,8 +1,10 @@
 /**
- * Compares two values for deep equality.
+ * Compares two values for deep equality. Primitives are compared with `Object.is`, dates by
+ * their time, regular expressions by their source and flags, and objects and arrays by their
+ * own enumerable keys, recursively.
  * @param a - The first value to compare.
  * @param b - The second value to compare.
- * @returns - Returns `true` if the two values are deeply equal, otherwise `false`.
+ * @returns `true` if the two values are deeply equal, otherwise `false`.
  * @example
  * isEqual({ a: 1 }, { a: 1 }); // true
  * isEqual([1, 2], [1, 2]);     // true

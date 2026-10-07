@@ -33,24 +33,39 @@ export interface QueryStateAccessor {
   onSettled: (callback: () => void) => () => void,
 }
 
+/**
+ * Options of a `Cursor`: the `FindOptions` of the query plus what the collection wires in.
+ * @template T - The type of the items the cursor reads.
+ * @template U - The item type after `transform` (default is `T`).
+ * @template Async - Whether the cursor's methods return promises.
+ */
 export interface CursorOptions<
   T extends BaseItem,
   U = T,
   Async extends boolean = false,
 > extends FindOptions<T, Async> {
+  /** Applied to every item the cursor returns. */
   transform?: Transform<T, U>,
+  /**
+   * Called when the cursor starts observing its query, with the functions that update it. Returns
+   * the function that stops observing.
+   */
   bindEvents?: (
     requery: () => void,
     applyDelta: (delta: QueryDelta<T>) => void,
   ) => () => void,
+  /** Backs `isLoading()`; without it, the cursor never reports itself as loading. */
   queryState?: QueryStateAccessor,
 }
 
 /**
  * Represents a cursor for querying and observing a filtered, sorted, and transformed
- * subset of items from a collection. Supports reactivity and field tracking.
+ * subset of items from a collection. Supports reactivity and field tracking. A cursor created
+ * with `{ async: true }` returns promises from its reading methods and registers no reactive
+ * dependency.
  * @template T - The type of the items in the collection.
  * @template U - The transformed item type after applying transform (default is T).
+ * @template Async - Whether the cursor was created with `{ async: true }` (default is `false`).
  */
 export default class Cursor<T extends BaseItem, U = T, Async extends boolean = false> {
   private observer: Observer<T> | undefined
@@ -59,11 +74,10 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
   private onCleanupCallbacks: (() => void)[] = []
 
   /**
-   * Creates a new instance of the `Cursor` class.
-   * Provides utilities for querying, observing, and transforming items from a collection.
-   * @template T - The type of the items in the collection.
-   * @template U - The transformed item type after applying transformations (default is T).
-   * @param getItems - A function that retrieves the filtered list of items.
+   * Creates a new instance of the `Cursor` class. Cursors are normally obtained from
+   * `Collection#find` rather than constructed directly.
+   * @param getItems - A function that retrieves the filtered list of items (a promise of it for
+   * an async cursor).
    * @param options - Optional configuration for the cursor.
    * @param options.transform - A transformation function to apply to each item when retrieving them.
    * @param options.bindEvents - A function to bind reactivity events for the cursor, which should return a cleanup function.
@@ -73,7 +87,9 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * @param options.limit - The maximum number of items to return in the result set.
    * @param options.reactive - A reactivity adapter to enable observing changes in the cursor's result set.
    * @param options.fieldTracking - A boolean to enable fine-grained field tracking for reactivity.
-   * @param options.transformAll - A function that will be able to solve the n+1 problem
+   * @param options.async - `true` makes the reading methods return promises and the cursor
+   * non-reactive.
+   * @param options.queryState - Reports whether the query has settled; backs `isLoading()`.
    */
   constructor(
     getItems: Async extends true ? () => Promise<T[]> : () => T[],
@@ -255,7 +271,8 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * ⚡️ this function is reactive!
    * @param callback - A function to execute for each item in the result set.
    * @param callback.item - The transformed item.
-   * @returns A promise that resolves when all items have been processed, or void if not in async mode.
+   * @returns `void`, or on an `{ async: true }` cursor a promise that resolves when all items have
+   * been processed.
    */
   public forEach(callback: (item: U) => void): Async extends true ? Promise<void> : void {
     this.depend({
@@ -287,7 +304,8 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * @template V - The type of the items in the resulting array.
    * @param callback - A function to execute for each item in the result set.
    * @param callback.item - The transformed item.
-   * @returns An array of results after applying the callback to each item.
+   * @returns An array of results after applying the callback to each item, or on an
+   * `{ async: true }` cursor a promise resolving to it.
    */
   public map<V>(callback: (item: U) => V): Async extends true ? Promise<V[]> : V[] {
     const results: V[] = []
@@ -304,7 +322,8 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * Fetches all transformed items from the cursor's result set as an array.
    * Automatically applies filtering, sorting, and limiting as per the cursor's options.
    * ⚡️ this function is reactive!
-   * @returns An array of transformed items in the result set.
+   * @returns An array of transformed items in the result set, or on an `{ async: true }` cursor a
+   * promise resolving to it.
    */
   public fetch(): Async extends true ? Promise<U[]> : U[] {
     return this.map(item => item)
@@ -314,7 +333,8 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * Counts the total number of items in the cursor's result set after applying
    * filtering and other criteria.
    * ⚡️ this function is reactive!
-   * @returns The total number of items in the result set.
+   * @returns The total number of items in the result set, or on an `{ async: true }` cursor a
+   * promise resolving to it.
    */
   public count(): Async extends true ? Promise<number> : number {
     this.depend({

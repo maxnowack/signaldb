@@ -1,9 +1,16 @@
 import type { BaseItem, FieldSpecifier, SortSpecifier } from '../Collection'
 import type Selector from './Selector'
 
+/**
+ * A set of changes to a collection's items.
+ * @template T - The type of the items.
+ */
 export interface Changeset<T> {
+  /** Items that were inserted. */
   added: T[],
+  /** Items that were changed, in their new state. */
   modified: T[],
+  /** Items that were removed. */
   removed: T[],
 }
 
@@ -62,13 +69,27 @@ export interface StorageQueryAnswer<T extends BaseItem> {
   projected?: boolean,
 }
 
+/**
+ * Persists the items of one collection. A data adapter obtains one per collection and reads and
+ * writes through it; a storage adapter holds no reactive logic. Create one with
+ * `createStorageAdapter`.
+ * @template T - The type of the items.
+ * @template I - The type of the items' `id`.
+ */
 export default interface StorageAdapter<T extends { id: I } & Record<string, any>, I> {
   // lifecycle methods
+  /**
+   * Prepares the storage (opens a connection, creates tables, …); called once when the data
+   * adapter sets up the collection, before it reads from the storage.
+   */
   setup(): Promise<void>,
+  /** Releases the storage's resources; called when the collection is disposed. */
   teardown(): Promise<void>,
 
   // data retrieval methods
+  /** Reads every item of the collection. */
   readAll(): Promise<T[]>,
+  /** Reads the items with the given ids; ids that do not exist are left out of the result. */
   readIds(positions: I[]): Promise<T[]>,
   /**
    * Answers a whole query — predicate, order, window and projection — as far as
@@ -98,7 +119,9 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
   query?(query: StorageQuery<T>): Promise<StorageQueryAnswer<T>>,
 
   // index methods
+  /** Creates an index on a field, so that `readIndex` can answer for it. */
   createIndex(field: string): Promise<void>,
+  /** Drops the index on a field. */
   dropIndex(field: string): Promise<void>,
   /**
    * The index, keyed by `serializeValue(value)` — not by the raw field value.
@@ -114,8 +137,12 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
   readIndex(field: string): Promise<Map<string | null, Set<I>>>,
 
   // data manipulation methods
+  /** Stores new items. */
   insert(items: T[]): Promise<void>,
+  /** Overwrites the stored items that have the same ids as the given ones. */
   replace(items: T[]): Promise<void>,
+  /** Removes the stored items that have the same ids as the given ones. */
   remove(items: T[]): Promise<void>,
+  /** Removes every stored item of the collection. */
   removeAll(): Promise<void>,
 }

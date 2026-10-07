@@ -21,14 +21,27 @@ import modify from './utils/modify'
 import deepClone from './utils/deepClone'
 
 interface WorkerDataAdapterOptions {
+  /**
+   * Identifies this adapter's messages; must match the `id` of the `WorkerDataAdapterHost`
+   * (default: `'default-worker-data-adapter'`).
+   */
   id?: string,
+  /** Receives a log line for every response, query update and failed request. */
   log?: (message: string, ...args: any[]) => void,
 }
 
+/**
+ * The main-thread side of the channel to the worker that runs the `WorkerDataAdapterHost`: a
+ * `Worker`, or anything with the same messaging methods.
+ */
 export interface WorkerDataAdapterEndpoint {
+  /** Subscribes to messages from the host. */
   addEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
+  /** Unsubscribes from messages from the host. */
   removeEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
+  /** Sends a message to the host. */
   postMessage: (message: unknown) => void,
+  /** Terminates the worker; called, if present, when a collection backend is disposed. */
   terminate?: () => void,
 }
 
@@ -99,6 +112,12 @@ interface PendingWriteState {
   lastChange: { version: number, ids: any[] } | null,
 }
 
+/**
+ * A data adapter that runs storage and queries in a web worker. It forwards every operation to a
+ * `WorkerDataAdapterHost` inside the worker and keeps only the results of the active queries on
+ * the main thread, which the host updates with deltas. Writes that are still in flight are
+ * applied optimistically to those results until the worker confirms or rejects them.
+ */
 export default class WorkerDataAdapter implements DataAdapter {
   private id: string
   private isDisposed = false
@@ -145,6 +164,14 @@ export default class WorkerDataAdapter implements DataAdapter {
     this.pendingWriteVersions.set(collectionName, current + 1)
   }
 
+  /**
+   * Creates a `WorkerDataAdapter` and starts listening for the host's messages. The host must
+   * report itself ready within 5 seconds, otherwise every operation of this adapter rejects.
+   * @param worker - The endpoint to communicate with the worker.
+   * @param options - Configuration of the adapter.
+   * @param options.id - Must match the host's `id` (default: `'default-worker-data-adapter'`).
+   * @param options.log - Receives a log line for every response, query update and failed request.
+   */
   constructor(
     private worker: WorkerDataAdapterEndpoint,
     private options: WorkerDataAdapterOptions,

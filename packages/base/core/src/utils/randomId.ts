@@ -1,6 +1,7 @@
 /**
- * creates a random id
- * @returns a random string of 16 characters
+ * Creates a random id of 16 lowercase letters and digits. It uses `Math.random`, so it is not
+ * suitable where unpredictability matters.
+ * @returns A random string of 16 characters.
  * @example
  * randomId() // '1234567890abcdef'
  */

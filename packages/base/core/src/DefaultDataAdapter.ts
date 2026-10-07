@@ -37,10 +37,25 @@ function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
 }
 
 interface DefaultDataAdapterOptions {
+  /**
+   * Returns the storage adapter to persist a collection with, by collection name, or `undefined`
+   * to keep that collection in memory only.
+   */
   storage?: (name: string) => StorageAdapter<any, any> | undefined,
+  /**
+   * Called when setting up a collection's storage adapter or loading its items from it fails.
+   * Without it, the error is logged with `console.error`. Errors of individual writes reject the
+   * write instead.
+   */
   onError?: (name: string, error: Error) => void,
 }
 
+/**
+ * The default data adapter: keeps every collection's items in memory on the main thread,
+ * answers queries synchronously from there, and maintains live query results incrementally.
+ * With a storage adapter, a collection loads all of its items through `readAll` once and writes
+ * every change through to storage.
+ */
 export default class DefaultDataAdapter implements DataAdapter {
   private items: Map<string, Map<string | null, BaseItem>> = new Map()
   private options: DefaultDataAdapterOptions
@@ -72,6 +87,14 @@ export default class DefaultDataAdapter implements DataAdapter {
   private queuedQueryUpdates: Map<string, Changeset<any>> = new Map()
   private cachedQueryResults: Map<string, Map<string, BaseItem[]>> = new Map()
 
+  /**
+   * Creates a `DefaultDataAdapter`.
+   * @param options - Optional configuration.
+   * @param options.storage - Returns the storage adapter for a collection name, or `undefined`
+   * for none.
+   * @param options.onError - Called with the collection name and the error when setting up or
+   * loading from a storage adapter fails; defaults to `console.error`.
+   */
   constructor(options?: DefaultDataAdapterOptions) {
     this.options = options || {}
   }
@@ -528,6 +551,12 @@ export default class DefaultDataAdapter implements DataAdapter {
     return backend
   }
 
+  /**
+   * Replaces a collection's in-memory items with everything its storage adapter holds, and
+   * rebuilds its indices. Does nothing for a collection without a storage adapter.
+   * @param collection - The collection to reload; omit to reload every collection of this adapter.
+   * @returns A promise that resolves once the items are loaded.
+   */
   public async fetchItemsFromStorage<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection?: Collection<T, I, E, U>,
   ) {

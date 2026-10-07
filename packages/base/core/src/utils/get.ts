@@ -1,10 +1,12 @@
 /**
  * Retrieves the value at a specified path within an object.
- * Supports dot and bracket notation for navigating nested properties.
+ * Supports dot and bracket notation for navigating nested properties
+ * (`a.b.0.c`, `a.b[0].c`).
  * @template T - The type of the object to retrieve the value from.
  * @param value - The object to navigate.
  * @param path - The path (dot or bracket notation) to the desired value.
- * @returns The value at the specified path, or `undefined` if the path does not exist.
+ * @returns The value at the specified path, or `undefined` if the path does not exist or is
+ * malformed (empty segments).
  */
 export default function get<T extends Record<string, any>>(value: T, path: string) {
   const normalized = path.replaceAll(/\[(\w+)\]/g, '.$1')

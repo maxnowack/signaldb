@@ -39,23 +39,52 @@ export type { CursorOptions, QueryStateAccessor } from './Cursor'
 export type { ObserveCallbacks } from './Observer'
 export { default as createIndex } from '../createIndex'
 
+/**
+ * Options of a `Collection`.
+ * @template T - The type of the items stored in the collection.
+ * @template I - The type of the items' `id`.
+ * @template E - The item type after `transformAll` (default is `T`).
+ * @template U - The item type after `transform` (default is `E`).
+ */
 export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem = T, U = E> {
   /**
+   * The name of the collection. Only read by the legacy `new Collection(options)` form; defaults
+   * to `<class name>-<random id>`.
    * @deprecated Use new constructor parameters instead.
    */
   name?: string,
   /**
+   * A storage adapter to persist the collection with. Only read by the legacy
+   * `new Collection(options)` form, which wraps it in a `DefaultDataAdapter`.
    * @deprecated Use `DataAdapter` options instead.
    */
   persistence?: StorageAdapter<T, I>,
 
+  /**
+   * Generates the `id` of an inserted item (default: `randomId`). It is called for every insert;
+   * an `id` already present on the item takes precedence over the generated one.
+   */
   primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 
+  /** The reactivity adapter that makes cursors and the collection's state methods reactive. */
   reactivity?: ReactivityAdapter,
+  /** Applied to every item a cursor returns, after `transformAll`. */
   transform?: Transform<E, U>,
+  /**
+   * Applied to the whole result of a query, together with its `fields` option, before
+   * `transform`. Receives a deep clone of the items, so it can enrich many items at once (the
+   * n+1 problem). Live queries of a collection with `transformAll` re-run and compare their
+   * result on every change instead of applying the adapter's delta.
+   */
   transformAll?: TransformAll<T, E>,
+  /** Field names the data adapter builds indices for. */
   indices?: string[],
+  /** Enables debug mode for this collection (default: the global `Collection.enableDebugMode`). */
   enableDebugMode?: boolean,
+  /**
+   * Enables field-level reactivity for this collection's cursors (default: the global
+   * `Collection.setFieldTracking`).
+   */
   fieldTracking?: boolean,
 }
 
@@ -122,12 +151,13 @@ interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
 }
 
 /**
- * Represents a collection of data items with support for in-memory operations,
- * persistence, reactivity, and event-based notifications. The collection provides
- * CRUD operations, observer patterns, and batch operations.
+ * A collection of items. It provides CRUD operations, reactive queries through cursors, and
+ * event-based notifications, and delegates storing and querying the items to a `DataAdapter`
+ * (a `DefaultDataAdapter` unless one is passed).
  * @template T - The type of the items stored in the collection.
  * @template I - The type of the unique identifier for the items.
- * @template U - The transformed item type after applying transformations (default is T).
+ * @template E - The item type after applying `transformAll` (default is `T`).
+ * @template U - The item type after applying `transform` (default is `E`).
  */
 export default class Collection<
   T extends BaseItem<I> = BaseItem,
@@ -149,6 +179,11 @@ export default class Collection<
   private static largeQueryWarningThreshold: number | null = null
   private static reportedLargeQueries = new Set<string>()
 
+  /**
+   * Returns every collection that has been created and not yet disposed. Treat the array as
+   * read-only.
+   * @returns The collections.
+   */
   static getCollections() {
     return Collection.collections
   }
@@ -170,10 +205,20 @@ export default class Collection<
     if (rows == null) Collection.reportedLargeQueries.clear()
   }
 
+  /**
+   * Registers a callback that is called with every collection created from now on, at the end
+   * of its constructor. There is no way to unregister it.
+   * @param callback - Called with the new collection.
+   */
   static onCreation(callback: (collection: Collection<any>) => void) {
     Collection.onCreationCallbacks.push(callback)
   }
 
+  /**
+   * Registers a callback that is called with every collection disposed from now on, after its
+   * `dispose()` has finished. There is no way to unregister it.
+   * @param callback - Called with the disposed collection.
+   */
   static onDispose(callback: (collection: Collection<any>) => void) {
     Collection.onDisposeCallbacks.push(callback)
   }
@@ -205,11 +250,11 @@ export default class Collection<
   }
 
   /**
-   * Executes a batch operation, allowing multiple modifications to the collection
-   * while deferring index rebuilding until all operations in the batch are completed.
-   * This improves performance by avoiding repetitive index recalculations and
-   * provides atomicity for the batch of operations.
-   * Supports both synchronous and asynchronous callbacks.
+   * Executes a batch operation: runs the callback inside `batch()` of each of the given
+   * collections, so their live queries defer their requeries (and `onPostBatch` callbacks)
+   * until the callback has finished, and then requery once instead of once per write.
+   * The writes themselves are not made atomic. Supports both synchronous and asynchronous
+   * callbacks; the callback's return value is discarded.
    *
    * **Without a `collections` argument this affects every collection in the
    * process, not only the ones being written to.** Each of them defers every
@@ -231,7 +276,9 @@ export default class Collection<
    * once at the end rather than once per phase (reactiveTransaction.ts).
    * @param collections - The collections to batch. Omit to batch all of them.
    * @param callback - The batch operation to execute.
-   * @returns A promise if the callback returns a promise, otherwise `void`.
+   * @returns A promise that resolves once the batch has ended if the callback returns a promise,
+   * otherwise `void`.
+   * @throws {TypeError} If no callback is passed.
    */
   static batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
   static batch<ReturnType>(callback: () => ReturnType): void
@@ -325,23 +372,29 @@ export default class Collection<
   private settledQueriesSet: Set<string> = new Set()
 
   /**
-   * Initializes a new instance of the `Collection` class with optional configuration.
-   * Sets up memory, persistence, reactivity, and indices as specified in the options.
-   * @template T - The type of the items stored in the collection.
-   * @template I - The type of the unique identifier for the items.
-   * @template U - The transformed item type after applying transformations (default is T).
+   * Creates a collection and its backend from the data adapter, registers it in
+   * `Collection.getCollections()` and calls the `onCreation` callbacks.
+   *
+   * Two forms exist:
+   * - `new Collection(name, dataAdapter, options?)` — the collection is backed by `dataAdapter`.
+   * - `new Collection(options?)` — legacy form. The name is taken from the deprecated
+   * `options.name`, and the collection is backed by a `DefaultDataAdapter` that persists to the
+   * deprecated `options.persistence`, if given.
    * @param name - The name of the collection.
-   * @param dataAdapter - The data adapter for creating the collection backend.
+   * @param dataAdapter - The data adapter that creates the collection's backend.
    * @param options - Optional configuration for the collection.
-   * @param options.name - An optional name for the collection.
-   * @param options.memory - The in-memory adapter for storing items.
-   * @param options.reactivity - The reactivity adapter for observing changes in the collection.
-   * @param options.transform - A transformation function to apply to items when retrieving them.
-   * @param options.persistence - Deprecated. A storage adapter for saving and loading items; pass a `DataAdapter` instead.
-   * @param options.indices - An array of field names to index for optimized querying.
-   * @param options.enableDebugMode - A boolean to enable or disable debug mode.
-   * @param options.fieldTracking - A boolean to enable or disable field tracking by default.
-   * @param options.transformAll - A function that will be able to solve the n+1 problem
+   * @param options.name - Deprecated, legacy form only. The name of the collection.
+   * @param options.persistence - Deprecated, legacy form only. A storage adapter for the
+   * `DefaultDataAdapter`; pass a `DataAdapter` instead.
+   * @param options.primaryKeyGenerator - Generates the `id` of inserted items that have none
+   * (default: `randomId`).
+   * @param options.reactivity - The reactivity adapter that makes queries reactive.
+   * @param options.transform - Applied to every item a cursor returns.
+   * @param options.transformAll - Applied to a query's whole result before `transform`, e.g. to
+   * solve the n+1 problem.
+   * @param options.indices - Field names the data adapter builds indices for.
+   * @param options.enableDebugMode - Enables debug mode for this collection.
+   * @param options.fieldTracking - Enables field-level reactivity for this collection.
    */
   constructor(options?: CollectionOptions<T, I, E, U>)
   constructor(name: string, dataAdapter: DataAdapter, options?: CollectionOptions<T, I, E, U>)
@@ -423,6 +476,11 @@ export default class Collection<
     )
   }
 
+  /**
+   * Checks whether this collection is inside a batch: an unscoped `Collection.batch()`, a scoped
+   * `Collection.batch()` that names this collection, or this collection's own `batch()`.
+   * @returns `true` while such a batch is running.
+   */
   public isBatchOperationInProgress() {
     return Collection.batchOperationInProgress || this.batchOperationInProgress
   }
@@ -791,11 +849,11 @@ export default class Collection<
 
   /**
    * Finds a single item in the collection based on a selector and optional options.
-   * ⚡️ this function is reactive!
    * Returns the found item or undefined if no item matches.
+   * ⚡️ this function is reactive!
    * @param selector - The criteria to select the item.
    * @param [options] - Options for the find operation, such as projection.
-   * @returns The found item or `undefined`.
+   * @returns The found item or `undefined`, or a promise resolving to it with `{ async: true }`.
    */
   public findOne(
     selector: Selector<T>,
@@ -835,10 +893,14 @@ export default class Collection<
   }
 
   /**
-   * Performs a batch operation, deferring index rebuilds and allowing multiple
-   * modifications to be made atomically. Executes any post-batch callbacks afterwards.
+   * Performs a batch operation on this collection. While the callback runs, live queries that
+   * would requery defer it, and `onPostBatch` callbacks are queued; when it has finished (also if
+   * it throws or rejects), the deferred callbacks run once each. Live queries that changed inside
+   * the batch re-run and compare their result instead of applying the adapter's delta. The writes
+   * themselves are not made atomic. A nested call simply runs the callback.
    * @param callback - The batch operation to execute.
-   * @returns A promise if the callback returns a promise, otherwise void.
+   * @returns A promise that resolves once the batch has ended if the callback returns a promise,
+   * otherwise `void`.
    */
   public batch<ReturnType>(callback: () => Promise<ReturnType>): Promise<void>
   public batch<ReturnType>(callback: () => ReturnType): void
@@ -880,6 +942,13 @@ export default class Collection<
     }
   }
 
+  /**
+   * Runs a callback after the current batch of this collection has ended, or immediately if no
+   * batch is running. A callback queued more than once during one batch runs once.
+   * @param callback - The callback to run.
+   * @returns Nothing (`undefined`).
+   * @throws {Error} If the collection is disposed.
+   */
   public onPostBatch(callback: () => void) {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (this.batchOperationInProgress) {
@@ -892,7 +961,7 @@ export default class Collection<
   /**
    * Inserts a single item into the collection. Generates a unique ID if not provided.
    * @param item - The item to insert.
-   * @returns The ID of the inserted item.
+   * @returns A promise that resolves to the ID of the inserted item.
    * @throws {Error} If the collection is disposed or the item has an invalid ID.
    */
   public async insert(item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) {
@@ -917,7 +986,8 @@ export default class Collection<
   /**
    * Inserts multiple items into the collection. Generates unique IDs for items if not provided.
    * @param items - The items to insert.
-   * @returns An array of IDs of the inserted items.
+   * @returns A promise that resolves to the IDs of the inserted items. The order follows the
+   * completion of the individual inserts, not necessarily the order of `items`.
    * @throws {Error} If the collection is disposed or the items are invalid.
    */
   public async insertMany(items: Array<Omit<T, 'id'> & Partial<Pick<T, 'id'>>>) {
@@ -940,7 +1010,8 @@ export default class Collection<
    * @param modifier - The modifications to apply to the item.
    * @param [options] - Optional settings for the update operation.
    * @param [options.upsert] - If `true`, creates a new item if no item matches the selector.
-   * @returns The number of items updated (0 or 1).
+   * @returns A promise that resolves to the number of items updated (0 or 1); an upsert that
+   * inserted an item resolves to 1.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
   public async updateOne(
@@ -991,7 +1062,8 @@ export default class Collection<
    * @param modifier - The modifications to apply to the items.
    * @param [options] - Optional settings for the update operation.
    * @param [options.upsert] - If `true`, creates new items if no items match the selector.
-   * @returns The number of items updated.
+   * @returns A promise that resolves to the number of items updated; an upsert that inserted an
+   * item resolves to 1.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
   public async updateMany(
@@ -1042,7 +1114,8 @@ export default class Collection<
    * @param replacement - The item to replace the selected item with.
    * @param [options] - Optional settings for the replace operation.
    * @param [options.upsert] - If `true`, creates a new item if no item matches the selector.
-   * @returns The number of items replaced (0 or 1).
+   * @returns A promise that resolves to the number of items replaced (0 or 1); an upsert that
+   * inserted an item resolves to 1.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
   public async replaceOne(
@@ -1077,7 +1150,7 @@ export default class Collection<
   /**
    * Removes a single item from the collection that matches the given selector.
    * @param selector - The criteria to select the item to remove.
-   * @returns The number of items removed (0 or 1).
+   * @returns A promise that resolves to the number of items removed (0 or 1).
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
   public async removeOne(selector: Selector<T>) {
@@ -1095,7 +1168,7 @@ export default class Collection<
   /**
    * Removes multiple items from the collection that match the given selector.
    * @param selector - The criteria to select the items to remove.
-   * @returns The number of items removed.
+   * @returns A promise that resolves to the number of items removed.
    * @throws {Error} If the collection is disposed or invalid arguments are provided.
    */
   public async removeMany(selector: Selector<T>) {

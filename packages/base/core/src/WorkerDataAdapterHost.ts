@@ -14,15 +14,32 @@ import type { QueryChangeset } from './utils/incrementalQueryUpdate'
 import { diffQueryResults, isEmptyQueryDelta } from './utils/queryDelta'
 import type { QueryDelta } from './utils/queryDelta'
 
+/**
+ * The worker side of the channel to the `WorkerDataAdapter`, usually the worker's global scope
+ * (`self`).
+ */
 export interface WorkerDataAdapterHostEndpoint {
+  /** Subscribes to messages from the `WorkerDataAdapter`. */
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
+  /** Sends a message to the `WorkerDataAdapter`. */
   postMessage: (message: any) => void,
 }
 
 interface WorkerDataAdapterHostOptions {
+  /**
+   * Identifies this host's messages; must match the `id` of the `WorkerDataAdapter`
+   * (default: `'default-worker-data-adapter'`).
+   */
   id?: string,
+  /** Returns the storage adapter that holds a collection's items, by collection name. */
   storage: (name: string) => StorageAdapter<any, any>,
+  /**
+   * Called with errors that cannot be answered to the `WorkerDataAdapter` as a failed request:
+   * a failing message handler, or a live query that failed to re-read after a write (which the
+   * client additionally receives as the query's `'error'` state). Defaults to `console.error`.
+   */
   onError?: (error: Error) => void,
+  /** Receives a log line for every message handled. */
   log?: (message: string, ...args: any[]) => void,
 }
 
@@ -103,6 +120,13 @@ function toChangeset<T extends BaseItem>(
   }
 }
 
+/**
+ * The worker side of the `WorkerDataAdapter`. It runs inside the worker, executes the operations
+ * the adapter forwards against the storage adapters, maintains the registered queries, and
+ * sends their results back — the first one in full, every later one as a delta.
+ * @template T - The type of the items.
+ * @template I - The type of the items' `id`.
+ */
 export default class WorkerDataAdapterHost<
   T extends BaseItem<I>,
   I = any,
@@ -133,6 +157,17 @@ export default class WorkerDataAdapterHost<
     console.error(error)
   }
 
+  /**
+   * Creates a `WorkerDataAdapterHost`, starts handling messages, and reports itself ready to the
+   * `WorkerDataAdapter`.
+   * @param workerContext - The endpoint to communicate with the main thread.
+   * @param options - Configuration of the host.
+   * @param options.id - Must match the adapter's `id` (default: `'default-worker-data-adapter'`).
+   * @param options.storage - Returns the storage adapter for a collection name.
+   * @param options.onError - Called with errors that cannot be answered as a failed request;
+   * defaults to `console.error`.
+   * @param options.log - Receives a log line for every message handled.
+   */
   constructor(
     private workerContext: WorkerDataAdapterHostEndpoint,
     private options: WorkerDataAdapterHostOptions,

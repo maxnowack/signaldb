@@ -21,7 +21,11 @@ export interface AsyncDataAdapterOptions {
   storage: (name: string) => StorageAdapter<any, any>,
   /** Optional logical id (handy if you run multiple adapters side-by-side) */
   id?: string,
-  /** Optional error hook (mirrors WorkerDataAdapterHost) */
+  /**
+   * Called with errors the adapter cannot hand to a caller — a query that failed after all
+   * retries (as a `QueryError`), a failed storage setup, or a query state listener that
+   * threw. Defaults to `console.error`.
+   */
   onError?: (error: Error) => void,
   /**
    * How often a failing query is retried before it is published as `'error'`.
@@ -136,6 +140,16 @@ export default class AsyncDataAdapter implements DataAdapter {
   // Per-collection query registries
   private queries: Map<string, Map<string, QueryRecord<any>>> = new Map()
 
+  /**
+   * Creates an `AsyncDataAdapter`.
+   * @param options - Configuration of the adapter.
+   * @param options.storage - Returns the storage adapter for a collection name.
+   * @param options.id - Optional logical id of the adapter.
+   * @param options.onError - Called with errors the adapter cannot hand to a caller; defaults to
+   * `console.error`.
+   * @param options.retry - How often, and after which delay, a failing query is retried before it
+   * is published as `'error'` (default: 3 attempts).
+   */
   constructor(private options: AsyncDataAdapterOptions) {
     this.id = options.id || 'async-data-adapter'
     this.onError = options.onError ?? ((error) => {
