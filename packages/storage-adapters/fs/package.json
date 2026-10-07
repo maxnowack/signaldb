@@ -53,7 +53,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "@signaldb/core": "2.0.0-beta.24"
+    "@signaldb/core": "^2.0.0-0"
   },
   "dependencies": {
     "@signaldb/generic-fs": "^2.0.0-beta.24"

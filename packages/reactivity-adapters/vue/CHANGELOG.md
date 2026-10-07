@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Accepts `@signaldb/core` v2 as a peer dependency, in addition to 1.x.
+
 ### Changed
 
 * Removed `onScopeDispose` and `onDispose` from the reactivity adapter as it was not working as expected

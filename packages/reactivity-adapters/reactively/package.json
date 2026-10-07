@@ -53,7 +53,7 @@
   ],
   "peerDependencies": {
     "@reactively/core": "0.x.x",
-    "@signaldb/core": "2.x"
+    "@signaldb/core": "^2.0.0-0"
   },
   "devDependencies": {
     "@reactively/core": "^0.0.8",

@@ -56,6 +56,6 @@
     "fake-indexeddb": "6.2.5"
   },
   "peerDependencies": {
-    "@signaldb/core": "2.0.0-beta.24"
+    "@signaldb/core": "^2.0.0-0"
   }
 }
