@@ -29,6 +29,11 @@ It provides an interface to interact with items while offering capabilities like
 
 You don't have to create a cursor by yourself. SignalDB is handling that for you and returns the cursor from a [`.find()` call](/reference/core/collection/#find-selector-selector-t-options-options).
 
+A cursor created with `find(selector, { async: true })` is an *async cursor*:
+`forEach()`, `map()`, `fetch()` and `count()` return a promise resolving to
+their result instead of the result itself, and they register no reactive
+dependency. See [awaiting the result](/queries/#awaiting-the-result).
+
 The following methods are available in the cursor class:
 
 ## ⚡️ `forEach(callback: (item: TransformedItem) => void)` *(reactive)*
@@ -36,6 +41,8 @@ Iterates over each item in the cursor, applying the given callback function.
 
 * Parameters:
   * `callback`: A function that gets executed for each item.
+* Returns
+  * Nothing (a promise resolving when all items were visited on an async cursor)
 
 ::: tip Reactive ⚡️
 This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
@@ -47,7 +54,7 @@ Maps each item in the cursor to a new array using the provided callback function
 * Parameters:
   * `callback`: A function that transforms each item.
 * Returns
-  * An array of transformed items
+  * An array of transformed items (a promise resolving to it on an async cursor)
 
 ::: tip Reactive ⚡️
 This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
@@ -57,7 +64,7 @@ This method is reactive, so it will rerun automatically when a document is added
 Fetches all the items in the cursor and returns them.
 
 * Returns
-  * An array of items
+  * An array of items (a promise resolving to it on an async cursor)
 
 ::: tip Reactive ⚡️
 This method is reactive, so it will rerun automatically when a document is added, removed, or when any of its fields change. You can control when it reruns by using the `fields` option in the `.find()` method to specify which fields to track. Reactivity will only be triggered by changes in the fields you choose.
@@ -67,7 +74,7 @@ This method is reactive, so it will rerun automatically when a document is added
 Counts the number of items in the cursor.
 
 * Returns
-  * The count of items
+  * The count of items (a promise resolving to it on an async cursor)
 
 ::: tip Reactive ⚡️
 This method is reactive, so it will rerun automatically when a document was added or removed from the query.
@@ -124,7 +131,8 @@ This method allows observation of changes in the cursor items. It uses callbacks
   * `callbacks`: An object of Callback functions for different observation events.
     * `added(item: T)`gets called when a new item was added to the cursor
     * `addedBefore(item: T, before: T)`gets called when a new item was added to the cursor and also indicates the position of the new item
-    * `changed(item: T)`gets called when an item in the cursor was changed
+    * `changed(item: T, previousItem: T)` gets called when an item in the cursor was changed, with the item as it was before the change
+    * `changedField(item: T, field: keyof T, oldValue, newValue)` gets called once for every top-level field whose value differs between the previous and the new version of a changed item
     * `movedBefore(item: T, before: T)`gets called when an item moved its position in the cursor. Only the items that have to move are reported: reordering a list can leave several items at a different index while a single move produces that order, and it is that single move you are told about.
     * `removed(item: T)`gets called when an item was removed from the cursor
   * `skipInitial`: A boolean to decide whether to skip the initial observation event.
@@ -157,3 +165,30 @@ Registers a function to run when the cursor is cleaned up.
 
 ## `cleanup()`
 The cleanup method is used to invoke all the cleanup callbacks. This helps in managing resources and ensuring efficient garbage collection. You have to call this method, if you're using a reactivity adapter, that doesn't support automatic cleanup.
+
+## Constructing a cursor yourself
+
+```ts
+import { Cursor } from '@signaldb/core'
+import type { CursorOptions, QueryStateAccessor } from '@signaldb/core'
+
+const cursor = new Cursor(getItems, options)
+```
+
+This is for integrations that serve a cursor from a data source of their own;
+an application gets its cursors from [`find()`](/reference/core/collection/#find-selector-selector-t-options-options).
+
+* `getItems`: A function returning the current items — or, for an async cursor, a promise resolving to them.
+* `options` (`CursorOptions`, optional): The [find options](/queries/#options) (`sort`, `skip`, `limit`, `fields`, `reactive`, `fieldTracking`, `async`) plus:
+  * `transform`: Applied to every item the cursor returns.
+  * `bindEvents(requery, applyDelta)`: Called when the cursor starts observing its source, with the functions that update it. Returns the function that stops observing.
+  * `queryState` (`QueryStateAccessor`): Backs [`isLoading()`](#⚡️-isloading-reactive). Without it, the cursor never reports itself as loading.
+
+```ts
+interface QueryStateAccessor {
+  // whether the query has completed or failed at least once since it was registered
+  hasSettled: () => boolean
+  // subscribes to the query settling; returns a cleanup function
+  onSettled: (callback: () => void) => () => void
+}
+```

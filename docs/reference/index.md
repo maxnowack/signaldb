@@ -40,6 +40,7 @@ SignalDB consists of several packages of which each has indiviudal exports.
 * [`AutoFetchDataAdapter`](/reference/core/autofetchdataadapter/)
 * [`createStorageAdapter`](/reference/core/createstorageadapter/)
 * [`createReactivityAdapter`](/reference/core/createreactivityadapter/)
+* [Utilities](/reference/core/utilities/) — `serializeValue`, `get`, `isEqual`, `modify`, `randomId`, `EventEmitter`, `reactiveOrAsync`, `unwrap`
 
 ### `@signaldb/sync`
 * [`SyncManager`](/reference/sync/)

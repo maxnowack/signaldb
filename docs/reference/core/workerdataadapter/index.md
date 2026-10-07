@@ -72,7 +72,8 @@ const Posts = new Collection('posts', dataAdapter, {
 ```
 
 The `id` on both sides must match — it is how messages are routed when several
-adapters share a worker or several workers share a page.
+adapters share a worker or several workers share a page. Both sides default to
+`'default-worker-data-adapter'`, so a single pair works without one.
 
 ## `WorkerDataAdapter`
 
@@ -96,6 +97,11 @@ interface WorkerDataAdapterEndpoint {
 }
 ```
 
+The adapter waits for the host to announce itself. If no
+`WorkerDataAdapterHost` with the same `id` answers within 5 seconds — the
+worker failed to load, or the ids differ — initialization fails with
+`WorkerDataAdapter initialization timed out`.
+
 ## `WorkerDataAdapterHost`
 
 ```ts
@@ -105,6 +111,16 @@ new WorkerDataAdapterHost(context: WorkerDataAdapterHostEndpoint, options: {
   onError?: (error: Error) => void
   log?: (message: string, ...args: any[]) => void
 })
+```
+
+`WorkerDataAdapterHostEndpoint` is the part of the worker's global scope the
+host uses — `self` inside a worker:
+
+```ts
+interface WorkerDataAdapterHostEndpoint {
+  addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void
+  postMessage: (message: any) => void
+}
 ```
 
 * `storage`: Called once per collection with the collection's name. Required.

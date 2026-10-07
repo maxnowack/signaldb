@@ -39,10 +39,10 @@ that.
 
 ```js
 import { Collection, AsyncDataAdapter } from '@signaldb/core'
-import createFileSystemAdapter from '@signaldb/fs'
+import createFilesystemAdapter from '@signaldb/fs'
 
 const dataAdapter = new AsyncDataAdapter({
-  storage: name => createFileSystemAdapter(`./data/${name}`),
+  storage: name => createFilesystemAdapter(`./data/${name}`),
 })
 
 const Posts = new Collection('posts', dataAdapter)

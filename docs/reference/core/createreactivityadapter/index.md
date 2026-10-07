@@ -55,9 +55,9 @@ create: () => {
 }
 ```
 
-### `isInScope(dependency: Dependency): boolean` (optional)
+### `isInScope(): boolean` (optional)
 
-The `isInScope` function is used for checking wether a SignalDB is in a reactive scope. If SignalDB is not in a reactive context, reactivity will be automatically disabled to avoid memory leaks. That mean that if you are not in a reactive scope ([`find`](/reference/core/collection/#find-selector-selector-t-options-options)/[`findOne`](/reference/core/collection/#findone-selector-selector-t-options-options) called outside an `effect` function), you have to turn off reactivity manually by adding the `{ reactivity: false }` option to the [`find`](/reference/core/collection/#find-selector-selector-t-options-options)/[`findOne`](/reference/core/collection/#findone-selector-selector-t-options-options) method<br>(e.g. `<collection>.find({ … }, { reactive: false })`).<br>
+The `isInScope` function takes no arguments and is used for checking whether SignalDB is called from a reactive scope. If it returns `false`, reactivity is automatically disabled for that query to avoid memory leaks. Without `isInScope`, SignalDB cannot tell, so if you are not in a reactive scope ([`find`](/reference/core/collection/#find-selector-selector-t-options-options)/[`findOne`](/reference/core/collection/#findone-selector-selector-t-options-options) called outside an `effect` function), you have to turn off reactivity manually by adding the `{ reactive: false }` option to the [`find`](/reference/core/collection/#find-selector-selector-t-options-options)/[`findOne`](/reference/core/collection/#findone-selector-selector-t-options-options) method<br>(e.g. `<collection>.find({ … }, { reactive: false })`).<br>
 If you're not doing this, SignalDB setups reactivity unnecessarily and is not able to cleanup this automatically later on.
 
 ```js

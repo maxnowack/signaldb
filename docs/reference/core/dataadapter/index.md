@@ -31,6 +31,8 @@ import type {
   QueryOptions,
   StateChangeCallback,
   QueryDelta,
+  WriteResult,
+  DetailedWriteResult,
 } from '@signaldb/core'
 ```
 
@@ -104,8 +106,11 @@ onQueryStateChange<O extends QueryOptions<T>>(
 `onQueryStateChange` unsubscribes. `getQueryResult` is synchronous and must
 always return something — see [the neutral result](#the-neutral-result) below.
 
-`retryQuery` is optional so that existing custom adapters keep compiling. An
-adapter that never surfaces an `'error'` state has nothing to implement.
+`retryQuery` is optional so that existing custom adapters keep compiling, and
+the `Collection` never calls it — it is there for code that holds a backend and
+wants to re-run a failed query on demand. The `AsyncDataAdapter` implements it
+and also retries a failed query by itself when a new observer subscribes to it.
+An adapter that never surfaces an `'error'` state has nothing to implement.
 
 ### Lifecycle
 

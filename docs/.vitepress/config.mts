@@ -201,6 +201,7 @@ export default withMermaid({
                 { text: 'AutoFetchDataAdapter', link: '/reference/core/autofetchdataadapter/' },
                 { text: 'createStorageAdapter', link: '/reference/core/createstorageadapter/' },
                 { text: 'createReactivityAdapter', link: '/reference/core/createreactivityadapter/' },
+                { text: 'Utilities', link: '/reference/core/utilities/' },
               ],
             },
             { text: '@signaldb/sync', link: '/reference/sync/' },

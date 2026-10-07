@@ -36,9 +36,9 @@ The Collection class is designed to manage and manipulate collections of data, w
 
 Enables or disables field tracking for all collections. See [Field-Level Reactivity](/queries/#field-level-reactivity) for more information.
 
-### `batch(collections?: Collection[], callback: () => void)`
+### `batch(collections?: Collection[], callback: () => void | Promise<void>)`
 
-If you need to execute many operations at once in multiple collections, you can use the global `Collection.batch()` method. This method will execute all operations inside the callback without rebuilding the index on every change. Pass the collections you are writing to — see the [instance method](#batch-callback-void) for why that matters.
+If you need to execute many operations at once in multiple collections, you can use the global `Collection.batch()` method. It runs the callback inside the [instance `batch()`](#batch-callback-void) of each collection, so their live queries are updated once when the batch ends instead of after every write. It returns a promise if the callback does. Pass the collections you are writing to — see the [instance method](#batch-callback-void) for why that matters.
 
 ### `getCollections()`
 
@@ -90,10 +90,15 @@ Parameters
   * transformAll: A function that receives all items of a query result at once and returns the transformed list. Useful for resolving relations without an N+1 query — see [ORM](/orm/).
   * indices: An array of field names to index, e.g. `['authorId', 'status']`.
   * primaryKeyGenerator: A function that generates a unique ID for the item. If not provided, a default generator will be used.
+  * fieldTracking: Enables [field-level reactivity](/queries/#field-level-reactivity) for this collection. Defaults to the value set with the static [`setFieldTracking()`](#setfieldtracking-enable-boolean).
+  * enableDebugMode: Enables debug mode for this collection. Defaults to `true` once the static [`enableDebugMode()`](#enabledebugmode) was called.
 
 A collection can also be constructed with options alone
-(`new Collection(options?)`), in which case it uses a default data adapter and
-keeps its data in memory only.
+(`new Collection(options?)`), in which case it uses a `DefaultDataAdapter` of
+its own. That form still accepts the deprecated `name` option and the
+deprecated `persistence` option — a storage adapter, which is then passed to
+that `DefaultDataAdapter`. Without `persistence`, the data is kept in memory
+only. Prefer the `new Collection(name, dataAdapter, options?)` form.
 
 ## Methods
 
@@ -134,7 +139,7 @@ Returns a new [cursor object](/reference/core/cursor/) for the items in the coll
 Also check out the [queries section](/queries/).
 
 Parameters
-* `selector` (Optional): A function to filter items in the collection.
+* `selector` (Optional): A [selector](/queries/#selectors) object describing the items to match. Omit it to match all items.
 * `options` (Optional): Options for the cursor — `sort`, `skip`, `limit`, `fields`, `reactive`, `fieldTracking`, and `async`.
 
 Pass `async: true` to get a cursor whose methods resolve to their result
@@ -146,8 +151,8 @@ the data adapter cannot answer on the spot — see
 const posts = await collection.find({ status: 'published' }, { async: true }).fetch()
 ```
 
-### `findOne(selector?: Selector<T>, options?: Options)`
-Behaves the same like [`.find()`](#find-selector-selector-t-options-options) but doesn't return a cursor. Instead it will directly return the first found document. With `async: true` it returns a promise resolving to that document.
+### `findOne(selector: Selector<T>, options?: Options)`
+Behaves the same like [`.find()`](#find-selector-selector-t-options-options) but doesn't return a cursor. Instead it will directly return the first found document, or `undefined`. The selector is required; pass `{}` to match any document. With `async: true` it returns a promise resolving to that document.
 
 ### Loading state
 
@@ -170,7 +175,7 @@ Also check out the [data manipulation section](/data-manipulation/).
 Inserts multiple items into the collection and returns a promise resolving to the IDs of the newly inserted items.
 
 Parameters
-* `item`: The item to be inserted into the collection.
+* `items`: The items to be inserted into the collection.
 
 ### `updateMany(selector: Selector<T>, modifier: Modifier<T>, options?: { upsert?: boolean })`
 
@@ -178,7 +183,7 @@ Updates multiple items in the collection that match a given selector with the sp
 Also check out the [data manipulation section](/data-manipulation/).
 
 Parameters
-* `selector`: A function to filter items in the collection.
+* `selector`: A [selector](/queries/#selectors) object describing the items to match.
 * `modifier`: An object describing how to modify the matching items.
 * `options`: An object with additional options. Currently only `upsert` is supported, which will insert a document based on the modifier, if the selector doesn't match any documents.
 
@@ -193,7 +198,7 @@ Replaces a single item in the collection that matches a given selector with the 
 Also check out the [data manipulation section](/data-manipulation/).
 
 Parameters
-* `selector`: A function to filter items in the collection.
+* `selector`: A [selector](/queries/#selectors) object describing the items to match.
 * `replacement`: The new item that should replace the existing one.
 * `options`: An object with additional options. Currently only `upsert` is supported, which will insert a document based on the replacement, if the selector doesn't match any documents.
 
@@ -202,7 +207,7 @@ Parameters
 Removes multiple items from the collection that match a given selector and returns a promise resolving to the number of removed items.
 
 Parameters
-* `selector`: A function to filter items in the collection.
+* `selector`: A [selector](/queries/#selectors) object describing the items to match.
 
 ### `removeOne(selector: Selector<T>)`
 
@@ -210,7 +215,7 @@ Behaves the same like `.removeMany()` but only removes the first found document.
 
 ### `batch(callback: () => void)`
 
-If you need to execute many operations at once, things can get slow as the index would be rebuild on every change to the collection. To prevent this, you can use the `.batch()` method. This method will execute all operations inside the callback without rebuilding the index on every change.
+If you need to execute many operations at once, things can get slow because every write updates the collection's live queries. To prevent this, you can use the `.batch()` method: the live queries of this collection are updated once, when the callback has finished, instead of after every write. It returns a promise if the callback does. A batch is not a transaction — writes that succeeded before a failing one are not rolled back.
 
 ```js
 await collection.batch(async () => {
@@ -248,13 +253,22 @@ every scope updates once at the end rather than once per phase.
 
 ### `isBatchOperationInProgress()`
 
-Returns whether an unscoped `Collection.batch()` — one covering every
-collection — is currently running. A batch scoped to a list of collections does
-not set this, so an unrelated collection never reports itself as batching.
+Returns whether this collection is currently batching: during its own
+[`batch()`](#batch-callback-void), during a scoped `Collection.batch([...])`
+that names it, and during an unscoped `Collection.batch()` covering every
+collection. A batch scoped to other collections does not affect it.
 
 ### `dispose()`
 
-Disposes the collection and all its resources. This will unregister the storage adapter and clean up all internal data structures.
+Disposes the collection and all its resources and returns a promise that resolves when that is done. It tears down the collection's storage through its data adapter, removes all event listeners and cleans up all internal data structures. A disposed collection throws when it is used afterwards.
+
+### `getDebugMode()` / `setDebugMode(enable: boolean)`
+
+Reads or changes whether debug mode is enabled for this collection. In debug mode, the collection measures its queries and emits additional events for the [developer tools](/devtools/).
+
+### `name`
+
+The name the collection was created with.
 
 ### `setFieldTracking(enabled: boolean)`
 
@@ -262,7 +276,18 @@ Enables or disables field tracking for the collection. See [Field-Level Reactivi
 
 ## Events
 
-The Collection class is equipped with a set of events that provide insights into the state and changes within the collection. These events, emitted by the class, can be crucial for implementing reactive behaviors and persistence management. Here is an overview of the events:
+The Collection class is equipped with a set of events that provide insights into the state and changes within the collection. Subscribe with `on(event, listener)`, unsubscribe with `off(event, listener)`, or use `once(event, listener)` for a single call:
+
+```ts
+const onChanged = (item, modifier, previousItem) => {
+  console.log('changed', item.id, previousItem, '→', item)
+}
+collection.on('changed', onChanged)
+// …
+collection.off('changed', onChanged)
+```
+
+Here is an overview of the events:
 
 * `added`: Triggered when a new item is added to the collection. The event handler receives the added item as an argument.
 * `changed`: Fired when an existing item in the collection undergoes modification. The event handler receives the modified item, the modifier that was applied and — when the data adapter reports it — the item as it was before the modification. All data adapters shipped with SignalDB report it; a custom one that does not simply omits the third argument.
