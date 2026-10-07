@@ -24,6 +24,7 @@ const handlerCategories: Record<string, string[]> = {
   '_debug.insert': ['mutations'],
   '_debug.updateOne': ['mutations'],
   '_debug.updateMany': ['mutations'],
+  '_debug.replaceOne': ['mutations'],
   '_debug.removeOne': ['mutations'],
   '_debug.removeMany': ['mutations'],
   '_debug.getItems': ['measuredTimes'],
@@ -113,6 +114,21 @@ const handlers = {
         type: 'updateMany',
         selector,
         modifier,
+        callstack,
+      },
+    ]
+    mutations.patch({ items: newMutations })
+  },
+  '_debug.replaceOne': (collection: Collection<any>, callstack: string, selector: Selector<any>, replacement: Record<string, any>) => {
+    const newMutations = [
+      ...dataStore.getItem('mutations')?.items || [],
+      {
+        id: randomId(),
+        collectionName: collection.name,
+        time: Date.now(),
+        type: 'replaceOne',
+        selector,
+        modifier: replacement,
         callstack,
       },
     ]
