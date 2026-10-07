@@ -57,6 +57,16 @@ describe('EventEmitter', () => {
     expect(onceListener).toHaveBeenCalledWith('Bob')
   })
 
+  it('should remove a listener registered with once() through off()', () => {
+    const onceListener = vi.fn()
+    emitter.once('hello', onceListener)
+    emitter.off('hello', onceListener)
+
+    emitter.emit('hello', 'Bob')
+    expect(onceListener).not.toHaveBeenCalled()
+    expect(emitter.listenerCount('hello')).toBe(0)
+  })
+
   it('should be able to remove a listener with off()', () => {
     const helloListener = vi.fn()
     emitter.on('hello', helloListener)

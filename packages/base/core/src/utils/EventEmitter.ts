@@ -15,6 +15,14 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
   >()
 
   /**
+   * The wrapper `once` registered for each listener, so that `off` can remove it.
+   */
+  private _onceWrappers = new Map<
+    keyof Events,
+    Map<Events[keyof Events], Events[keyof Events]>
+  >()
+
+  /**
    * Sets how many listeners an event may have before `on` warns about a possible memory leak
    * (default: 100). The warning is only logged; listeners are never rejected.
    * @param max - The number of listeners above which to warn.
@@ -70,18 +78,22 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
 
   /**
    * Subscribe to an event, handling it only once. Automatically removes
-   * the listener after it fires the first time. The listener is registered wrapped, so passing
-   * it to `off` does not remove it.
+   * the listener after it fires the first time; passing it to `off` before that removes it too.
    * @param eventName - The event name.
    * @param listener - A function that receives the emitted arguments.
    * @returns The emitter instance (for chaining).
    */
   public once<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     // We define a wrapper that calls the listener once, then unsubscribes itself.
+    const wrappers = this._onceWrappers.get(eventName)
+      ?? new Map<Events[keyof Events], Events[keyof Events]>()
+    this._onceWrappers.set(eventName, wrappers)
     const onceWrapper = ((...args: Parameters<Events[K]>) => {
-      listener(...args)
+      wrappers.delete(listener)
       this.off(eventName, onceWrapper)
+      listener(...args)
     }) as Events[K]
+    wrappers.set(listener, onceWrapper)
 
     // Important: explicitly specify <K> to ensure TS sees the same type param
     return this.on<K>(eventName, onceWrapper)
@@ -90,13 +102,19 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
   /**
    * Unsubscribe a previously subscribed listener.
    * @param eventName - The event name.
-   * @param listener - The function passed to `on`.
+   * @param listener - The function passed to `on` or `once`.
    * @returns The emitter instance (for chaining).
    */
   public off<K extends keyof Events>(eventName: K, listener: Events[K]): this {
     const listenersSet = this._listenerStore.get(eventName)
     if (!listenersSet) return this
 
+    const wrappers = this._onceWrappers.get(eventName)
+    const onceWrapper = wrappers?.get(listener)
+    if (wrappers && onceWrapper) {
+      wrappers.delete(listener)
+      listenersSet.delete(onceWrapper)
+    }
     listenersSet.delete(listener)
 
     // Clean up if there are no more listeners for that event.

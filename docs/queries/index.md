@@ -211,8 +211,8 @@ Posts.off('changed', onChanged)
   deliver a result. Its cursor keeps serving the neutral empty result, so this
   event is the only way to tell a failed query from one that matched nothing.
 
-`on` subscribes, `once` subscribes for a single call, `off` unsubscribes a
-listener registered with `on`. The full list of events is in the
+`on` subscribes, `once` subscribes for a single call, `off` unsubscribes the
+listener you passed to either of them. The full list of events is in the
 [`Collection` reference](/reference/core/collection/#events).
 
 ## Field-Level Reactivity
