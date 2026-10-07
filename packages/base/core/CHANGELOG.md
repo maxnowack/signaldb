@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * `insertMany` resolves to the ids in the order of the items passed to it. They were collected as the individual inserts completed, so with a storage adapter that answers out of order the ids did not line up with the items.
+* `removeOne` emits `removed` only when it removed an item. A `removeOne` that matched nothing emitted `removed` with `undefined`, which a listener reading the item's fields crashed on.
 * A listener registered with `once` can be removed with `off` before it fires. `once` registered a wrapper, so `off` with the original listener did nothing and the listener still ran.
 * `ready()` rejects, and `isReady()` stays `false`, when the `DefaultDataAdapter` cannot set up a collection's storage adapter or load its stored items. The error was only passed to `onError` (or logged), and `ready()` resolved as if the stored data had been loaded. If you await `ready()`, handle its rejection; the collection keeps working in memory.
 * Disposing one collection of a `WorkerDataAdapter` no longer ends the adapter for all of them. It terminated the worker and rejected every call of the other collections with `WorkerDataAdapter is disposed`; now only that collection is unregistered, and the worker is terminated once the last collection is disposed.

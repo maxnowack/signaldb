@@ -1156,7 +1156,7 @@ export default class Collection<
 
     const removedItems = await this.withPushState(() => this.backend.removeOne(selector))
 
-    this.emit('removed', removedItems[0])
+    if (removedItems.length > 0) this.emit('removed', removedItems[0])
     this.emit('removeOne', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeOne', callstack, selector))
     return removedItems.length

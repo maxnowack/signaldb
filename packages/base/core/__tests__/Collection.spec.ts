@@ -429,6 +429,14 @@ describe('Collection', () => {
   })
 
   describe('removeOne', () => {
+    it('should not emit removed when nothing matched', async () => {
+      const removed = vi.fn()
+      collection.on('removed', removed)
+
+      await expect(collection.removeOne({ id: 'missing' })).resolves.toBe(0)
+      expect(removed).not.toHaveBeenCalled()
+    })
+
     it('should remove an item that match the selector', async () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
