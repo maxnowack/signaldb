@@ -234,7 +234,7 @@ operation is part of its behavior, not an implementation detail.
   logic. A storage adapter persists and loads and holds no reactive logic.
   Logic that would otherwise be repeated in more than one adapter belongs in
   core.
-- **(MUST)** Core runs in browsers, web workers, Node.js (20/22/24 in CI) and
+- **(MUST)** Core runs in browsers, web workers, Node.js (22/24/26 in CI) and
   in React Native's Hermes. Do not reach for a DOM or Node-only global in core,
   and check runtime support before using a recent language or standard-library
   feature — a single unsupported array method once made the whole adapter
