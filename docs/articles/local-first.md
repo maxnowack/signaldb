@@ -122,13 +122,26 @@ The [local-first directory on lofi.so](https://lofi.so/directory) lists many mor
 **1. Create a persisted, reactive collection** using the signal library of your framework (here Solid; adapters exist for Angular, Vue, Preact, Svelte, MobX and [more](/reactivity/#reactivity-libraries)):
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 import solidReactivityAdapter from '@signaldb/solid'
 
-export const notes = new Collection({
+export const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: {
+      'notes': ['archived'],
+      // stores the SyncManager keeps its change queue in
+      'app-changes': ['collectionName'],
+      'app-snapshots': ['collectionName'],
+      'app-sync-operations': ['collectionName', 'status'],
+    },
+  }),
+})
+
+export const notes = new Collection('notes', dataAdapter, {
   reactivity: solidReactivityAdapter,
-  persistence: createIndexedDBAdapter('notes'),
 })
 ```
 
@@ -142,7 +155,7 @@ createEffect(() => {
   render(myNotes)
 })
 
-notes.insert({ text: 'Local-first!', archived: false, updatedAt: Date.now() })
+await notes.insert({ text: 'Local-first!', archived: false, updatedAt: Date.now() })
 ```
 
 **3. Add sync with your backend.** The [`SyncManager`](/sync/) persists the queue of local changes, pushes them to your API, pulls remote changes and resolves conflicts by replaying local changes on the latest server data:
@@ -151,7 +164,8 @@ notes.insert({ text: 'Local-first!', archived: false, updatedAt: Date.now() })
 import { SyncManager } from '@signaldb/sync'
 
 const syncManager = new SyncManager({
-  persistenceAdapter: name => createIndexedDBAdapter(name),
+  id: 'app',
+  dataAdapter, // the same data adapter the collections use
   pull: async ({ apiPath }) => ({ items: await fetch(apiPath).then(res => res.json()) }),
   push: async ({ apiPath }, { changes }) => {
     await fetch(apiPath, { method: 'POST', body: JSON.stringify(changes) })

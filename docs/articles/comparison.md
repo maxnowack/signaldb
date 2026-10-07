@@ -35,7 +35,7 @@ This page is written by the SignalDB maintainers. We try to be fair and point ou
 
 | | Short description | License |
 |---|---|---|
-| **[SignalDB](/getting-started/)** | Reactive in-memory database with MongoDB-like queries, signal-based reactivity, persistence adapters and backend-agnostic sync | MIT |
+| **[SignalDB](/getting-started/)** | Reactive in-memory database with MongoDB-like queries, signal-based reactivity, storage adapters and backend-agnostic sync | MIT |
 | **[RxDB](https://rxdb.info/)** | Feature-rich NoSQL database with pluggable storages and a replication engine | Apache 2.0 core, paid Pro tiers |
 | **[Dexie.js](https://dexie.org/)** | Minimalistic wrapper for IndexedDB with live queries, optional Dexie Cloud sync service | Apache 2.0 (Dexie Cloud is a paid service with a free tier) |
 | **[PouchDB](https://pouchdb.com/)** | CouchDB-inspired database for the browser with built-in CouchDB sync | Apache 2.0 |
@@ -75,7 +75,7 @@ For a detailed one-to-one comparison with code examples, see [SignalDB vs RxDB](
 [Dexie.js](https://dexie.org/) is a minimalistic wrapper around IndexedDB. It queries IndexedDB directly using indexes, which makes it a good fit for large datasets that should not be held in memory. `liveQuery()` turns queries into observables, and `useLiveQuery()` integrates them into React. Sync is available through **Dexie Cloud**, a commercial service with a free tier that can also be self-hosted.
 
 **How SignalDB differs:**
-- **In memory vs. on disk**: SignalDB keeps collections in memory and persists them, which makes queries synchronous and very fast but means all data of a collection is loaded into memory. Dexie reads from IndexedDB on demand.
+- **In memory vs. on disk**: By default, SignalDB keeps collections in memory and persists them, which makes queries synchronous and very fast but means all data of a collection is loaded into memory; the `AsyncDataAdapter` answers queries from storage instead. Dexie reads from IndexedDB on demand.
 - **Queries**: SignalDB uses MongoDB-like selectors on any field. Dexie queries work through the indexes you declare in your schema.
 - **Sync**: SignalDB syncs with any backend through your own `pull`/`push` functions. Dexie's built-in sync is tied to Dexie Cloud.
 

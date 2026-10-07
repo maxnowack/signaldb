@@ -84,14 +84,20 @@ features:
 SignalDB is an open-source, **reactive local JavaScript database**. Your app keeps its data in collections on the client, queries them with a MongoDB-like API, and gets results that update automatically through the signals of the framework you already use. Data is persisted locally ([IndexedDB, OPFS, localStorage](/data-persistence/)) and synchronized with [any backend](/sync/) in the background.
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 
-const posts = new Collection({
-  persistence: createIndexedDBAdapter('posts'),
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { posts: ['published'] },
+  }),
 })
 
-posts.insert({ title: 'Hello SignalDB', published: true })
+const posts = new Collection('posts', dataAdapter)
+
+await posts.insert({ title: 'Hello SignalDB', published: true })
 posts.find({ published: true }).fetch() // reactive inside your framework's effects
 ```
 

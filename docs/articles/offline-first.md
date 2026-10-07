@@ -80,27 +80,39 @@ The table compares popular open-source databases you can use for offline-first J
 
 SignalDB is a reactive, local-first JavaScript database. Here is how it handles the challenges listed above.
 
-**1. Local persistence.** Every collection can be persisted with a [persistence adapter](/data-persistence/). Data is loaded into memory on start and written back on every change:
+**1. Local persistence.** Every collection is persisted through a [storage adapter](/data-persistence/) underneath its [data adapter](/data-adapters/). With the default data adapter, data is loaded into memory on start and written back on every change:
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 
-const todos = new Collection({
-  persistence: createIndexedDBAdapter('todos'),
+export const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: {
+      'todos': ['completed'],
+      // stores the SyncManager below keeps its change queue in
+      'app-changes': ['collectionName'],
+      'app-snapshots': ['collectionName'],
+      'app-sync-operations': ['collectionName', 'status'],
+    },
+  }),
 })
 
-todos.insert({ title: 'Buy milk', completed: false }) // works offline
+const todos = new Collection('todos', dataAdapter)
+
+await todos.insert({ title: 'Buy milk', completed: false }) // works offline
 ```
 
 **2. Change tracking and sync.** The [`SyncManager`](/reference/sync/) records every local change, persists the change queue (so it survives reloads while offline), and calls your `pull` and `push` functions when it syncs:
 
 ```js
 import { SyncManager } from '@signaldb/sync'
-import createIndexedDBAdapter from '@signaldb/indexeddb'
 
 const syncManager = new SyncManager({
-  persistenceAdapter: name => createIndexedDBAdapter(name),
+  id: 'app',
+  dataAdapter, // the same data adapter the collections use
   pull: async ({ apiPath }) => {
     const items = await fetch(apiPath).then(res => res.json())
     return { items }
@@ -130,11 +142,10 @@ The database layer is the same in every framework. Only the way query results re
 import { effect } from '@angular/core'
 import { Collection } from '@signaldb/core'
 import angularReactivityAdapter from '@signaldb/angular'
-import createIndexedDBAdapter from '@signaldb/indexeddb'
 
-const todos = new Collection({
+// dataAdapter is the one set up above
+const todos = new Collection('todos', dataAdapter, {
   reactivity: angularReactivityAdapter,
-  persistence: createIndexedDBAdapter('todos'),
 })
 
 effect((onCleanup) => {

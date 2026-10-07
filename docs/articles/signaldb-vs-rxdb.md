@@ -38,7 +38,7 @@ This page is written by the SignalDB maintainers. Information about RxDB was che
 | **Reactivity** | Signals of your framework via adapters (Angular, Solid, Vue, Preact, Svelte, MobX, …) | RxJS observables; custom reactivity factory for signals |
 | **Data model** | Schema-less document collections; optional validation via a `validate` event | Document collections with a required JSON Schema |
 | **Queries** | MongoDB-like selectors (powered by [mingo](https://github.com/kofrasa/mingo)), sort, projection, skip, limit | Mango (MongoDB-like) queries with indexes |
-| **Where queries run** | Against in-memory collections (synchronous) | Through the storage's query engine (asynchronous) |
+| **Where queries run** | Against in-memory collections (synchronous) by default; against storage or in a web worker with other data adapters | Through the storage's query engine (asynchronous) |
 | **Storage** | IndexedDB, OPFS, localStorage, file system; custom adapters | Many storages; IndexedDB (via Dexie.js) and memory are free, OPFS, SQLite and file system storages are in paid tiers |
 | **Sync** | Built-in sync engine; you implement `pull` and `push` for your API | Replication engine with plugins (HTTP, GraphQL, WebSocket, CouchDB, Firestore, MongoDB, WebRTC, …) |
 | **Conflicts** | Local changes are replayed on the latest server data; last change wins | Customizable conflict handler per collection |
@@ -55,13 +55,20 @@ The same task in both databases: a persisted todo collection, a reactive list of
 
 ```js
 import { effect } from '@preact/signals-core'
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import preactReactivityAdapter from '@signaldb/preact'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 
-const todos = new Collection({
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { todos: ['completed'] },
+  }),
+})
+
+const todos = new Collection('todos', dataAdapter, {
   reactivity: preactReactivityAdapter,
-  persistence: createIndexedDBAdapter('todos'),
 })
 
 effect(() => {
@@ -70,7 +77,7 @@ effect(() => {
   return () => cursor.cleanup()
 })
 
-todos.insert({ title: 'Buy milk', completed: false })
+await todos.insert({ title: 'Buy milk', completed: false })
 ```
 
 **RxDB** (with the free Dexie.js-based IndexedDB storage):
@@ -120,7 +127,7 @@ SignalDB is schema-less. You can add [validation](/schema-validation/) with any 
 
 ## Storage and Performance Model
 
-SignalDB loads each collection into memory and persists changes through a [persistence adapter](/data-persistence/). Queries are synchronous and run on the in-memory data, which makes them very fast and allows ad-hoc filters on any field. The trade-off: all documents of a collection must fit into memory. This works well for typical per-user datasets (thousands to tens of thousands of documents).
+With its default [data adapter](/data-adapters/), SignalDB loads each collection into memory and persists changes through a [storage adapter](/data-persistence/). Queries are synchronous and run on the in-memory data, which makes them very fast and allows ad-hoc filters on any field. The trade-off: all documents of a collection must fit into memory. This works well for typical per-user datasets (thousands to tens of thousands of documents). For larger datasets, the `AsyncDataAdapter` answers queries from storage instead of memory, and the `WorkerDataAdapter` moves the data layer into a web worker.
 
 RxDB queries go through its storage layer. Depending on the storage, data is read from IndexedDB, OPFS or SQLite on demand, with indexes defined in the schema. This scales to larger datasets, and RxDB offers performance plugins (memory-mapped storage, sharding, workers) for demanding cases; several of those are part of the paid tiers.
 
@@ -151,7 +158,7 @@ Both databases sync local changes with a backend, and neither requires a specifi
 
 Moving from RxDB to SignalDB mostly means:
 
-1. Creating a SignalDB [collection](/reference/core/collection/) for each RxDB collection, with a [persistence adapter](/data-persistence/) for storage.
+1. Creating a SignalDB [collection](/reference/core/collection/) for each RxDB collection, with a [storage adapter](/data-persistence/) underneath its [data adapter](/data-adapters/).
 2. Translating queries: RxDB's `{ selector: { … } }` becomes the selector itself in SignalDB's `find()`; `sort`, `skip` and `limit` move to the options object.
 3. Replacing observable subscriptions (`.$.subscribe`) with queries inside your framework's effects.
 4. Re-implementing replication as `pull` and `push` functions of the [`SyncManager`](/sync/).
@@ -173,4 +180,4 @@ No. SignalDB integrates with the signal or reactivity library you already use th
 
 ### Which is faster, SignalDB or RxDB?
 
-It depends on the workload. SignalDB queries in-memory data synchronously, which is very fast for datasets that fit in memory. RxDB with an indexed storage handles larger datasets without loading everything into memory. Benchmark with your own data and queries.
+It depends on the workload. With its default data adapter, SignalDB queries in-memory data synchronously, which is very fast for datasets that fit in memory. RxDB with an indexed storage handles larger datasets without loading everything into memory. Benchmark with your own data and queries.

@@ -135,18 +135,32 @@ This is the core idea of [offline-first](/offline-first/) and local-first apps: 
 [SignalDB](/getting-started/) is a reactive local database that implements this pattern. Queries run inside your framework's effects are reactive, so a local write updates the UI immediately:
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import { SyncManager } from '@signaldb/sync'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 import solidReactivityAdapter from '@signaldb/solid'
 
-const todos = new Collection({
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: {
+      'todos': [],
+      // stores the SyncManager keeps its change queue in
+      'app-changes': ['collectionName'],
+      'app-snapshots': ['collectionName'],
+      'app-sync-operations': ['collectionName', 'status'],
+    },
+  }),
+})
+
+const todos = new Collection('todos', dataAdapter, {
   reactivity: solidReactivityAdapter,
-  persistence: createIndexedDBAdapter('todos'),
 })
 
 const syncManager = new SyncManager({
-  persistenceAdapter: name => createIndexedDBAdapter(name),
+  id: 'app',
+  dataAdapter,
   pull: async ({ apiPath }) => ({ items: await fetch(apiPath).then(res => res.json()) }),
   push: async ({ apiPath }, { changes }) => {
     const response = await fetch(apiPath, { method: 'POST', body: JSON.stringify(changes) })
@@ -161,7 +175,7 @@ const syncManager = new SyncManager({
 syncManager.addCollection(todos, { name: 'todos', apiPath: '/api/todos' })
 
 // In your UI: the new todo appears instantly, before the server has answered
-todos.insert({ title: 'Write docs', completed: false })
+await todos.insert({ title: 'Write docs', completed: false })
 ```
 
 - **Instant updates everywhere**: every reactive query that matches the new todo re-runs, in every component.

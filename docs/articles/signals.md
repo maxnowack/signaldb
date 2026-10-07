@@ -215,13 +215,20 @@ Signals work well for individual values. Application data, however, is usually a
 
 ```js
 import { signal, effect } from '@preact/signals-core'
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import preactReactivityAdapter from '@signaldb/preact'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 
-const todos = new Collection({
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { todos: ['completed'] },
+  }),
+})
+
+const todos = new Collection('todos', dataAdapter, {
   reactivity: preactReactivityAdapter,
-  persistence: createIndexedDBAdapter('todos'),
 })
 
 const showCompleted = signal(false)
@@ -232,7 +239,7 @@ effect(() => {
   return () => cursor.cleanup()
 })
 
-todos.insert({ title: 'Write docs', completed: false }) // effect re-runs
+await todos.insert({ title: 'Write docs', completed: false }) // effect re-runs
 showCompleted.value = true // effect re-runs
 ```
 

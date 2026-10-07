@@ -156,27 +156,40 @@ Many apps combine them: settings in localStorage, data in IndexedDB or OPFS, and
 
 ## Browser Storage with SignalDB
 
-[SignalDB](/getting-started/) is a reactive local database that keeps collections in memory and persists them with a [persistence adapter](/data-persistence/). Switching the storage is a one-line change, and your queries, reactivity and sync code stay the same:
+[SignalDB](/getting-started/) is a reactive local database that keeps collections in memory and persists them with a [storage adapter](/data-persistence/). Switching the storage means handing the data adapter a different `storage` function, and your queries, reactivity and sync code stay the same:
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import createLocalStorageAdapter from '@signaldb/localstorage'
 import createIndexedDBAdapter from '@signaldb/indexeddb'
 import createOPFSAdapter from '@signaldb/opfs'
 
 // small collection in localStorage
-const settings = new Collection({ persistence: createLocalStorageAdapter('settings') })
+const localStorageData = new DefaultDataAdapter({
+  storage: name => createLocalStorageAdapter(name),
+})
+const settings = new Collection('settings', localStorageData)
 
 // application data in IndexedDB
-const todos = new Collection({ persistence: createIndexedDBAdapter('todos') })
+const indexedDBData = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: { todos: ['completed'] },
+  }),
+})
+const todos = new Collection('todos', indexedDBData)
 
-// application data as a file in OPFS
-const notes = new Collection({ persistence: createOPFSAdapter('notes.json') })
+// application data as files in OPFS
+const opfsData = new DefaultDataAdapter({
+  storage: name => createOPFSAdapter(name),
+})
+const notes = new Collection('notes', opfsData)
 
 todos.find({ completed: false }).fetch() // same query API for every storage
 ```
 
-Because queries run against the in-memory collection, they are synchronous and support MongoDB-like selectors on any field, regardless of which storage you choose. See the adapter references for [localStorage](/reference/localstorage/), [IndexedDB](/reference/indexeddb/) and [OPFS](/reference/opfs/), or [build your own adapter](/reference/core/createpersistenceadapter/).
+Because queries run against the in-memory collection, they are synchronous and support MongoDB-like selectors on any field, regardless of which storage you choose. See the adapter references for [localStorage](/reference/localstorage/), [IndexedDB](/reference/indexeddb/) and [OPFS](/reference/opfs/), or [build your own adapter](/reference/core/createstorageadapter/).
 
 ## Frequently Asked Questions
 
