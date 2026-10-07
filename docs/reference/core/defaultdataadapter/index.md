@@ -62,7 +62,7 @@ new DefaultDataAdapter(options?: {
 ```
 
 * `storage`: Called once per collection with the collection's name, and returns the [storage adapter](/data-persistence/) that collection persists to. Return `undefined` to keep a particular collection in memory only.
-* `onError`: Called when a background operation fails — a write that could not be persisted, for instance. Without it such an error has nowhere to go, so this is worth wiring up.
+* `onError`: Called when setting up a collection's storage adapter or loading its stored items fails; without it, the error is logged with `console.error`. The collection's `ready()` then rejects with the same error and `isReady()` stays `false`, while the collection keeps working in memory. A write whose storage operation fails rejects its own promise instead.
 
 ## Queries are synchronous
 

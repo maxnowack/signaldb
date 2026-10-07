@@ -151,6 +151,8 @@ export default class SyncManager<
       this.snapshots.ready(),
     ]
     this.collectionsReady = Promise.all(readiness).then(() => { /* noop */ })
+    // The data adapter has reported the failure; `isReady()` and `sync()` still reject with it.
+    this.collectionsReady.catch(() => { /* reported by the data adapter */ })
 
     this.changes.setMaxListeners(1000)
     this.snapshots.setMaxListeners(1000)
@@ -357,10 +359,13 @@ export default class SyncManager<
       removed: onRemoved,
     } as unknown as SyncListeners<ItemType, IdType>
 
+    const readyPromise = collection.ready()
+    // A collection that failed to load has reported it itself; `sync()` rejects with it.
+    readyPromise.catch(() => { /* reported by the data adapter */ })
     this.collections.set(options.name, {
       collection: collection as unknown as Collection<ItemType, IdType, any>,
       options,
-      readyPromise: collection.ready(),
+      readyPromise,
       syncPaused: true, // always start paused as the autostart will start it
       syncListeners,
     })

@@ -1453,7 +1453,7 @@ it('should fail if there was a persistence error during initialization', async (
   let persistenceInitialized = false
   void collection.ready().then(() => {
     persistenceInitialized = true
-  })
+  }, () => { /* asserted through sync() below */ })
 
   syncManager.addCollection(collection, { name: 'test' })
 
@@ -1461,12 +1461,13 @@ it('should fail if there was a persistence error during initialization', async (
   expect(persistenceInitialized).toBeFalsy()
   expect(persistenceError).toBeFalsy()
 
-  await expect(syncManager.sync('test')).resolves.toBeUndefined()
+  await expect(syncManager.sync('test')).rejects.toThrow('Persistence error')
 
   expect(errorHandler).toHaveBeenCalledWith('test', new Error('Persistence error'))
 
-  expect(mockPull).toHaveBeenCalled()
-  expect(persistenceInitialized).toBeTruthy()
+  // a collection whose stored data could not be loaded is not synced into
+  expect(mockPull).not.toHaveBeenCalled()
+  expect(persistenceInitialized).toBeFalsy()
   expect(persistenceError).toBeTruthy()
 })
 
@@ -2192,4 +2193,23 @@ it('should name its internal collections after the default id when no id is give
     'default-sync-manager-sync-operations',
   ])
   await syncManager.dispose()
+})
+
+it('should reject isReady when its internal collections cannot be loaded', async () => {
+  const onError = vi.fn()
+  const dataAdapter = new DefaultDataAdapter({
+    storage: () => ({
+      ...memoryStorageAdapter([]),
+      readAll: () => Promise.reject(new Error('storage unavailable')),
+    }),
+    onError,
+  })
+  const syncManager = new SyncManager<any, any>({
+    dataAdapter,
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+
+  await expect(syncManager.isReady()).rejects.toThrow('storage unavailable')
+  expect(onError).toHaveBeenCalled()
 })

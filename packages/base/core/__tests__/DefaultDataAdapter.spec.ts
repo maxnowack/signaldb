@@ -199,11 +199,34 @@ describe('DefaultDataAdapter', () => {
     const adapter = new DefaultDataAdapter({ storage: name => (name === 'err' ? persistence : undefined) })
     const c = new Collection<Item, string, Item>('err', adapter)
     const backend = adapter.createCollectionBackend<Item, string, Item>(c, [])
-    await backend.isReady()
+    await expect(backend.isReady()).rejects.toThrow('boom')
     expect(spy).toHaveBeenCalled()
     const message = (spy.mock.calls[0]?.[0] ?? '') as string
     expect(message).toContain('Error during storage operation in collection err')
     spy.mockRestore()
+  })
+
+  it('rejects ready() and stays not ready when loading from storage fails', async () => {
+    const storage = createStorageAdapter<Item, string>({
+      setup: async () => {},
+      teardown: async () => {},
+      readAll: () => Promise.reject(new Error('quota exceeded')),
+      readIds: async () => [],
+      createIndex: async () => {},
+      dropIndex: async () => {},
+      readIndex: async () => new Map(),
+      insert: async () => {},
+      replace: async () => {},
+      remove: async () => {},
+      removeAll: async () => {},
+    })
+    const onError = vi.fn()
+    const adapter = new DefaultDataAdapter({ storage: () => storage, onError })
+    const collection = new Collection<Item, string, Item>('failing-load', adapter)
+
+    await expect(collection.ready()).rejects.toThrow('quota exceeded')
+    expect(collection.isReady()).toBe(false)
+    expect(onError).toHaveBeenCalledWith('failing-load', expect.any(Error))
   })
 
   it('invokes onError option when persistence fails during setup', async () => {

@@ -92,7 +92,7 @@ The `AsyncDataAdapter` and the `AutoFetchDataAdapter` usually also pass the erro
 ## Console: "Error during storage operation in collection &lt;name&gt;"
 **Problem:** The console shows `Error during storage operation in collection <name>`, and data saved in an earlier session is missing.
 
-**Solution:** The `DefaultDataAdapter` logs this when the storage adapter of that collection failed to set up or to load the stored items. The collection carries on in memory without them. The logged error says what went wrong — often a storage quota, a blocked database upgrade or a corrupt record. To handle it yourself instead of logging it, pass `onError` to the adapter; it receives the collection name and the error:
+**Solution:** The `DefaultDataAdapter` logs this when the storage adapter of that collection failed to set up or to load the stored items. `collection.ready()` rejects with the same error and `isReady()` stays `false`; the collection keeps working in memory, but without the stored items, and a `SyncManager` refuses to sync it. The logged error says what went wrong — often a storage quota, a blocked database upgrade or a corrupt record. To handle it yourself instead of logging it, pass `onError` to the adapter; it receives the collection name and the error:
 
 ```js
 const dataAdapter = new DefaultDataAdapter({

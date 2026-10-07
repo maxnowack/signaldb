@@ -128,16 +128,15 @@ export default class DefaultDataAdapter implements DataAdapter {
       .then(async () => {
         await this.fetchItemsFromStorage(collection)
       })
-      .catch((error) => {
-        if (!this.options.onError) {
+      .catch((error: unknown) => {
+        const storageError = error instanceof Error ? error : new Error(String(error))
+        if (this.options.onError) {
+          this.options.onError(collection.name, storageError)
+        } else {
           // eslint-disable-next-line no-console
-          console.error(`Error during storage operation in collection ${collection.name}`, error)
-          return
+          console.error(`Error during storage operation in collection ${collection.name}`, storageError)
         }
-        this.options.onError(
-          collection.name,
-          error instanceof Error ? error : new Error(error as string),
-        )
+        throw storageError
       })
   }
 
@@ -353,6 +352,8 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.rebuildIndices(collection)
 
     const persistenceReadyPromise = this.setupStorageAdapter(collection)
+    // The failure has already gone to `onError`; `isReady()` still rejects for whoever awaits it.
+    persistenceReadyPromise.catch(() => { /* reported above */ })
 
     const backend: CollectionBackend<T, I> = {
       // CRUD operations

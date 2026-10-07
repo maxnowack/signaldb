@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `ready()` rejects, and `isReady()` stays `false`, when the `DefaultDataAdapter` cannot set up a collection's storage adapter or load its stored items. The error was only passed to `onError` (or logged), and `ready()` resolved as if the stored data had been loaded. If you await `ready()`, handle its rejection; the collection keeps working in memory.
 * Disposing one collection of a `WorkerDataAdapter` no longer ends the adapter for all of them. It terminated the worker and rejected every call of the other collections with `WorkerDataAdapter is disposed`; now only that collection is unregistered, and the worker is terminated once the last collection is disposed.
 * The `AutoFetchDataAdapter` answers a query on a newly observed selector only after the first fetch for it has settled. It answered from the local cache at once, so `isLoading()` turned `false` and an `{ async: true }` read resolved — usually to an empty list — before the remote items had arrived, and an application could not tell that list from a real answer. If the first fetch fails, the query now settles as failed instead of with the cached items.
 * The `AutoFetchDataAdapter` purges the items a selector fetched once its last observer is gone, also after `registerRemoteChange` fetched them again. Every refetch counted the items once more, while a purge released them once, so they were never removed.

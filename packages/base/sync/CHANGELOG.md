@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `sync()` rejects for a collection whose stored data could not be loaded, and `isReady()` rejects when the sync manager's own collections could not be loaded. Both used to proceed as if the data had been loaded, so a sync could compute its changes against an empty collection.
 * `isReady()` resolves only once the sync manager's own collections are ready. It resolved immediately, so a sync could start before the stored changes and snapshots had been loaded.
 * Remote changes delivered with data through `registerRemoteChange` are applied in the collection's sync queue. They could previously run at the same time as a sync of the same collection and interleave with it.
 
