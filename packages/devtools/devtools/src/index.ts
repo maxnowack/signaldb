@@ -12,7 +12,8 @@ Please don't import @signaldb/devtools in production code and move it to develop
 `
 
 /**
- * Loads the devtools in production mode and logs a warning if in production.
+ * Loads the devtools and enables debug mode for all collections. The devtools are loaded in
+ * production builds as well; a warning is logged in that case.
  */
 function loadDeveloperTools() {
   const isProduction = process.env.NODE_ENV === 'production'

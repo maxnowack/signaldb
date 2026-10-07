@@ -39,7 +39,7 @@ npm install --save-dev @signaldb/devtools
 
 ## Usage
 
-To load the developer tools, you need to import `@signaldb/devtools` somewhere in your frontend code. Make sure that it doesn't gets imported when running your code in production mode.
+To load the developer tools, you need to import `@signaldb/devtools` somewhere in your frontend code. Make sure that it doesn't get imported in production builds — see [Devtools in production](#devtools-in-production).
 
 Now you should see the SignalDB icon in the bottom left corner of your screen.
 You can open the developer tools by clicking on the icon or by pressing `Ctrl + Shift + S`.
@@ -62,7 +62,15 @@ Importing the package calls [`Collection.enableDebugMode()`](/reference/core/col
 :::
 
 ### Devtools in production
-Devtools are excluded in production builds. If you want them available in production anyway, import the package lazily behind something you control — a query parameter, a feature flag — so that neither the tools nor debug mode load for ordinary visitors:
+The package does not exclude itself from production builds. If it is imported there, it loads the tools, switches on debug mode for every collection and logs a warning to the console. Keep it out of production bundles by importing it only in development — with Vite, for instance:
+
+```ts
+if (import.meta.env.DEV) {
+  void import('@signaldb/devtools')
+}
+```
+
+If you want the tools available in production anyway, import the package lazily behind something you control — a query parameter, a feature flag — so that neither the tools nor debug mode load for ordinary visitors:
 
 ```ts
 if (new URLSearchParams(location.search).has('signaldb-devtools')) {
