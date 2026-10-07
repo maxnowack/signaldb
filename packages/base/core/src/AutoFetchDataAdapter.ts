@@ -11,6 +11,7 @@ import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
 import executeStorageQuery from './utils/executeStorageQuery'
+import createMemoryStorageAdapter from './utils/createMemoryStorageAdapter'
 
 /**
  * Default merge strategy: shallow spread (right wins)
@@ -39,8 +40,8 @@ function selectorId<T extends BaseItem>(selector: Selector<T>) {
  */
 export interface AutoFetchDataAdapterOptions {
   /**
-   * Factory to obtain a StorageAdapter per collection name. Required in practice: a collection
-   * without a storage adapter never becomes ready.
+   * Factory to obtain a StorageAdapter per collection name. Without it, fetched items are cached
+   * in memory only.
    */
   storage?: (name: string) => StorageAdapter<any, any>,
   /** Optional logical id (handy if you run multiple adapters side-by-side) */
@@ -128,6 +129,9 @@ export default class AutoFetchDataAdapter implements DataAdapter {
   private selectorIds: Map<string, Map<string, Set<any>>> = new Map() // per-collection: selectorKey -> Set<id>
   private idRefCounts: Map<string, Map<any, number>> = new Map() // per-collection: id -> refcount (for auto-fetched items)
   private autoloadIds: Map<string, Set<any>> = new Map() // per-collection: ids that were introduced via auto-fetch
+  // per-collection: selectorKey -> the first fetch for a newly observed selector, resolving to
+  // whether it succeeded. A query is not answered before it settles.
+  private firstFetches: Map<string, Map<string, Promise<boolean>>> = new Map()
 
   /**
    * Creates an `AutoFetchDataAdapter` and, if `registerRemoteChange` is given, calls it once to
@@ -174,6 +178,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     this.selectorIds.set(collection.name, new Map())
     this.idRefCounts.set(collection.name, new Map())
     this.autoloadIds.set(collection.name, new Set())
+    this.firstFetches.set(collection.name, new Map())
 
     const ready = this.setupStorage(collection.name, indices)
     this.storageAdapterReady.set(collection.name, ready)
@@ -206,7 +211,12 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
       // Kick async fetch on first observer
       if (current === 0) {
-        void this.fetchAndIngest(collection.name, selector).catch(this.onError)
+        const fetches = this.firstFetches.get(collection.name)
+        const firstFetch = this.fetchAndIngest(collection.name, selector)
+          .finally(() => {
+            if (fetches?.get(key) === firstFetch) fetches.delete(key)
+          })
+        fetches?.set(key, firstFetch)
       }
 
       // Also compute the current local result for immediate availability
@@ -342,6 +352,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
         this.selectorIds.delete(collection.name)
         this.idRefCounts.delete(collection.name)
         this.autoloadIds.delete(collection.name)
+        this.firstFetches.delete(collection.name)
       },
 
       isReady: async () => {
@@ -353,7 +364,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
   // ===== Auto-fetch mechanics =====
 
   private async forceRefetchAll() {
-    const tasks: Promise<void>[] = []
+    const tasks: Promise<boolean>[] = []
     for (const [collectionName, observers] of this.activeObservers.entries()) {
       for (const { selector, count } of observers.values()) {
         if (count > 0) tasks.push(this.fetchAndIngest(collectionName, selector))
@@ -372,16 +383,20 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     try {
       const items = await this.fetchQueryItems(collectionName, selector) as T[] | undefined
       if (!items || !Array.isArray(items)) {
-        throw new Error('AutoFetchDataAdapter: fetchQueryItems must resolve to { items: T[] }')
+        throw new Error('AutoFetchDataAdapter: fetchQueryItems must resolve to an array of items')
       }
 
-      const ids = items.map(i => i.id)
-
-      // Track selector->ids for purge calculations
+      // Track selector->ids for purge calculations. An id counts one reference per selector that
+      // fetched it, however often that selector is fetched again, because a purge releases it once.
       const selectorKey = selectorId(selector)
       const selMap = this.selectorIds.get(collectionName)
       const previous = selMap?.get(selectorKey) ?? new Set<I>()
-      ids.forEach(id => previous.add(id))
+      const referenceMap = this.idRefCounts.get(collectionName)
+      items.forEach(({ id }) => {
+        if (previous.has(id)) return
+        previous.add(id)
+        referenceMap?.set(id, (referenceMap.get(id) ?? 0) + 1)
+      })
       selMap?.set(selectorKey, previous)
 
       // Ingest via upsert (merge when existing)
@@ -389,9 +404,11 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
       // push updates to any queries that might be affected
       await this.checkQueryUpdates(collectionName, items)
+      return true
     } catch (error) {
       this.publishForSelector(collectionName, selector, 'error', error as Error)
       this.onError(error as Error)
+      return false
     }
   }
 
@@ -449,7 +466,9 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
   private ensureStorageAdapter(name: string) {
     if (this.storageAdapters.has(name)) return
-    const adapter = this.options.storage && this.options.storage(name)
+    const adapter = this.options.storage
+      ? this.options.storage(name)
+      : createMemoryStorageAdapter()
     if (!adapter) return
     this.storageAdapters.set(name, adapter)
   }
@@ -507,6 +526,11 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     const rec = registry.get(qid)
     if (!rec) return
 
+    // Answering from the local cache before the remote source has would publish a stale result
+    // as if it were the answer. A failed fetch has already published 'error' for this selector.
+    const firstFetch = this.firstFetches.get(collectionName)?.get(selectorId(selector))
+    if (firstFetch && !await firstFetch) return
+
     this.publishState(collectionName, qid, 'active', null)
 
     try {
@@ -554,9 +578,12 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     if (!registry) throw new Error(`Collection ${collectionName} not initialized!`)
     if (registry.size === 0) return
 
-    // Find active queries whose selector matches at least one changed item
+    // Find active queries whose selector matches at least one changed item. A query still waiting
+    // for its first fetch is answered by `fulfillQuery` once that fetch has settled.
+    const firstFetches = this.firstFetches.get(collectionName)
     const affected = [...registry.values()].filter(({ selector }) =>
-      changedItems.some(item => match(item, selector)),
+      !firstFetches?.has(selectorId(selector))
+      && changedItems.some(item => match(item, selector)),
     )
     if (affected.length === 0) return
 
@@ -733,7 +760,6 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     const toInsert: T[] = []
     const toReplace: T[] = []
 
-    const referenceMap = this.idRefCounts.get(collectionName)
     const autoload = this.autoloadIds.get(collectionName)
 
     for (const item of incoming) {
@@ -743,9 +769,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       } else {
         toInsert.push(item)
       }
-      // mark as auto-fetched and bump refcount
       autoload?.add(item.id)
-      referenceMap?.set(item.id, (referenceMap?.get(item.id) ?? 0) + 1)
     }
 
     if (toInsert.length > 0) await storage.insert(toInsert)

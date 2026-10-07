@@ -199,8 +199,8 @@ const Posts = new Collection('posts', dataAdapter)
 ```
 
 * `storage` is the local cache the fetched items are written to and every query
-  is answered from. The type marks it optional, but every operation needs it —
-  without it they fail with `No storage adapter for collection <name>`.
+  is answered from. Leave it out and the items are cached in memory, so nothing
+  survives a reload.
 * `fetchQueryItems(collectionName, selector)` is called when a selector is
   registered by its first observer. It must resolve to an array of items; an
   item that already exists locally is combined with the fetched one through
@@ -214,9 +214,14 @@ const Posts = new Collection('posts', dataAdapter)
   not been purged yet fetched them as well. Only items a fetch delivered are purged — even if you have
   written to them since; an item that only ever came from your own writes stays.
 
-A query is answered from the local cache first, and the fetched items arrive
-afterwards as an ordinary update. `isLoading()` and an `{ async: true }` read
-reflect that first, local answer — they do not wait for the fetch.
+A query on a selector that is not observed yet is answered once its first fetch
+has settled: until then `isLoading()` is `true` and the cursor serves its
+neutral empty result, and an `{ async: true }` read resolves after the fetched
+items have been stored. The answer then comes from the local cache, which holds
+the fetched items alongside everything stored earlier. If that fetch fails, the
+query settles as failed — see `onError` and the collection's `query.error`
+event. Later fetches of the same selector, triggered by `registerRemoteChange`,
+arrive as ordinary updates.
 
 [Reference →](/reference/core/autofetchdataadapter/)
 

@@ -69,7 +69,7 @@ A write you neither await nor give a `.catch()` turns its failure into an unhand
 ## Error: "No storage adapter for collection &lt;name&gt;"
 **Problem:** Operations on a collection fail with `No storage adapter for collection <name>`.
 
-**Solution:** The `AsyncDataAdapter`, the `AutoFetchDataAdapter` and the `WorkerDataAdapterHost` read and write everything through a storage adapter, and this collection has none. Check that the `storage` option is set and that the function returns a storage adapter for *this* collection's name — a factory that only knows some names returns `undefined` for the others. The `AutoFetchDataAdapter` accepts a missing `storage` option at construction, but cannot do anything without it. The error also appears for operations that were still running when the collection was disposed. (The `DefaultDataAdapter` never throws it: without storage it simply keeps the collection in memory.)
+**Solution:** The `AsyncDataAdapter`, the `AutoFetchDataAdapter` and the `WorkerDataAdapterHost` read and write everything through a storage adapter, and this collection has none. Check that the `storage` option is set and that the function returns a storage adapter for *this* collection's name — a factory that only knows some names returns `undefined` for the others. (Leaving the option out altogether is fine for the `AutoFetchDataAdapter`, which then caches in memory.) The error also appears for operations that were still running when the collection was disposed. (The `DefaultDataAdapter` never throws it: without storage it simply keeps the collection in memory.)
 
 ## A list is empty although there is data
 **Problem:** A reactive query renders an empty list or a count of zero, at least for a moment, even though matching items exist.

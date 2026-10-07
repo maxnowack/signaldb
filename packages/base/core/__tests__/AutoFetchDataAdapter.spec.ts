@@ -35,11 +35,7 @@ describe('AutoFetchDataAdapter', () => {
     const col = new Collection<Post>('posts', adapter, { indices: ['type'] })
     await col.ready()
 
-    // First async fetch resolves local snapshot (empty), remote ingest happens afterwards
-    const first = await col.find({}, { async: true }).fetch()
-    expect(first).toEqual([])
-    // Allow auto-fetch to complete and ingest results
-    await Promise.resolve()
+    // The first async fetch resolves once the remote items have been ingested
     const all = await col.find({}, { async: true }).fetch()
     expect(all).toEqual(remote)
 

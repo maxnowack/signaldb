@@ -74,7 +74,7 @@ new AutoFetchDataAdapter(options: {
 ```
 
 * `fetchQueryItems`: Retrieves the items matching a selector from the remote source. Required. It resolves to an array of items, each of which **must** carry an `id`. Resolving to `undefined` — or anything that is not an array — counts as a failed fetch: the queries for that selector are put into the error state and `onError` is called.
-* `storage`: Called once per collection with the collection's name, and returns the [storage adapter](/data-persistence/) fetched items are cached in. Optional in the type, but needed in practice: a collection without a storage adapter never becomes ready.
+* `storage`: Called once per collection with the collection's name, and returns the [storage adapter](/data-persistence/) fetched items are cached in. Optional: without it, the fetched items are cached in memory and do not survive a reload.
 * `id`: A logical name, handy when several adapters run side by side.
 * `onError`: Called when a fetch fails.
 * `registerRemoteChange`: Called once at construction. Invoke the callback it hands you whenever the remote source changed and every active query should be re-fetched — a websocket message, a server-sent event.
