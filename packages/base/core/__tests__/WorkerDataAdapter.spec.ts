@@ -734,6 +734,7 @@ describe('WorkerDataAdapter', () => {
       await backend.isReady()
       await backend.dispose()
       await expect(backend.insert({ id: '1', name: 'Alice' })).rejects.toThrow('WorkerDataAdapter is disposed')
+      await expect(backend.executeQuery({}, {})).rejects.toThrow('WorkerDataAdapter is disposed')
     })
   })
 

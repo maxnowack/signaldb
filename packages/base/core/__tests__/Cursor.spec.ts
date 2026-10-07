@@ -222,7 +222,7 @@ describe('Cursor', async () => {
     })
 
     it('should apply transform only to the item passed to changedField', async () => {
-      const col = new Collection<TestItem, number, { label: string }>({
+      const col = new Collection<TestItem, number, TestItem, { label: string }>({
         transform: item => ({ label: `#${item.id} ${item.name}` }),
       })
       await Promise.all(items.map(item => col.insert(item)))
