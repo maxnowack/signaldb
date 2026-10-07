@@ -52,11 +52,26 @@ index inside that store.
 
 ### Parameters
 
-- `options` - Configuration object with the following properties:
+- `options` - An `IndexedDBOptions` object (exported as a type from `@signaldb/indexeddb`):
+
+  ```ts
+  type IndexedDBOptions = {
+    databaseName?: string,
+    version: number,
+    schema: Record<string, string[]>,
+    onUpgrade?: (
+      database: IDBDatabase,
+      transaction: IDBTransaction,
+      oldVersion: number,
+      newVersion: number | null,
+    ) => Promise<void>,
+  }
+  ```
+
   - `databaseName` - (Optional) The name of the IndexedDB database. Default is `'signaldb'`.
-  - `version` - The version of the database schema. Raise it whenever you change `schema`.
-  - `schema` - An object describing the stores. Keys are store names, values are the fields to index in that store.
-  - `onUpgrade` - (Optional) Callback `(database, transaction, oldVersion, newVersion)` invoked during a version upgrade, before SignalDB reconciles the stores.
+  - `version` - The version of the database schema, passed to `indexedDB.open()`. Raise it whenever you change `schema`; the stores are only reconciled during a version upgrade.
+  - `schema` - An object describing the stores. Keys are store names, values are the fields to index in that store. Every store uses `id` as its key path, so `id` never needs to be listed.
+  - `onUpgrade` - (Optional) Async callback `(database, transaction, oldVersion, newVersion)` invoked during a version upgrade, before SignalDB reconciles the stores. The upgrade waits for the returned promise.
 
 Stores present in the database but absent from `schema` are dropped on upgrade,
 so the schema is the complete description of what the database holds.
@@ -113,3 +128,52 @@ const Authors = new Collection('authors', dataAdapter)
 The fields you list in the store's `schema` entry and the collection's
 `indices` describe the same thing from two sides: the store has to carry the
 index, and the collection has to know it may use it.
+
+### Using it with a `SyncManager`
+
+When you pass the same data adapter to a [`SyncManager`](/reference/sync/)
+from `@signaldb/sync`, the sync manager stores its own bookkeeping in three
+collections of that data adapter, named after its `id`. Each of them needs a
+store in `schema`, with these indices:
+
+| Store | Indices |
+|---|---|
+| `<id>-changes` | `collectionName` |
+| `<id>-snapshots` | `collectionName` |
+| `<id>-sync-operations` | `collectionName`, `status` |
+
+Always set `id` explicitly when you persist the sync manager's data, so the
+store names are under your control:
+
+```js
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
+import createIndexedDBAdapter from '@signaldb/indexeddb'
+import { SyncManager } from '@signaldb/sync'
+
+const dataAdapter = new DefaultDataAdapter({
+  storage: createIndexedDBAdapter({
+    databaseName: 'my-app',
+    version: 1,
+    schema: {
+      'posts': [],
+      'app-changes': ['collectionName'],
+      'app-snapshots': ['collectionName'],
+      'app-sync-operations': ['collectionName', 'status'],
+    },
+  }),
+})
+
+const Posts = new Collection('posts', dataAdapter)
+
+const syncManager = new SyncManager({
+  id: 'app',
+  dataAdapter,
+  pull: async () => { /* … */ },
+  push: async () => { /* … */ },
+})
+syncManager.addCollection(Posts, { name: 'posts' })
+```
+
+Because stores that are missing from `schema` are dropped on upgrade, leaving
+these entries out also discards the sync manager's record of unsynced changes
+the next time you raise `version`.

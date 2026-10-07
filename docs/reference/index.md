@@ -32,6 +32,7 @@ SignalDB consists of several packages of which each has indiviudal exports.
 
 * [`Collection`](/reference/core/collection/)
 * [`Cursor`](/reference/core/cursor/)
+* [`reactiveTransaction`](/reference/core/reactivetransaction/)
 * [`DataAdapter`](/reference/core/dataadapter/)
 * [`DefaultDataAdapter`](/reference/core/defaultdataadapter/)
 * [`AsyncDataAdapter`](/reference/core/asyncdataadapter/)

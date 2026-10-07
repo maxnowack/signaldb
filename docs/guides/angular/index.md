@@ -51,10 +51,10 @@ npm install @signaldb/angular
 With SignalDB installed, you’ll now set up a collection and configure the reactivity adapter for Angular:
 
 ```js
-import { Collection } from '@signaldb/core';
+import { Collection, DefaultDataAdapter } from '@signaldb/core';
 import angularReactivityAdapter from '@signaldb/angular';
 
-const Posts = new Collection<{ id: string, title: string, author: string }>({
+const Posts = new Collection<{ id: string, title: string, author: string }>('posts', new DefaultDataAdapter(), {
   reactivity: angularReactivityAdapter,
 });
 ```
@@ -68,10 +68,10 @@ Let’s now create an Angular component that uses SignalDB to display and manage
 ```typescript
 import { Component, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Collection } from '@signaldb/core';
+import { Collection, DefaultDataAdapter } from '@signaldb/core';
 import angularReactivityAdapter from '@signaldb/angular';
 
-const Posts = new Collection<{ id: string, title: string, author: string }>({
+const Posts = new Collection<{ id: string, title: string, author: string }>('posts', new DefaultDataAdapter(), {
   reactivity: angularReactivityAdapter,
 });
 

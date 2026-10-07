@@ -33,25 +33,25 @@ SignalDB is designed to handle synchronization efficiently and flexibly, making 
 
 ### High-Level Overview
 
-In SignalDB, synchronization is managed by the [`SyncManager`](/reference/sync/#syncmanager-default) class, which is central to the framework's ability to maintain data consistency. The [`SyncManager`](/reference/sync/#syncmanager-default) is responsible for coordinating the synchronization process for multiple collections, pulling and pushing data as needed. This centralization provides several key benefits:
+In SignalDB, synchronization is managed by the [`SyncManager`](/reference/sync/#syncmanager) class, which is central to the framework's ability to maintain data consistency. The [`SyncManager`](/reference/sync/#syncmanager) is responsible for coordinating the synchronization process for multiple collections, pulling and pushing data as needed. This centralization provides several key benefits:
 
 - **Flexibility**: SignalDB's sync mechanism is designed to work with any backend system, from REST APIs to GraphQL and beyond. This flexibility means you can integrate SignalDB with virtually any data source without worrying about compatibility issues.
 
-- **Efficiency**: Instead of handling synchronization for each collection separately, the [`SyncManager`](/reference/sync/#syncmanager-default) allows you to manage sync operations for all collections from a single instance. This streamlined approach simplifies the development process, reducing the need for repetitive code and minimizing potential synchronization errors.
+- **Efficiency**: Instead of handling synchronization for each collection separately, the [`SyncManager`](/reference/sync/#syncmanager) allows you to manage sync operations for all collections from a single instance. This streamlined approach simplifies the development process, reducing the need for repetitive code and minimizing potential synchronization errors.
 
 ### Role of the SyncManager
 
 The `SyncManager` class plays a pivotal role in SignalDB by:
 
-- **Managing Multiple Collections**: A single [`SyncManager`](/reference/sync/#syncmanager-default) instance can oversee the sync operations for multiple collections simultaneously. This centralized management ensures that changes in one collection can be synchronized with others effectively and efficiently.
+- **Managing Multiple Collections**: A single [`SyncManager`](/reference/sync/#syncmanager) instance can oversee the sync operations for multiple collections simultaneously. This centralized management ensures that changes in one collection can be synchronized with others effectively and efficiently.
 
-- **Improving Developer Experience**: By handling synchronization through one class instance, SignalDB enhances developer experience. You no longer need to call sync functions for each collection individually. Instead, you can manage all sync operations through the [`SyncManager`](/reference/sync/#syncmanager-default), which takes care of coordinating and executing these tasks behind the scenes.
+- **Improving Developer Experience**: By handling synchronization through one class instance, SignalDB enhances developer experience. You no longer need to call sync functions for each collection individually. Instead, you can manage all sync operations through the [`SyncManager`](/reference/sync/#syncmanager), which takes care of coordinating and executing these tasks behind the scenes.
 
 - **Conflict Resolution**: SignalDB provides built-in conflict resolution mechanisms to handle situations where data conflicts occur during synchronization. Conflict resolution ensures that the most recent changes are preserved, while maintaining data consistency across all collections.
 
-- **Queueing Sync Operations**: The [`SyncManager`](/reference/sync/#syncmanager-default) queues sync operations to ensure that they are executed in the correct order. This is particularly important when dealing with interdependent collections or when sync operations have dependencies on each other.
+- **Queueing Sync Operations**: The [`SyncManager`](/reference/sync/#syncmanager) queues sync operations to ensure that they are executed in the correct order. This is particularly important when dealing with interdependent collections or when sync operations have dependencies on each other.
 
-- **Debouncing Pushes**: To optimize network usage and minimize unnecessary data transfers, the [`SyncManager`](/reference/sync/#syncmanager-default) debounces push operations. This means that multiple push operations for the same collection are merged into a single operation, reducing the number of network requests and improving performance.
+- **Debouncing Pushes**: To optimize network usage and minimize unnecessary data transfers, the [`SyncManager`](/reference/sync/#syncmanager) debounces push operations. This means that multiple push operations for the same collection are merged into a single operation, reducing the number of network requests and improving performance.
 
 This approach not only simplifies your codebase but also helps maintain consistency and reliability across your application's data.
 
@@ -104,7 +104,7 @@ SignalDB's synchronization mechanism is inherently backend-agnostic. This means 
 
 ### Abstracting Server Interaction
 
-Central to this flexibility are the `pull` and `push` functions within the [`SyncManager`](/reference/sync/#syncmanager-default). These functions act as intermediaries between your application and the backend, abstracting the details of data retrieval and submission. This design ensures that:
+Central to this flexibility are the `pull` and `push` functions within the [`SyncManager`](/reference/sync/#syncmanager). These functions act as intermediaries between your application and the backend, abstracting the details of data retrieval and submission. This design ensures that:
 
 - **Pull Function**: Retrieves data from the server. You can define how data is fetched, whether it’s through a REST API call, a GraphQL query, or another method. This flexibility allows you to adapt to various server architectures with minimal effort.
 
@@ -204,11 +204,11 @@ This page describes how remote synchronization could be implemented on the front
 
 ### Creating a [`SyncManager`](/reference/sync/)
 
-The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a [`SyncManager`](/reference/sync/#syncmanager-default) instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic.
+The `SyncManager` is the main class that handles synchronization. To get started with implementing synchronization in your app, you need to create a [`SyncManager`](/reference/sync/#syncmanager) instance. The `SyncManager` constructor takes an option object as the first and only parameter. This object contains the methods for your `pull` and `push` logic.
 
-It also takes a `dataAdapter`. The sync manager keeps three collections of its own — snapshots, changes and sync operations — and that is where they live. Pass the same [data adapter](/data-adapters/) your own collections use, so the bookkeeping is stored alongside your data. Leave it out and it defaults to an in-memory adapter: synchronization works, but a reload loses the record of what was already pushed.
+It also takes a `dataAdapter`. The sync manager keeps three collections of its own — snapshots, changes and sync operations — and that is where they live. Pass the same [data adapter](/data-adapters/) your own collections use, so the bookkeeping is stored alongside your data. Leave it out and it defaults to an in-memory adapter: synchronization works, but a reload loses the record of what was already pushed. With [`@signaldb/indexeddb`](/reference/indexeddb/), the database `schema` has to contain the sync manager's stores as well — see [Using it with a `SyncManager`](/reference/indexeddb/#using-it-with-a-syncmanager).
 
-A `reactivity` adapter makes some of the functions provided by the [`SyncManager`](/reference/sync/#syncmanager-default) reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the [`SyncManager`](/reference/sync/#syncmanager-default) about remote changes.
+A `reactivity` adapter makes some of the functions provided by the [`SyncManager`](/reference/sync/#syncmanager) reactive (e.g. `isSyncing()`). There is also a `registerRemoteChange` method that can be used to register a method for notifying the [`SyncManager`](/reference/sync/#syncmanager) about remote changes.
 
 ```ts
 import { DefaultDataAdapter } from '@signaldb/core'
@@ -302,7 +302,7 @@ const syncManager = new SyncManager({
     }))
 
     // there is also the changes.modifiedFields property that contains the modified fields per item id if you prefer PATCH requests
-    await Promise.all(changes.modifiedFields.keys().map(async (itemId) => {
+    await Promise.all([...changes.modifiedFields.keys()].map(async (itemId) => {
       const fields = changes.modifiedFields.get(itemId)
       const item = changes.modified.find(item => item.id === itemId)
       const change = fields.reduce((memo, field) => {

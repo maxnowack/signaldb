@@ -51,10 +51,10 @@ npm install @signaldb/svelte
 Once you’ve installed SignalDB, the next step is to set up your collections. Here's how you can define a `Posts` collection with the reactivity configuration for Svelte:
 
 ```js
-import { Collection } from "@signaldb/core";
+import { Collection, DefaultDataAdapter } from "@signaldb/core";
 import svelteReactivityAdapter from "@signaldb/svelte";
 
-const Posts = new Collection({
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: svelteReactivityAdapter,
 });
 
@@ -69,17 +69,17 @@ Now let's create a component that lists posts and allows the user to add new one
 
 ```svelte
 <script>
-  import { Collection } from "@signaldb/core";
+  import { Collection, DefaultDataAdapter } from "@signaldb/core";
   import svelteReactivityAdapter from "@signaldb/svelte";
 
-  const Posts = new Collection({
+  const Posts = new Collection('posts', new DefaultDataAdapter(), {
     reactivity: svelteReactivityAdapter,
   });
 
   let items = $derived(Posts.find({}).fetch());
 </script>
 
-<button onclick={() => { void Posts.insert({ title: 'Post', author: 'Author' }) }}>
+<button onclick={async () => { await Posts.insert({ title: 'Post', author: 'Author' }) }}>
   Add Post
 </button>
 
@@ -104,12 +104,9 @@ When using SignalDB with Svelte 5 in applications that utilize web workers, the 
 
 To solve this issue, specify the reactivity adapter only if you're not in a web worker environment:
 
-Then use this adapter in your collection setup:
-
 ```js
-import { Collection } from "@signaldb/core";
+import { Collection, DefaultDataAdapter } from "@signaldb/core";
 import svelteReactivityAdapter from "@signaldb/svelte";
-import { svelteReactivityAdapter } from "./your-adapter-file";
 
 // Check if we're in a web worker
 const isWebWorker =
@@ -117,7 +114,7 @@ const isWebWorker =
   typeof WorkerGlobalScope !== "undefined" &&
   self instanceof WorkerGlobalScope;
 
-const Posts = new Collection({
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: isWebWorker ? undefined : svelteReactivityAdapter,
 });
 ```

@@ -40,10 +40,11 @@ The following storage adapters are currently available:
 - [localStorage](/reference/localstorage/)
 - [OPFS](/reference/opfs/)
 - [FileSystem](/reference/fs/)
+- [Generic file system](/reference/generic-fs/) — the foundation behind the FileSystem and OPFS adapters, for building your own file-based storage
 
 A storage adapter is reached through a [data adapter](/data-adapters/), which is what decides *where* the data operations run.
 
-Building your own storage adapter for your speicific use case is also possible and pretty straight forward.
+Building your own storage adapter for your specific use case is also possible and pretty straightforward.
 See [`createStorageAdapter`](/reference/core/createstorageadapter/) for more information.
 
 ## Why query semantics stay in SignalDB
@@ -108,7 +109,16 @@ So for anything that keeps growing, declare the fields you actually select on
 as indices when you create the collection:
 
 ```ts
-const posts = new Collection({ indices: ['authorId', 'status'] })
+import { AsyncDataAdapter, Collection } from '@signaldb/core'
+import createFilesystemAdapter from '@signaldb/fs'
+
+const dataAdapter = new AsyncDataAdapter({
+  storage: name => createFilesystemAdapter(`./data/${name}`),
+})
+
+const posts = new Collection('posts', dataAdapter, {
+  indices: ['authorId', 'status'],
+})
 ```
 
 Selecting a single item by `id` needs no index. It is resolved directly through

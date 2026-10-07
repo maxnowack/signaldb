@@ -19,26 +19,26 @@ head:
   - name: description
     content: Learn how to use the Filesystem Adapter in SignalDB for data persistence in a Node.js environment.
 - - meta
-  - name: kewords
+  - name: keywords
     content: SignalDB, Filesystem Adapter, data persistence, Node.js, JSON files
 ---
 # @signaldb/fs
 
-## createFileSystemAdapter (`default`)
+## createFilesystemAdapter (`default`)
 
 ```js
 import { Collection, DefaultDataAdapter } from '@signaldb/core'
-import createFileSystemAdapter from '@signaldb/fs'
+import createFilesystemAdapter from '@signaldb/fs'
 
 const dataAdapter = new DefaultDataAdapter({
-  storage: name => createFileSystemAdapter(`./data/${name}`),
+  storage: name => createFilesystemAdapter(`./data/${name}`),
 })
 
 const Posts = new Collection('posts', dataAdapter)
 ```
 
 Function to create a file system adapter for use with a collection.
-In a Node.js environment, we don't have access to local storage for data preservation. Instead, we resort to saving our data as plain JSON files, which effectively serves as a way to persist collection items.
+In a Node.js environment there is no browser storage to persist data in, so this adapter stores each collection in a folder on disk (see [Layout on disk](#layout-on-disk) below). Every file is written with `serialize` (JSON by default).
 
 A data adapter asks its `storage` function for one adapter per collection and
 passes the collection's name, which is why the function above derives the

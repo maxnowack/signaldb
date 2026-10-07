@@ -65,10 +65,10 @@ To use SignalDB in your React project, you need to set up your collections and t
 
 ```js
 // Posts.js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import maverickReactivityAdapter from '@signaldb/maverickjs'
 
-const Posts = new Collection({
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: maverickReactivityAdapter,
 })
 

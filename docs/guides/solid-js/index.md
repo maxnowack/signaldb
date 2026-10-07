@@ -52,10 +52,10 @@ To integrate SignalDB into your Solid project, define your collections and confi
 
 ```js
 // Posts.js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import solidReactivityAdapter from '@signaldb/solid'
 
-const Posts = new Collection({
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: solidReactivityAdapter,
 })
 
@@ -73,7 +73,7 @@ import Posts from './Posts'
 const PostList = () => (
   <ul>
     <li>
-      <button type="button" onClick={() => { void Posts.insert({ title: 'Test', author: 'Test' }) }}>
+      <button type="button" onClick={async () => { await Posts.insert({ title: 'Test', author: 'Test' }) }}>
         Add
       </button>
     </li>

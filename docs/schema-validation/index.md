@@ -38,9 +38,9 @@ Although SignalDB is schema-less by design, it provides a mechanism to validate 
 Below is an example of how to register a simple validation for a collection:
 
 ```js
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 
-const Posts = new Collection()
+const Posts = new Collection('posts', new DefaultDataAdapter())
 
 // Register a validation handler that ensures each post has a 'title'
 Posts.on('validate', (post) => {
@@ -62,14 +62,14 @@ For more robust validation, you can integrate a library like [Zod](https://zod.d
 
 ```ts
 import { Collection } from '@signaldb/core'
-import type { CollectionOptions } from '@signaldb/core'
+import type { BaseItem, CollectionOptions, DataAdapter } from '@signaldb/core'
 import type { ZodSchema, infer as ZodInfer } from 'zod'
 
 interface SchemaCollectionOptions<
   T extends ZodSchema<BaseItem<I>>,
   I,
   U = ZodInfer<T>,
-> extends CollectionOptions<ZodInfer<T>, I, U> {
+> extends CollectionOptions<ZodInfer<T>, I, ZodInfer<T>, U> {
   schema: T,
 }
 
@@ -77,11 +77,15 @@ class SchemaCollection<
   T extends ZodSchema<BaseItem<I>>,
   I = any,
   U = ZodInfer<T>,
-> extends Collection<ZodInfer<T>, I, U> {
+> extends Collection<ZodInfer<T>, I, ZodInfer<T>, U> {
   private schema: T
 
-  constructor(options: SchemaCollectionOptions<T, I, U>) {
-    super(options)
+  constructor(
+    name: string,
+    dataAdapter: DataAdapter,
+    options: SchemaCollectionOptions<T, I, U>,
+  ) {
+    super(name, dataAdapter, options)
     this.schema = options.schema
 
     // Automatically validate each item against the Zod schema before saving
@@ -95,9 +99,10 @@ class SchemaCollection<
 You can now create a collection with schema validation using `SchemaCollection`:
 
 ```ts
+import { DefaultDataAdapter } from '@signaldb/core'
 import { z } from 'zod'
 
-const Posts = new SchemaCollection({
+const Posts = new SchemaCollection('posts', new DefaultDataAdapter(), {
   schema: z.object({
     title: z.string(),
     content: z.string(),

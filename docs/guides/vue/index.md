@@ -53,10 +53,10 @@ After installing SignalDB, set up your collections and configure the reactivity 
 ```vue
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
-import { Collection } from '@signaldb/core'
+import { Collection, DefaultDataAdapter } from '@signaldb/core'
 import vueReactivityAdapter from '@signaldb/vue'
 
-const Posts = new Collection({
+const Posts = new Collection('posts', new DefaultDataAdapter(), {
   reactivity: vueReactivityAdapter,
 })
 
@@ -76,7 +76,7 @@ async function addPost() {
 In this code, we create a `Posts` collection using the Vue reactivity adapter. The `items` array is kept in sync with the collection using `watchEffect`.
 
 ::: info
-The API of Vue doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean-optional).
+The API of Vue doesn't allow [automatic cleanup](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional) nor [reactive scope checking](/reference/core/createreactivityadapter/#isinscope-boolean-optional).
 In Vue, the function passed to the `watchEffect()` function gets a `onCleanup` callback that can be used to cleanup the effect. You have to use this to cleanup the cursor manually (see example above).
 
 You also must manually disable reactivity when making calls outside your `watchEffect()` function to avoid memory leaks. You can do this by passing `{ reactive: false }` to your options (e.g. `<collection>.find({ ... }, { reactive: false })`).

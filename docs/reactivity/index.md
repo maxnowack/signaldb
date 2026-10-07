@@ -47,7 +47,7 @@ SignalDB harnesses signals, derived from functional reactive programming, to man
 By providing a smooth, responsive user experience, SignalDB ensures that user interactions remain at the forefront of modern web design and functionality.
 
 ### Data Persistence and Optimistic UI
-While SignalDB stores data in memory, ensuring the persistence of this data across sessions or reloads is vital. With persistence adapters, this challenge is met head-on. They provide the mechanism to store data, whether it's in localStorage, IndexedDB, or a remote server. When coupled with Optimistic UI, persistence adapters ensure that even if there's a momentary lapse in data storage, the user's experience remains unaffected.
+Where a collection keeps its data is decided by its [data adapter](/data-adapters/): the `DefaultDataAdapter` keeps it in memory, while other data adapters read it from storage or run the queries in a Web Worker. Keeping the data across sessions or reloads is the job of [storage adapters](/data-persistence/), which persist it in localStorage, IndexedDB, OPFS or the file system. When coupled with Optimistic UI, the user's experience remains unaffected even while a write is still on its way to storage.
 
 
 
@@ -59,7 +59,7 @@ We provide prebuilt reactivity adapters for existing reactivity libraries. If an
 
 For some libraries, it wasn't possible to implement a [`onDispose`](/reference/core/createreactivityadapter/#ondispose-callback-void-dependency-dependency-optional) method in the adapter. That means that you have to [cleanup the cursor](/reference/core/cursor/) manually after the reactive context was closed. There are examples on the specific adapter documentation pages. Make sure that you implement it properly, since not doing this can lead to memory leaks.
 
-[Scope checking](/reference/core/createreactivityadapter/#isinscope-dependency-dependency-boolean-optional) is only supported by a few libraries. Scope checking means, that SignalDB is not able to check if a cursor was created from a reactive scope (([`find`](/reference/core/collection/#find-selector-selector-t-options-options)/[`findOne`](/reference/core/collection/#findone-selector-selector-t-options-options) called in an `effect` function)) and applies the required event handlers used to provide the reactivity. To avoid memory leaks, use an adapter with scope checking or pass `{ reactive: false }` to your options<br>(e.g. `<collection>.find({ … }, { reactive: false })`).
+[Scope checking](/reference/core/createreactivityadapter/#isinscope-boolean-optional) is only supported by a few libraries. Scope checking means, that SignalDB is not able to check if a cursor was created from a reactive scope (([`find`](/reference/core/collection/#find-selector-selector-t-options-options)/[`findOne`](/reference/core/collection/#findone-selector-selector-t-options-options) called in an `effect` function)) and applies the required event handlers used to provide the reactivity. To avoid memory leaks, use an adapter with scope checking or pass `{ reactive: false }` to your options<br>(e.g. `<collection>.find({ … }, { reactive: false })`).
 
 | Library | Reactivity adapter | Automatic Cleanup | Scope check |
 |---|---|---|---|
@@ -77,7 +77,7 @@ For some libraries, it wasn't possible to implement a [`onDispose`](/reference/c
 | [`signal-polyfill`](https://github.com/proposal-signals/signal-polyfill) | ❌ | - | - |
 | [`signia`](https://signia.tldraw.dev/) | ❌ | - | - |
 | [`sinuous`](/reference/sinuous/) | ✅ | ✅ | ❌ |
-| [`Solid Signals`](/reference/solid/) | ✅ | ✅ | ❌ |
+| [`Solid Signals`](/reference/solid/) | ✅ | ✅ | ✅ |
 | [`sprae`](https://github.com/dy/sprae) (see [#858](https://github.com/maxnowack/signaldb/issues/858)) | ✅ | ❌ | ❌ |
 | [`Svelte Runes`](/reference/svelte/) | ✅ | ✅ | ✅ |
 | [`ulive`](https://github.com/kethan/ulive) | ❌ | - | - |

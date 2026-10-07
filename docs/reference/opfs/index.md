@@ -36,7 +36,7 @@ Compared to other browser storage (see [localStorage vs IndexedDB vs OPFS](/brow
 | Capacity | a few MB per origin | large (quota-based) | large (quota-based) |
 | Typical use | small settings | structured app data | large files, databases, binary data |
 
-`@signaldb/opfs` stores the documents of a SignalDB collection as a file in OPFS. This gives you persistent local storage for your data with a single line of configuration, which is useful for [offline-first](/offline-first/) apps.
+`@signaldb/opfs` stores the documents of a SignalDB collection as a folder in OPFS, with one file per document and one file per indexed value. This gives you persistent local storage for your data with a single line of configuration, which is useful for [offline-first](/offline-first/) apps.
 
 ## createOPFSAdapter (`default`)
 
@@ -69,6 +69,17 @@ the folder.
 Like the [Filesystem Adapter](/reference/fs/), the adapter is given a **folder**
 rather than a file: `items/` holds one file per document, `index/` one file per
 indexed value.
+
+### Requirements
+
+The adapter needs `navigator.storage.getDirectory()` and
+`FileSystemFileHandle#createWritable()` for reading and writing files, and the
+[Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)
+(`navigator.locks`): every read and write of a file runs under an exclusive
+lock named after its path, so tabs and workers of the same origin never
+interleave a read with a write to the same file. All of these are only
+available in secure contexts (HTTPS or `localhost`); without them the adapter
+cannot access its files.
 
 The OPFS Adapter is an alternative to the [Filesystem Adapter](https://signaldb.js.org/reference/fs/). The OPFS Adapter can only be used in a browser environment, while the Filesystem Adapter can only be used in a Node.js environment.
 

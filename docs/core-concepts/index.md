@@ -28,7 +28,7 @@ The following are some key concepts that are important to understanding how to u
 
 ## Collections
 
-In SignalDB, all data is stored in memory, making query performance exceptionally fast. Users can create collections of documents, where each document is a record in the database. Queries can be run against these collections to retrieve data according to specific criteria. This architecture also plays an important role in achieving optimistic UI strategies.
+With the `DefaultDataAdapter`, a collection keeps all of its data in memory, making query performance exceptionally fast. Other [data adapters](/data-adapters/) may not: they can read from storage on every query or keep the data in a Web Worker. Users can create collections of documents, where each document is a record in the database. Queries can be run against these collections to retrieve data according to specific criteria. This architecture also plays an important role in achieving optimistic UI strategies.
 
 ### Schemaless
 
@@ -78,7 +78,7 @@ ship with SignalDB and when each of them is the right one.
 
 ## Data Persistence
 
-SignalDB only stores the data in memory and it will be lost when the memory is flushed (e.g. page reload).
+Without a storage adapter, the `DefaultDataAdapter` only keeps the data in memory and it will be lost when the memory is flushed (e.g. page reload). Other [data adapters](/data-adapters/) read and write through a storage adapter instead of keeping everything in memory.
 
 Normally you don't want to lose data and you want to persist it. This is where storage adapters come in.
 
