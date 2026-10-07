@@ -199,3 +199,28 @@ describe('IndexedDB storage adapter', () => {
     await adapter.teardown()
   })
 })
+
+describe('IndexedDB database upgrades', () => {
+  it('passes the version the database is upgraded from to onUpgrade', async () => {
+    const databaseName = `upgrade-${Math.floor(Math.random() * 1e17).toString(16)}`
+    const first = prepareIndexedDB({ databaseName, version: 1, schema: { items: [] } })
+    const firstAdapter = first<{ id: number }, number>('items')
+    await firstAdapter.setup()
+    await firstAdapter.teardown()
+
+    const versions: [number, number | null][] = []
+    const second = prepareIndexedDB({
+      databaseName,
+      version: 2,
+      schema: { items: [] },
+      onUpgrade: async (_database, _transaction, oldVersion, newVersion) => {
+        versions.push([oldVersion, newVersion])
+      },
+    })
+    const secondAdapter = second<{ id: number }, number>('items')
+    await secondAdapter.setup()
+    await secondAdapter.teardown()
+
+    expect(versions).toEqual([[1, 2]])
+  })
+})

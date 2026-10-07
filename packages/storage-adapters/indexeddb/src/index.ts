@@ -83,9 +83,9 @@ export default function prepareIndexedDB(options: IndexedDBOptions) {
   const databasePromise = openDatabase(
     databaseName,
     options.version,
-    async (database, tx) => {
+    async (database, tx, oldVersion, newVersion) => {
       if (options.onUpgrade) {
-        await options.onUpgrade(database, tx, database.version, options.version)
+        await options.onUpgrade(database, tx, oldVersion, newVersion)
       }
 
       const storesToDelete = new Set<string>()
