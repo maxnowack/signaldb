@@ -102,6 +102,11 @@ The adapter waits for the host to announce itself. If no
 worker failed to load, or the ids differ — initialization fails with
 `WorkerDataAdapter initialization timed out`.
 
+Disposing a collection unregisters it in the worker; the other collections of
+the adapter keep working. When the last of them is disposed, the adapter calls
+`terminate()` on the endpoint, if it has one, and rejects every further call
+with `WorkerDataAdapter is disposed`.
+
 ## `WorkerDataAdapterHost`
 
 ```ts

@@ -41,7 +41,7 @@ export interface WorkerDataAdapterEndpoint {
   removeEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
   /** Sends a message to the host. */
   postMessage: (message: unknown) => void,
-  /** Terminates the worker; called, if present, when a collection backend is disposed. */
+  /** Terminates the worker; called, if present, once the last collection backend is disposed. */
   terminate?: () => void,
 }
 
@@ -338,13 +338,13 @@ export default class WorkerDataAdapter implements DataAdapter {
 
   private async exec<T>(method: string, collectionName: string, ...args: any[]): Promise<T> {
     await this.workerReady
+    if (this.isDisposed) {
+      throw new Error('WorkerDataAdapter is disposed')
+    }
     if (method !== 'isReady') {
       const collectionReady = this.collectionReady.get(collectionName)
       if (!collectionReady) throw new Error(`Collection "${collectionName}" is not registered in WorkerDataAdapter`)
       await collectionReady
-    }
-    if (this.isDisposed) {
-      throw new Error('WorkerDataAdapter is disposed')
     }
     return new Promise((resolve, reject) => {
       const messageId = randomId()
@@ -791,6 +791,7 @@ export default class WorkerDataAdapter implements DataAdapter {
   }
 
   private enqueueBatched<T>(collectionName: string, method: string, args: any[]): Promise<T> {
+    if (this.isDisposed) throw new Error('WorkerDataAdapter is disposed')
     const helper = this.batchExecutionHelpers.get(collectionName)
     if (!helper) throw new Error(`Collection "${collectionName}" is not registered in WorkerDataAdapter`)
     return helper.enqueue(method, args)
@@ -953,6 +954,11 @@ export default class WorkerDataAdapter implements DataAdapter {
       // lifecycle methods
       dispose: async () => {
         await this.exec('unregisterCollection', collection.name)
+        this.collectionReady.delete(collection.name)
+        this.batchExecutionHelpers.delete(collection.name)
+        delete this.queries[collection.name]
+        // The worker serves every collection of this adapter; it ends with the last of them.
+        if (this.collectionReady.size > 0) return
         this.isDisposed = true
         this.worker.terminate?.()
       },

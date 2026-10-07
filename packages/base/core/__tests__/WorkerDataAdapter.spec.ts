@@ -708,6 +708,27 @@ describe('WorkerDataAdapter', () => {
       expect(mockWorker.terminate).toHaveBeenCalled()
     })
 
+    it('keeps the worker running while other collections still use it', async () => {
+      const other = { name: 'other' } as unknown as Collection<TestItem>
+      const backend = adapter.createCollectionBackend(collection, [])
+      const otherBackend = adapter.createCollectionBackend(other, [])
+      await Promise.all([backend.isReady(), otherBackend.isReady()])
+
+      await backend.dispose()
+      expect(mockWorker.terminate).not.toHaveBeenCalled()
+      await expect(backend.insert({ id: '1', name: 'Alice' }))
+        .rejects.toThrow('Collection "test" is not registered in WorkerDataAdapter')
+
+      mockWorker.clearCalls()
+      const insert = otherBackend.insert({ id: '2', name: 'Bob' })
+      await waitForBatchedMessage()
+      mockWorker.respondTo('insert', [{ id: '2', name: 'Bob' }])
+      await expect(insert).resolves.toBeDefined()
+
+      await otherBackend.dispose()
+      expect(mockWorker.terminate).toHaveBeenCalledTimes(1)
+    })
+
     it('rejects operations once disposed', async () => {
       const backend = adapter.createCollectionBackend(collection, [])
       await backend.isReady()
