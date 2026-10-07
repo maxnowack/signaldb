@@ -405,6 +405,13 @@ const syncManager = new SyncManager({
 
 `@signaldb/sync` v2 requires `@signaldb/core` 2.0.0 or later.
 
+If you create the `SyncManager` without an `id`, its own collections are now
+named `default-sync-manager-changes`, `default-sync-manager-snapshots` and
+`default-sync-manager-sync-operations` instead of `undefined-changes` and so on.
+Unpushed changes and snapshots stored under the old names are not read anymore.
+Pass `id: 'undefined'` to keep the old names, or — better — choose an `id` and
+migrate the data once.
+
 ## Migration Checklist
 
 - Update all write calls to `await` the new async methods and handle new return values.

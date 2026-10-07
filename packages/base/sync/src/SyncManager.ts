@@ -132,15 +132,15 @@ export default class SyncManager<
     this.id = this.options.id || 'default-sync-manager'
     const { reactivity } = this.options
     const dataAdapter = this.options.dataAdapter ?? new DefaultDataAdapter()
-    this.changes = new Collection(`${this.options.id}-changes`, dataAdapter, {
+    this.changes = new Collection(`${this.id}-changes`, dataAdapter, {
       indices: ['collectionName'],
       reactivity,
     })
-    this.snapshots = new Collection(`${this.options.id}-snapshots`, dataAdapter, {
+    this.snapshots = new Collection(`${this.id}-snapshots`, dataAdapter, {
       indices: ['collectionName'],
       reactivity,
     })
-    this.syncOperations = new Collection(`${this.options.id}-sync-operations`, dataAdapter, {
+    this.syncOperations = new Collection(`${this.id}-sync-operations`, dataAdapter, {
       indices: ['collectionName', 'status'],
       reactivity,
     })

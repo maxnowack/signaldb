@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Removed compatibility with `@signaldb/core` versions below `2.0.0`
 * Removed `persistenceAdapter` option from `SyncManager` constructor options. Use `dataAdapter` option instead.
+* Without an `id`, the sync manager's own collections are now named `default-sync-manager-changes`, `default-sync-manager-snapshots` and `default-sync-manager-sync-operations`. They used to be named `undefined-changes` and so on, because the names were built from the `id` option rather than from its default. If you persisted the sync manager's data without setting `id`, the changes not yet pushed and the snapshots under the old names are no longer read: either set `id: 'undefined'` to keep the old names, or let the next sync rebuild the snapshots. With `@signaldb/indexeddb`, rename the stores in your `schema` accordingly.
 
 ### Added
 

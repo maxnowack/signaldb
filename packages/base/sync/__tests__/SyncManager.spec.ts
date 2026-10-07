@@ -2170,3 +2170,26 @@ it('should resolve isReady only once its internal collections are ready', async 
   await vi.waitFor(() => expect(isReady).toBe(true))
   await syncManager.dispose()
 })
+
+it('should name its internal collections after the default id when no id is given', async () => {
+  const names: string[] = []
+  const dataAdapter = new DefaultDataAdapter({
+    storage: (name) => {
+      names.push(name)
+      return memoryStorageAdapter([])
+    },
+  })
+  const syncManager = new SyncManager<any, any>({
+    dataAdapter,
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+  await syncManager.isReady()
+
+  expect(names).toEqual([
+    'default-sync-manager-changes',
+    'default-sync-manager-snapshots',
+    'default-sync-manager-sync-operations',
+  ])
+  await syncManager.dispose()
+})

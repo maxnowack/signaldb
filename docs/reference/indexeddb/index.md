@@ -142,8 +142,9 @@ store in `schema`, with these indices:
 | `<id>-snapshots` | `collectionName` |
 | `<id>-sync-operations` | `collectionName`, `status` |
 
-Always set `id` explicitly when you persist the sync manager's data, so the
-store names are under your control:
+Without an `id`, the sync manager uses `default-sync-manager`, so the stores are
+`default-sync-manager-changes` and so on. Setting `id` explicitly keeps the
+store names under your control:
 
 ```js
 import { Collection, DefaultDataAdapter } from '@signaldb/core'
