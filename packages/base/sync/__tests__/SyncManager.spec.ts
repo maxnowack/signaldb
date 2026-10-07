@@ -2141,3 +2141,32 @@ it('should tolerate collection entries without tracked listeners', async () => {
   await expect(syncManager.removeCollection('test')).resolves.toBeUndefined()
   await expect(syncManager.dispose()).resolves.toBeUndefined()
 })
+
+it('should resolve isReady only once its internal collections are ready', async () => {
+  let finishSetup: () => void = () => { /* replaced below */ }
+  const setupDone = new Promise<void>((resolve) => {
+    finishSetup = resolve
+  })
+  const dataAdapter = new DefaultDataAdapter({
+    storage: () => {
+      const storage = memoryStorageAdapter([])
+      return { ...storage, setup: () => setupDone.then(() => storage.setup()) }
+    },
+  })
+  const syncManager = new SyncManager<any, any>({
+    dataAdapter,
+    pull: vi.fn(() => Promise.resolve({ items: [] })),
+    push: vi.fn(),
+  })
+
+  let isReady = false
+  void syncManager.isReady().then(() => {
+    isReady = true
+  })
+  await new Promise(resolve => setTimeout(resolve, 10))
+  expect(isReady).toBe(false)
+
+  finishSetup()
+  await vi.waitFor(() => expect(isReady).toBe(true))
+  await syncManager.dispose()
+})

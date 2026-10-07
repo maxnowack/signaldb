@@ -146,9 +146,9 @@ export default class SyncManager<
     })
 
     const readiness = [
-      Promise.resolve(this.syncOperations.isReady()),
-      Promise.resolve(this.changes.isReady()),
-      Promise.resolve(this.snapshots.isReady()),
+      this.syncOperations.ready(),
+      this.changes.ready(),
+      this.snapshots.ready(),
     ]
     this.collectionsReady = Promise.all(readiness).then(() => { /* noop */ })
 

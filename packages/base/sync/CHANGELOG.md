@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `isReady()` resolves only once the sync manager's own collections are ready. It resolved immediately, so a sync could start before the stored changes and snapshots had been loaded.
 * Remote changes delivered with data through `registerRemoteChange` are applied in the collection's sync queue. They could previously run at the same time as a sync of the same collection and interleave with it.
 
 ## [1.3.1] - 2025-04-29
