@@ -160,12 +160,13 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     if (this.options?.async) return
     const reads = transformReads.at(-1)
     if (reads && !reads.includes(this)) reads.push(this)
-    if (!isInReactiveScope(this.options.reactive)) {
+    // Outside of a scope nothing would ever dispose a dependency, so none is registered.
+    if (!this.options.reactive || !isInReactiveScope(this.options.reactive)) {
       if (reads) return
       // eslint-disable-next-line no-console
       console.warn('Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope')
+      return
     }
-    if (!this.options.reactive) return
     const signal = this.options.reactive.create()
     signal.depend()
     // Held rather than dropped while a reactive transaction is open: the scope

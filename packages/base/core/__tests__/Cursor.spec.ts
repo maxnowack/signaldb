@@ -621,6 +621,25 @@ describe('Cursor', async () => {
       warn.mockRestore()
     })
 
+    it('registers nothing for a synchronous read outside of a reactive scope', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const scopedCollection = new Collection<TestItem>({ reactivity: scope.reactivity })
+      await scopedCollection.insert({ id: 1, name: 'Item 1' })
+      let openObservers = 0
+      scopedCollection.on('observer.created', () => {
+        openObservers += 1
+      })
+      scopedCollection.on('observer.disposed', () => {
+        openObservers -= 1
+      })
+
+      scopedCollection.find({}).fetch()
+      await wait()
+
+      expect(openObservers).toBe(0)
+      warn.mockRestore()
+    })
+
     it('reads an observed query reactively without comparing its whole result again', async () => {
       const reactiveCollection = new Collection<TestItem>({
         reactivity: primitiveReactivityAdapter,
