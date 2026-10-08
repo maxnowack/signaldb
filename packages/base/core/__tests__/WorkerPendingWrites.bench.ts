@@ -1,4 +1,4 @@
-import { bench, describe, vi } from 'vitest'
+import { test, vi } from 'vitest'
 import WorkerDataAdapter from '../src/WorkerDataAdapter'
 import type { WorkerDataAdapterEndpoint } from '../src/WorkerDataAdapter'
 import type Collection from '../src/Collection'
@@ -69,18 +69,21 @@ async function withMatchingQuery() {
 // issued without awaiting any of them, so every one of them is still pending when the next arrives.
 // Each write has to bring the matching query's served result up to date, and doing that by
 // rebuilding it from the whole pending set is what made a burst quadratic in its own length.
-describe('a burst of writes with none of them settled', () => {
-  bench('1000 unsettled inserts against one matching query', async () => {
-    const backend = await withMatchingQuery()
-    for (let index = 0; index < 1000; index += 1) {
-      void backend.insert({ id: `item-${index}`, status: 'open', rank: index })
-    }
-  })
-
-  bench('4000 unsettled inserts against one matching query', async () => {
-    const backend = await withMatchingQuery()
-    for (let index = 0; index < 4000; index += 1) {
-      void backend.insert({ id: `item-${index}`, status: 'open', rank: index })
-    }
-  })
+test('a burst of writes with none of them settled', async ({ bench }) => {
+  await bench.compare(
+    bench('1000 unsettled inserts against one matching query', async () => {
+      const backend = await withMatchingQuery()
+      for (let index = 0; index < 1000; index += 1) {
+        void backend.insert({ id: `item-${index}`, status: 'open', rank: index })
+      }
+    }),
+    bench('4000 unsettled inserts against one matching query', async () => {
+      const backend = await withMatchingQuery()
+      for (let index = 0; index < 4000; index += 1) {
+        void backend.insert({ id: `item-${index}`, status: 'open', rank: index })
+      }
+    }),
+    // One iteration takes long enough that the default sample count would run for minutes.
+    { iterations: 10, time: 500 },
+  )
 })

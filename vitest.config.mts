@@ -26,7 +26,7 @@ export default defineConfig({
         '**/vitest.config.mts',
         'commitlint.config.js',
         'eslint.config.mjs',
-        'packages/devtools/devtools',
+        'packages/devtools/devtools/**',
       ],
       thresholds: {
         lines: 100,

@@ -178,6 +178,15 @@ export default defineConfig(
     },
   },
   {
+    // A benchmark measures instead of asserting, and vitest 5 runs it through the `bench` fixture
+    // of a test, which the vitest plugin still takes for the `bench()` test block of vitest 4.
+    files: ['**/*.bench.ts'],
+    rules: {
+      'vitest/expect-expect': 'off',
+      'vitest/valid-title': 'off',
+    },
+  },
+  {
     ignores: [
       '**/.next/**',
       '**/dist**',

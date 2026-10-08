@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import createOPFSAdapter from '../src'
 
 type Item = { id: string, name?: string, value?: string, tag?: string, data?: Record<string, any> }
@@ -308,7 +308,7 @@ describe('OPFS storage adapter', () => {
       abortedPaths.length = 0
 
       // Mock navigator.storage and navigator.locks
-      ;(globalThis as any).navigator = {
+      vi.stubGlobal('navigator', {
         storage: {
           async getDirectory() {
             return makeDirectory('')
@@ -330,7 +330,7 @@ describe('OPFS storage adapter', () => {
             })
           },
         },
-      }
+      })
     })
 
     it('creates adapter with default serialize/deserialize', async () => {

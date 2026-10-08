@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest'
+import { describe, test } from 'vitest'
 import Collection from '../src/Collection'
 import type { CollectionOptions } from '../src/Collection'
 import createReactivityAdapter from '../src/createReactivityAdapter'
@@ -97,19 +97,19 @@ const settle = () => new Promise<void>((resolve) => {
 })
 
 describe('a write with 20 live queries over 5000 items', () => {
-  describe('default adapter', async () => {
+  test('default adapter', async ({ bench }) => {
     const collection = new Collection<BenchItem>('bench-default', new DefaultDataAdapter())
     await Promise.all(buildItems(ITEM_COUNT).map(async item => collection.insert(item)))
     observeQueries(collection)
     let counter = 0
 
-    bench('update one item', async () => {
+    await bench('update one item', async () => {
       counter += 1
       await collection.updateOne({ id: 'item-2500' }, { $set: { name: `renamed-${counter}` } })
-    })
+    }).run()
   })
 
-  describe('async adapter', async () => {
+  test('async adapter', async ({ bench }) => {
     const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
     const collection = new Collection<BenchItem>('bench-async', new AsyncDataAdapter({
       storage: () => storage,
@@ -119,14 +119,14 @@ describe('a write with 20 live queries over 5000 items', () => {
     await settle()
     let counter = 0
 
-    bench('update one item', async () => {
+    await bench('update one item', async () => {
       counter += 1
       await collection.updateOne({ id: 'item-2500' }, { $set: { name: `renamed-${counter}` } })
       await settle()
-    })
+    }).run()
   })
 
-  describe('worker adapter', async () => {
+  test('worker adapter', async ({ bench }) => {
     const pair = createMessagePair()
     const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench', storage: () => storage })
@@ -139,11 +139,11 @@ describe('a write with 20 live queries over 5000 items', () => {
     await settle()
     let counter = 0
 
-    bench('update one item', async () => {
+    await bench('update one item', async () => {
       counter += 1
       await collection.updateOne({ id: 'item-2500' }, { $set: { name: `renamed-${counter}` } })
       await settle()
-    })
+    }).run()
   })
 })
 
@@ -159,7 +159,7 @@ describe('a write with 20 live top-10 lists over 5000 items', () => {
     })
   }
 
-  describe('async adapter', async () => {
+  test('async adapter', async ({ bench }) => {
     const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
     const collection = new Collection<BenchItem>('bench-window-async', new AsyncDataAdapter({
       storage: () => storage,
@@ -169,14 +169,14 @@ describe('a write with 20 live top-10 lists over 5000 items', () => {
     await settle()
     let counter = 0
 
-    bench('update an item inside the windows', async () => {
+    await bench('update an item inside the windows', async () => {
       counter += 1
       await collection.updateOne({ id: 'item-5' }, { $set: { name: `renamed-${counter}` } })
       await settle()
-    })
+    }).run()
   })
 
-  describe('worker adapter', async () => {
+  test('worker adapter', async ({ bench }) => {
     const pair = createMessagePair()
     const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench-window', storage: () => storage })
@@ -189,18 +189,18 @@ describe('a write with 20 live top-10 lists over 5000 items', () => {
     await settle()
     let counter = 0
 
-    bench('update an item inside the windows', async () => {
+    await bench('update an item inside the windows', async () => {
       counter += 1
       await collection.updateOne({ id: 'item-5' }, { $set: { name: `renamed-${counter}` } })
       await settle()
-    })
+    }).run()
   })
 })
 
 describe('a write with one live query holding all 5000 items', () => {
   // The shape that hurts most: everything the write touches is in one result, so any step that
   // costs the size of the result is paid in full on every write.
-  describe('worker adapter', async () => {
+  test('worker adapter', async ({ bench }) => {
     const pair = createMessagePair()
     const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench-wide', storage: () => storage })
@@ -216,15 +216,15 @@ describe('a write with one live query holding all 5000 items', () => {
     await settle()
     let counter = 0
 
-    bench('update one item', async () => {
+    await bench('update one item', async () => {
       counter += 1
       await collection.updateOne({ id: 'item-2500' }, { $set: { name: `renamed-${counter}` } })
       await settle()
-    })
+    }).run()
   })
 })
 
-describe('a reactive read of a live query holding all 5000 items', async () => {
+test('a reactive read of a live query holding all 5000 items', async ({ bench }) => {
   // What every render of a screen showing the list pays. The query is already observed, so a read
   // only has to hand over the result and register a dependency.
   const disposers: (() => void)[] = []
@@ -251,18 +251,19 @@ describe('a reactive read of a live query holding all 5000 items', async () => {
     transformAll: items => items.map(item => ({ ...item })),
   })
 
-  bench('fetch', () => {
-    cursor.fetch()
-    disposers.splice(0).forEach(dispose => dispose())
-  })
-
-  bench('fetch with transformAll', () => {
-    transformedCursor.fetch()
-    disposers.splice(0).forEach(dispose => dispose())
-  })
+  await bench.compare(
+    bench('fetch', () => {
+      cursor.fetch()
+      disposers.splice(0).forEach(dispose => dispose())
+    }),
+    bench('fetch with transformAll', () => {
+      transformedCursor.fetch()
+      disposers.splice(0).forEach(dispose => dispose())
+    }),
+  )
 })
 
-describe('learning what changed in a 5000 item result', () => {
+test('learning what changed in a 5000 item result', async ({ bench }) => {
   const previous = buildItems(ITEM_COUNT)
   const next = previous.map((item, index) =>
     (index === 2500 ? { ...item, name: 'renamed' } : item))
@@ -283,11 +284,12 @@ describe('learning what changed in a 5000 item result', () => {
     return observer
   }
 
-  bench('by comparing against the new result', () => {
-    buildObserver().runChecks(() => nextCloned)
-  })
-
-  bench('by applying a delta', () => {
-    buildObserver().applyDelta(delta, () => nextCloned)
-  })
+  await bench.compare(
+    bench('by comparing against the new result', () => {
+      buildObserver().runChecks(() => nextCloned)
+    }),
+    bench('by applying a delta', () => {
+      buildObserver().applyDelta(delta, () => nextCloned)
+    }),
+  )
 })

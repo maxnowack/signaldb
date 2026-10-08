@@ -38,7 +38,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@typescript-eslint/eslint-plugin": "8.71.1",
     "@typescript-eslint/parser": "8.71.1",
-    "@vitest/coverage-istanbul": "4.1.11",
+    "@vitest/coverage-istanbul": "5.0.3",
     "@vitest/eslint-plugin": "^1.6.27",
     "eslint": "10.12.0",
     "eslint-import-resolver-typescript": "4.4.5",
@@ -67,6 +67,6 @@
     "vitepress": "1.6.4",
     "vitepress-plugin-llms": "^1.14.0",
     "vitepress-plugin-mermaid": "^2.0.17",
-    "vitest": "4.1.11"
+    "vitest": "5.0.3"
   }
 }

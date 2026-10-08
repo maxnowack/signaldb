@@ -1,10 +1,10 @@
 /* istanbul ignore file -- @preserve */
-import { bench, describe } from 'vitest'
+import { describe, test } from 'vitest'
 import { Collection } from '../src'
 import type { TransformAll, BaseItem } from '../src'
 
 describe('Collection benchmarks', () => {
-  describe('id index', async () => {
+  test('id index', async ({ bench }) => {
     const col = new Collection<{ id: string, name: string, num: number }>()
 
     // create items
@@ -14,20 +14,21 @@ describe('Collection benchmarks', () => {
       }
     })
 
-    bench('with index', () => {
-      col.findOne({ id: '100' })
-      col.findOne({ id: '500' })
-      col.findOne({ id: '999' })
-    })
-
-    bench('without index', () => {
-      col.findOne({ num: 100 })
-      col.findOne({ num: 500 })
-      col.findOne({ num: 999 })
-    })
+    await bench.compare(
+      bench('with index', () => {
+        col.findOne({ id: '100' })
+        col.findOne({ id: '500' })
+        col.findOne({ id: '999' })
+      }),
+      bench('without index', () => {
+        col.findOne({ num: 100 })
+        col.findOne({ num: 500 })
+        col.findOne({ num: 999 })
+      }),
+    )
   })
 
-  describe('named index', async () => {
+  test('named index', async ({ bench }) => {
     const col1 = new Collection<{ id: string, name: string, num: number }>({
       indices: ['num'],
     })
@@ -41,20 +42,21 @@ describe('Collection benchmarks', () => {
       }
     })
 
-    bench('with index', () => {
-      col1.findOne({ num: 100 })
-      col1.findOne({ num: 500 })
-      col1.findOne({ num: 999 })
-    })
-
-    bench('without index', () => {
-      col2.findOne({ num: 100 })
-      col2.findOne({ num: 500 })
-      col2.findOne({ num: 999 })
-    })
+    await bench.compare(
+      bench('with index', () => {
+        col1.findOne({ num: 100 })
+        col1.findOne({ num: 500 })
+        col1.findOne({ num: 999 })
+      }),
+      bench('without index', () => {
+        col2.findOne({ num: 100 })
+        col2.findOne({ num: 500 })
+        col2.findOne({ num: 999 })
+      }),
+    )
   })
 
-  describe('index null and undefined values', async () => {
+  test('index null and undefined values', async ({ bench }) => {
     const col1 = new Collection<{ id: string, name: string, num?: number | null }>({
       indices: ['num'],
     })
@@ -68,19 +70,21 @@ describe('Collection benchmarks', () => {
       }
     })
 
-    bench('with index', () => {
-      col1.findOne({ num: undefined })
-      col1.findOne({ num: null })
-      col1.findOne({ num: { $exists: false } })
-    })
-
-    bench('without index', () => {
-      col2.findOne({ num: undefined })
-      col2.findOne({ num: null })
-      col2.findOne({ num: { $exists: false } })
-    })
+    await bench.compare(
+      bench('with index', () => {
+        col1.findOne({ num: undefined })
+        col1.findOne({ num: null })
+        col1.findOne({ num: { $exists: false } })
+      }),
+      bench('without index', () => {
+        col2.findOne({ num: undefined })
+        col2.findOne({ num: null })
+        col2.findOne({ num: { $exists: false } })
+      }),
+    )
   })
-  describe('transformAll', async () => {
+
+  test('transformAll', async ({ bench }) => {
     const col1 = new Collection()
     interface TestItem {
       id: number,
@@ -106,12 +110,13 @@ describe('Collection benchmarks', () => {
       }
     })
 
-    bench('default', () => {
-      col2.find().map(value => value.parent = col1.findOne({ id: value.parent }))
-    })
-
-    bench('transformAll', () => {
-      col2.find({}, { fields: { parent: 1 } }).fetch()
-    })
+    await bench.compare(
+      bench('default', () => {
+        col2.find().map(value => value.parent = col1.findOne({ id: value.parent }))
+      }),
+      bench('transformAll', () => {
+        col2.find({}, { fields: { parent: 1 } }).fetch()
+      }),
+    )
   })
 })
