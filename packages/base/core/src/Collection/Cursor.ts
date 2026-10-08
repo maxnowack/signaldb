@@ -16,21 +16,25 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
 }
 
-let transformDepth = 0
+const transformReads: Cursor<any, any, boolean>[][] = []
 
 /**
  * Runs a `transformAll` of a collection. The reads it makes inside a reactive scope stay reactive;
  * outside of one — a live query brought up to date after a write — they register nothing and do
  * not warn, because the collection asked for them, not the consumer.
  * @param callback - The call to `transformAll`.
+ * @param reads - Collects the cursors the callback reads synchronously.
  * @returns What the callback returned.
  */
-export function withinTransform<R>(callback: () => R): R {
-  transformDepth += 1
+export function withinTransform<R>(
+  callback: () => R,
+  reads: Cursor<any, any, boolean>[] = [],
+): R {
+  transformReads.push(reads)
   try {
     return callback()
   } finally {
-    transformDepth -= 1
+    transformReads.pop()
   }
 }
 
@@ -154,8 +158,10 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     bindExtraNotifier?: (notify: () => void) => () => void,
   ) {
     if (this.options?.async) return
+    const reads = transformReads.at(-1)
+    if (reads && !reads.includes(this)) reads.push(this)
     if (!isInReactiveScope(this.options.reactive)) {
-      if (transformDepth > 0) return
+      if (reads) return
       // eslint-disable-next-line no-console
       console.warn('Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope')
     }
@@ -392,6 +398,10 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * has, so it cannot wait on something nobody asked for. It is always `false`
    * for an `{ async: true }` cursor, whose `fetch()` awaits the real result
    * anyway, and for a data adapter that answers synchronously.
+   *
+   * On a collection whose `transformAll` reads other collections, the first
+   * result also waits for the queries `transformAll` made, so a list is not
+   * reported as loaded while the data it is enriched with is still missing.
    * @returns A boolean indicating whether the first result is still pending.
    */
   public isLoading(): boolean {

@@ -111,6 +111,11 @@ window in which it is `true`.
 It is always `false` on an `{ async: true }` cursor, whose `fetch()` awaits the
 real result anyway — see [awaiting the result](/queries/#awaiting-the-result).
 
+On a collection whose [`transformAll`](/orm/#solving-the-n-1-problem-with-transformall)
+reads other collections, the first result also waits for the queries
+`transformAll` made, so a list is not reported as loaded while the data it is
+enriched with is still missing.
+
 It reports "no result yet", not "an execution is in flight". A write that
 re-runs an already-settled query does not flip it back to `true`, so a list
 does not fall into a loading state every time one of its rows changes.

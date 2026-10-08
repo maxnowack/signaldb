@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* `Cursor#isLoading()` on a collection whose `transformAll` reads other collections stays `true` until the queries `transformAll` made have been answered too. With an asynchronous data adapter behind the related collection it used to report the list as loaded while the data it is enriched with was still missing — an author shown as absent rather than as loading. Like the query's own state it is latched: a later write that makes `transformAll` read something new does not send a loaded list back into loading.
 * A `transformAll` that reads another collection no longer leaves a dependency behind when its query is brought up to date after a write. That update runs outside of any reactive scope, so each read of the other collection used to register a live query there that was never released — one more for every write — and printed the `Cursor.depend()` warning. Reads made by a `transformAll` outside of a reactive scope now register nothing; inside one they stay reactive as before.
 * `insertMany` resolves to the ids in the order of the items passed to it. They were collected as the individual inserts completed, so with a storage adapter that answers out of order the ids did not line up with the items.
 * `removeOne` emits `removed` only when it removed an item. A `removeOne` that matched nothing emitted `removed` with `undefined`, which a listener reading the item's fields crashed on.

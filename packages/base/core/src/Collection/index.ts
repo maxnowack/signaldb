@@ -600,6 +600,7 @@ export default class Collection<
     items: T[],
     fields: FieldSpecifier<T> | undefined,
     async: boolean,
+    reads?: Cursor<any, any, boolean>[],
   ): E[] | Promise<E[]> {
     if (!this.options.transformAll) return items as unknown as E[]
     const transformAll = this.options.transformAll
@@ -607,7 +608,7 @@ export default class Collection<
     // return type leaves out so that existing callers of a TransformAll keep their array.
     return withinTransform(() => (async
       ? transformAll(deepClone(items), fields, { async: true }) as E[] | Promise<E[]>
-      : transformAll(deepClone(items), fields)))
+      : transformAll(deepClone(items), fields)), reads)
   }
 
   private getItem<
@@ -720,6 +721,9 @@ export default class Collection<
   ): Cursor<E, U, Async> {
     if (this.isDisposed) throw new Error('Collection is disposed')
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
+    // What the latest synchronous transformAll read. Its result is only as complete as theirs.
+    let relatedCursors: Cursor<any, any, boolean>[] = []
+    let hasSettledRelated = false
     const getTransformedItems = () => {
       const itemsOrPromise = this.getItems(selector, options || {})
       if (itemsOrPromise instanceof Promise) {
@@ -727,7 +731,9 @@ export default class Collection<
           return this.transformAll(items, options?.fields, true)
         })
       }
-      const transformed = this.transformAll(itemsOrPromise, options?.fields, false)
+      const reads: Cursor<any, any, boolean>[] = []
+      const transformed = this.transformAll(itemsOrPromise, options?.fields, false, reads)
+      relatedCursors = reads
       if (transformed instanceof Promise) {
         throw new TypeError('transformAll returned a promise for a synchronous read. Read the query with { async: true }, or build transformAll with reactiveOrAsync so it answers a synchronous read synchronously.')
       }
@@ -744,11 +750,21 @@ export default class Collection<
         transform: this.transform.bind(this),
         queryState: {
           hasSettled: () => {
-            if (this.settledQueriesSet.has(queryId(selector, options))) return true
             // An adapter that answers synchronously reports `'complete'` from
             // the start, so a cursor over one is never in a loading state.
             const state = this.backend.getQueryState(selector, options || {})
-            return state === 'complete' || state === 'error'
+            const hasSettled = this.settledQueriesSet.has(queryId(selector, options))
+              || state === 'complete' || state === 'error'
+            if (!hasSettled) return false
+            // Latched like the query's own state: a write that makes transformAll read something
+            // new later does not send a settled query back into loading.
+            if (hasSettledRelated) return true
+            // Asking the related cursors is a reactive read of their state, so a scope waiting on
+            // this one is woken when the last of them settles.
+            hasSettledRelated = withinTransform(
+              () => relatedCursors.every(related => !related.isLoading()),
+            )
+            return hasSettledRelated
           },
           // The latch is set by the very callback that notifies, so a cursor
           // can never be woken to read a state that has not been recorded yet,

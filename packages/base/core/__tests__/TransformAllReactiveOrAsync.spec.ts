@@ -84,6 +84,53 @@ describe('transformAll built with reactiveOrAsync', () => {
     await expect.poll(() => names.at(-1)).toBe('Ada Lovelace')
   })
 
+  it('reports the query as loading until the related data has been answered', async () => {
+    const users = new Collection<User>('users', new AsyncDataAdapter({
+      storage: () => memoryStorageAdapter<User>([{ id: 'u1', name: 'Ada' }], 30),
+    }), { reactivity: primitiveReactivityAdapter })
+    await users.ready()
+    const posts = createPosts(users, primitiveReactivityAdapter)
+    await posts.insert({ id: 'p1', authorId: 'u1' })
+
+    const cursor = posts.find({})
+    const runs: { isLoading: boolean, author?: string }[] = []
+    primitiveReactivity.effect(() => {
+      const isLoading = cursor.isLoading()
+      runs.push({ isLoading, author: cursor.fetch()[0]?.author?.name })
+    })
+
+    await expect.poll(() => runs.at(-1)).toEqual({ isLoading: false, author: 'Ada' })
+    expect(runs[0]).toEqual({ isLoading: true, author: undefined })
+    expect(runs.filter(run => !run.isLoading).every(run => run.author === 'Ada')).toBe(true)
+    cursor.cleanup()
+  })
+
+  it('stays settled when a later write makes transformAll read something new', async () => {
+    const users = new Collection<User>('users', new AsyncDataAdapter({
+      storage: () => memoryStorageAdapter<User>([
+        { id: 'u1', name: 'Ada' },
+        { id: 'u2', name: 'Grace' },
+      ], 30),
+    }), { reactivity: primitiveReactivityAdapter })
+    await users.ready()
+    const posts = createPosts(users, primitiveReactivityAdapter)
+    await posts.insert({ id: 'p1', authorId: 'u1' })
+
+    const cursor = posts.find({})
+    const runs: { isLoading: boolean, authors: (string | undefined)[] }[] = []
+    primitiveReactivity.effect(() => {
+      const isLoading = cursor.isLoading()
+      runs.push({ isLoading, authors: cursor.fetch().map(item => item.author?.name) })
+    })
+    await expect.poll(() => runs.at(-1)?.isLoading).toBe(false)
+    const settledAt = runs.length
+
+    await posts.insert({ id: 'p2', authorId: 'u2' })
+    await expect.poll(() => runs.at(-1)?.authors).toEqual(['Ada', 'Grace'])
+    expect(runs.slice(settledAt).every(run => !run.isLoading)).toBe(true)
+    cursor.cleanup()
+  })
+
   it('keeps a plain transformAll working on an asynchronous read', async () => {
     const posts = new Collection<Post>({
       transformAll: items => items.map(item => ({
