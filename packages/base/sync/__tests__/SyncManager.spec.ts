@@ -1,6 +1,11 @@
 /* @vitest-environment happy-dom */
 import { it, expect, vi, onTestFinished } from 'vitest'
-import { Collection, createStorageAdapter, DefaultDataAdapter } from '@signaldb/core'
+import {
+  Collection,
+  createReactivityAdapter,
+  createStorageAdapter,
+  DefaultDataAdapter,
+} from '@signaldb/core'
 import type { BaseItem } from '@signaldb/core'
 import { SyncManager } from '../src'
 import type { LoadResponse } from '../src/types'
@@ -467,7 +472,7 @@ it('should handle sync errors and update sync operation status', async () => {
   await expect(syncManager.sync('test')).rejects.toThrow()
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Sync failed'))
-  const syncOperation = syncManager.isSyncing('test')
+  const syncOperation = await syncManager.isSyncing('test', true)
   expect(syncOperation).toBe(false)
 })
 
@@ -694,7 +699,7 @@ it('should handle pull errors and update sync operation status', async () => {
 
   await expect(syncManager.sync('test')).rejects.toThrow('Pull failed')
 
-  const syncOperation = syncManager.isSyncing('test')
+  const syncOperation = await syncManager.isSyncing('test', true)
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
   expect(syncOperation).toBe(false)
@@ -726,7 +731,7 @@ it('should handle pull errors and update sync operation status after first sync'
 
   await expect(syncManager.sync('test')).rejects.toThrow('Pull failed')
 
-  const syncOperation = syncManager.isSyncing('test')
+  const syncOperation = await syncManager.isSyncing('test', true)
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
   expect(syncOperation).toBe(false)
@@ -757,7 +762,7 @@ it('should handle push errors and update sync operation status', async () => {
 
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Push failed'))
-  const syncOperation = syncManager.isSyncing('test')
+  const syncOperation = await syncManager.isSyncing('test', true)
   expect(syncOperation).toBe(false)
 })
 
@@ -1928,6 +1933,32 @@ it('isSyncing async path resolves a promise', async () => {
   syncManager.addCollection(collection, { name: 'test' })
   const asyncResult = await syncManager.isSyncing('test', true)
   expect(asyncResult).toBe(false)
+})
+
+it('isSyncing answers synchronously inside a reactive scope', () => {
+  let inScope = false
+  const disposers: (() => void)[] = []
+  const reactivity = createReactivityAdapter({
+    create: () => ({ depend: () => {}, notify: () => {} }),
+    isInScope: () => inScope,
+    onDispose: (dispose) => {
+      disposers.push(dispose)
+    },
+  })
+  const syncManager = new SyncManager({
+    reactivity,
+    pull: vi.fn(),
+    push: vi.fn(),
+  })
+  const collection = withAsyncQueries(new Collection<TestItem, string, any>())
+  syncManager.addCollection(collection, { name: 'test' })
+
+  inScope = true
+  const isSyncing = syncManager.isSyncing('test')
+  inScope = false
+  disposers.forEach(dispose => dispose())
+
+  expect(isSyncing).toBe(false)
 })
 
 it('schedules a follow-up sync when changes remain after applying snapshot', async () => {

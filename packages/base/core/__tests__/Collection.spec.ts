@@ -12,12 +12,15 @@ import Cursor, { isInReactiveScope } from '../src/Collection/Cursor'
 import Observer from '../src/Collection/Observer'
 import createStorageAdapter from '../src/createStorageAdapter'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import createReactiveScope from './helpers/createReactiveScope'
+
+const scope = createReactiveScope()
 
 describe('Collection', () => {
   let collection: Collection<{ id: string, name: string }>
 
   beforeEach(() => {
-    collection = new Collection<{ id: string, name: string }>()
+    collection = new Collection<{ id: string, name: string }>({ reactivity: scope.reactivity })
   })
 
   describe('findOne', () => {
@@ -63,7 +66,7 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'Jane' })
 
-      const item = collection.findOne({ name: 'John' })
+      const item = scope.read(() => collection.findOne({ name: 'John' }))
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
@@ -71,7 +74,7 @@ describe('Collection', () => {
     it('should return undefined synchronously if no item matches', async () => {
       await collection.insert({ id: '1', name: 'John' })
 
-      const item = collection.findOne({ name: 'Jane' })
+      const item = scope.read(() => collection.findOne({ name: 'Jane' }))
 
       expect(item).toBeUndefined()
     })
@@ -80,7 +83,7 @@ describe('Collection', () => {
       await collection.insert({ id: '1', name: 'John' })
       await collection.insert({ id: '2', name: 'John' })
 
-      const item = collection.findOne({ name: 'John' })
+      const item = scope.read(() => collection.findOne({ name: 'John' }))
 
       expect(item).toEqual({ id: '1', name: 'John' })
     })
@@ -1120,12 +1123,15 @@ describe('Collection', () => {
     })
 
     it('emits _debug.getItems when debug mode forbids the cached path', async () => {
-      const col = new Collection<{ id: string, name: string }>({ enableDebugMode: true })
+      const col = new Collection<{ id: string, name: string }>({
+        enableDebugMode: true,
+        reactivity: scope.reactivity,
+      })
       const debugSpy = vi.fn()
       col.on('_debug.getItems', debugSpy)
 
       await col.insert({ id: '1', name: 'debug' })
-      const results = col.find({ name: 'debug' }).fetch()
+      const results = scope.read(() => col.find({ name: 'debug' }).fetch())
       expect(results).toEqual([{ id: '1', name: 'debug' }])
 
       expect(debugSpy).toHaveBeenCalledWith(
@@ -1330,6 +1336,7 @@ describe('Collection', () => {
 
     it('correctly transform entities', async () => {
       const col1 = new Collection({
+        reactivity: scope.reactivity,
         persistence: memoryStorageAdapter(),
       })
 
@@ -1351,16 +1358,16 @@ describe('Collection', () => {
       await col1.insert({ id: '1', name: 'John' })
       await col1.insert({ id: '2', name: 'Jane' })
 
-      const col2 = new Collection({ transformAll })
+      const col2 = new Collection({ transformAll, reactivity: scope.reactivity })
 
       await col2.insert({ id: '1', name: 'John', parent: '1' })
       await col2.insert({ id: '2', name: 'Jane', parent: '2' })
 
-      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
-      expect(col2.find({ id: '2' }, { fields: { id: 1, name: 1 } }).fetch()).toEqual([{ id: '2', name: 'Jane' }])
+      expect(scope.read(() => col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch())).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John' } }])
+      expect(scope.read(() => col2.find({ id: '2' }, { fields: { id: 1, name: 1 } }).fetch())).toEqual([{ id: '2', name: 'Jane' }])
 
       await col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
-      expect(col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch()).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
+      expect(scope.read(() => col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch())).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
   })
 

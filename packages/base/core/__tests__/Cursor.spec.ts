@@ -4,6 +4,9 @@ import { Collection, Cursor, createReactivityAdapter } from '../src'
 import Observer from '../src/Collection/Observer'
 import { diffQueryResults } from '../src/utils/queryDelta'
 import { primitiveReactivity, primitiveReactivityAdapter } from './helpers/primitiveReactivity'
+import createReactiveScope from './helpers/createReactiveScope'
+
+const scope = createReactiveScope()
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => {
@@ -375,7 +378,7 @@ describe('Cursor', async () => {
     })
 
     it('should call the movedBefore callback when items are moved', async () => {
-      const col = new Collection<TestItem>()
+      const col = new Collection<TestItem>({ reactivity: scope.reactivity })
       await Promise.all(items.map(item => col.insert(item)))
 
       const callbacks = {
@@ -406,7 +409,7 @@ describe('Cursor', async () => {
         expect.objectContaining({ id: 3, name: 'Item 3' }),
         expect.objectContaining({ id: 2, name: 'Item 30' }),
       )
-      expect(cursor.fetch().map(item => item.id)).toEqual([1, 3, 2])
+      expect(scope.read(() => cursor.fetch()).map(item => item.id)).toEqual([1, 3, 2])
       expect(callbacks.removed).not.toHaveBeenCalled()
     })
 

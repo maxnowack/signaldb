@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { Collection, AutoFetchDataAdapter } from '../src'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import createReactiveScope from './helpers/createReactiveScope'
 
 type Post = { id: string, title?: string }
 
@@ -16,6 +17,8 @@ function deferred<T>() {
   })
   return { promise, resolve }
 }
+
+const scope = createReactiveScope()
 
 describe('AutoFetchDataAdapter answers a query from the remote source', () => {
   it('resolves an async query only after the first remote fetch for its selector', async () => {
@@ -50,18 +53,18 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
       storage: () => storage,
       fetchQueryItems: () => remote.promise,
     })
-    const posts = new Collection<Post>('posts', adapter)
+    const posts = new Collection<Post>('posts', adapter, { reactivity: scope.reactivity })
     await posts.ready()
 
     const cursor = posts.find({})
-    const stop = cursor.observeChanges({})
+    const stop = cursor.observeChanges({ added: () => {} })
     await new Promise(resolve => setTimeout(resolve, 10))
-    expect(cursor.isLoading()).toBe(true)
-    expect(cursor.fetch()).toEqual([])
+    expect(scope.read(() => cursor.isLoading())).toBe(true)
+    expect(scope.read(() => cursor.fetch())).toEqual([])
 
     remote.resolve([{ id: 'remote', title: 'fresh' }])
-    await vi.waitFor(() => expect(cursor.isLoading()).toBe(false))
-    expect(cursor.fetch()).toEqual([
+    await vi.waitFor(() => expect(scope.read(() => cursor.isLoading())).toBe(false))
+    expect(scope.read(() => cursor.fetch())).toEqual([
       { id: 'cached', title: 'stale' },
       { id: 'remote', title: 'fresh' },
     ])
@@ -75,16 +78,16 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
       fetchQueryItems: () => Promise.reject(new Error('offline')),
       onError,
     })
-    const posts = new Collection<Post>('posts', adapter)
+    const posts = new Collection<Post>('posts', adapter, { reactivity: scope.reactivity })
     await posts.ready()
     const queryError = vi.fn()
     posts.on('query.error', queryError)
 
     const cursor = posts.find({})
-    const stop = cursor.observeChanges({})
+    const stop = cursor.observeChanges({ added: () => {} })
     await vi.waitFor(() => expect(onError).toHaveBeenCalled())
-    await vi.waitFor(() => expect(cursor.isLoading()).toBe(false))
-    expect(cursor.fetch()).toEqual([])
+    await vi.waitFor(() => expect(scope.read(() => cursor.isLoading())).toBe(false))
+    expect(scope.read(() => cursor.fetch())).toEqual([])
     stop()
   })
 
@@ -99,12 +102,12 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
         remoteChange = callback
       },
     })
-    const posts = new Collection<Post>('posts', adapter)
+    const posts = new Collection<Post>('posts', adapter, { reactivity: scope.reactivity })
     await posts.ready()
 
     const cursor = posts.find({})
-    const stop = cursor.observeChanges({})
-    await vi.waitFor(() => expect(cursor.isLoading()).toBe(false))
+    const stop = cursor.observeChanges({ added: () => {} })
+    await vi.waitFor(() => expect(scope.read(() => cursor.isLoading())).toBe(false))
     await remoteChange?.()
     await remoteChange?.()
     expect(await storage.readAll()).toEqual([{ id: '1', title: 'A' }])

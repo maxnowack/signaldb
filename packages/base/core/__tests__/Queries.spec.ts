@@ -347,7 +347,9 @@ describe('Queries', () => {
     await collection.insert({ id: 3, status: 'closed', tag: 'a' })
     await collection.insert({ id: 4, status: 'closed', tag: 'b' })
 
-    const found = collection.find({ status: 'open', $or: [{ tag: 'a' }, { tag: 'b' }] }).fetch()
+    const found = await collection
+      .find({ status: 'open', $or: [{ tag: 'a' }, { tag: 'b' }] }, { async: true })
+      .fetch()
 
     expect(found.map(item => item.id)).toEqual([1])
   })

@@ -92,7 +92,8 @@ describe('WorkerDataAdapterHost selector parity', () => {
 
     const response = await send('executeQuery', ['items', selector, undefined])
     const fromHost = ((response?.data as Document_[]) ?? []).map(item => item.id).toSorted()
-    const fromReference = reference.find(selector).fetch().map(item => item.id).toSorted()
+    const referenceItems = await reference.find(selector, { async: true }).fetch()
+    const fromReference = referenceItems.map(item => item.id).toSorted()
 
     expect(fromHost).toEqual(fromReference)
   })

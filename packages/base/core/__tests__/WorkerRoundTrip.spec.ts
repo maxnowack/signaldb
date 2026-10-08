@@ -7,6 +7,9 @@ import WorkerDataAdapterHost from '../src/WorkerDataAdapterHost'
 import type { WorkerDataAdapterEndpoint } from '../src/WorkerDataAdapter'
 import type { WorkerDataAdapterHostEndpoint } from '../src/WorkerDataAdapterHost'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import createReactiveScope from './helpers/createReactiveScope'
+
+const scope = createReactiveScope()
 
 interface TestItem {
   id: string,
@@ -91,7 +94,10 @@ describe('worker round trip', () => {
 
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'round-trip', storage: () => storage })
     adapter = new WorkerDataAdapter(pair.clientEndpoint, { id: 'round-trip' })
-    collection = new Collection<TestItem>('items', adapter, { indices })
+    collection = new Collection<TestItem>('items', adapter, {
+      indices,
+      reactivity: scope.reactivity,
+    })
     await Promise.resolve(collection.isReady())
   }
 
@@ -121,7 +127,7 @@ describe('worker round trip', () => {
     return async (predicate: (items: TestItem[]) => boolean) => {
       let current: TestItem[] = []
       await vi.waitFor(() => {
-        current = cursor.fetch()
+        current = scope.read(() => cursor.fetch())
         expect(predicate(current)).toBe(true)
       }, { timeout: 2000, interval: 5 })
       return current

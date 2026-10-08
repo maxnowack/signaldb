@@ -8,6 +8,9 @@ import WorkerDataAdapterHost from '../src/WorkerDataAdapterHost'
 import type { WorkerDataAdapterEndpoint } from '../src/WorkerDataAdapter'
 import type { WorkerDataAdapterHostEndpoint } from '../src/WorkerDataAdapterHost'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import createReactiveScope from './helpers/createReactiveScope'
+
+const scope = createReactiveScope()
 
 interface TestItem {
   id: string,
@@ -64,7 +67,9 @@ const adapters = {
    * @returns The collection.
    */
   default: async (items: TestItem[]) => {
-    const collection = new Collection<TestItem>('items', new DefaultDataAdapter())
+    const collection = new Collection<TestItem>('items', new DefaultDataAdapter(), {
+      reactivity: scope.reactivity,
+    })
     await Promise.resolve(collection.isReady())
     await Promise.all(items.map(async item => collection.insert(item)))
     return collection
@@ -78,7 +83,7 @@ const adapters = {
     const storage = memoryStorageAdapter<TestItem>(items.map(item => ({ ...item })))
     const collection = new Collection<TestItem>('items', new AsyncDataAdapter({
       storage: () => storage,
-    }))
+    }), { reactivity: scope.reactivity })
     await Promise.resolve(collection.isReady())
     return collection
   },
@@ -95,7 +100,7 @@ const adapters = {
     const collection = new Collection<TestItem>('items', new WorkerDataAdapter(
       pair.clientEndpoint,
       { id: 'cursor-delta' },
-    ))
+    ), { reactivity: scope.reactivity })
     await Promise.resolve(collection.isReady())
     return collection
   },
@@ -127,7 +132,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
       until: async (predicate: (items: TestItem[]) => boolean) => {
         let current: TestItem[] = []
         await vi.waitFor(() => {
-          current = cursor.fetch()
+          current = scope.read(() => cursor.fetch())
           expect(predicate(current)).toBe(true)
         }, { timeout: 2000, interval: 5 })
         return current
@@ -157,7 +162,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
     const added = vi.fn()
     const removed = vi.fn()
     const stop = cursor.observeChanges({ changed, added, removed }, true)
-    await vi.waitFor(() => expect(cursor.fetch()).toHaveLength(20))
+    await vi.waitFor(() => expect(scope.read(() => cursor.fetch())).toHaveLength(20))
     ;[changed, added, removed].forEach(callback => callback.mockClear())
 
     await collection.updateOne({ id: 'item-5' }, { $set: { name: 'renamed' } })
@@ -177,7 +182,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
     const added = vi.fn()
     const addedBefore = vi.fn()
     const stop = cursor.observeChanges({ added, addedBefore }, true)
-    await vi.waitFor(() => expect(cursor.fetch()).toHaveLength(20))
+    await vi.waitFor(() => expect(scope.read(() => cursor.fetch())).toHaveLength(20))
     ;[added, addedBefore].forEach(callback => callback.mockClear())
 
     const item = { id: 'new', status: 'open', rank: -1, name: 'first' }
@@ -193,7 +198,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
     const cursor = collection.find({ status: 'open' }, { sort: { rank: 1 } })
     const removed = vi.fn()
     const stop = cursor.observeChanges({ removed }, true)
-    await vi.waitFor(() => expect(cursor.fetch()).toHaveLength(20))
+    await vi.waitFor(() => expect(scope.read(() => cursor.fetch())).toHaveLength(20))
     removed.mockClear()
 
     await collection.removeOne({ id: 'item-7' })
@@ -246,6 +251,7 @@ describe('cursor updates for a collection with transformAll', () => {
     collection = new Collection<TestItem>('transformed', new AsyncDataAdapter({
       storage: () => storage,
     }), {
+      reactivity: scope.reactivity,
       transformAll: items => items.map(item => ({ ...item, name: `${item.name ?? ''}!` })),
     })
     await Promise.resolve(collection.isReady())
@@ -258,13 +264,13 @@ describe('cursor updates for a collection with transformAll', () => {
   it('still reflects writes, by comparing rather than by applying a change', async () => {
     const cursor = collection.find({ status: 'open' }, { sort: { rank: 1 } })
     const stop = cursor.observeChanges({ added: () => {}, changed: () => {} })
-    await vi.waitFor(() => expect(cursor.fetch()).toHaveLength(5))
-    expect(cursor.fetch()[0].name).toBe('name-0!')
+    await vi.waitFor(() => expect(scope.read(() => cursor.fetch())).toHaveLength(5))
+    expect(scope.read(() => cursor.fetch())[0].name).toBe('name-0!')
 
     await collection.updateOne({ id: 'item-1' }, { $set: { name: 'renamed' } })
-    await vi.waitFor(() => expect(cursor.fetch().some(item => item.name === 'renamed!')).toBe(true))
+    await vi.waitFor(() => expect(scope.read(() => cursor.fetch()).some(item => item.name === 'renamed!')).toBe(true))
 
-    expect(cursor.fetch()).toHaveLength(5)
+    expect(scope.read(() => cursor.fetch())).toHaveLength(5)
     stop()
   })
 })
