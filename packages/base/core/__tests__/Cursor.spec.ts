@@ -640,6 +640,29 @@ describe('Cursor', async () => {
       warn.mockRestore()
     })
 
+    it('keeps an observation without callbacks alive across a reactive read', async () => {
+      const scopedCollection = new Collection<TestItem>({ reactivity: scope.reactivity })
+      await scopedCollection.insert({ id: 1, name: 'Item 1' })
+      let openObservers = 0
+      scopedCollection.on('observer.created', () => {
+        openObservers += 1
+      })
+      scopedCollection.on('observer.disposed', () => {
+        openObservers -= 1
+      })
+
+      const cursor = scopedCollection.find({})
+      const stopObserving = cursor.observeChanges({})
+      scope.read(() => cursor.fetch())
+      await wait()
+      expect(openObservers).toBe(1)
+
+      stopObserving()
+      stopObserving()
+      await wait()
+      expect(openObservers).toBe(0)
+    })
+
     it('reads an observed query reactively without comparing its whole result again', async () => {
       const reactiveCollection = new Collection<TestItem>({
         reactivity: primitiveReactivityAdapter,

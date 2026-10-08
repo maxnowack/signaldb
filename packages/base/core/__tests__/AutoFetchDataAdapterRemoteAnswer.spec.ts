@@ -57,7 +57,7 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
     await posts.ready()
 
     const cursor = posts.find({})
-    const stop = cursor.observeChanges({ added: () => {} })
+    const stop = cursor.observeChanges({})
     await new Promise(resolve => setTimeout(resolve, 10))
     expect(scope.read(() => cursor.isLoading())).toBe(true)
     expect(scope.read(() => cursor.fetch())).toEqual([])
@@ -84,7 +84,7 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
     posts.on('query.error', queryError)
 
     const cursor = posts.find({})
-    const stop = cursor.observeChanges({ added: () => {} })
+    const stop = cursor.observeChanges({})
     await vi.waitFor(() => expect(onError).toHaveBeenCalled())
     await vi.waitFor(() => expect(scope.read(() => cursor.isLoading())).toBe(false))
     expect(scope.read(() => cursor.fetch())).toEqual([])
@@ -106,7 +106,7 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
     await posts.ready()
 
     const cursor = posts.find({})
-    const stop = cursor.observeChanges({ added: () => {} })
+    const stop = cursor.observeChanges({})
     await vi.waitFor(() => expect(scope.read(() => cursor.isLoading())).toBe(false))
     await remoteChange?.()
     await remoteChange?.()

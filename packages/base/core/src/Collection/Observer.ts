@@ -45,6 +45,7 @@ interface CallbackWithOptions<T> {
 export default class Observer<T extends { id: any }> {
   private previousItems: T[] = []
   private hasCheckedResult = false
+  private observationCount = 0
   private callbacks: {
     added: CallbackWithOptions<AddedCallback<T>>[],
     addedBefore: CallbackWithOptions<AddedBeforeCallback<T>>[],
@@ -106,6 +107,15 @@ export default class Observer<T extends { id: any }> {
       'movedBefore',
       'removed',
     ])
+  }
+
+  /**
+   * Whether anything still observes the query, including an observation without callbacks, which
+   * keeps the query live without listening to it.
+   * @returns `true` while at least one set of callbacks is registered.
+   */
+  public isObserved() {
+    return this.observationCount > 0
   }
 
   /**
@@ -271,6 +281,7 @@ export default class Observer<T extends { id: any }> {
    * @param skipInitial - A boolean indicating whether to skip invoking the callbacks for the initial state of the collection.
    */
   public addCallbacks(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+    this.observationCount += 1
     Object.keys(callbacks).forEach((key) => {
       const typedKey = key as keyof ObserveCallbacks<T>
       this.callbacks[typedKey].push({
@@ -285,6 +296,7 @@ export default class Observer<T extends { id: any }> {
    * @param callbacks - An object containing the callbacks to be removed for various events.
    */
   public removeCallbacks(callbacks: ObserveCallbacks<T>) {
+    this.observationCount = Math.max(0, this.observationCount - 1)
     Object.keys(callbacks).forEach((key) => {
       const typedKey = key as keyof ObserveCallbacks<T>
       const index = this.callbacks[typedKey]

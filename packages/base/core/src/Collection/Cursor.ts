@@ -264,11 +264,14 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     const needsCheck = !skipInitial || !observer.hasResult()
     observer.addCallbacks(callbacks, skipInitial)
     if (needsCheck) observer.runChecks(this.getItems)
+    let isStopped = false
     return () => {
+      if (isStopped) return
+      isStopped = true
       observer.removeCallbacks(callbacks)
-      if (!observer.isEmpty()) return
+      if (observer.isObserved()) return
 
-      // remove observer if it's empty
+      // remove the observer once nothing observes it any more
       observer.stop()
       this.observer = undefined
     }
