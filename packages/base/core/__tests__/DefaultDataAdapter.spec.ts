@@ -71,7 +71,7 @@ describe('DefaultDataAdapter', () => {
 
   it('handles storage function returning undefined (no adapter)', () => {
     const adapter = new DefaultDataAdapter({
-      // @ts-expect-error testing undefined return
+      // deliberately returns no storage adapter
       storage: () => {},
     })
     const col = new Collection<Item, string, Item>('undefined-storage', adapter)

@@ -14,7 +14,7 @@ export default function batchOnNextTick<TKey>(
   onFlush: (key: TKey, items: any[][]) => Promise<any[]>,
 ) {
   const queues = new Map<TKey, {
-    timer: NodeJS.Timeout | null,
+    timer: ReturnType<typeof setTimeout> | null,
     items: {
       args: any[],
       resolve: (value: any) => void,

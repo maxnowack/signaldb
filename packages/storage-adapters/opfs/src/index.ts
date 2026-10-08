@@ -182,10 +182,9 @@ export default function createOPFSAdapter<
       const directoryHandle = await ensureDirectoryExists(rootDirectory, directoryPath, false)
 
       const files: string[] = []
-      // @ts-expect-error -- for-await-of on FileSystemDirectoryHandle is not in types yet
       for await (const entry of directoryHandle.values()) {
         if (entry.kind === 'file') {
-          files.push(entry.name as string)
+          files.push(entry.name)
         } else if (entry.kind === 'directory') {
           const subFiles = await driver.listFilesRecursive(`${directoryPath}/${entry.name}`)
           files.push(...subFiles.map(f => `${entry.name}/${f}`))

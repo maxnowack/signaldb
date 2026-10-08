@@ -133,7 +133,6 @@ describe('AutoFetchDataAdapter', () => {
     const adapter = new AutoFetchDataAdapter({
       storage: () => storage,
       // invalid return (undefined) triggers error path
-      // @ts-expect-error we want to test invalid return
       fetchQueryItems: async () => {},
       onError,
     })

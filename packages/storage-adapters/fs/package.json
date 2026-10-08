@@ -57,5 +57,8 @@
   },
   "dependencies": {
     "@signaldb/generic-fs": "^2.0.0-beta.24"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5"
   }
 }

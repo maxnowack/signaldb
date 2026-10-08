@@ -1,5 +1,9 @@
 {
   "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    // The adapter imports fs and path; TypeScript 6 no longer loads @types/node implicitly.
+    "types": ["node"]
+  },
   "exclude": [
     "**/*.spec.ts",
   ],
