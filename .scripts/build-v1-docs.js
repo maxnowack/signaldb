@@ -101,6 +101,26 @@ async function removeMarkdownFiles(directory) {
   }))
 }
 
+// The archive repeats what the live site documents for the previous major. It
+// stays reachable for whoever still runs v1, but must not compete with the
+// current pages in search results.
+const NOINDEX_TAG = '<meta name="robots" content="noindex, follow">'
+
+async function addNoindex(directory) {
+  const entries = await fs.promises.readdir(directory, { withFileTypes: true })
+  await Promise.all(entries.map(async (entry) => {
+    const entryPath = path.join(directory, entry.name)
+    if (entry.isDirectory()) {
+      await addNoindex(entryPath)
+    } else if (entry.name.endsWith('.html')) {
+      const html = await fs.promises.readFile(entryPath, 'utf8')
+      // The redirect stubs have no <head>; a search engine follows them anyway.
+      if (!/<head[^>]*>/.test(html)) return
+      await fs.promises.writeFile(entryPath, html.replace(/<head[^>]*>/, head => `${head}${NOINDEX_TAG}`))
+    }
+  }))
+}
+
 async function isPopulated(directory) {
   try {
     const entries = await fs.promises.readdir(directory)
@@ -188,6 +208,7 @@ async function main() {
   await Promise.all(DROP_FROM_OUTPUT.map(entry =>
     fs.promises.rm(path.join(outputDirectory, entry), { recursive: true, force: true })))
   await removeMarkdownFiles(outputDirectory)
+  await addNoindex(outputDirectory)
 
   console.log(`✅ v1 documentation placed at ${path.relative(repositoryRoot, outputDirectory)}`)
 }

@@ -48,6 +48,24 @@ function buildRedirectHtml(to: string) {
   return `<!DOCTYPE html><html><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=${to}"><link rel="canonical" href="${to}"><body><a href="${to}">Redirecting...</a></body></html>`
 }
 
+// Pages that stay reachable from the navigation but are kept out of the search
+// index: the changelogs only repeat the packages' CHANGELOG.md, and the
+// adapters listed here are too thin to answer a search on their own.
+const noindexPages = [
+  /^changelog\//,
+  /^reference\/(oby|reactively|sinuous|sjs)\//,
+]
+
+/**
+ * Tells whether a page is kept out of the search index.
+ * @param pagePath - The page's path relative to the site root, with or without a leading slash.
+ * @returns `true` if the page carries `noindex` and is left out of the sitemap.
+ */
+function isNoindexPage(pagePath: string) {
+  const normalizedPath = pagePath.replace(/^\//, '')
+  return noindexPages.some(pattern => pattern.test(normalizedPath))
+}
+
 // https://vitepress.dev/reference/site-config
 export default withMermaid({
   vite: {
@@ -291,8 +309,13 @@ export default withMermaid({
         'guides/',
         'integrations/',
       ])
-      return items.filter(item => !exclude.has(item.url))
+      return items.filter(item => !exclude.has(item.url) && !isNoindexPage(item.url))
     },
+  },
+
+  transformHead({ pageData }) {
+    if (!isNoindexPage(pageData.relativePath)) return
+    return [['meta', { name: 'robots', content: 'noindex, follow' }]]
   },
 
   buildEnd: async () => {
