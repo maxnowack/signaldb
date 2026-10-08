@@ -131,6 +131,30 @@ describe('transformAll built with reactiveOrAsync', () => {
     cursor.cleanup()
   })
 
+  it('stays settled for a cursor created anew on every run', async () => {
+    const users = new Collection<User>('users', new AsyncDataAdapter({
+      storage: () => memoryStorageAdapter<User>([
+        { id: 'u1', name: 'Ada' },
+        { id: 'u2', name: 'Grace' },
+      ], 30),
+    }), { reactivity: primitiveReactivityAdapter })
+    await users.ready()
+    const posts = createPosts(users, primitiveReactivityAdapter)
+    await posts.insert({ id: 'p1', authorId: 'u1' })
+
+    const runs: { isLoading: boolean, authors: (string | undefined)[] }[] = []
+    primitiveReactivity.effect(() => {
+      const isLoading = posts.find({}).isLoading()
+      runs.push({ isLoading, authors: posts.find({}).fetch().map(item => item.author?.name) })
+    })
+    await expect.poll(() => runs.at(-1)?.isLoading).toBe(false)
+    const settledAt = runs.length
+
+    await posts.insert({ id: 'p2', authorId: 'u2' })
+    await expect.poll(() => runs.at(-1)?.authors).toEqual(['Ada', 'Grace'])
+    expect(runs.slice(settledAt).every(run => !run.isLoading)).toBe(true)
+  })
+
   it('keeps a plain transformAll working on an asynchronous read', async () => {
     const posts = new Collection<Post>({
       transformAll: items => items.map(item => ({

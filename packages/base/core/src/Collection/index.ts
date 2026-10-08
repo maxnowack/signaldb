@@ -374,6 +374,9 @@ export default class Collection<
   // again — which is correct, since the adapter re-executes it on the next
   // registration.
   private settledQueriesSet: Set<string> = new Set()
+  // The same for the queries a synchronous transformAll read: whether they had all settled once
+  // the query itself had. Kept per query, not per cursor, for the same reason.
+  private settledRelatedQueriesSet: Set<string> = new Set()
 
   /**
    * Creates a collection and its backend from the data adapter, registers it in
@@ -727,7 +730,6 @@ export default class Collection<
     if (selector !== undefined && (!selector || typeof selector !== 'object')) throw new Error('Invalid selector')
     // What the latest synchronous transformAll read. Its result is only as complete as theirs.
     let relatedCursors: Cursor<any, any, boolean>[] = []
-    let hasSettledRelated = false
     const getTransformedItems = () => {
       const itemsOrPromise = this.getItems(selector, options || {})
       if (itemsOrPromise instanceof Promise) {
@@ -762,12 +764,13 @@ export default class Collection<
             if (!hasSettled) return false
             // Latched like the query's own state: a write that makes transformAll read something
             // new later does not send a settled query back into loading.
-            if (hasSettledRelated) return true
+            if (this.settledRelatedQueriesSet.has(queryId(selector, options))) return true
             // Asking the related cursors is a reactive read of their state, so a scope waiting on
             // this one is woken when the last of them settles.
-            hasSettledRelated = withinTransform(
+            const hasSettledRelated = withinTransform(
               () => relatedCursors.every(related => !related.isLoading()),
             )
+            if (hasSettledRelated) this.settledRelatedQueriesSet.add(queryId(selector, options))
             return hasSettledRelated
           },
           // The latch is set by the very callback that notifies, so a cursor
@@ -865,6 +868,7 @@ export default class Collection<
               if (newListeners === 0) {
                 this.backend.unregisterQuery(selector, options || {})
                 this.settledQueriesSet.delete(queryId(selector, options))
+                this.settledRelatedQueriesSet.delete(queryId(selector, options))
               }
               this.queryListeners({ selector, options }, newListeners)
 
