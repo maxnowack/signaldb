@@ -9,13 +9,21 @@ import type { QueryDelta } from './utils/queryDelta'
  * @template T - The type of the items queried.
  */
 export interface QueryOptions<T extends BaseItem> {
-  /** Sort order (default: natural order) */
+  /**
+  Sort order (default: natural order)
+   */
   sort?: SortSpecifier<T> | undefined,
-  /** Number of results to skip at the beginning */
+  /**
+  Number of results to skip at the beginning
+   */
   skip?: number | undefined,
-  /** Maximum number of results to return */
+  /**
+  Maximum number of results to return
+   */
   limit?: number | undefined,
-  /** Dictionary of fields to return or exclude. */
+  /**
+  Dictionary of fields to return or exclude.
+   */
   fields?: FieldSpecifier<T> | undefined,
 }
 
@@ -52,9 +60,13 @@ export type StateChangeCallback<T extends BaseItem = BaseItem> = (
  * @template T - The type of the items.
  */
 export interface DetailedWriteResult<T> {
-  /** The changed items, as they are after the write. */
+  /**
+  The changed items, as they are after the write.
+   */
   items: T[],
-  /** What each item in `items` was before the write, at the same index. */
+  /**
+  What each item in `items` was before the write, at the same index.
+   */
   previousItems: T[],
 }
 
@@ -112,7 +124,9 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
    * first cursor starts observing it.
    */
   registerQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
-  /** Stops maintaining a live query, once its last observer is gone. */
+  /**
+  Stops maintaining a live query, once its last observer is gone.
+   */
   unregisterQuery<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
   /**
    * Re-runs a query that is currently in the `'error'` state. Optional so
@@ -120,9 +134,13 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
    * an error state has nothing to implement. `Collection` never calls it.
    */
   retryQuery?<O extends QueryOptions<T>>(selector: Selector<T>, options: O): void,
-  /** The current state of a query; an adapter that answers synchronously reports `'complete'`. */
+  /**
+  The current state of a query; an adapter that answers synchronously reports `'complete'`.
+   */
   getQueryState<O extends QueryOptions<T>>(selector: Selector<T>, options: O): 'active' | 'complete' | 'error',
-  /** The error of a query in the `'error'` state, otherwise `null`. */
+  /**
+  The error of a query in the `'error'` state, otherwise `null`.
+   */
   getQueryError<O extends QueryOptions<T>>(selector: Selector<T>, options: O): Error | null,
   /**
    * The current result of a query, synchronously. A query that has not been answered yet returns
@@ -145,9 +163,13 @@ export interface CollectionBackend<T extends BaseItem<I>, I> {
   ): () => void,
 
   // lifecycle methods
-  /** Releases the backend's resources; called by `Collection#dispose`. */
+  /**
+  Releases the backend's resources; called by `Collection#dispose`.
+   */
   dispose(): Promise<void>,
-  /** Resolves once the backend is initialized, e.g. has loaded its data from storage. */
+  /**
+  Resolves once the backend is initialized, e.g. has loaded its data from storage.
+   */
   isReady(): Promise<void>,
 }
 

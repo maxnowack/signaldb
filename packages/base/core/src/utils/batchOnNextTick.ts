@@ -65,12 +65,14 @@ export default function batchOnNextTick<TKey>(
     }
     const items = q.items.splice(0)
     onFlush(key, items.map(i => i.args))
+      // eslint-disable-next-line unicorn/prefer-await -- flush resolves without awaiting onFlush
       .then((results) => {
         for (const [index, result] of results.entries()) {
           const { resolve } = items[index]
           resolve(result)
         }
       })
+      // eslint-disable-next-line unicorn/prefer-await -- flush resolves without awaiting onFlush
       .catch((error) => {
         for (const { reject } of items) {
           reject(error)

@@ -22,7 +22,7 @@ const reactivity = (() => {
     }
 
     invalidate() {
-      this.onInvalidateCallbacks.forEach(callback => callback())
+      for (const callback of this.onInvalidateCallbacks) callback()
     }
   }
 
@@ -38,9 +38,9 @@ const reactivity = (() => {
       },
       notify: () => {
         version += 1
-        ;[...dependents].forEach((computation) => {
+        for (const computation of dependents) {
           computation.effectCallback()
-        })
+        }
       },
     }
   }
@@ -77,9 +77,8 @@ const reactivityAdapter = createReactivityAdapter({
 
 const createCollection = (
   storage: StorageAdapter<any, any>,
-  name = 'items',
 ) => new Collection<TestItem>(
-  name,
+  'items',
   new AsyncDataAdapter({ storage: () => storage, onError: () => {} }),
   { reactivity: reactivityAdapter },
 )
@@ -170,7 +169,7 @@ describe('Cursor#isLoading', () => {
     expect(readOnce(() => collection.find({ name: 'never asked before' }).isLoading())).toBe(true)
 
     await tick()
-    expect(seen.slice(1).every(value => value === false)).toBe(true)
+    expect(seen.slice(1).every(value => !value)).toBe(true)
   })
 
   it('is false once a permanently failing query has given up', async () => {

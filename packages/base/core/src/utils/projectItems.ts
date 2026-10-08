@@ -16,9 +16,9 @@ export default function projectItems<T extends BaseItem>(
   fields: QueryOptions<T>['fields'],
 ): T[] {
   if (!fields) return items
-  const idExcluded = fields.id === 0
+  const isIdExcluded = fields.id === 0
   return items.map(item => ({
-    ...idExcluded ? {} : { id: item.id },
+    ...!isIdExcluded && { id: item.id },
     ...project(item, fields),
   }))
 }

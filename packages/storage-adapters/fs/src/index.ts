@@ -12,19 +12,17 @@ import createGenericFSAdapter from '@signaldb/generic-fs'
  * @returns A safe filename.
  */
 function toSafeFilename(input: string): string {
-  const replacement = '_'
   const max = 255
 
-  const escapeRegex = (s: string) => s.replaceAll(/[-/\\^$*+?.()|[\]{}]/g, String.raw`\$&`)
   // eslint-disable-next-line no-control-regex
-  const INVALID = /[<>:"/\\|?*\u0000-\u001F\u007F]/g // common cross-platform "bad" chars
+  const INVALID = /[<>:"/\\|?*\u{0}-\u{1F}\u{7F}]/gu // common cross-platform "bad" chars
 
   // 1) Normalize Unicode (helps avoid odd combining forms)
   let name = input.normalize('NFC')
 
   // 2) Replace invalid characters; collapse repeats of the replacement
-  name = name.replaceAll(INVALID, replacement)
-  name = name.replaceAll(new RegExp(`${escapeRegex(replacement)}{2,}`, 'g'), replacement)
+  name = name.replaceAll(INVALID, '_')
+  name = name.replaceAll(/_{2,}/g, '_')
 
   // 3) Trim whitespace and remove trailing dots/spaces (Windows)
   name = name.trim().replaceAll(/[. ]+$/g, '')
@@ -33,7 +31,7 @@ function toSafeFilename(input: string): string {
   if (!name) name = 'unnamed'
 
   // 5) Avoid reserved device names on Windows (even with extensions)
-  const base = name.split('.')[0] // check the stem
+  const base = name.split('.', 1)[0] // check the stem
   if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(base)) {
     name = `_${name}`
   }
@@ -202,10 +200,10 @@ export default function createFilesystemAdapter<
       return collectedRelativePaths
     },
 
-    removeEntry: async (path: string, removeOptions?: { recursive?: boolean }): Promise<void> => {
+    removeEntry: async (path: string, entryOptions?: { recursive?: boolean }): Promise<void> => {
       const fs = await fsPromise
-      const recursive = removeOptions?.recursive ?? false
-      await fs.promises.rm(path, { recursive, force: true })
+      const isRecursive = entryOptions?.recursive ?? false
+      await fs.promises.rm(path, { recursive: isRecursive, force: true })
     },
   }
   return createGenericFSAdapter<T, I>(driver, folderName)

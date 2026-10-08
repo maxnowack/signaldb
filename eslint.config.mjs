@@ -18,9 +18,8 @@ import FastGlob from 'fast-glob'
 
 // eslint-plugin-react cannot auto-detect the React version on ESLint 10, because its
 // detection relies on the removed `context.getFilename()`. Resolve it ourselves instead.
-const { version: reactVersion } = JSON.parse(
-  fs.readFileSync(new URL(import.meta.resolve('react/package.json')), 'utf8'),
-)
+const reactPackageUrl = new URL(import.meta.resolve('react/package.json'))
+const { version: reactVersion } = JSON.parse(fs.readFileSync(reactPackageUrl, 'utf8'))
 
 const { workspaces } = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf8'))
 const projectDirectories = workspaces
@@ -78,7 +77,7 @@ export default defineConfig(
       'unicorn/no-useless-undefined': ['error', {
         checkArguments: false,
       }],
-      'unicorn/prevent-abbreviations': ['error', {
+      'unicorn/name-replacements': ['error', {
         checkFilenames: false,
         allowList: {
           i: true,
@@ -92,9 +91,18 @@ export default defineConfig(
         },
       }],
       'unicorn/no-null': 'off',
+      // JSDoc blocks keep their asterisks: eslint-plugin-jsdoc aligns on them, and those blocks are the
+      // generated API reference.
+      'unicorn/no-asterisk-prefix-in-documentation-comments': 'off',
+      // Module-level code is what a config file, a spec or an example is for. In library code it runs
+      // as a side effect of importing a package, so the rule is enabled for that below.
+      'unicorn/no-top-level-side-effects': 'off',
       'unicorn/prefer-event-target': 'off',
+      // The package directories follow the monorepo layout (packages/reactivity-adapters/…), which is
+      // not renamed for a lint rule; file names are still checked.
       'unicorn/filename-case': ['error', {
         cases: { camelCase: true, pascalCase: true },
+        checkDirectories: false,
         ignore: [
           String.raw`next-env\.d\.ts$`,
         ],
@@ -175,6 +183,23 @@ export default defineConfig(
     files: ['**/__tests__/**/*.(m)[jt]s?(x)', '**/?(*.)+(spec|test).(m)[jt]s?(x)'],
     plugins: {
       'testing-library': fixupPluginRules(testingLibraryPlugin),
+    },
+  },
+  {
+    files: ['packages/*/*/src/**/*.{ts,tsx,mts}'],
+    ignores: ['**/*.spec.{ts,tsx}'],
+    rules: {
+      'unicorn/no-top-level-side-effects': 'error',
+      // Iterator#toArray() is missing on Hermes and in older browsers, which library code supports.
+      'unicorn/prefer-iterator-to-array': 'off',
+    },
+  },
+  {
+    // react/function-component-definition requires arrow components, which a default export of a
+    // function declaration would contradict.
+    files: ['**/*.tsx'],
+    rules: {
+      'unicorn/default-export-style': 'off',
     },
   },
   {

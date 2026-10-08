@@ -74,7 +74,7 @@ function createWorkerLoop() {
     },
     postMessage: (payload: any) => {
       queueMicrotask(() => {
-        workerListeners.forEach(listener => listener({ data: payload } as MessageEvent))
+        for (const listener of workerListeners) listener({ data: payload } as MessageEvent)
       })
     },
   }
@@ -83,13 +83,12 @@ function createWorkerLoop() {
 }
 
 beforeAll(() => {
-  ;(globalThis as any).addEventListener = () => {}
-  ;(globalThis as any).postMessage = () => {}
+  vi.stubGlobal('addEventListener', () => {})
+  vi.stubGlobal('postMessage', () => {})
 })
 
 afterAll(() => {
-  delete (globalThis as any).addEventListener
-  delete (globalThis as any).postMessage
+  vi.unstubAllGlobals()
 })
 
 describe('localstorage adapter + WorkerDataAdapter', () => {
@@ -105,7 +104,8 @@ describe('localstorage adapter + WorkerDataAdapter', () => {
     await collection.insert({ id: '2', name: 'Bob' })
 
     const items = await collection.find({}, { async: true }).fetch()
-    expect(items.map(item => item.name).toSorted()).toEqual(['Ada', 'Bob'])
+    expect(items.map(item => item.name).toSorted((a, b) => a.localeCompare(b)))
+      .toEqual(['Ada', 'Bob'])
 
     await collection.dispose()
   })
@@ -127,8 +127,7 @@ describe('localstorage adapter + WorkerDataAdapter', () => {
       void _collectionOptions
       void _pullParameters
       pullCalls += 1
-      if (pullCalls <= 2) return { items: [remoteItem] }
-      return { items: [remoteItem, localItem] }
+      return ({ items: pullCalls <= 2 ? [remoteItem] : [remoteItem, localItem] })
     })
     const push = vi.fn(async (
       _collectionOptions: { name: string },
@@ -175,7 +174,8 @@ describe('localstorage adapter + WorkerDataAdapter', () => {
     )
 
     items = await collection.find({}, { async: true }).fetch()
-    expect(items.map(item => item.name).toSorted()).toEqual(['Local', 'Remote'])
+    expect(items.map(item => item.name).toSorted((a, b) => a.localeCompare(b)))
+      .toEqual(['Local', 'Remote'])
 
     await syncManager.dispose()
   })

@@ -7,23 +7,23 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const mobxReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = observable({ count: 0 })
+    const dependency = observable({ count: 0 })
     return {
       depend: () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        dep.count
+        dependency.count
       },
       notify: () => {
         runInAction(() => {
-          dep.count += 1
+          dependency.count += 1
         })
       },
-      raw: dep,
+      raw: dependency,
     }
   },
   isInScope: undefined,
-  onDispose(callback, { raw: dep }) {
-    onBecomeUnobserved(dep, 'count', callback)
+  onDispose(callback, { raw: dependency }) {
+    onBecomeUnobserved(dependency, 'count', callback)
   },
 })
 

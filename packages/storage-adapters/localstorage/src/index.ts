@@ -29,10 +29,9 @@ export default function createLocalStorageAdapter<
   const serialize = options?.serialize || (data => JSON.stringify(data))
   const deserialize = options?.deserialize || (input => JSON.parse(input))
   const databaseName = options?.databaseName || 'signaldb'
-  const storeName = `${name}`
 
   // We use a single key that namespaces by database and store names
-  const storageKey = `${databaseName}-${storeName}`
+  const storageKey = `${databaseName}-${name}`
 
   const indexKeyFor = (field: string) => `${storageKey}-index-${field}`
   const indices: string[] = []
@@ -63,10 +62,10 @@ export default function createLocalStorageAdapter<
       throw new Error(`Corrupted index on field "${field}"`)
     }
     const index = new Map<any, Set<I>>()
-    Object.entries(data).forEach(([key, ids]) => {
+    for (const [key, ids] of Object.entries(data)) {
       if (!index.has(key)) index.set(key, new Set())
-      ids.forEach(id => index.get(key)?.add(id))
-    })
+      for (const id of ids) index.get(key)?.add(id)
+    }
     return index
   }
 
@@ -83,12 +82,12 @@ export default function createLocalStorageAdapter<
     items: T[] = readFromStorage(),
   ) => {
     const index = new Map<any, Set<I>>()
-    items.forEach((item) => {
+    for (const item of items) {
       const fieldValue = get(item, field)
-      if (fieldValue == null) return
+      if (fieldValue == null) continue
       if (!index.has(fieldValue)) index.set(fieldValue, new Set())
       index.get(fieldValue)?.add(item.id)
-    })
+    }
     saveIndexMap(field, index)
   }
 
@@ -105,9 +104,9 @@ export default function createLocalStorageAdapter<
       throw new Error(`Corrupted index on field "${field}"`)
     }
     const index = new Map<string, Set<I>>()
-    Object.entries(data).forEach(([key, ids]) => {
+    for (const [key, ids] of Object.entries(data)) {
       index.set(key, new Set(ids))
-    })
+    }
     return index
   }
 
@@ -232,10 +231,9 @@ export default function createLocalStorageAdapter<
       const prefix = `${storageKey}-index-`
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)
-        if (k && k.startsWith(prefix)) {
-          const field = k.slice(prefix.length)
-          if (!indices.includes(field)) indices.push(field)
-        }
+        if (!k?.startsWith(prefix)) continue
+        const field = k.slice(prefix.length)
+        if (!indices.includes(field)) indices.push(field)
       }
     },
     teardown: async () => {
@@ -283,9 +281,9 @@ export default function createLocalStorageAdapter<
       const byId = new Map<I, T>(items.map(item => [item.id, item]))
 
       const deltas = new Map<string, IndexDelta>()
-      const removeSet = new Set<I>(itemsToRemove.map(item => item.id))
+      const idsToRemove = new Set<I>(itemsToRemove.map(item => item.id))
 
-      removeSet.forEach((id) => {
+      idsToRemove.forEach((id) => {
         const existing = byId.get(id)
         if (!existing) return
         accumulateRemoveDelta(deltas, existing)
@@ -304,8 +302,8 @@ export default function createLocalStorageAdapter<
         const k = localStorage.key(i)
         if (k && k.startsWith(prefix)) keysToRemove.push(k)
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k))
-      indices.splice(0)
+      for (const k of keysToRemove) localStorage.removeItem(k)
+      indices.length = 0
     },
   })
 }

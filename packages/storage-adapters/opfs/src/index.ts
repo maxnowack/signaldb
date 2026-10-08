@@ -8,13 +8,10 @@ import { serializeValue } from '@signaldb/core'
  * @returns A safe filename.
  */
 function toSafeFilename(input: string): string {
-  const replacement = '_'
-
   let name = input.normalize('NFC')
 
-  const escapeRegex = (s: string) => s.replaceAll(/[-/\\^$*+?.()|[\]{}]/g, String.raw`\$&`)
-  name = name.replaceAll('/', replacement)
-  name = name.replaceAll(new RegExp(`${escapeRegex(replacement)}{2,}`, 'g'), replacement)
+  name = name.replaceAll('/', '_')
+  name = name.replaceAll(/_{2,}/g, '_')
 
   if (!name) name = 'unnamed'
 
@@ -77,12 +74,12 @@ export default function createOPFSAdapter<
   const ensureDirectoryExists = async (
     rootDirectory: FileSystemDirectoryHandle,
     directoryPath: string,
-    createIfMissing: boolean,
+    shouldCreate: boolean,
   ) => {
     const parts = directoryPath.split('/').filter(Boolean)
     let current = rootDirectory
     for (const part of parts) {
-      current = await current.getDirectoryHandle(part, { create: createIfMissing })
+      current = await current.getDirectoryHandle(part, { create: shouldCreate })
     }
     return current
   }
@@ -90,12 +87,12 @@ export default function createOPFSAdapter<
   const getFileHandleForPath = async (
     rootDirectory: FileSystemDirectoryHandle,
     fullPath: string,
-    createIfMissing: boolean,
+    shouldCreate: boolean,
   ): Promise<FileSystemFileHandle> => {
     const parts = fullPath.split('/').filter(Boolean)
     const fileName = parts.pop() as string
-    const directoryHandle = await ensureDirectoryExists(rootDirectory, parts.join('/'), createIfMissing)
-    return directoryHandle.getFileHandle(fileName, { create: createIfMissing })
+    const directoryHandle = await ensureDirectoryExists(rootDirectory, parts.join('/'), shouldCreate)
+    return directoryHandle.getFileHandle(fileName, { create: shouldCreate })
   }
 
   const driver: Driver<T, I> = {
@@ -197,7 +194,7 @@ export default function createOPFSAdapter<
       return files
     },
 
-    removeEntry: async (path, removeOptions) => {
+    removeEntry: async (path, entryOptions) => {
       const rootDirectory = await navigator.storage.getDirectory()
       const pathParts = path.split('/').filter(Boolean)
       const name = pathParts.pop()
@@ -205,7 +202,7 @@ export default function createOPFSAdapter<
       const parent = pathParts.length > 0
         ? await ensureDirectoryExists(rootDirectory, pathParts.join('/'), false)
         : rootDirectory
-      await parent.removeEntry(name, { recursive: Boolean(removeOptions?.recursive) })
+      await parent.removeEntry(name, { recursive: Boolean(entryOptions?.recursive) })
     },
   }
   return createGenericFSAdapter<T, I>(driver, folderName)

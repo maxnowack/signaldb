@@ -22,12 +22,12 @@ const { spawn } = require('child_process')
 // ever gets another release, and drop the cache when you do.
 const V1_TAG = 'v1.8.1'
 
-const repoRoot = path.resolve(__dirname, '..')
-const cacheDirectory = path.join(repoRoot, '.cache', 'v1-docs', V1_TAG)
+const repositoryRoot = path.resolve(__dirname, '..')
+const cacheDirectory = path.join(repositoryRoot, '.cache', 'v1-docs', V1_TAG)
 // VitePress serves `docs/public` in the dev server and copies it verbatim on
 // build, so putting the archive here is what makes `/v1/` resolve in both —
 // rather than only in whatever ran last. Gitignored; nothing built is committed.
-const outputDirectory = path.join(repoRoot, 'docs', 'public', 'v1')
+const outputDirectory = path.join(repositoryRoot, 'docs', 'public', 'v1')
 
 // Parts of the v1 build the live site already serves, or that would compete
 // with it. A second sitemap would push v1 URLs into the search index; a second
@@ -49,7 +49,7 @@ const DROP_FROM_OUTPUT = [
 function childEnvironment() {
   const environment = {}
   for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith('npm_') || key === 'INIT_CWD') continue
+    if (key === 'INIT_CWD' || key.startsWith('npm_')) continue
     environment[key] = value
   }
   // A throwaway checkout has no use for git hooks, and `husky install` is
@@ -122,7 +122,7 @@ async function setBasePath(checkoutDirectory) {
   }
   await fs.promises.writeFile(
     configPath,
-    config.replace(marker, `${marker}\n  base: '/v1/',`),
+    config.replace(marker, () => `${marker}\n  base: '/v1/',`),
   )
 }
 
@@ -132,15 +132,18 @@ async function buildIntoCache() {
   try {
     // A shallow clone has no tags, and the failure that produces further down
     // reads like a git problem rather than a checkout-depth one.
-    await run('git', ['rev-parse', '--verify', `${V1_TAG}^{commit}`], repoRoot).catch(() => {
+    try {
+      // eslint-disable-next-line unicorn/no-incorrect-template-string-interpolation -- git syntax
+      await run('git', ['rev-parse', '--verify', `${V1_TAG}^{commit}`], repositoryRoot)
+    } catch {
       throw new Error(
         `The tag ${V1_TAG} is not present in this clone. Fetch it with `
         + '`git fetch --tags`; in CI, check out with `fetch-depth: 0`.',
       )
-    })
+    }
 
     console.log(`Checking out ${V1_TAG} …`)
-    await run('git', ['worktree', 'add', '--detach', checkoutDirectory, V1_TAG], repoRoot)
+    await run('git', ['worktree', 'add', '--detach', checkoutDirectory, V1_TAG], repositoryRoot)
 
     await setBasePath(checkoutDirectory)
 
@@ -155,12 +158,20 @@ async function buildIntoCache() {
     await fs.promises.mkdir(path.dirname(cacheDirectory), { recursive: true })
     await fs.promises.cp(built, cacheDirectory, { recursive: true })
   } finally {
-    await run('git', ['worktree', 'remove', '--force', checkoutDirectory], repoRoot).catch(() => {})
-    await fs.promises.rm(checkoutDirectory, { recursive: true, force: true }).catch(() => {})
+    try {
+      await run('git', ['worktree', 'remove', '--force', checkoutDirectory], repositoryRoot)
+    } catch {
+      // best-effort cleanup
+    }
+    try {
+      await fs.promises.rm(checkoutDirectory, { recursive: true, force: true })
+    } catch {
+      // best-effort cleanup
+    }
   }
 }
 
-;(async function main() {
+async function main() {
   if (await isPopulated(cacheDirectory)) {
     console.log(`Reusing the cached ${V1_TAG} documentation.`)
   } else {
@@ -178,8 +189,14 @@ async function buildIntoCache() {
     fs.promises.rm(path.join(outputDirectory, entry), { recursive: true, force: true })))
   await removeMarkdownFiles(outputDirectory)
 
-  console.log(`✅ v1 documentation placed at ${path.relative(repoRoot, outputDirectory)}`)
-})().catch((error) => {
-  console.error('❌ build-v1-docs failed:\n', error && error.stack ? error.stack : error)
-  process.exit(1)
-})
+  console.log(`✅ v1 documentation placed at ${path.relative(repositoryRoot, outputDirectory)}`)
+}
+
+void (async () => {
+  try {
+    await main()
+  } catch (error) {
+    console.error('❌ build-v1-docs failed:\n', error && error.stack ? error.stack : error)
+    process.exit(1)
+  }
+})()

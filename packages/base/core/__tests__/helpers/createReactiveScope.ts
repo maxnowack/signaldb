@@ -29,7 +29,7 @@ export default function createReactiveScope() {
       return callback()
     } finally {
       disposers = undefined
-      ownDisposers.forEach(dispose => dispose())
+      for (const dispose of ownDisposers) dispose()
     }
   }
 

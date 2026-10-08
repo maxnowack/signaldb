@@ -19,9 +19,13 @@ import type { QueryDelta } from './utils/queryDelta'
  * (`self`).
  */
 export interface WorkerDataAdapterHostEndpoint {
-  /** Subscribes to messages from the `WorkerDataAdapter`. */
+  /**
+  Subscribes to messages from the `WorkerDataAdapter`.
+   */
   addEventListener: (type: 'message', listener: (event: MessageEvent) => any) => void,
-  /** Sends a message to the `WorkerDataAdapter`. */
+  /**
+  Sends a message to the `WorkerDataAdapter`.
+   */
   postMessage: (message: any) => void,
 }
 
@@ -31,7 +35,9 @@ interface WorkerDataAdapterHostOptions {
    * (default: `'default-worker-data-adapter'`).
    */
   id?: string,
-  /** Returns the storage adapter that holds a collection's items, by collection name. */
+  /**
+  Returns the storage adapter that holds a collection's items, by collection name.
+   */
   storage: (name: string) => StorageAdapter<any, any>,
   /**
    * Called with errors that cannot be answered to the `WorkerDataAdapter` as a failed request:
@@ -39,7 +45,9 @@ interface WorkerDataAdapterHostOptions {
    * client additionally receives as the query's `'error'` state). Defaults to `console.error`.
    */
   onError?: (error: Error) => void,
-  /** Receives a log line for every message handled. */
+  /**
+  Receives a log line for every message handled.
+   */
   log?: (message: string, ...args: any[]) => void,
 }
 
@@ -157,6 +165,250 @@ export default class WorkerDataAdapterHost<
     console.error(error)
   }
 
+  protected registerCollection: CollectionMethods<T, I>['registerCollection'] = async (collectionName, indices) => {
+    this.collectionIndices.set(collectionName, indices)
+    this.queries.set(collectionName, new Map())
+    this.ensureStorageAdapter(collectionName)
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+
+    const setupPromise = (async () => {
+      await storageAdapter.setup()
+      await Promise.all(indices.map(index => storageAdapter.createIndex(index)))
+    })()
+
+    this.storageAdapterReady.set(collectionName, setupPromise)
+    await setupPromise
+  }
+
+  protected unregisterCollection: CollectionMethods<T, I>['unregisterCollection'] = async (collectionName) => {
+    this.storageAdapters.delete(collectionName)
+    this.queries.delete(collectionName)
+  }
+
+  protected registerQuery: CollectionMethods<T, I>['registerQuery'] = async (collectionName, selector, options) => {
+    const query = this.ensureQuery(collectionName, selector, options)
+    const queryItems = await this.executeQuery(collectionName, selector, options)
+    // Always the full result, even for a query that is already registered: whoever is registering
+    // holds nothing for it yet, and a delta would be relative to a result only the host has seen.
+    this.setQueryItems(query, queryItems)
+    this.emitQueryUpdate(
+      collectionName,
+      selector,
+      options,
+      'complete',
+      null,
+      queryItems,
+    )
+  }
+
+  protected unregisterQuery: CollectionMethods<T, I>['unregisterQuery'] = async (collectionName, selector, options) => {
+    if (!this.queries.get(collectionName)) throw new Error(`Collection ${collectionName} not initialized!`)
+    const id = queryId(selector, options)
+    this.queries.get(collectionName)?.delete(id)
+  }
+
+  protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, input) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+    const existingItems = await this.executeQuery(
+      collectionName,
+      { id: { $in: input.map(i => i[0].id) } } as Selector<any>,
+    )
+    const result = input.map(([item]) => {
+      if (item.id == null) return new Error('Item must have an id')
+      return existingItems.some(existing => existing.id === item.id) ? new Error(`Item with id ${item.id as string} already exists`) : item
+    })
+
+    const newItems = result.filter(item => !(item instanceof Error)) as T[]
+    await storageAdapter.insert(newItems)
+    await this.checkQueryUpdates(collectionName, { upserts: newItems, deletes: [] })
+
+    return result
+  }
+
+  protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, parameters) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+    const result = await Promise.all(parameters.map(async (
+      [selector, modifier],
+    ): Promise<DetailedWriteResult<T> | Error> => {
+      const item = await this.executeQuery(
+        collectionName,
+        selector,
+        { limit: 1 },
+      // eslint-disable-next-line unicorn/prefer-await -- keeps the microtask interleaving of concurrent writes
+      ).then(items => items[0] ?? null)
+
+      const { $setOnInsert, ...restModifier } = modifier
+      if (item == null) return { items: [], previousItems: [] }
+
+      const modifiedItem = modify(deepClone(item), restModifier)
+      if (item.id !== modifiedItem.id) {
+        const existingItems = await this.executeQuery(
+          collectionName,
+          { id: modifiedItem.id } as Selector<T>,
+          { limit: 1 },
+        )
+        if (existingItems.length > 0) {
+          return new Error(`Item with id ${modifiedItem.id as string} already exists`)
+        }
+      }
+      return { items: [modifiedItem], previousItems: [item] }
+    }))
+
+    const written = result
+      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
+    const modifiedItems = compact(written.flatMap(entry => entry.items))
+    if (modifiedItems.length > 0) {
+      await storageAdapter.replace(modifiedItems)
+      const previousItems = compact(written.flatMap(entry => entry.previousItems))
+      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
+    }
+    return result
+  }
+
+  protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, parameters) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+
+    const result = await Promise.all(parameters.map(async (
+      [selector, modifier],
+    ): Promise<DetailedWriteResult<T> | Error> => {
+      const items = await this.executeQuery(
+        collectionName,
+        selector,
+      )
+      if (items.length === 0) return { items: [], previousItems: [] } // no items found
+
+      const { $setOnInsert, ...restModifier } = modifier
+
+      try {
+        const changedItems = await Promise.all(items.map(async (item) => {
+          const modifiedItem = modify(deepClone(item), restModifier)
+          if (item.id !== modifiedItem.id) {
+            const existingItems = await this.executeQuery(
+              collectionName,
+              { id: modifiedItem.id } as Selector<T>,
+              { limit: 1 },
+            )
+            if (existingItems.length > 0) {
+              throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
+            }
+          }
+
+          return modifiedItem
+        }))
+        return { items: changedItems, previousItems: items }
+      } catch (error) {
+        return error as Error
+      }
+    }))
+
+    const written = result
+      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
+    const modifiedItems = compact(written.flatMap(entry => entry.items))
+    if (modifiedItems.length > 0) {
+      await storageAdapter.replace(modifiedItems)
+      const previousItems = compact(written.flatMap(entry => entry.previousItems))
+      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
+    }
+    return result
+  }
+
+  protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, parameters) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+
+    const result = await Promise.all(parameters.map(async ([
+      selector,
+      replacement,
+    ]): Promise<DetailedWriteResult<T> | Error> => {
+      const item = await this.executeQuery(
+        collectionName,
+        selector,
+        { limit: 1 },
+      // eslint-disable-next-line unicorn/prefer-await -- keeps the microtask interleaving of concurrent writes
+      ).then(items => items[0] ?? null)
+      if (item == null) return { items: [], previousItems: [] } // no item found
+
+      const modifiedItem = {
+        ...replacement,
+        id: replacement.id ?? item.id,
+      } as T
+
+      if (item.id !== modifiedItem.id) {
+        const existingItems = await this.executeQuery(
+          collectionName,
+          { id: modifiedItem.id } as Selector<T>,
+          { limit: 1 },
+        )
+        if (existingItems.length > 0) {
+          return new Error(`Item with id ${modifiedItem.id as string} already exists`)
+        }
+      }
+      return { items: [modifiedItem], previousItems: [item] }
+    }))
+
+    const written = result
+      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
+    const modifiedItems = compact(written.flatMap(entry => entry.items))
+    if (modifiedItems.length > 0) {
+      await storageAdapter.replace(modifiedItems)
+      const previousItems = compact(written.flatMap(entry => entry.previousItems))
+      await this.checkQueryUpdates(collectionName, toChangeset(previousItems, modifiedItems))
+    }
+    return result
+  }
+
+  protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selectors) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+    const result = await Promise.all(selectors.map(async ([selector]) => {
+      const item = await this.executeQuery(
+        collectionName,
+        selector,
+        { limit: 1 },
+      // eslint-disable-next-line unicorn/prefer-await -- keeps the microtask interleaving of concurrent writes
+      ).then(items => items[0] ?? null)
+      if (item == null) return [] // no item found, nothing to remove
+      return [item]
+    }))
+
+    const items = result.flat()
+    if (items.length > 0) {
+      await storageAdapter.remove(items)
+      await this.checkQueryUpdates(collectionName, {
+        upserts: [],
+        deletes: items.map(item => item.id),
+      })
+    }
+    return result
+  }
+
+  protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selectors) => {
+    const storageAdapter = this.storageAdapters.get(collectionName)
+    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
+    const result = await Promise.all(selectors.map(async ([selector]) => this.executeQuery(
+      collectionName,
+      selector,
+    )))
+
+    const items = result.flat()
+    if (items.length > 0) {
+      await storageAdapter.remove(items)
+      await this.checkQueryUpdates(collectionName, {
+        upserts: [],
+        deletes: items.map(item => item.id),
+      })
+    }
+    return result
+  }
+
+  protected isReady: CollectionMethods<T, I>['isReady'] = async (collectionName) => {
+    return this.storageAdapterReady.get(collectionName)
+  }
+
   /**
    * Creates a `WorkerDataAdapterHost`, starts handling messages, and reports itself ready to the
    * `WorkerDataAdapter`.
@@ -270,10 +522,10 @@ export default class WorkerDataAdapterHost<
     selector: Selector<any>,
     options?: QueryOptions<any>,
   ) {
-    const id = queryId(selector, options)
     if (!this.queries.get(collectionName)) {
       throw new Error(`Collection ${collectionName} not initialized!`)
     }
+    const id = queryId(selector, options)
     let query = this.queries.get(collectionName)?.get(id)
     if (!query) {
       query = { selector, options, items: null }
@@ -345,8 +597,8 @@ export default class WorkerDataAdapterHost<
     // item that no longer matches, or that was removed outright, is invisible to the matcher.
     const affectedQueries = [...queries.values()].filter((query) => {
       const ids = this.queryItemIds(query)
-      if (changes.deletes.some(id => ids.has(id))) return true
-      return changes.upserts.some(item => ids.has(item.id) || match(item, query.selector))
+      return changes.deletes.some(id => ids.has(id))
+        || changes.upserts.some(item => ids.has(item.id) || match(item, query.selector))
     })
     if (affectedQueries.length === 0) return // no active queries affected
 
@@ -396,255 +648,5 @@ export default class WorkerDataAdapterHost<
         collectionName, selector, options, 'complete', null, undefined, delta,
       )
     }))
-  }
-
-  protected registerCollection: CollectionMethods<T, I>['registerCollection'] = async (collectionName, indices) => {
-    this.collectionIndices.set(collectionName, indices)
-    this.queries.set(collectionName, new Map())
-    this.ensureStorageAdapter(collectionName)
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    const setupPromise = (async () => {
-      await storageAdapter.setup()
-      await Promise.all(indices.map(index => storageAdapter.createIndex(index)))
-    })()
-
-    this.storageAdapterReady.set(collectionName, setupPromise)
-    await setupPromise
-  }
-
-  protected unregisterCollection: CollectionMethods<T, I>['unregisterCollection'] = async (collectionName) => {
-    this.storageAdapters.delete(collectionName)
-    this.queries.delete(collectionName)
-  }
-
-  protected registerQuery: CollectionMethods<T, I>['registerQuery'] = async (collectionName, selector, options) => {
-    const query = this.ensureQuery(collectionName, selector, options)
-    const queryItems = await this.executeQuery(collectionName, selector, options)
-    // Always the full result, even for a query that is already registered: whoever is registering
-    // holds nothing for it yet, and a delta would be relative to a result only the host has seen.
-    this.setQueryItems(query, queryItems)
-    this.emitQueryUpdate(
-      collectionName,
-      selector,
-      options,
-      'complete',
-      null,
-      queryItems,
-    )
-  }
-
-  protected unregisterQuery: CollectionMethods<T, I>['unregisterQuery'] = async (collectionName, selector, options) => {
-    const id = queryId(selector, options)
-    if (!this.queries.get(collectionName)) throw new Error(`Collection ${collectionName} not initialized!`)
-    this.queries.get(collectionName)?.delete(id)
-  }
-
-  protected insert: CollectionMethods<T, I>['insert'] = async (collectionName, input) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-    const existingItems = await this.executeQuery(
-      collectionName,
-      { id: { $in: input.map(i => i[0].id) } } as Selector<any>,
-    )
-    const result = input.map(([item]) => {
-      if (item.id == null) return new Error('Item must have an id')
-      if (existingItems.some(existing => existing.id === item.id)) {
-        return new Error(`Item with id ${item.id as string} already exists`)
-      }
-      return item
-    })
-
-    const newItems = result.filter(item => !(item instanceof Error)) as T[]
-    await storageAdapter.insert(newItems)
-    await this.checkQueryUpdates(collectionName, { upserts: newItems, deletes: [] })
-
-    return result
-  }
-
-  protected updateOne: CollectionMethods<T, I>['updateOne'] = async (collectionName, parameters) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-    const result = await Promise.all(parameters.map(async (
-      [selector, modifier],
-    ): Promise<DetailedWriteResult<T> | Error> => {
-      const item = await this.executeQuery(
-        collectionName,
-        selector,
-        { limit: 1 },
-      ).then(items => items[0] ?? null)
-
-      const { $setOnInsert, ...restModifier } = modifier
-      if (item == null) return { items: [], previousItems: [] }
-
-      const modifiedItem = modify(deepClone(item), restModifier)
-      if (item.id !== modifiedItem.id) {
-        const existingItems = await this.executeQuery(
-          collectionName,
-          { id: modifiedItem.id } as Selector<T>,
-          { limit: 1 },
-        )
-        if (existingItems.length > 0) {
-          return new Error(`Item with id ${modifiedItem.id as string} already exists`)
-        }
-      }
-      return { items: [modifiedItem], previousItems: [item] }
-    }))
-
-    const written = result
-      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
-    const modifiedItems = compact(written.flatMap(entry => entry.items))
-    if (modifiedItems.length > 0) {
-      await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(
-        collectionName,
-        toChangeset(compact(written.flatMap(entry => entry.previousItems)), modifiedItems),
-      )
-    }
-    return result
-  }
-
-  protected updateMany: CollectionMethods<T, I>['updateMany'] = async (collectionName, parameters) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    const result = await Promise.all(parameters.map(async (
-      [selector, modifier],
-    ): Promise<DetailedWriteResult<T> | Error> => {
-      const items = await this.executeQuery(
-        collectionName,
-        selector,
-      )
-      if (items.length === 0) return { items: [], previousItems: [] } // no items found
-
-      const { $setOnInsert, ...restModifier } = modifier
-
-      try {
-        const changedItems = await Promise.all(items.map(async (item) => {
-          const modifiedItem = modify(deepClone(item), restModifier)
-          if (item.id !== modifiedItem.id) {
-            const existingItems = await this.executeQuery(
-              collectionName,
-              { id: modifiedItem.id } as Selector<T>,
-              { limit: 1 },
-            )
-            if (existingItems.length > 0) {
-              throw new Error(`Item with id ${modifiedItem.id as string} already exists`)
-            }
-          }
-
-          return modifiedItem
-        }))
-        return { items: changedItems, previousItems: items }
-      } catch (error) {
-        return error as Error
-      }
-    }))
-
-    const written = result
-      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
-    const modifiedItems = compact(written.flatMap(entry => entry.items))
-    if (modifiedItems.length > 0) {
-      await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(
-        collectionName,
-        toChangeset(compact(written.flatMap(entry => entry.previousItems)), modifiedItems),
-      )
-    }
-    return result
-  }
-
-  protected replaceOne: CollectionMethods<T, I>['replaceOne'] = async (collectionName, parameters) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-
-    const result = await Promise.all(parameters.map(async ([
-      selector,
-      replacement,
-    ]): Promise<DetailedWriteResult<T> | Error> => {
-      const item = await this.executeQuery(
-        collectionName,
-        selector,
-        { limit: 1 },
-      ).then(items => items[0] ?? null)
-      if (item == null) return { items: [], previousItems: [] } // no item found
-
-      const modifiedItem = {
-        ...replacement,
-        id: replacement.id ?? item.id,
-      } as T
-
-      if (item.id !== modifiedItem.id) {
-        const existingItems = await this.executeQuery(
-          collectionName,
-          { id: modifiedItem.id } as Selector<T>,
-          { limit: 1 },
-        )
-        if (existingItems.length > 0) {
-          return new Error(`Item with id ${modifiedItem.id as string} already exists`)
-        }
-      }
-      return { items: [modifiedItem], previousItems: [item] }
-    }))
-
-    const written = result
-      .filter((entry): entry is DetailedWriteResult<T> => !(entry instanceof Error))
-    const modifiedItems = compact(written.flatMap(entry => entry.items))
-    if (modifiedItems.length > 0) {
-      await storageAdapter.replace(modifiedItems)
-      await this.checkQueryUpdates(
-        collectionName,
-        toChangeset(compact(written.flatMap(entry => entry.previousItems)), modifiedItems),
-      )
-    }
-    return result
-  }
-
-  protected removeOne: CollectionMethods<T, I>['removeOne'] = async (collectionName, selectors) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-    const result = await Promise.all(selectors.map(async ([selector]) => {
-      const item = await this.executeQuery(
-        collectionName,
-        selector,
-        { limit: 1 },
-      ).then(items => items[0] ?? null)
-      if (item == null) return [] // no item found, nothing to remove
-      return [item]
-    }))
-
-    const items = result.flat()
-    if (items.length > 0) {
-      await storageAdapter.remove(items)
-      await this.checkQueryUpdates(collectionName, {
-        upserts: [],
-        deletes: items.map(item => item.id),
-      })
-    }
-    return result
-  }
-
-  protected removeMany: CollectionMethods<T, I>['removeMany'] = async (collectionName, selectors) => {
-    const storageAdapter = this.storageAdapters.get(collectionName)
-    if (!storageAdapter) throw new Error(`No storage adapter for collection ${collectionName}`)
-    const result = await Promise.all(selectors.map(async ([selector]) => this.executeQuery(
-      collectionName,
-      selector,
-    )))
-
-    const items = result.flat()
-    if (items.length > 0) {
-      await storageAdapter.remove(items)
-      await this.checkQueryUpdates(collectionName, {
-        upserts: [],
-        deletes: items.map(item => item.id),
-      })
-    }
-    return result
-  }
-
-  protected isReady: CollectionMethods<T, I>['isReady'] = async (collectionName) => {
-    return this.storageAdapterReady.get(collectionName)
   }
 }

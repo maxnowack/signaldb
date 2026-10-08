@@ -20,12 +20,12 @@ type WorkerHostMessage = {
 }
 
 class MockWorkerContext {
+  private handler: ((event: MessageEvent) => void) | null = null
+
   responses: WorkerHostMessage[] = []
   postMessage = vi.fn((payload: WorkerHostMessage) => {
     this.responses.push(payload)
   })
-
-  private handler: ((event: MessageEvent) => void) | null = null
 
   addEventListener(type: 'message', listener: (event: MessageEvent) => any) {
     if (type !== 'message') return
@@ -55,13 +55,12 @@ class MockWorkerContext {
 
 describe('WorkerDataAdapterHost', () => {
   beforeAll(() => {
-    ;(globalThis as any).addEventListener = () => {}
-    ;(globalThis as any).postMessage = () => {}
+    vi.stubGlobal('addEventListener', () => {})
+    vi.stubGlobal('postMessage', () => {})
   })
 
   afterAll(() => {
-    delete (globalThis as any).addEventListener
-    delete (globalThis as any).postMessage
+    vi.unstubAllGlobals()
   })
 
   let context: MockWorkerContext
@@ -175,8 +174,8 @@ describe('WorkerDataAdapterHost', () => {
           storage: () => memoryStorageAdapter<TestItem>(),
         })).not.toThrow()
       } finally {
-        ;(globalThis as any).addEventListener = originalAdd
-        ;(globalThis as any).postMessage = originalPost
+        vi.stubGlobal('addEventListener', originalAdd)
+        vi.stubGlobal('postMessage', originalPost)
       }
     })
 
@@ -312,8 +311,11 @@ describe('WorkerDataAdapterHost', () => {
       })
       const send = async (method: string, args: unknown[]) => {
         const id = Math.random().toString(36).slice(2)
-        await (failingHost as any).handleMessage('test-host', id, method, args)
-          .catch(() => {})
+        try {
+          await (failingHost as any).handleMessage('test-host', id, method, args)
+        } catch {
+          // the failure is what the test provokes
+        }
         return id
       }
 
@@ -658,19 +660,16 @@ describe('WorkerDataAdapterHost', () => {
     // the whole result, the way the registration itself would have.
     it('sends the full result for a query a write reaches before its first answer', async () => {
       const storage = memoryStorageAdapter<TestItem>([])
-      let openGate = () => {}
-      const gate = new Promise<void>((resolve) => {
-        openGate = resolve
-      })
-      let firstRead = true
+      const { promise: gate, resolve: openGate } = Promise.withResolvers<void>()
+      let isFirstRead = true
       const gatedContext = new MockWorkerContext()
       const gatedHost = new WorkerDataAdapterHost<TestItem>(gatedContext, {
         id: 'gated-host',
         storage: () => ({
           ...storage,
           readAll: async () => {
-            if (firstRead) {
-              firstRead = false
+            if (isFirstRead) {
+              isFirstRead = false
               await gate
             }
             return storage.readAll()
@@ -692,7 +691,7 @@ describe('WorkerDataAdapterHost', () => {
 
       await send('registerCollection', ['items', []])
       const registration = send('registerQuery', ['items', { name: 'Alice' }, {}])
-      await vi.waitFor(() => expect(firstRead).toBe(false))
+      await vi.waitFor(() => expect(isFirstRead).toBe(false))
 
       gatedContext.clearResponses()
       await send('insert', ['items', [[{ id: '1', name: 'Alice' }]]])

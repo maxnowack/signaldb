@@ -10,9 +10,9 @@ describe('SvelteDependency', () => {
 
     // eslint-disable-next-line prefer-const
     let count = $derived.by(() => {
-      const dep = new SvelteDependency()
-      notify = () => dep.notify()
-      dep.depend()
+      const dependency = new SvelteDependency()
+      notify = () => dependency.notify()
+      dependency.depend()
       return cnt++
     })
 
@@ -31,10 +31,10 @@ describe('SvelteDependency', () => {
 
     // eslint-disable-next-line prefer-const
     let count = $derived.by(() => {
-      const dep = new SvelteDependency()
-      dep.onDispose(callback)
-      notify = () => dep.notify()
-      dep.depend()
+      const dependency = new SvelteDependency()
+      dependency.onDispose(callback)
+      notify = () => dependency.notify()
+      dependency.depend()
 
       return cnt++
     })

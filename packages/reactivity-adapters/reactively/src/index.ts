@@ -3,13 +3,13 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const maverickjsReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = reactive(0)
+    const dependency = reactive(0)
     return {
       depend: () => {
-        dep.get()
+        dependency.get()
       },
       notify: () => {
-        dep.set(dep.value + 1)
+        dependency.set(dependency.value + 1)
       },
     }
   },

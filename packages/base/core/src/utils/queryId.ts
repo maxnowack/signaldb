@@ -9,10 +9,8 @@ import type Selector from '../types/Selector'
  * @returns `true` if `options` is `null`/`undefined` or a plain object with no own keys; otherwise `false`.
  */
 function isEmptyOptions(options?: QueryOptions<any>) {
-  if (options == null) return true
-  if (typeof options !== 'object') return false
-  if (Array.isArray(options)) return false
-  return Object.keys(options).length === 0
+  return options == null
+    || (typeof options === 'object' && !Array.isArray(options) && Object.keys(options).length === 0)
 }
 
 // Stands in for absent options so they can be a `WeakMap` key like any other pair half.

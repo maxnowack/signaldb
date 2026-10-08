@@ -32,10 +32,12 @@ async function withAdapter(
   const adapter = createLocalStorageAdapter<any, number>(name)
 
   // Enqueue index mutations BEFORE setup per new API (idempotent operations)
-  for (const f of options?.preIndex ?? []) {
+  const preIndex = options?.preIndex ?? []
+  for (const f of preIndex) {
     await adapter.createIndex(f)
   }
-  for (const f of options?.preDrop ?? []) {
+  const preDrop = options?.preDrop ?? []
+  for (const f of preDrop) {
     await adapter.dropIndex(f)
   }
 

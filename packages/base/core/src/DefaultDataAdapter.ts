@@ -115,7 +115,7 @@ export default class DefaultDataAdapter implements DataAdapter {
     const indices = this.indices.get(collection.name)
     if (!indices) throw new Error(`Indices not found for collection ${collection.name}`)
 
-    indices.forEach(index => index.rebuild([...items.values()]))
+    for (const index of indices) index.rebuild([...items.values()])
   }
 
   private async setupStorageAdapter<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -125,9 +125,11 @@ export default class DefaultDataAdapter implements DataAdapter {
     if (!storageAdapter) return // no storage adapter available
 
     return storageAdapter.setup()
+      // eslint-disable-next-line unicorn/prefer-await -- keeps the settle timing of isReady()
       .then(async () => {
         await this.fetchItemsFromStorage(collection)
       })
+      // eslint-disable-next-line unicorn/prefer-await -- keeps the settle timing of isReady()
       .catch((error: unknown) => {
         const storageError = error instanceof Error ? error : new Error(String(error))
         if (this.options.onError) {
@@ -206,23 +208,21 @@ export default class DefaultDataAdapter implements DataAdapter {
     const indexInfo = this.getIndexInfo(collection, selector)
     const matchItems = (item: T) => {
       if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
-      if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true // if selector is empty, return all items
-      const matches = match(item, indexInfo.optimizedSelector)
-      return matches
+      if (Object.keys(indexInfo.optimizedSelector).length === 0) return true // if selector is empty, return all items
+      const isMatches = match(item, indexInfo.optimizedSelector)
+      return isMatches
     }
 
     const items = this.items.get(collection.name) as Map<string | null, T>
 
     // no index available, use complete memory
     if (!indexInfo.matched) {
-      if (isEqual(selector, {})) return [...items.values()]
-      return [...items.values()].filter(matchItems)
+      return isEqual(selector, {}) ? [...items.values()] : [...items.values()].filter(matchItems)
     }
 
     const foundItems = indexInfo.ids.map(ids =>
       items.get(serializeValue(ids)) as T).filter(i => i != null)
-    if (isEqual(indexInfo.optimizedSelector, {})) return foundItems
-    return foundItems.filter(matchItems)
+    return isEqual(indexInfo.optimizedSelector, {}) ? foundItems : foundItems.filter(matchItems)
   }
 
   private executeQuery<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -260,14 +260,12 @@ export default class DefaultDataAdapter implements DataAdapter {
         ?.map(i => i.id) ?? []
 
       // update queries that contained changed items previously
-      if (idsInQuery.some(id => itemIds.has(id))) return true
-
-      return flatItems.some(item => match(item, selector))
+      return idsInQuery.some(id => itemIds.has(id)) || flatItems.some(item => match(item, selector))
     })
 
-    queries.forEach(({ selector, options }) => {
+    for (const { selector, options } of queries) {
       this.executeAndCacheQuery(collection, selector, options, changeset)
-    })
+    }
   }
 
   private executeAndCacheQuery<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -353,6 +351,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
     const persistenceReadyPromise = this.setupStorageAdapter(collection)
     // The failure has already gone to `onError`; `isReady()` still rejects for whoever awaits it.
+    // eslint-disable-next-line unicorn/prefer-await -- only marks the rejection as handled
     persistenceReadyPromise.catch(() => { /* reported above */ })
 
     const backend: CollectionBackend<T, I> = {
@@ -411,9 +410,9 @@ export default class DefaultDataAdapter implements DataAdapter {
 
           return modifiedItem
         })
-        changedItems.forEach((item) => {
+        for (const item of changedItems) {
           this.items.get(collection.name)?.set(serializeValue(item.id), item)
-        })
+        }
         await this.storageAdapters.get(collection.name)?.replace(changedItems)
 
         const pairs = items.map((oldItem, index) => ({ oldItem, newItem: changedItems[index] }))
@@ -466,9 +465,9 @@ export default class DefaultDataAdapter implements DataAdapter {
       removeMany: async (selector) => {
         const items = backend.getQueryResult(selector, {})
 
-        items.forEach((item) => {
+        for (const item of items) {
           this.items.get(collection.name)?.delete(serializeValue(item.id))
-        })
+        }
         await this.storageAdapters.get(collection.name)?.remove(items)
         this.applyIndexDeltas(collection, { removed: items })
 

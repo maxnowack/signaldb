@@ -1,16 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import deepClone, { clone } from './deepClone'
 
 describe('deepClone', () => {
   it('should use the polyfill when structuredClone is not available', () => {
-    const originalStructuredClone = globalThis.structuredClone
-    globalThis.structuredClone = undefined as unknown as typeof globalThis.structuredClone
+    vi.stubGlobal('structuredClone', undefined)
     const object = { a: 1, b: { c: 2 } }
     const cloned = deepClone(object)
     expect(cloned).not.toBe(object)
     expect(cloned).toEqual({ a: 1, b: { c: 2 } })
-    // restore
-    globalThis.structuredClone = originalStructuredClone
+    vi.unstubAllGlobals()
   })
 })
 
@@ -61,8 +59,8 @@ describe('clone', () => {
   })
 
   it('should ignore inherited properties', () => {
-    const proto = { inherited: true }
-    const object = Object.create(proto)
+    const prototype = { inherited: true }
+    const object = Object.create(prototype)
     object.own = true
     const cloned = clone(object)
     expect(cloned).toEqual({ own: true })

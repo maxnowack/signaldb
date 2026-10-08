@@ -52,7 +52,7 @@ describe('@signaldb/vue', () => {
     await nextTick()
 
     for (let index = 0; index < 3; index += 1) {
-      await collection.insert({ id: `${index}`, name: `name-${index}` })
+      await collection.insert({ id: String(index), name: `name-${index}` })
       await nextTick()
       await new Promise((resolve) => {
         setTimeout(resolve, 0)

@@ -23,12 +23,12 @@ export default function useCollectionItems(collectionName: string) {
         // Built from the observer's callbacks rather than `fetch()`: the devtools read
         // outside of any reactive scope, and the callbacks carry exactly what changed.
         const items = new Map<any, Item>()
-        let scheduled = false
+        let isScheduled = false
         const publish = () => {
-          if (scheduled) return
-          scheduled = true
+          if (isScheduled) return
+          isScheduled = true
           queueMicrotask(() => {
-            scheduled = false
+            isScheduled = false
             snapshot = [...items.values()]
             onChange()
           })

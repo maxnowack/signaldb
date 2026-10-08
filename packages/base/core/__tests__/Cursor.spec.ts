@@ -5,6 +5,7 @@ import Observer from '../src/Collection/Observer'
 import { diffQueryResults } from '../src/utils/queryDelta'
 import { primitiveReactivity, primitiveReactivityAdapter } from './helpers/primitiveReactivity'
 import createReactiveScope from './helpers/createReactiveScope'
+import compareCodeUnits from './helpers/compareCodeUnits'
 
 const scope = createReactiveScope()
 
@@ -24,7 +25,7 @@ describe('Cursor (async) coverage', () => {
     const fetched = await cursor.fetch()
     expect(fetched.length).toBe(2)
     const mapped = await cursor.map(i => i.name)
-    expect(mapped.toSorted()).toEqual(['a', 'b'])
+    expect(mapped.toSorted(compareCodeUnits)).toEqual(['a', 'b'])
     const counted = await cursor.count()
     expect(counted).toBe(2)
     await cursor.forEach(() => {})
@@ -528,18 +529,18 @@ describe('Cursor', async () => {
 
   describe('reactivity', () => {
     it('should call the functions in the provided reactivity adapter', async () => {
-      const depCreation = vi.fn()
-      const dep = vi.fn()
+      const dependencyCreation = vi.fn()
+      const dependency = vi.fn()
       const notify = vi.fn()
       const scopeCheck = vi.fn()
       let disposal = vi.fn()
 
       const reactivity = createReactivityAdapter({
         create() {
-          depCreation()
+          dependencyCreation()
           return {
             depend() {
-              dep()
+              dependency()
             },
             notify() {
               notify()
@@ -558,8 +559,8 @@ describe('Cursor', async () => {
       const result = cursor.fetch()
       expect(result).toEqual(items)
 
-      expect(depCreation).toHaveBeenCalled()
-      expect(dep).toHaveBeenCalled()
+      expect(dependencyCreation).toHaveBeenCalled()
+      expect(dependency).toHaveBeenCalled()
       expect(scopeCheck).toHaveBeenCalled()
       expect(disposal).not.toHaveBeenCalled()
       expect(notify).not.toHaveBeenCalled()

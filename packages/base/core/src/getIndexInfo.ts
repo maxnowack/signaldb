@@ -49,13 +49,14 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
     }
 
     if (resultOrPromise instanceof Promise) {
+      // eslint-disable-next-line unicorn/prefer-await -- maybe-promise path must stay sync for sync providers
       return resultOrPromise.then(async (result) => {
         const memo = memoOrPromise instanceof Promise ? await memoOrPromise : memoOrPromise
         return processResult(memo, result)
       })
     }
     const memo = memoOrPromise
-    if (memo instanceof Promise) throw new Error('Mixing async and sync index providers is not supported')
+    if (memo instanceof Promise) throw new TypeError('Mixing async and sync index providers is not supported')
     return processResult(memo, resultOrPromise)
   }, {
     matched: false,
@@ -74,7 +75,7 @@ export function getMergedIndexInfo<T extends BaseItem<I> = BaseItem, I = any>(
 function optimizeLogicGate<T extends BaseItem<I> = BaseItem, I = any>(
   queryFunctions: (SynchronousQueryFunction<T> | AsynchronousQueryFunction<T>)[],
   logicGate: Selector<T>[],
-  idsCallback: (matched: boolean, ids: I[]) => void,
+  idsCallback: (isMatched: boolean, ids: I[]) => void,
 ): Selector<T>[] | Promise<Selector<T>[]> {
   return logicGate.reduce((memoOrPromise, sel) => {
     const getSelector = (indexInfo: IndexInfo<T, I>) => {
@@ -95,6 +96,7 @@ function optimizeLogicGate<T extends BaseItem<I> = BaseItem, I = any>(
     }
     const indexInfoOrPromise = getIndexInfo(queryFunctions, sel)
     if (indexInfoOrPromise instanceof Promise) {
+      // eslint-disable-next-line unicorn/prefer-await -- maybe-promise path must stay sync for sync providers
       return indexInfoOrPromise.then(async (indexInfo) => {
         const memo = memoOrPromise instanceof Promise ? await memoOrPromise : memoOrPromise
         const optimizedSelector = getSelector(indexInfo)
@@ -104,7 +106,7 @@ function optimizeLogicGate<T extends BaseItem<I> = BaseItem, I = any>(
     }
 
     const memo = memoOrPromise
-    if (memo instanceof Promise) throw new Error('Mixing async and sync index providers is not supported')
+    if (memo instanceof Promise) throw new TypeError('Mixing async and sync index providers is not supported')
 
     const optimizedSelector = getSelector(indexInfoOrPromise)
     if (optimizedSelector) memo.push(optimizedSelector as FlatSelector<T>)
@@ -136,7 +138,7 @@ export default function getIndexInfo<
 ): QueryFunction extends AsynchronousQueryFunction<T, I>
   ? Promise<IndexInfo<T, I>>
   : IndexInfo<T, I> {
-  if (selector == null || Object.keys(selector).length <= 0) {
+  if (selector == null || Object.keys(selector).length === 0) {
     return {
       matched: false,
       ids: [],
@@ -163,7 +165,7 @@ export default function getIndexInfo<
       if ($andNew && $andNew.length > 0) newSelector.$and = $andNew
 
       let hasNonIndexField = false
-      const matchedBefore = matched
+      const isMatchedBefore = matched
       const idsBefore = ids
       // The branches of an $or union with each other, but the $or as a whole
       // *intersects* with what the flat fields and $and already narrowed down
@@ -172,14 +174,14 @@ export default function getIndexInfo<
       // returns items matching neither half of the selector, with an empty
       // optimized selector that leaves nothing to filter them out again.
       let orIds: I[] = []
-      let orMatched = false
+      let isOrMatched = false
       const process$or = ($orNew: Selector<T>[] | undefined) => {
         if (hasNonIndexField || ($orNew && $orNew.length > 0)) {
           newSelector.$or = $or
-          matched = matchedBefore
+          matched = isMatchedBefore
           ids = idsBefore
-        } else if (orMatched) {
-          ids = matchedBefore ? intersection(idsBefore, orIds) : orIds
+        } else if (isOrMatched) {
+          ids = isMatchedBefore ? intersection(idsBefore, orIds) : orIds
           matched = true
         }
 
@@ -194,31 +196,31 @@ export default function getIndexInfo<
         ? optimizeLogicGate(queryFunctions, $or, (match, selIds) => {
           if (match) {
             orIds = [...new Set([...orIds, ...selIds])]
-            orMatched = true
+            isOrMatched = true
           } else {
             hasNonIndexField = true
           }
         })
         : undefined
-      if ($orNewOrPromise instanceof Promise) {
-        return $orNewOrPromise.then($orNew => process$or($orNew))
-      }
-      return process$or($orNewOrPromise)
+      return $orNewOrPromise instanceof Promise
+        // eslint-disable-next-line unicorn/prefer-await -- maybe-promise path must stay sync for sync providers
+        ? $orNewOrPromise.then($orNew => process$or($orNew))
+        : process$or($orNewOrPromise)
     }
-    if ($andNewOrPromise instanceof Promise) {
-      return $andNewOrPromise.then($andNew => process$and($andNew))
-    }
-    return process$and($andNewOrPromise)
+    return $andNewOrPromise instanceof Promise
+      // eslint-disable-next-line unicorn/prefer-await -- maybe-promise path must stay sync for sync providers
+      ? $andNewOrPromise.then($andNew => process$and($andNew))
+      : process$and($andNewOrPromise)
   }
-  if (flatInfoOrPromise instanceof Promise) {
-    return flatInfoOrPromise
+  return flatInfoOrPromise instanceof Promise
+    ? (flatInfoOrPromise
+      // eslint-disable-next-line unicorn/prefer-await -- maybe-promise path must stay sync for sync providers
       .then(processFlatInfo) as unknown as QueryFunction extends AsynchronousQueryFunction<T, I>
       ? Promise<IndexInfo<T, I>>
-      : IndexInfo<T, I>
-  }
-  return processFlatInfo(
-    flatInfoOrPromise,
-  ) as unknown as QueryFunction extends AsynchronousQueryFunction<T, I>
-    ? Promise<IndexInfo<T, I>>
-    : IndexInfo<T, I>
+      : IndexInfo<T, I>)
+    : (processFlatInfo(
+      flatInfoOrPromise,
+    ) as unknown as QueryFunction extends AsynchronousQueryFunction<T, I>
+      ? Promise<IndexInfo<T, I>>
+      : IndexInfo<T, I>)
 }

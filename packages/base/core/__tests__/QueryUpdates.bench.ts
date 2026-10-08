@@ -23,7 +23,7 @@ interface BenchItem {
 const ITEM_COUNT = 5000
 const QUERY_COUNT = 20
 
-const buildItems = (count: number): BenchItem[] => Array.from({ length: count }, (_, index) => ({
+const buildItems = (): BenchItem[] => Array.from({ length: ITEM_COUNT }, (_, index) => ({
   id: `item-${index}`,
   group: index % QUERY_COUNT,
   rank: index,
@@ -39,10 +39,10 @@ const buildItems = (count: number): BenchItem[] => Array.from({ length: count },
 function createMessagePair() {
   const hostListeners: ((event: MessageEvent) => void)[] = []
   const clientListeners: ((event: MessageEvent) => void)[] = []
-  const deliver = (listeners: ((event: MessageEvent) => void)[], data: unknown) => {
-    const payload = structuredClone(data ?? null)
+  const deliver = (listeners: ((event: MessageEvent) => void)[], data: unknown = null) => {
+    const payload = structuredClone(data)
     queueMicrotask(() => {
-      [...listeners].forEach(listener => listener({ data: payload } as MessageEvent))
+      for (const listener of listeners) listener({ data: payload } as MessageEvent)
     })
   }
   const hostEndpoint: WorkerDataAdapterHostEndpoint = {
@@ -71,11 +71,10 @@ function createMessagePair() {
  * of live lists would. A write has to be reflected in every one of them, so this is what decides
  * whether a write costs the size of the write or the size of everything on screen.
  * @param collection - The collection to observe.
- * @param count - How many queries to open.
  * @returns A function that stops all the observers.
  */
-function observeQueries(collection: Collection<BenchItem>, count = QUERY_COUNT) {
-  const stops = Array.from({ length: count }, (_, group) => {
+function observeQueries(collection: Collection<BenchItem>) {
+  const stops = Array.from({ length: QUERY_COUNT }, (_, group) => {
     const cursor = collection.find({ group }, { sort: { rank: 1 } })
     const stop = cursor.observeChanges({
       added: () => {},
@@ -88,7 +87,9 @@ function observeQueries(collection: Collection<BenchItem>, count = QUERY_COUNT) 
       cursor.cleanup()
     }
   })
-  return () => stops.forEach(stop => stop())
+  return () => {
+    for (const stop of stops) stop()
+  }
 }
 
 // Waits until every observed query has settled after a write.
@@ -99,7 +100,7 @@ const settle = () => new Promise<void>((resolve) => {
 describe('a write with 20 live queries over 5000 items', () => {
   test('default adapter', async ({ bench }) => {
     const collection = new Collection<BenchItem>('bench-default', new DefaultDataAdapter())
-    await Promise.all(buildItems(ITEM_COUNT).map(async item => collection.insert(item)))
+    await Promise.all(buildItems().map(async item => collection.insert(item)))
     observeQueries(collection)
     let counter = 0
 
@@ -110,7 +111,7 @@ describe('a write with 20 live queries over 5000 items', () => {
   })
 
   test('async adapter', async ({ bench }) => {
-    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    const storage = memoryStorageAdapter<BenchItem>(buildItems())
     const collection = new Collection<BenchItem>('bench-async', new AsyncDataAdapter({
       storage: () => storage,
     }))
@@ -128,7 +129,7 @@ describe('a write with 20 live queries over 5000 items', () => {
 
   test('worker adapter', async ({ bench }) => {
     const pair = createMessagePair()
-    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    const storage = memoryStorageAdapter<BenchItem>(buildItems())
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench', storage: () => storage })
     const collection = new Collection<BenchItem>('bench-worker', new WorkerDataAdapter(
       pair.clientEndpoint,
@@ -160,7 +161,7 @@ describe('a write with 20 live top-10 lists over 5000 items', () => {
   }
 
   test('async adapter', async ({ bench }) => {
-    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    const storage = memoryStorageAdapter<BenchItem>(buildItems())
     const collection = new Collection<BenchItem>('bench-window-async', new AsyncDataAdapter({
       storage: () => storage,
     }))
@@ -178,7 +179,7 @@ describe('a write with 20 live top-10 lists over 5000 items', () => {
 
   test('worker adapter', async ({ bench }) => {
     const pair = createMessagePair()
-    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    const storage = memoryStorageAdapter<BenchItem>(buildItems())
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench-window', storage: () => storage })
     const collection = new Collection<BenchItem>('bench-window', new WorkerDataAdapter(
       pair.clientEndpoint,
@@ -202,7 +203,7 @@ describe('a write with one live query holding all 5000 items', () => {
   // costs the size of the result is paid in full on every write.
   test('worker adapter', async ({ bench }) => {
     const pair = createMessagePair()
-    const storage = memoryStorageAdapter<BenchItem>(buildItems(ITEM_COUNT))
+    const storage = memoryStorageAdapter<BenchItem>(buildItems())
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'bench-wide', storage: () => storage })
     const collection = new Collection<BenchItem>('bench-wide', new WorkerDataAdapter(
       pair.clientEndpoint,
@@ -240,7 +241,7 @@ test('a reactive read of a live query holding all 5000 items', async ({ bench })
       ...options,
       reactivity,
     })
-    await Promise.all(buildItems(ITEM_COUNT).map(async item => collection.insert(item)))
+    await Promise.all(buildItems().map(async item => collection.insert(item)))
     const cursor = collection.find({}, { sort: { rank: 1 } })
     cursor.observeChanges({ added: () => {} })
     return cursor
@@ -254,17 +255,17 @@ test('a reactive read of a live query holding all 5000 items', async ({ bench })
   await bench.compare(
     bench('fetch', () => {
       cursor.fetch()
-      disposers.splice(0).forEach(dispose => dispose())
+      for (const dispose of disposers.splice(0)) dispose()
     }),
     bench('fetch with transformAll', () => {
       transformedCursor.fetch()
-      disposers.splice(0).forEach(dispose => dispose())
+      for (const dispose of disposers.splice(0)) dispose()
     }),
   )
 })
 
 test('learning what changed in a 5000 item result', async ({ bench }) => {
-  const previous = buildItems(ITEM_COUNT)
+  const previous = buildItems()
   const next = previous.map((item, index) =>
     (index === 2500 ? { ...item, name: 'renamed' } : item))
   // What arrives over a worker boundary: the same values, but every one of them a fresh object, so

@@ -24,10 +24,10 @@ const CollectionList = ({
 }: Props) => {
   const collectionsItem = dataStore.useItem('collections')
   const collections = useMemo(() => ((collectionsItem?.items || []) as Collection<any>[])
+    // eslint-disable-next-line unicorn/prefer-simple-sort-comparator -- names are strings
     .toSorted((a, b) => {
       if (a.name < b.name) return -1
-      if (a.name > b.name) return 1
-      return 0
+      return a.name > b.name ? 1 : 0
     }), [collectionsItem])
 
   return (

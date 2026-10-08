@@ -33,16 +33,16 @@ describe('Observer.applyDelta', () => {
     }
     observer.addCallbacks(callbacks as ObserveCallbacks<TestItem>)
     observer.runChecks(() => initial)
-    Object.values(callbacks).forEach(callback => callback.mockClear())
+    for (const callback of Object.values(callbacks)) callback.mockClear()
   })
 
   const deltaTo = (next: TestItem[]) => diffQueryResults(initial, next)
 
   it('should report an addition with the item that follows it', () => {
     const item = { id: 0, name: 'Zero' }
-    const applied = observer.applyDelta(deltaTo([item, ...initial]), () => initial)
+    const isApplied = observer.applyDelta(deltaTo([item, ...initial]), () => initial)
 
-    expect(applied).toBe(true)
+    expect(isApplied).toBe(true)
     expect(callbacks.added).toHaveBeenCalledExactlyOnceWith(item)
     expect(callbacks.addedBefore).toHaveBeenCalledExactlyOnceWith(item, initial[0])
   })
@@ -100,9 +100,9 @@ describe('Observer.applyDelta', () => {
   it('should not report anything for a delta that changes nothing', () => {
     observer.applyDelta(deltaTo(initial), () => initial)
 
-    Object.values(callbacks).forEach((callback) => {
+    for (const callback of Object.values(callbacks)) {
       expect(callback).not.toHaveBeenCalled()
-    })
+    }
   })
 
   describe('when the delta does not fit what it holds', () => {
@@ -125,9 +125,9 @@ describe('Observer.applyDelta', () => {
     it('should not report anything from the refused delta itself', () => {
       observer.applyDelta(foreignDelta(), () => initial)
 
-      Object.values(callbacks).forEach((callback) => {
+      for (const callback of Object.values(callbacks)) {
         expect(callback).not.toHaveBeenCalled()
-      })
+      }
     })
   })
 

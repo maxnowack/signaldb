@@ -52,9 +52,10 @@ export default function incrementalQueryUpdate<T extends BaseItem>(
   if (selector == null) return null
   const { sort, skip, limit, fields } = options || {}
   if (skip != null) return null
-  if (fields != null && sort != null && !sortKeysSurviveProjection(sort, fields)) return null
-  if (limit != null && !windowStaysClosed(previous, selector, options, changes)) return null
-  return mergeChangesetIntoResult(previous, selector, options, changes)
+  if (fields != null && sort != null && !canSortAfterProjection(sort, fields)) return null
+  return limit != null && !willWindowStayClosed(previous, selector, options, changes)
+    ? null
+    : mergeChangesetIntoResult(previous, selector, options, changes)
 }
 
 /**
@@ -74,7 +75,7 @@ export default function incrementalQueryUpdate<T extends BaseItem>(
  * @param fields - The query's projection.
  * @returns `true` when every sort key survives the projection.
  */
-function sortKeysSurviveProjection<T extends BaseItem>(
+function canSortAfterProjection<T extends BaseItem>(
   sort: SortSpecifier<T>,
   fields: NonNullable<QueryOptions<T>['fields']>,
 ): boolean {
@@ -90,8 +91,7 @@ function sortKeysSurviveProjection<T extends BaseItem>(
   return Object.keys(sort).every((key) => {
     const paths = pathsFor(key)
     if (isExclusion) return paths.every(path => fields[path] !== 0)
-    if (key === 'id') return fields.id !== 0
-    return paths.some(path => fields[path] === 1)
+    return key === 'id' ? fields.id !== 0 : paths.some(path => fields[path] === 1)
   })
 }
 
@@ -108,7 +108,7 @@ function sortKeysSurviveProjection<T extends BaseItem>(
  * @param sort - The query's sort.
  * @returns `true` when `item` sorts strictly before `edge`.
  */
-function sortsBefore<T extends BaseItem>(item: T, edge: T, sort: SortSpecifier<T>): boolean {
+function isSortedBefore<T extends BaseItem>(item: T, edge: T, sort: SortSpecifier<T>): boolean {
   return sortItems([edge, item], sort)[0] === item
 }
 
@@ -129,7 +129,7 @@ function sortsBefore<T extends BaseItem>(item: T, edge: T, sort: SortSpecifier<T
  * @param changes - The items the write created, updated or removed.
  * @returns `true` when the new window follows from the old one and the change.
  */
-function windowStaysClosed<T extends BaseItem>(
+function willWindowStayClosed<T extends BaseItem>(
   previous: T[],
   selector: Selector<T>,
   options: QueryOptions<T> | undefined,
@@ -145,29 +145,28 @@ function windowStaysClosed<T extends BaseItem>(
   const runnerUp = previous.at(-2)
   // Which item is *the* edge has to be beyond doubt. Two items sorting equally at the end of the
   // window are interchangeable, and so is the question of which of them a write displaces.
-  if (runnerUp != null && !sortsBefore(runnerUp, edge, sort)) return false
+  if (runnerUp != null && !isSortedBefore(runnerUp, edge, sort)) return false
 
   const inWindow = new Set(previous.map(item => item.id))
   if (changes.deletes.some(id => inWindow.has(id))) return false
   return changes.upserts.every((item) => {
     if (item === edge) return true
-    const before = sortsBefore(item, edge, sort)
+    const isBefore = isSortedBefore(item, edge, sort)
 
     if (!inWindow.has(item.id)) {
       // Coming from outside: it either takes a place inside, displacing the edge, or stays where
       // it was. Sorting *equally* to the edge is the one answer the window cannot give, because
       // the store may just as well have kept the edge and left this one out.
-      if (!match(item, selector)) return true
-      return before || sortsBefore(edge, item, sort)
+      return !match(item, selector) || isBefore || isSortedBefore(edge, item, sort)
     }
 
     // An item that no longer matches leaves a place open, and what fills it is beyond the window.
     if (!match(item, selector)) return false
-    if (before) return true
+    if (isBefore) return true
     // Not before the edge. The one item that may sit *on* the edge is the edge itself, and only
     // while it has not actually moved — an edge that slides outwards gives up the last place, and
     // what takes it is something the window has never seen.
-    return item.id === edge.id && !sortsBefore(edge, item, sort)
+    return item.id === edge.id && !isSortedBefore(edge, item, sort)
   })
 }
 
@@ -201,9 +200,9 @@ export function mergeChangesetIntoResult<T extends BaseItem>(
   const { sort, limit, fields } = options || {}
 
   const byId = new Map<any, T>()
-  previous.forEach(item => byId.set(item.id, item))
-  changes.deletes.forEach(id => byId.delete(id))
-  changes.upserts.forEach((item) => {
+  for (const item of previous) byId.set(item.id, item)
+  for (const id of changes.deletes) byId.delete(id)
+  for (const item of changes.upserts) {
     // Matched against the unprojected item: the selector is free to name fields the projection
     // drops, and the stored result would have no answer for those.
     if (match(item, selector)) {
@@ -211,7 +210,7 @@ export function mergeChangesetIntoResult<T extends BaseItem>(
     } else {
       byId.delete(item.id)
     }
-  })
+  }
 
   const items = [...byId.values()]
   const sorted = sort ? sortItems(items, sort) : items

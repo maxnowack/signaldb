@@ -31,7 +31,7 @@ async function withAdapter(indices: string[] = []) {
   return { adapter, query: query.bind(adapter) }
 }
 
-const ids = (items: Item[]) => items.map(item => item.id).toSorted()
+const ids = (items: Item[]) => items.map(item => item.id).toSorted((a, b) => a.localeCompare(b))
 
 describe('IndexedDB storage adapter — query', () => {
   it('narrows on an indexed field and leaves nothing behind', async () => {

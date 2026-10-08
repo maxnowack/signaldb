@@ -62,21 +62,22 @@ export async function waitForLocalInsert(
      * @param change Recorded change entry.
      */
     function handler(change: ChangeItem) {
-      if (change.collectionName !== collectionName) return
-      if (change.type !== 'insert') return
+      if ((change.collectionName !== collectionName) || (change.type !== 'insert')) return
       if (id && change.data?.id !== id) return
       done()
     }
 
     changes.on('added', handler)
-    changes.find(selector, { async: true }).fetch()
-      .then((existing) => {
+    const existingPromise = changes.find(selector, { async: true }).fetch()
+    void (async () => {
+      try {
+        const existing = await existingPromise
         if (existing.length > 0) done()
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         clearTimeout(timeoutReference.current)
         changes.off('added', handler)
         reject(error instanceof Error ? error : new Error(String(error)))
-      })
+      }
+    })()
   })
 }

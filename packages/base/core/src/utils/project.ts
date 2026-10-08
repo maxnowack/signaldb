@@ -17,22 +17,22 @@ export default function project<T extends Record<string, any>>(
   item: T,
   fields: { [P in keyof T]?: 0 | 1 } & Record<string, 0 | 1>,
 ) {
-  const allFieldsDeactivated = Object.values(fields).every(value => value === 0)
-  if (allFieldsDeactivated) {
+  const isAllFieldsDeactivated = Object.values(fields).every(value => value === 0)
+  if (isAllFieldsDeactivated) {
     const result = { ...item }
-    Object.keys(fields).forEach((key) => {
+    for (const key of Object.keys(fields)) {
       const fieldValue = get(item, key)
-      if (fieldValue === undefined) return
+      if (fieldValue === undefined) continue
       set(result, key, undefined, true)
-    })
+    }
     return result
   }
   const result = {} as T
-  Object.entries(fields).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(fields)) {
     const fieldValue = get(item, key)
-    if (fieldValue === undefined) return
-    if (fieldValue == null && value !== 1) return
+    if (fieldValue === undefined) continue
+    if (fieldValue == null && value !== 1) continue
     set(result, key, value === 1 ? fieldValue : undefined)
-  })
+  }
   return result
 }

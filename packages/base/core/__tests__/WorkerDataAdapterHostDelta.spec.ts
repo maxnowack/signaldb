@@ -21,12 +21,12 @@ type WorkerHostMessage = {
 }
 
 class MockWorkerContext {
+  private handler: ((event: MessageEvent) => void) | null = null
+
   responses: WorkerHostMessage[] = []
   postMessage = vi.fn((payload: WorkerHostMessage) => {
     this.responses.push(payload)
   })
-
-  private handler: ((event: MessageEvent) => void) | null = null
 
   addEventListener(type: 'message', listener: (event: MessageEvent) => any) {
     if (type !== 'message') return
@@ -46,13 +46,12 @@ class MockWorkerContext {
 
 describe('WorkerDataAdapterHost query deltas', () => {
   beforeAll(() => {
-    ;(globalThis as any).addEventListener = () => {}
-    ;(globalThis as any).postMessage = () => {}
+    vi.stubGlobal('addEventListener', () => {})
+    vi.stubGlobal('postMessage', () => {})
   })
 
   afterAll(() => {
-    delete (globalThis as any).addEventListener
-    delete (globalThis as any).postMessage
+    vi.unstubAllGlobals()
   })
 
   let context: MockWorkerContext
@@ -242,8 +241,7 @@ describe('WorkerDataAdapterHost query deltas', () => {
         const execute = (host as any).executeQuery.bind(host)
         return vi.spyOn(host as any, 'executeQuery').mockImplementation((...args: any[]) => {
           const [, querySelector] = args as [string, Record<string, unknown>]
-          if (querySelector.status === 'open') return Promise.reject(new Error('disk I/O error'))
-          return execute(...args)
+          return querySelector.status === 'open' ? Promise.reject(new Error('disk I/O error')) : execute(...args)
         })
       }
 

@@ -148,9 +148,9 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
     eventName: K,
     ...args: Parameters<Events[K]>
   ): void {
-    this.listeners(eventName).forEach((listener) => {
+    for (const listener of this.listeners(eventName)) {
       listener(...args)
-    })
+    }
   }
 
   /**
@@ -162,8 +162,7 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
     eventName: K,
   ): Array<(...args: Parameters<Events[K]>) => void> {
     const listenersSet = this._listenerStore.get(eventName)
-    if (!listenersSet) return []
-    return [...listenersSet.values()]
+    return listenersSet ? [...listenersSet] : []
   }
 
   /**
@@ -184,8 +183,8 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
   public removeAllListeners<K extends keyof Events>(eventName?: K): this {
     if (eventName === undefined) {
       // Remove listeners for all events
-      for (const [eventName_, listenersSet] of this._listenerStore.entries()) {
-        for (const listener of listenersSet.values()) {
+      for (const [eventName_, listenersSet] of this._listenerStore) {
+        for (const listener of listenersSet) {
           this.off(eventName_, listener)
         }
       }
@@ -193,7 +192,7 @@ export default class EventEmitter<Events extends Record<string | symbol, any>> {
     } else {
       const listenersSet = this._listenerStore.get(eventName)
       if (listenersSet) {
-        for (const listener of listenersSet.values()) {
+        for (const listener of listenersSet) {
           this.off(eventName, listener)
         }
         this._listenerStore.delete(eventName)

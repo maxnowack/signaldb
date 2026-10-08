@@ -64,12 +64,12 @@ function makeDirectory(basePath: string) {
         },
         async createWritable() {
           let buffer = ''
-          let closed = false
-          let aborted = false
+          let isClosed = false
+          let isAborted = false
 
           return {
             async write(data: any) {
-              if (closed || aborted) throw new Error('Stream is closed or aborted')
+              if (isClosed || isAborted) throw new Error('Stream is closed or aborted')
               if (failWritePaths.has(full)) {
                 failWritePaths.delete(full)
                 throw new Error(`write failure for ${full}`)
@@ -85,11 +85,11 @@ function makeDirectory(basePath: string) {
               // no-op for this mock
             },
             async close() {
-              closed = true
+              isClosed = true
               fileContents[full] = buffer
             },
             async abort() {
-              aborted = true
+              isAborted = true
               abortedPaths.push(full)
             },
           }
@@ -100,7 +100,7 @@ function makeDirectory(basePath: string) {
       const full = joinPath(basePath, name)
       if (options?.recursive) {
         const keys = Object.keys(fileContents).filter(k => k === full || k.startsWith(`${full}/`))
-        keys.forEach(k => delete fileContents[k])
+        for (const k of keys) delete fileContents[k]
         for (const d of directories) {
           if (d === full || d.startsWith(`${full}/`)) directories.delete(d)
         }
@@ -114,19 +114,23 @@ function makeDirectory(basePath: string) {
       const prefix = basePath ? `${basePath}/` : ''
 
       for (const file of Object.keys(fileContents)) {
-        if (file.startsWith(prefix)) {
-          const relative = file.slice(prefix.length)
-          const parts = relative.split('/').filter(Boolean)
-          if (parts.length > 0) entries.add(parts[0])
+        if (!file.startsWith(prefix)) {
+          continue
         }
+
+        const relative = file.slice(prefix.length)
+        const parts = relative.split('/').filter(Boolean)
+        if (parts.length > 0) entries.add(parts[0])
       }
 
       for (const directory of directories) {
-        if (directory.startsWith(prefix) && directory !== basePath) {
-          const relative = directory.slice(prefix.length)
-          const parts = relative.split('/').filter(Boolean)
-          if (parts.length > 0) entries.add(parts[0])
+        if (directory === basePath || !directory.startsWith(prefix)) {
+          continue
         }
+
+        const relative = directory.slice(prefix.length)
+        const parts = relative.split('/').filter(Boolean)
+        if (parts.length > 0) entries.add(parts[0])
       }
 
       for (const entry of entries) {
@@ -153,8 +157,17 @@ Object.defineProperty(navigator, 'locks', {
   value: {
     request: async (name: string, _options: { mode: 'exclusive' }, callback: () => Promise<any>) => {
       const current = locks.get(name) || Promise.resolve()
-      const next = current.then(callback)
-      locks.set(name, next.then(() => {}, () => {}))
+      const next = (async () => {
+        await current
+        return callback()
+      })()
+      locks.set(name, (async () => {
+        try {
+          await next
+        } catch {
+          // a failed holder still releases the lock
+        }
+      })())
       return next
     },
   },
@@ -198,7 +211,8 @@ describe('opfs storage adapter + AsyncDataAdapter', () => {
     await collection.insert({ id: '2', name: 'Bob' })
 
     const items = await collection.find({}, { async: true }).fetch()
-    expect(items.map(item => item.name).toSorted()).toEqual(['Ada', 'Bob'])
+    expect(items.map(item => item.name).toSorted((a, b) => a.localeCompare(b)))
+      .toEqual(['Ada', 'Bob'])
 
     await collection.dispose()
   })
@@ -218,8 +232,7 @@ describe('opfs storage adapter + AsyncDataAdapter', () => {
       void _collectionOptions
       void _pullParameters
       pullCalls += 1
-      if (pullCalls <= 2) return { items: [remoteItem] }
-      return { items: [remoteItem, localItem] }
+      return ({ items: pullCalls <= 2 ? [remoteItem] : [remoteItem, localItem] })
     })
     const push = vi.fn(async (
       _collectionOptions: { name: string },
@@ -266,7 +279,8 @@ describe('opfs storage adapter + AsyncDataAdapter', () => {
     )
 
     items = await collection.find({}, { async: true }).fetch()
-    expect(items.map(item => item.name).toSorted()).toEqual(['Local', 'Remote'])
+    expect(items.map(item => item.name).toSorted((a, b) => a.localeCompare(b)))
+      .toEqual(['Local', 'Remote'])
 
     await syncManager.dispose()
     await collection.dispose()

@@ -44,9 +44,13 @@ export interface AutoFetchDataAdapterOptions {
    * in memory only.
    */
   storage?: (name: string) => StorageAdapter<any, any>,
-  /** Optional logical id (handy if you run multiple adapters side-by-side) */
+  /**
+  Optional logical id (handy if you run multiple adapters side-by-side)
+   */
   id?: string,
-  /** Called with errors of fetches and queries; defaults to `console.error`. */
+  /**
+  Called with errors of fetches and queries; defaults to `console.error`.
+   */
   onError?: (error: Error) => void,
 
   /**
@@ -165,207 +169,11 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     }
   }
 
-  public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
-    collection: Collection<T, I, E, U>,
-    indices: string[],
-  ): CollectionBackend<T, I> {
-    // init per-collection state
-    this.collectionIndices.set(collection.name, indices)
-    this.queries.set(collection.name, new Map())
-    this.ensureStorageAdapter(collection.name)
-    this.activeObservers.set(collection.name, new Map())
-    this.observerTimeouts.set(collection.name, new Map())
-    this.selectorIds.set(collection.name, new Map())
-    this.idRefCounts.set(collection.name, new Map())
-    this.autoloadIds.set(collection.name, new Set())
-    this.firstFetches.set(collection.name, new Map())
-
-    const ready = this.setupStorage(collection.name, indices)
-    this.storageAdapterReady.set(collection.name, ready)
-
-    const registerQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
-      const qid = queryId(selector, options)
-      const registry = this.queries.get(collection.name)
-      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
-
-      registry.set(qid, {
-        selector,
-        options,
-        items: [],
-        listeners: new Set(),
-        ...registry.get(qid),
-        state: 'active',
-        error: null,
-      })
-
-      // auto-fetch lifecycle
-      const key = selectorId(selector)
-      const perColObservers = this.activeObservers.get(collection.name)
-      const current = perColObservers?.get(key)?.count ?? 0
-      perColObservers?.set(key, { selector, count: current + 1 })
-
-      // cancel scheduled purge if any
-      const timeouts = this.observerTimeouts.get(collection.name)
-      const t = timeouts?.get(key)
-      if (t) clearTimeout(t)
-
-      // Kick async fetch on first observer
-      if (current === 0) {
-        const fetches = this.firstFetches.get(collection.name)
-        const firstFetch = this.fetchAndIngest(collection.name, selector)
-          .finally(() => {
-            if (fetches?.get(key) === firstFetch) fetches.delete(key)
-          })
-        fetches?.set(key, firstFetch)
-      }
-
-      // Also compute the current local result for immediate availability
-      void this.fulfillQuery(collection.name, selector, options).catch(this.onError)
-    }
-
-    const unregisterQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
-      const qid = queryId(selector, options)
-      const registry = this.queries.get(collection.name)
-      registry?.delete(qid)
-
-      const key = selectorId(selector)
-      const perColObservers = this.activeObservers.get(collection.name)
-      const current = perColObservers?.get(key)?.count ?? 0
-      const remaining = Math.max(0, current - 1)
-
-      if (remaining > 0) {
-        perColObservers?.set(key, { selector, count: remaining })
-        return
-      }
-
-      // schedule purge of auto-fetched items for this selector
-      const doPurge = () => {
-        perColObservers?.delete(key)
-        void this.purgeSelector(collection.name, selector).catch(this.onError)
-      }
-
-      if (this.purgeDelay === 0) {
-        doPurge()
-      } else {
-        const timeouts = this.observerTimeouts.get(collection.name)
-        const t = timeouts?.get(key)
-        if (t) clearTimeout(t)
-        timeouts?.set(key, setTimeout(doPurge, this.purgeDelay))
-      }
-    }
-
-    const getQueryState = (selector: Selector<T>, options?: QueryOptions<T>): QueryState => {
-      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
-      return q?.state ?? 'active'
-    }
-
-    const getQueryError = (selector: Selector<T>, options?: QueryOptions<T>): Error | null => {
-      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
-      return q?.error ?? null
-    }
-
-    const getQueryResult = (selector: Selector<T>, options?: QueryOptions<T>): T[] => {
-      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
-      return (q?.items as T[]) ?? []
-    }
-
-    const onQueryStateChange = (
-      selector: Selector<T>,
-      options: QueryOptions<T> | undefined,
-      callback: (state: QueryState) => void,
-    ) => {
-      const qid = queryId(selector, options)
-      const registry = this.queries.get(collection.name)
-      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
-      if (!registry.has(qid)) {
-        registry.set(qid, {
-          selector,
-          options,
-          state: 'active',
-          error: null,
-          items: [],
-          listeners: new Set(),
-        })
-      }
-      registry.get(qid)?.listeners.add(callback)
-      return () => {
-        registry.get(qid)?.listeners.delete(callback)
-      }
-    }
-
-    return {
-      insert: async (item) => {
-        await ready
-        const inserted = await this.insert(collection.name, item)
-        return inserted
-      },
-      updateOne: async (selector, modifier) => {
-        await ready
-        return this.updateOne(collection.name, selector, modifier)
-      },
-      updateMany: async (selector, modifier) => {
-        await ready
-        return this.updateMany(collection.name, selector, modifier)
-      },
-      replaceOne: async (selector, replacement) => {
-        await ready
-        return this.replaceOne(collection.name, selector, replacement)
-      },
-      removeOne: async (selector) => {
-        await ready
-        return this.removeOne(collection.name, selector)
-      },
-      removeMany: async (selector) => {
-        await ready
-        return this.removeMany(collection.name, selector)
-      },
-
-      registerQuery,
-      unregisterQuery,
-      getQueryState,
-      getQueryError,
-      getQueryResult,
-      onQueryStateChange,
-      executeQuery: async (selector, options) => {
-        await ready
-        registerQuery(selector, options)
-        await new Promise<void>((resolve) => {
-          let stop = () => {}
-          stop = onQueryStateChange(selector, options, (state) => {
-            if (state === 'active') return
-            resolve()
-            stop()
-          })
-        })
-        const result = getQueryResult(selector, options)
-        unregisterQuery(selector, options)
-        return result
-      },
-
-      dispose: async () => {
-        this.storageAdapters.delete(collection.name)
-        this.queries.delete(collection.name)
-        this.collectionIndices.delete(collection.name)
-        this.storageAdapterReady.delete(collection.name)
-        this.activeObservers.delete(collection.name)
-        this.observerTimeouts.delete(collection.name)
-        this.selectorIds.delete(collection.name)
-        this.idRefCounts.delete(collection.name)
-        this.autoloadIds.delete(collection.name)
-        this.firstFetches.delete(collection.name)
-      },
-
-      isReady: async () => {
-        await ready
-      },
-    }
-  }
-
   // ===== Auto-fetch mechanics =====
 
   private async forceRefetchAll() {
     const tasks: Promise<boolean>[] = []
-    for (const [collectionName, observers] of this.activeObservers.entries()) {
+    for (const [collectionName, observers] of this.activeObservers) {
       for (const { selector, count } of observers.values()) {
         if (count > 0) tasks.push(this.fetchAndIngest(collectionName, selector))
       }
@@ -392,11 +200,11 @@ export default class AutoFetchDataAdapter implements DataAdapter {
       const selMap = this.selectorIds.get(collectionName)
       const previous = selMap?.get(selectorKey) ?? new Set<I>()
       const referenceMap = this.idRefCounts.get(collectionName)
-      items.forEach(({ id }) => {
-        if (previous.has(id)) return
+      for (const { id } of items) {
+        if (previous.has(id)) continue
         previous.add(id)
         referenceMap?.set(id, (referenceMap.get(id) ?? 0) + 1)
-      })
+      }
       selMap?.set(selectorKey, previous)
 
       // Ingest via upsert (merge when existing)
@@ -451,7 +259,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     }
 
     // finally, clear autoload marks
-    toRemove.forEach(id => autoload?.delete(id))
+    for (const id of toRemove) autoload?.delete(id)
   }
 
   // ===== Core query + CRUD plumbing (index-aware, same semantics as AsyncDataAdapter) =====
@@ -774,6 +582,203 @@ export default class AutoFetchDataAdapter implements DataAdapter {
 
     if (toInsert.length > 0) await storage.insert(toInsert)
     if (toReplace.length > 0) await storage.replace(toReplace)
+  }
+
+  public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
+    indices: string[],
+  ): CollectionBackend<T, I> {
+    // init per-collection state
+    this.collectionIndices.set(collection.name, indices)
+    this.queries.set(collection.name, new Map())
+    this.ensureStorageAdapter(collection.name)
+    this.activeObservers.set(collection.name, new Map())
+    this.observerTimeouts.set(collection.name, new Map())
+    this.selectorIds.set(collection.name, new Map())
+    this.idRefCounts.set(collection.name, new Map())
+    this.autoloadIds.set(collection.name, new Set())
+    this.firstFetches.set(collection.name, new Map())
+
+    const ready = this.setupStorage(collection.name, indices)
+    this.storageAdapterReady.set(collection.name, ready)
+
+    const registerQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
+      const qid = queryId(selector, options)
+      const registry = this.queries.get(collection.name)
+      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
+
+      registry.set(qid, {
+        selector,
+        options,
+        items: [],
+        listeners: new Set(),
+        ...registry.get(qid),
+        state: 'active',
+        error: null,
+      })
+
+      // auto-fetch lifecycle
+      const key = selectorId(selector)
+      const perColObservers = this.activeObservers.get(collection.name)
+      const current = perColObservers?.get(key)?.count ?? 0
+      perColObservers?.set(key, { selector, count: current + 1 })
+
+      // cancel scheduled purge if any
+      const timeouts = this.observerTimeouts.get(collection.name)
+      const t = timeouts?.get(key)
+      if (t) clearTimeout(t)
+
+      // Kick async fetch on first observer
+      if (current === 0) {
+        const fetches = this.firstFetches.get(collection.name)
+        const firstFetch = this.fetchAndIngest(collection.name, selector)
+          // eslint-disable-next-line unicorn/prefer-await -- keeps the settle timing awaited by fulfillQuery
+          .finally(() => {
+            if (fetches?.get(key) === firstFetch) fetches.delete(key)
+          })
+        fetches?.set(key, firstFetch)
+      }
+
+      // Also compute the current local result for immediate availability
+      void this.fulfillQuery(collection.name, selector, options).catch(this.onError)
+    }
+
+    const unregisterQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
+      const qid = queryId(selector, options)
+      const registry = this.queries.get(collection.name)
+      registry?.delete(qid)
+
+      const key = selectorId(selector)
+      const perColObservers = this.activeObservers.get(collection.name)
+      const current = perColObservers?.get(key)?.count ?? 0
+      const remaining = Math.max(0, current - 1)
+
+      if (remaining > 0) {
+        perColObservers?.set(key, { selector, count: remaining })
+        return
+      }
+
+      // schedule purge of auto-fetched items for this selector
+      const doPurge = () => {
+        perColObservers?.delete(key)
+        void this.purgeSelector(collection.name, selector).catch(this.onError)
+      }
+
+      if (this.purgeDelay === 0) {
+        doPurge()
+      } else {
+        const timeouts = this.observerTimeouts.get(collection.name)
+        const t = timeouts?.get(key)
+        if (t) clearTimeout(t)
+        timeouts?.set(key, setTimeout(doPurge, this.purgeDelay))
+      }
+    }
+
+    const getQueryState = (selector: Selector<T>, options?: QueryOptions<T>): QueryState => {
+      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
+      return q?.state ?? 'active'
+    }
+
+    const getQueryError = (selector: Selector<T>, options?: QueryOptions<T>): Error | null => {
+      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
+      return q?.error ?? null
+    }
+
+    const getQueryResult = (selector: Selector<T>, options?: QueryOptions<T>): T[] => {
+      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
+      return (q?.items as T[]) ?? []
+    }
+
+    const onQueryStateChange = (
+      selector: Selector<T>,
+      options: QueryOptions<T> | undefined,
+      callback: (state: QueryState) => void,
+    ) => {
+      const qid = queryId(selector, options)
+      const registry = this.queries.get(collection.name)
+      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
+      if (!registry.has(qid)) {
+        registry.set(qid, {
+          selector,
+          options,
+          state: 'active',
+          error: null,
+          items: [],
+          listeners: new Set(),
+        })
+      }
+      registry.get(qid)?.listeners.add(callback)
+      return () => {
+        registry.get(qid)?.listeners.delete(callback)
+      }
+    }
+
+    return {
+      insert: async (item) => {
+        await ready
+        const inserted = await this.insert(collection.name, item)
+        return inserted
+      },
+      updateOne: async (selector, modifier) => {
+        await ready
+        return this.updateOne(collection.name, selector, modifier)
+      },
+      updateMany: async (selector, modifier) => {
+        await ready
+        return this.updateMany(collection.name, selector, modifier)
+      },
+      replaceOne: async (selector, replacement) => {
+        await ready
+        return this.replaceOne(collection.name, selector, replacement)
+      },
+      removeOne: async (selector) => {
+        await ready
+        return this.removeOne(collection.name, selector)
+      },
+      removeMany: async (selector) => {
+        await ready
+        return this.removeMany(collection.name, selector)
+      },
+
+      registerQuery,
+      unregisterQuery,
+      getQueryState,
+      getQueryError,
+      getQueryResult,
+      onQueryStateChange,
+      executeQuery: async (selector, options) => {
+        await ready
+        registerQuery(selector, options)
+        await new Promise<void>((resolve) => {
+          let stop = () => {}
+          stop = onQueryStateChange(selector, options, (state) => {
+            if (state === 'active') return
+            resolve()
+            stop()
+          })
+        })
+        const result = getQueryResult(selector, options)
+        unregisterQuery(selector, options)
+        return result
+      },
+
+      dispose: async () => {
+        this.storageAdapters.delete(collection.name)
+        this.queries.delete(collection.name)
+        this.collectionIndices.delete(collection.name)
+        this.storageAdapterReady.delete(collection.name)
+        this.activeObservers.delete(collection.name)
+        this.observerTimeouts.delete(collection.name)
+        this.selectorIds.delete(collection.name)
+        this.idRefCounts.delete(collection.name)
+        this.autoloadIds.delete(collection.name)
+        this.firstFetches.delete(collection.name)
+      },
+
+      isReady: async () => {
+        await ready
+      },
+    }
   }
 }
 

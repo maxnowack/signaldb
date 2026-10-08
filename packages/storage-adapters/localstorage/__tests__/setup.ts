@@ -9,7 +9,7 @@ if (globalThis.localStorage == null) {
         values.clear()
       },
       getItem: (key: string) => values.get(key) ?? null,
-      key: (index: number) => [...values.keys()][index] ?? null,
+      key: (index: number) => values.keys().toArray()[index] ?? null,
       get length() {
         return values.size
       },

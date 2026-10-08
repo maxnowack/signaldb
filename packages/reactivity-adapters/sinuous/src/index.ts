@@ -3,13 +3,13 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const sinuousReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = observable(0)
+    const dependency = observable(0)
     return {
       depend: () => {
-        dep()
+        dependency()
       },
       notify: () => {
-        dep(api.sample(() => dep()) + 1)
+        dependency(api.sample(() => dependency()) + 1)
       },
     }
   },

@@ -8,7 +8,7 @@
  */
 export function clone<T>(value: T): T {
   // Functions
-  if (typeof value === 'function') throw new Error('Cloning functions is not supported')
+  if (typeof value === 'function') throw new TypeError('Cloning functions is not supported')
 
   // Check for null or primitive types (string, number, boolean, etc.)
   if (value === null || typeof value !== 'object') return value
@@ -22,18 +22,18 @@ export function clone<T>(value: T): T {
   // Maps
   if (value instanceof Map) {
     const result = new Map()
-    value.forEach((currentValue, key) => {
+    for (const [key, currentValue] of value) {
       result.set(key, clone(currentValue))
-    })
+    }
     return result as T
   }
 
   // Sets
   if (value instanceof Set) {
     const result = new Set()
-    value.forEach((currentValue) => {
+    for (const currentValue of value) {
       result.add(clone(currentValue))
-    })
+    }
     return result as T
   }
 

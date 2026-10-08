@@ -15,6 +15,17 @@ export type Todo = {
 
 type Field = 'title' | 'completed' | 'order'
 
+const syncedFields: readonly string[] = ['title', 'completed', 'order'] satisfies Field[]
+
+/**
+ * Check whether a field name is one of the synchronized todo fields.
+ * @param field Field name.
+ * @returns True if the field is synchronized.
+ */
+function isField(field: string): field is Field {
+  return syncedFields.includes(field)
+}
+
 type ServerFieldMeta = {
   time: number,
   clientId: ClientId,
@@ -386,24 +397,8 @@ function applyServerChanges(
     const document = ensureServerDocument(server, item.id)
     const fields = changes.modifiedFields.get(item.id) || []
     for (const field of fields) {
-      switch (field) {
-        case 'title': {
-          applyFieldUpdate(document, field, item.title, fieldTimes, clientId, conflicts, item)
-
-          break
-        }
-        case 'completed': {
-          applyFieldUpdate(document, field, item.completed, fieldTimes, clientId, conflicts, item)
-
-          break
-        }
-        case 'order': {
-          applyFieldUpdate(document, field, item.order, fieldTimes, clientId, conflicts, item)
-
-          break
-        }
-      // No default
-      }
+      if (!isField(field)) continue
+      applyFieldUpdate(document, field, item[field], fieldTimes, clientId, conflicts, item)
     }
   }
 
@@ -432,9 +427,9 @@ function extractFieldTimes(rawChanges: RawChange[]) {
       fields.push('title', 'completed', 'order')
     } else {
       const modifier = change.data.modifier || {}
-      const setFields = Object.keys(modifier.$set || {})
-      for (const field of setFields) {
-        if (field === 'title' || field === 'completed' || field === 'order') {
+      const modifiedFieldNames = Object.keys(modifier.$set || {})
+      for (const field of modifiedFieldNames) {
+        if (isField(field)) {
           fields.push(field)
         }
       }
@@ -462,7 +457,8 @@ function extractFieldTimes(rawChanges: RawChange[]) {
  * @returns Server document.
  */
 function ensureServerDocument(server: ServerRuntime, id: string): ServerDocument {
-  if (server.documents[id]) return server.documents[id]
+  const existingDocument = server.documents[id]
+  if (existingDocument) return existingDocument
   server.documents[id] = {
     id,
     title: '',
@@ -565,8 +561,7 @@ function addTodo(clientId: ClientId, clientA: ClientRuntime, clientB: ClientRunt
  */
 function nextOrder(items: Todo[]) {
   const lastItem = items.at(-1)
-  if (!lastItem) return 1
-  return lastItem.order + 1
+  return lastItem ? lastItem.order + 1 : 1
 }
 
 /**
@@ -656,8 +651,7 @@ function onDrop(
   clientB: ClientRuntime,
 ) {
   const client = getClient(clientId, clientA, clientB)
-  if (!dragging.id || dragging.clientId !== clientId) return
-  if (dragging.id === targetId) return
+  if (!dragging.id || dragging.clientId !== clientId || (dragging.id === targetId)) return
 
   const items = client.state.items.filter(item => item.id !== dragging.id)
   const targetIndex = items.findIndex(item => item.id === targetId)

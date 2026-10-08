@@ -28,7 +28,7 @@ function serveV1DirectoryIndexes() {
     name: 'signaldb-v1-directory-indexes',
     configureServer(server: { middlewares: { use: (fn: (...args: any[]) => void) => void } }) {
       server.middlewares.use((request: { url?: string }, _response: unknown, next: () => void) => {
-        const [pathname, query] = (request.url ?? '').split('?')
+        const [pathname, query] = (request.url ?? '').split('?', 2)
         if (pathname === '/v1' || (pathname.startsWith('/v1/') && pathname.endsWith('/'))) {
           const base = pathname === '/v1' ? '/v1/' : pathname
           request.url = `${base}index.html${query ? `?${query}` : ''}`

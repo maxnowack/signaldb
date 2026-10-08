@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { Collection, AutoFetchDataAdapter } from '../src'
 import queryId from '../src/utils/queryId'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import compareCodeUnits from './helpers/compareCodeUnits'
 
 type Post = { id: string, title?: string, type?: string }
 
@@ -142,7 +143,9 @@ describe('AutoFetchDataAdapter', () => {
     const states: string[] = []
     const backend = (col as any).backend
     backend.registerQuery({})
-    const unsubscribe = backend.onQueryStateChange({}, undefined, (s: string) => states.push(s))
+    const unsubscribe = backend.onQueryStateChange({}, undefined, (s: string) => {
+      states.push(s)
+    })
     await new Promise(r => setTimeout(r, 20))
     expect(states).toContain('error')
     expect(onError).toHaveBeenCalled()
@@ -378,7 +381,8 @@ describe('AutoFetchDataAdapter', () => {
     await backend.insert({ id: 'b', title: 'b', type: 'k' })
     await backend.insert({ id: 'c', title: 'c', type: 'k' })
     const rm2 = await backend.removeMany({ type: 'k' })
-    expect(rm2.map((i: any) => i.id).toSorted()).toEqual(['b', 'c'])
+    expect(rm2.map((i: any) => i.id).toSorted(compareCodeUnits))
+      .toEqual(['b', 'c'])
   })
 
   it('publishForSelector updates only matching selector records', async () => {

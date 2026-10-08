@@ -23,7 +23,7 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
     ? undefined
     : new Map(fallbackItems.map(item => [item.id, item]))
 
-  changes.forEach((change) => {
+  for (const change of changes) {
     if (change.type === 'remove') {
       itemMap.delete(change.data)
     } else if (change.type === 'insert') {
@@ -39,12 +39,10 @@ export default function applyChanges<ItemType extends BaseItem<IdType>, IdType>(
         ?? fallbackItemMap?.get(change.data.id)
       itemMap.set(
         change.data.id,
-        existingItem
-          ? modify(existingItem, change.data.modifier)
-          : modify({ id: change.data.id } as ItemType, change.data.modifier),
+        modify(existingItem || { id: change.data.id } as ItemType, change.data.modifier),
       )
     }
-  })
+  }
 
   // Convert map back to array
   return [...itemMap.values()]

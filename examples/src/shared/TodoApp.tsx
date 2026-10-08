@@ -13,14 +13,12 @@ const TodoApp = ({ collection }: { collection: TodoCollection }) => {
         placeholder="Type and press Enter to add a new item …"
         onChange={event => setText(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            if (text === '') return
-            void collection.insert({
-              text,
-              completed: false,
-            })
-            setText('')
-          }
+          if (text === '' || event.key !== 'Enter') return
+          void collection.insert({
+            text,
+            completed: false,
+          })
+          setText('')
         }}
       />
       <TodoList collection={collection} />

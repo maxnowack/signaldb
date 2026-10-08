@@ -9,7 +9,9 @@ export type MaybePromise<T> = T | Promise<T>
  * mode.
  */
 export type ModeOptions = {
-  /** `true` runs the method asynchronously and makes it return a promise. */
+  /**
+  `true` runs the method asynchronously and makes it return a promise.
+   */
   async?: boolean,
 }
 
@@ -56,12 +58,12 @@ function isThenable(value: unknown): value is Promise<unknown> {
 function runReactiveOrAsync<TThis, TReturn, TNext>(
   thisArgument: TThis,
   mode: ModeOptions | undefined,
-  gen: (this: TThis, a: boolean) => Generator<MaybePromise<TNext>, TReturn, TNext>,
+  gen: (this: TThis, isAsync: boolean) => Generator<MaybePromise<TNext>, TReturn, TNext>,
 ): TReturn | Promise<TReturn> {
-  const a = !!mode?.async
-  const it = gen.call(thisArgument, a)
+  const isA = !!mode?.async
+  const it = gen.call(thisArgument, isA)
 
-  if (!a) {
+  if (!isA) {
     let step = it.next()
     while (!step.done) {
       const y = step.value
@@ -102,13 +104,14 @@ function runReactiveOrAsync<TThis, TReturn, TNext>(
  * - For best inference at yield sites, prefer `yield* unwrap(expr)` for maybe-async expressions.
  */
 export type ReactiveOrAsyncGen<TThis, Arguments extends any[], TReturn, TNext>
-  = (this: TThis, a: boolean, ...args: Arguments) => Generator<MaybePromise<TNext>, TReturn, TNext>
+  = (this: TThis, isAsync: boolean, ...args: Arguments)
+  => Generator<MaybePromise<TNext>, TReturn, TNext>
 
 // Type utilities to infer pieces from a generator function type
 // type ThisOf<G> = G extends (this: infer TThis, ...args: any[]) => any ? TThis : unknown
 // type AllParametersOf<G> = G extends (this: any, ...args: infer P) => any ? P : never
 // type Tail<T extends any[]> = T extends [any, ...infer Rest] ? Rest : never
-// type ArgumentsOf<G> = Tail<Tail<AllParametersOf<G>>> // drop `a` and keep the rest
+// type ArgumentsOf<G> = Tail<Tail<AllParametersOf<G>>> // drop `isAsync` and keep the rest
 // type ReturnOfGen<G> = G extends (this: any, ...args: any[]) =>
 // Generator<any, infer R, any> ? R : never
 
@@ -125,8 +128,10 @@ export type ReactiveOrAsyncMethod<TThis, P extends any[], R, N> = {
   (this: TThis, ...args: [...P, ModeOptions?]): MaybePromise<R>,
   (this: TThis, ...args: [...P, { async: true }]): Promise<R>,
 } & {
-  /** Exposes the underlying generator for composition via `yield* method.generator.call(this, a, ...)` */
-  generator: (this: TThis, a: boolean, ...args: P) => Generator<MaybePromise<N>, R, N>,
+  /**
+  Exposes the underlying generator for composition via `yield* method.generator.call(this, isAsync, ...)`
+   */
+  generator: (this: TThis, isAsync: boolean, ...args: P) => Generator<MaybePromise<N>, R, N>,
 }
 
 /**
@@ -143,12 +148,12 @@ export type ReactiveOrAsyncMethod<TThis, P extends any[], R, N> = {
  * @template P - The method parameters (excluding the mode options).
  * @template R - The result of the workflow.
  * @template N - The type that is yielded/awaited inside the workflow.
- * @param gen - Generator workflow. Receives `(a)` which indicates async mode and should
+ * @param gen - Generator workflow. Receives `(isAsync)` which indicates async mode and should
  *   `yield`/`yield* unwrap(...)` any values that may be Promises.
  * @returns A callable method with overloads plus a `.generator` property for composition.
  */
 export default function reactiveOrAsync<TThis, P extends any[], R, N>(
-  gen: (this: TThis, a: boolean, ...args: P) => Generator<MaybePromise<N>, R, N>,
+  gen: (this: TThis, isAsync: boolean, ...args: P) => Generator<MaybePromise<N>, R, N>,
 ): ReactiveOrAsyncMethod<TThis, P, R, N> {
   /**
    * The generated method wrapper.
@@ -165,8 +170,8 @@ export default function reactiveOrAsync<TThis, P extends any[], R, N>(
     const mode: ModeOptions | undefined = hasMode ? (last as ModeOptions) : undefined
     const parameters = (hasMode ? allArguments.slice(0, -1) : allArguments) as unknown as P
 
-    return runReactiveOrAsync(this, mode, function* (a) {
-      return yield* gen.call(this, a, ...parameters)
+    return runReactiveOrAsync(this, mode, function* (this: TThis, isAsync: boolean) {
+      return yield* gen.call(this, isAsync, ...parameters)
     })
   }
 

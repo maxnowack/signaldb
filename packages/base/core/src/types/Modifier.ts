@@ -21,7 +21,7 @@ type PushModifier<T> = {
 type ArraysOrEach<T> = {
   [P in DotNotation<T>]?: OnlyElementsOfArrays<GetType<T, P>> | { $each: GetType<T, P> }
 }
-type CurrentDateModifier = { $type: 'timestamp' | 'date' } | true
+type CurrentDateModifier = true | { $type: 'timestamp' | 'date' }
 
 type Modifier<T extends Dictionary<any> = Dictionary<any>>
   = | {

@@ -31,7 +31,9 @@ async function openDatabase(
           event.oldVersion,
           event.newVersion ?? null,
         )
+          // eslint-disable-next-line unicorn/prefer-await -- runs in the synchronous upgradeneeded listener
           .then(() => resolve())
+          // eslint-disable-next-line unicorn/prefer-await -- runs in the synchronous upgradeneeded listener
           .catch(
             /* istanbul ignore next -- @preserve */
             (error) => {
@@ -91,6 +93,7 @@ export default function prepareIndexedDB(options: IndexedDBOptions) {
       const storesToDelete = new Set<string>()
       for (let i = 0; i < database.objectStoreNames.length; i += 1) {
         const storeName = database.objectStoreNames.item(i)
+        // eslint-disable-next-line unicorn/no-computed-property-existence-check -- `in` also matches inherited keys
         if (!storeName || storeName in options.schema) continue
         storesToDelete.add(storeName)
       }
@@ -123,11 +126,10 @@ export default function prepareIndexedDB(options: IndexedDBOptions) {
         })
 
         // Create indexes as per the new schema
-        indexes.forEach((index) => {
-          if (index === 'id') return
-          if (store.indexNames.contains(index)) return
+        for (const index of indexes) {
+          if ((index === 'id') || store.indexNames.contains(index)) continue
           store.createIndex(index, index, { unique: false })
-        })
+        }
       }
     },
   )
@@ -153,10 +155,10 @@ function createIndexedDBAdapter<
   T extends { id: I } & Record<string, any>,
   I extends IDBValidKey,
 >(storeName: string, databasePromise: Promise<IDBDatabase>) {
-  const getStore = async (writeAccess = false) => {
+  const getStore = async (isWritable = false) => {
     const database = await databasePromise
     if (!database) throw new Error('Database not initialized')
-    const transaction = database.transaction(storeName, writeAccess ? 'readwrite' : 'readonly')
+    const transaction = database.transaction(storeName, isWritable ? 'readwrite' : 'readonly')
     const store = transaction.objectStore(storeName)
     return store
   }
@@ -221,8 +223,7 @@ function createIndexedDBAdapter<
    */
   const isUsableKey = (value: unknown): value is IDBValidKey => {
     if (typeof value === 'string') return true
-    if (typeof value === 'number') return Number.isFinite(value)
-    return value instanceof Date && !Number.isNaN(value.getTime())
+    return typeof value === 'number' ? Number.isFinite(value) : value instanceof Date && !Number.isNaN(value.getTime())
   }
 
   /**
@@ -319,10 +320,14 @@ function createIndexedDBAdapter<
 
     // index methods
     createIndex: async () => {
-      /* noop */
+      /*
+      noop
+      */
     },
     dropIndex: async () => {
-      /* noop */
+      /*
+      noop
+      */
     },
     readIndex,
 

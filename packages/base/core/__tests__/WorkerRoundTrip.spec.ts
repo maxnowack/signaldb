@@ -39,7 +39,7 @@ function createMessagePair() {
   const deliver = (listeners: ((event: MessageEvent) => void)[], data: unknown) => {
     const payload = clone(data)
     queueMicrotask(() => {
-      [...listeners].forEach(listener => listener({ data: payload } as MessageEvent))
+      for (const listener of listeners) listener({ data: payload } as MessageEvent)
     })
   }
 
@@ -87,7 +87,7 @@ describe('worker round trip', () => {
     name: `name-${index}`,
   }))
 
-  const setup = async (items: TestItem[], indices: string[] = []) => {
+  const setup = async (items: TestItem[]) => {
     const pair = createMessagePair()
     traffic = pair.traffic
     storage = memoryStorageAdapter<TestItem>(items.map(item => ({ ...item })))
@@ -95,15 +95,19 @@ describe('worker round trip', () => {
     new WorkerDataAdapterHost(pair.hostEndpoint, { id: 'round-trip', storage: () => storage })
     adapter = new WorkerDataAdapter(pair.clientEndpoint, { id: 'round-trip' })
     collection = new Collection<TestItem>('items', adapter, {
-      indices,
+      indices: [],
       reactivity: scope.reactivity,
     })
     await Promise.resolve(collection.isReady())
   }
 
   afterEach(async () => {
-    openObservations.splice(0).forEach(stop => stop())
-    await collection?.dispose().catch(() => {})
+    for (const stop of openObservations.splice(0)) stop()
+    try {
+      await collection?.dispose()
+    } catch {
+      // the collection may already be gone
+    }
   })
 
   /**
@@ -124,11 +128,11 @@ describe('worker round trip', () => {
     })
     openObservations.push(stop)
 
-    return async (predicate: (items: TestItem[]) => boolean) => {
+    return async (isExpected: (items: TestItem[]) => boolean) => {
       let current: TestItem[] = []
       await vi.waitFor(() => {
         current = scope.read(() => cursor.fetch())
-        expect(predicate(current)).toBe(true)
+        expect(isExpected(current)).toBe(true)
       }, { timeout: 2000, interval: 5 })
       return current
     }
@@ -384,6 +388,10 @@ describe('a query the host has to re-execute', () => {
     expect(collection.find({ id: 'item-1' }, { limit: 1 }).isLoading()).toBe(false)
 
     stop()
-    await collection.dispose().catch(() => {})
+    try {
+      await collection.dispose()
+    } catch {
+      // the collection may already be gone
+    }
   })
 })

@@ -66,7 +66,9 @@ export interface CursorOptions<
   U = T,
   Async extends boolean = false,
 > extends FindOptions<T, Async> {
-  /** Applied to every item the cursor returns. */
+  /**
+  Applied to every item the cursor returns.
+   */
   transform?: Transform<T, U>,
   /**
    * Called when the cursor starts observing its query, with the functions that update it. Returns
@@ -76,7 +78,9 @@ export interface CursorOptions<
     requery: () => void,
     applyDelta: (delta: QueryDelta<T>) => void,
   ) => () => void,
-  /** Backs `isLoading()`; without it, the cursor never reports itself as loading. */
+  /**
+  Backs `isLoading()`; without it, the cursor never reports itself as loading.
+   */
   queryState?: QueryStateAccessor,
 }
 
@@ -146,8 +150,7 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     const item = this.options.fieldTracking
       ? this.addGetters(rawItem)
       : rawItem
-    if (!this.options.transform) return item as unknown as U
-    return this.options.transform(item)
+    return this.options.transform ? this.options.transform(item) : (item as unknown as U)
   }
 
   private depend(
@@ -256,14 +259,14 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     return this.observer
   }
 
-  private observeRawChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+  private observeRawChanges(callbacks: ObserveCallbacks<T>, shouldSkipInitial = false) {
     const observer = this.ensureObserver()
     // A listener that skips the initial result has nothing to learn from a comparison against a
     // result the observer already holds and keeps current. Every reactive read registers one, so
     // comparing here would cost a whole result on every read of a query that is already observed.
-    const needsCheck = !skipInitial || !observer.hasResult()
-    observer.addCallbacks(callbacks, skipInitial)
-    if (needsCheck) observer.runChecks(this.getItems)
+    const isNeedsCheck = !shouldSkipInitial || !observer.hasResult()
+    observer.addCallbacks(callbacks, shouldSkipInitial)
+    if (isNeedsCheck) observer.runChecks(this.getItems)
     let isStopped = false
     return () => {
       if (isStopped) return
@@ -283,9 +286,9 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * to prevent memory leaks.
    */
   public cleanup() {
-    this.onCleanupCallbacks.forEach((callback) => {
+    for (const callback of this.onCleanupCallbacks) {
       callback()
-    })
+    }
     this.onCleanupCallbacks = []
   }
 
@@ -312,22 +315,22 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
       addedBefore: true,
       removed: true,
       movedBefore: true,
-      ...this.options.fieldTracking ? {} : { changed: true },
+      ...!this.options.fieldTracking && { changed: true },
     })
 
     const executeForEach = (items: T[]) => {
-      items.forEach((item) => {
+      for (const item of items) {
         callback(this.transform(item))
-      })
+      }
     }
 
     const result = this.getItems()
     if (result instanceof Promise) {
+      // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the cursor is async
       return result.then(executeForEach) as Async extends true ? Promise<void> : void
-    } else {
-      executeForEach(result)
-      return undefined as Async extends true ? Promise<void> : void
     }
+    executeForEach(result)
+    return undefined as Async extends true ? Promise<void> : void
   }
 
   /**
@@ -345,10 +348,10 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     const maybePromise = this.forEach((item) => {
       results.push(callback(item))
     })
-    if (maybePromise instanceof Promise) {
-      return maybePromise.then(() => results) as Async extends true ? Promise<V[]> : V[]
-    }
-    return results as Async extends true ? Promise<V[]> : V[]
+    return maybePromise instanceof Promise
+      // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the cursor is async
+      ? (maybePromise.then(() => results) as Async extends true ? Promise<V[]> : V[])
+      : (results as Async extends true ? Promise<V[]> : V[])
   }
 
   /**
@@ -376,6 +379,7 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
     })
     const maybePromise = this.getItems()
     return (maybePromise instanceof Promise
+      // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the cursor is async
       ? maybePromise.then(items => items.length)
       : maybePromise.length) as Async extends true ? Promise<number> : number
   }
@@ -428,7 +432,11 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
    * @param skipInitial - A boolean indicating whether to skip the initial notification of the current result set.
    * @returns A function to stop observing changes.
    */
-  public observeChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+  public observeChanges(
+    callbacks: ObserveCallbacks<T>,
+    // eslint-disable-next-line unicorn/consistent-boolean-name -- documented public parameter name
+    skipInitial = false,
+  ) {
     return this.observeRawChanges(Object
       .entries(callbacks)
       .reduce((memo, [callbackName, callback]) => {

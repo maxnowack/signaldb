@@ -671,14 +671,14 @@ describe('Collection', () => {
       Collection.batch(() => { /* no-op */ })
 
       const c = new Collection<{ id: string, name: string }>()
-      let innerRan = false
+      let isInnerRan = false
       // Nested instance batch should early-return on inner
       await c.batch(async () => {
         c.batch(() => {
-          innerRan = true
+          isInnerRan = true
         })
       })
-      expect(innerRan).toBe(true)
+      expect(isInnerRan).toBe(true)
     })
 
     it('scopes a batch to the collections it was given', async () => {
@@ -804,13 +804,13 @@ describe('Collection', () => {
     })
 
     it('onPostBatch queues during batch and throws when disposed', async () => {
-      let ran = false
+      let isRan = false
       await collection.batch(async () => {
         collection.onPostBatch(() => {
-          ran = true
+          isRan = true
         })
       })
-      expect(ran).toBe(true)
+      expect(isRan).toBe(true)
 
       await collection.dispose()
       expect(() => collection.onPostBatch(() => {})).toThrow('Collection is disposed')
@@ -1349,9 +1349,9 @@ describe('Collection', () => {
         if (fields?.parent) {
           const foreignKeys = [...new Set(items.map(item => item.parent))]
           const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
-          items.forEach((item) => {
+          for (const item of items) {
             item.parent = relatedItems.find(related => related.id === item.parent)
-          })
+          }
         }
         return items
       }
@@ -1423,23 +1423,23 @@ describe('Collection coverage extras', () => {
   it('toggles isPulling and isPushing signals', async () => {
     const c = new Collection<{ id: string, n?: number }>()
     await c.ready()
-    const pullingBefore = c.isPulling()
+    const isPullingBefore = c.isPulling()
     const p = c.find({}, { async: true }).fetch()
-    const duringPulling = c.isPulling()
+    const isDuringPulling = c.isPulling()
     await p
-    const pullingAfter = c.isPulling()
-    expect(pullingBefore).toBe(false)
-    expect(duringPulling).toBe(true)
-    expect(pullingAfter).toBe(false)
+    const isPullingAfter = c.isPulling()
+    expect(isPullingBefore).toBe(false)
+    expect(isDuringPulling).toBe(true)
+    expect(isPullingAfter).toBe(false)
 
-    const pushingBefore = c.isPushing()
+    const isPushingBefore = c.isPushing()
     const ins = c.insert({ id: '1', n: 1 })
-    const duringPushing = c.isPushing()
+    const isDuringPushing = c.isPushing()
     await ins
-    const pushingAfter = c.isPushing()
-    expect(pushingBefore).toBe(false)
-    expect(duringPushing).toBe(true)
-    expect(pushingAfter).toBe(false)
+    const isPushingAfter = c.isPushing()
+    expect(isPushingBefore).toBe(false)
+    expect(isDuringPushing).toBe(true)
+    expect(isPushingAfter).toBe(false)
   })
 
   it('profiles getItems when debug mode enabled', async () => {
@@ -1453,7 +1453,9 @@ describe('Collection coverage extras', () => {
     const c = new Collection<{ id: string, n?: number }>()
     const order: string[] = []
     await c.batch(async () => {
-      c.onPostBatch(() => order.push('after'))
+      c.onPostBatch(() => {
+        order.push('after')
+      })
       order.push('during')
       await c.insert({ id: '1', n: 1 })
     })
@@ -1469,25 +1471,25 @@ describe('Collection coverage extras', () => {
 
   it('returns callback result when nested batch in progress', async () => {
     const c = new Collection<{ id: string }>()
-    let innerRan = false
+    let isInnerRan = false
     await c.batch(async () => {
       await c.batch(async () => {
-        innerRan = true
+        isInnerRan = true
       })
     })
-    expect(innerRan).toBe(true)
+    expect(isInnerRan).toBe(true)
   })
 
   it('resets batch state and flushes post-batch callbacks when an async batch rejects', async () => {
     const c = new Collection<{ id: string }>()
-    let postBatchRan = false
+    let isPostBatchRan = false
     await expect(c.batch(async () => {
       c.onPostBatch(() => {
-        postBatchRan = true
+        isPostBatchRan = true
       })
       throw new Error('boom')
     })).rejects.toThrow('boom')
-    expect(postBatchRan).toBe(true)
+    expect(isPostBatchRan).toBe(true)
     expect(c.isBatchOperationInProgress()).toBe(false)
 
     // batching still works afterwards
@@ -1507,14 +1509,14 @@ describe('Collection coverage extras', () => {
 
   it('resets static batch state when the callback rejects', async () => {
     const c = new Collection<{ id: string }>()
-    let postBatchRan = false
+    let isPostBatchRan = false
     await expect(Collection.batch(async () => {
       c.onPostBatch(() => {
-        postBatchRan = true
+        isPostBatchRan = true
       })
       throw new Error('boom')
     })).rejects.toThrow('boom')
-    expect(postBatchRan).toBe(true)
+    expect(isPostBatchRan).toBe(true)
     expect(c.isBatchOperationInProgress()).toBe(false)
   })
 

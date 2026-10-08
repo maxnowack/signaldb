@@ -12,15 +12,25 @@ import isEqual from './isEqual'
  * costs the size of the change, not the size of the result.
  */
 export interface QueryDelta<T extends BaseItem = BaseItem> {
-  /** Items that were not in the previous result, at their position in the new one. */
+  /**
+  Items that were not in the previous result, at their position in the new one.
+   */
   added: { index: number, item: T }[],
-  /** Items that were in the previous result and whose contents changed. */
+  /**
+  Items that were in the previous result and whose contents changed.
+   */
   changed: T[],
-  /** Ids of items that are no longer in the result. */
+  /**
+  Ids of items that are no longer in the result.
+   */
   removed: any[],
-  /** Items that stayed, at their new position, because the order around them changed. */
+  /**
+  Items that stayed, at their new position, because the order around them changed.
+   */
   moved: { index: number, id: any }[],
-  /** Length of the resulting array — lets a recipient verify it applied the delta to the result it was computed against. */
+  /**
+  Length of the resulting array — lets a recipient verify it applied the delta to the result it was computed against.
+   */
   resultCount: number,
 }
 
@@ -86,14 +96,14 @@ export function canApplyQueryDelta<T extends BaseItem>(
   }
 
   const expectedCount = previous.length - delta.removed.length + delta.added.length
-  if (expectedCount !== delta.resultCount) return false
-  if (!delta.removed.every(id => claim(id, true))) return false
-  if (!delta.added.every(({ index, item }) => claim(item.id, false)
-    && index >= 0 && index < delta.resultCount)) return false
-  if (!delta.changed.every(item => present.has(item.id))) return false
-  return delta.moved.every(({ index, id }) => present.has(id)
-    && !delta.removed.includes(id)
-    && index >= 0 && index < delta.resultCount)
+  return expectedCount === delta.resultCount
+    && delta.removed.every(id => claim(id, true))
+    && delta.added.every(({ index, item }) => claim(item.id, false)
+      && index >= 0 && index < delta.resultCount)
+    && delta.changed.every(item => present.has(item.id))
+    && delta.moved.every(({ index, id }) => present.has(id)
+      && !delta.removed.includes(id)
+      && index >= 0 && index < delta.resultCount)
 }
 
 /**
@@ -108,7 +118,7 @@ function longestIncreasingSubsequence(sequence: number[]): number[] {
   // `tails[length - 1]` is the index of the smallest possible tail of an increasing subsequence of
   // that length; `previous` links each index back to its predecessor so the run can be walked out.
   const tails: number[] = []
-  const previous: number[] = Array.from<number>({ length: sequence.length }).fill(-1)
+  const previous: number[] = Array.from({ length: sequence.length }, () => -1)
 
   for (let index = 0; index < sequence.length; index += 1) {
     const value = sequence[index]
@@ -151,12 +161,12 @@ export function diffQueryResults<T extends BaseItem>(previous: T[], next: T[]): 
   // Both arrays are walked in full here, so the cheap ways out are worth taking. Two results
   // holding the same items in the same places are the common case by some margin: this is asked
   // several times per write, and most of those ask about a query the write did not really change.
-  if (holdsTheSameItems(previous, next)) {
+  if (hasTheSameItems(previous, next)) {
     return { added: [], changed: [], removed: [], moved: [], resultCount: next.length }
   }
 
   const previousIndexById = new Map<any, number>()
-  previous.forEach((item, index) => previousIndexById.set(item.id, index))
+  for (const [index, item] of previous.entries()) previousIndexById.set(item.id, index)
 
   const added: { index: number, item: T }[] = []
   const changed: T[] = []
@@ -165,39 +175,39 @@ export function diffQueryResults<T extends BaseItem>(previous: T[], next: T[]): 
   // the whole thing is increasing, nothing moved and the work below can be skipped entirely.
   const survivingPreviousIndices: number[] = []
   const survivingNextIndices: number[] = []
-  const survived: boolean[] = Array.from<boolean>({ length: previous.length }).fill(false)
-  let orderPreserved = true
+  const survived: boolean[] = Array.from({ length: previous.length }, () => false)
+  let isOrderPreserved = true
   let lastPreviousIndex = -1
 
-  next.forEach((item, index) => {
+  for (const [index, item] of next.entries()) {
     const previousIndex = previousIndexById.get(item.id)
     if (previousIndex == null) {
       added.push({ index, item })
-      return
+      continue
     }
     survived[previousIndex] = true
     if (!isEqual(previous[previousIndex], item)) changed.push(item)
-    if (previousIndex < lastPreviousIndex) orderPreserved = false
+    if (previousIndex < lastPreviousIndex) isOrderPreserved = false
     lastPreviousIndex = previousIndex
     survivingPreviousIndices.push(previousIndex)
     survivingNextIndices.push(index)
-  })
+  }
 
   const removed: any[] = []
-  previous.forEach((item, index) => {
+  for (const [index, item] of previous.entries()) {
     if (!survived[index]) removed.push(item.id)
-  })
+  }
 
   const moved: { index: number, id: any }[] = []
-  if (!orderPreserved) {
+  if (!isOrderPreserved) {
     const stationary = new Set(
       longestIncreasingSubsequence(survivingPreviousIndices)
         .map(position => survivingNextIndices[position]),
     )
-    survivingNextIndices.forEach((nextIndex) => {
-      if (stationary.has(nextIndex)) return
+    for (const nextIndex of survivingNextIndices) {
+      if (stationary.has(nextIndex)) continue
       moved.push({ index: nextIndex, id: next[nextIndex].id })
-    })
+    }
   }
 
   return { added, changed, removed, moved, resultCount: next.length }
@@ -213,10 +223,9 @@ export function diffQueryResults<T extends BaseItem>(previous: T[], next: T[]): 
  * @param next - The other.
  * @returns `true` when the two are element-for-element the same objects.
  */
-function holdsTheSameItems<T extends BaseItem>(previous: T[], next: T[]): boolean {
-  if (previous === next) return true
-  if (previous.length !== next.length) return false
-  return previous.every((item, index) => item === next[index])
+function hasTheSameItems<T extends BaseItem>(previous: T[], next: T[]): boolean {
+  return previous === next
+    || (previous.length === next.length && previous.every((item, index) => item === next[index]))
 }
 
 /**
@@ -233,12 +242,12 @@ export function applyQueryDelta<T extends BaseItem>(previous: T[], delta: QueryD
 
   const stationary: T[] = []
   const byId = new Map<any, T>()
-  previous.forEach((item) => {
-    if (removed.has(item.id)) return
+  for (const item of previous) {
+    if (removed.has(item.id)) continue
     const current = changedById.get(item.id) ?? item
     byId.set(current.id, current)
     if (!movedIds.has(current.id)) stationary.push(current)
-  })
+  }
 
   // Insertions carry positions in the resulting array, so splicing them in ascending order lands
   // every one of them at its final index — each is placed only after everything before it is there.
@@ -248,9 +257,9 @@ export function applyQueryDelta<T extends BaseItem>(previous: T[], delta: QueryD
   ].sort((a, b) => a.index - b.index) // eslint-disable-line unicorn/no-array-sort -- unavailable on Hermes
 
   const result = stationary
-  insertions.forEach(({ index, item }) => {
-    if (item == null) return
+  for (const { index, item } of insertions) {
+    if (item == null) continue
     result.splice(index, 0, item)
-  })
+  }
   return result
 }

@@ -43,11 +43,11 @@ class MockWorker implements WorkerDataAdapterEndpoint {
 
   emit(data: Record<string, unknown>) {
     const event = new MessageEvent('message', { data })
-    this.handlers.forEach(handler => handler(event))
+    for (const handler of this.handlers) handler(event)
   }
 
   respondTo(method: string, results: unknown[]) {
-    const message = this.messages.toReversed().find(entry => entry.method === method)
+    const message = this.messages.findLast(entry => entry.method === method)
     if (!message) throw new Error(`no ${method} recorded`)
     this.emit({
       type: 'response', workerId: message.workerId, id: message.id, data: results, error: null,

@@ -6,7 +6,7 @@ vi.mock('@signaldb/core', () => {
     createStorageAdapter: (impl: any) => impl,
     get: (object: any, path: string) => {
       if (!path) return
-      return path.split('.').reduce((accumulator: any, key: string) => (accumulator == null ? undefined : accumulator[key]), object)
+      return path.split('.').reduce((accumulator: any, key: string) => accumulator?.[key], object)
     },
   }
 })
@@ -26,7 +26,7 @@ class MemDriver<T extends { id: I }, I> {
   }
 
   async fileNameForIndexKey(key: string): Promise<string> {
-    return String(key).replaceAll(/[\\/]/g, '_')
+    return key.replaceAll(/[\\/]/g, '_')
   }
 
   async joinPath(...parts: string[]): Promise<string> {
@@ -68,13 +68,15 @@ class MemDriver<T extends { id: I }, I> {
     const prefix = directoryPath.endsWith('/') ? directoryPath : directoryPath + '/'
     const out: string[] = []
     for (const k of this.files.keys()) {
-      if (k.startsWith(prefix)) {
-        const relative = k.slice(prefix.length)
-        if (relative) out.push(relative)
+      if (!k.startsWith(prefix)) {
+        continue
       }
+
+      const relative = k.slice(prefix.length)
+      if (relative) out.push(relative)
     }
     // de-dup and sort for determinism
-    return [...new Set(out)].toSorted()
+    return [...new Set(out)].toSorted((a, b) => Number(a > b) - Number(a < b))
   }
 
   async removeEntry(path: string, options?: { recursive?: boolean }): Promise<void> {
@@ -122,10 +124,12 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     await adapter.insert([a, b])
 
     const all = await adapter.readAll()
-    expect(all.map(x => x.id).toSorted()).toEqual(['aa1', 'bb2'])
+    expect(all.map(x => x.id).toSorted((x, y) => String(x).localeCompare(String(y))))
+      .toEqual(['aa1', 'bb2'])
 
     const ids = await adapter.readIds(['aa1', 'missing', 'bb2'])
-    expect(ids.map(x => x.id).toSorted()).toEqual(['aa1', 'bb2'])
+    expect(ids.map(x => x.id).toSorted((x, y) => String(x).localeCompare(String(y))))
+      .toEqual(['aa1', 'bb2'])
 
     // readIds ignores non-array file content
     const weirdIdPath = await driver.joinPath(itemsDirectory, await driver.fileNameForId('xx9'))
@@ -165,7 +169,8 @@ describe('createGenericFSAdapter (generic-fs)', () => {
     const indexPath = await driver.joinPath(indexRoot, await driver.fileNameForIndexKey('status'))
     driver.files.set(await driver.joinPath(indexPath, 'junk'), 456) // non-array -> skipped
     const index2 = await adapter.readIndex('status')
-    expect([...index2.get('new') ?? []].toSorted()).toEqual(['aa1', 'bb2'])
+    expect([...index2.get('new') ?? []].toSorted((x, y) => String(x).localeCompare(String(y))))
+      .toEqual(['aa1', 'bb2'])
 
     // Drop missing index -> error
     await expect(adapter.dropIndex('nonexistent')).rejects.toThrow('Index on field "nonexistent" does not exist')

@@ -58,12 +58,13 @@ class MemoryDriver implements Driver<Item, string> {
   async removeEntry(path: string, options?: { recursive?: boolean }) {
     if (options?.recursive) {
       // delete all files under prefix
-      const keys = [...this.files.keys()]
-        .filter(k => k.startsWith(`${path}/`) || k === path)
-      keys.forEach(k => this.files.delete(k))
+      const keys = this.files.keys()
+        .filter(k => k === path || k.startsWith(`${path}/`))
+        .toArray()
+      for (const k of keys) this.files.delete(k)
       // delete dirs under prefix
       for (const d of [...this.dirs]) {
-        if (d.startsWith(`${path}/`) || d === path) this.dirs.delete(d)
+        if (d === path || d.startsWith(`${path}/`)) this.dirs.delete(d)
       }
       return
     }
@@ -92,7 +93,7 @@ describe('generic-fs adapter', () => {
 
     // readAll and readIds
     const all = await adapter.readAll()
-    expect(all.map(i => i.id).toSorted()).toEqual(['1', '2'])
+    expect(all.map(i => i.id).toSorted((a, b) => a.localeCompare(b))).toEqual(['1', '2'])
     const byIds = await adapter.readIds(['2'])
     expect(byIds).toEqual([{ id: '2', name: 'b' }])
 

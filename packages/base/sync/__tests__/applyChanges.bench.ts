@@ -18,7 +18,7 @@ test('applyChanges benchmarks', async ({ bench }) => {
   await bench.compare(
     bench('apply 100 insert changes', () => {
       const changes: Change<TestItem, string>[] = Array.from({ length: 100 }, (_, i) => ({
-        id: `${i}`,
+        id: String(i),
         collectionName: 'test',
         time: Date.now(),
         type: 'insert',
@@ -28,7 +28,7 @@ test('applyChanges benchmarks', async ({ bench }) => {
     }),
     bench('apply 100 remove changes', () => {
       const changes: Change<TestItem, string>[] = Array.from({ length: 100 }, (_, i) => ({
-        id: `${i}`,
+        id: String(i),
         collectionName: 'test',
         time: Date.now(),
         type: 'remove',
@@ -38,7 +38,7 @@ test('applyChanges benchmarks', async ({ bench }) => {
     }),
     bench('apply 100 update changes', () => {
       const changes: Change<TestItem, string>[] = Array.from({ length: 100 }, (_, i) => ({
-        id: `${i}`,
+        id: String(i),
         collectionName: 'test',
         time: Date.now(),
         type: 'update',
@@ -56,21 +56,21 @@ test('applyChanges benchmarks', async ({ bench }) => {
     bench('apply mixed changes (insert, remove, update)', () => {
       const changes: Change<TestItem, string>[] = [
         ...Array.from({ length: 33 }, (_, i) => ({
-          id: `${i}`,
+          id: String(i),
           collectionName: 'test',
           time: Date.now(),
           type: 'insert' as const,
           data: { id: `newId${i}`, value: i + 1000 },
         })),
         ...Array.from({ length: 33 }, (_, i) => ({
-          id: `${i}`,
+          id: String(i),
           collectionName: 'test',
           time: Date.now(),
           type: 'remove' as const,
           data: `id${i}`,
         })),
         ...Array.from({ length: 34 }, (_, i) => ({
-          id: `${i}`,
+          id: String(i),
           collectionName: 'test',
           time: Date.now(),
           type: 'update' as const,

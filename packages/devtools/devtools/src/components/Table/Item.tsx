@@ -121,14 +121,15 @@ const Item = <T extends Record<string, any>>({
                 <ActionButton
                   disabled={!isValid}
                   onClick={() => {
-                    try {
-                      const parsedItem = JSON.parse(itemValue) as T
-                      onEdit(parsedItem)
-                        .then(() => setEditMode(false))
-                        .catch(() => setIsValid(false))
-                    } catch {
-                      setIsValid(false)
-                    }
+                    void (async () => {
+                      try {
+                        const parsedItem = JSON.parse(itemValue) as T
+                        await onEdit(parsedItem)
+                        setEditMode(false)
+                      } catch {
+                        setIsValid(false)
+                      }
+                    })()
                   }}
                 >
                   ✅

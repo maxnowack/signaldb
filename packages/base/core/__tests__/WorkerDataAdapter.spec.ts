@@ -15,15 +15,15 @@ const waitForBatchedMessage = () => new Promise<void>((resolve) => {
 })
 
 class MockWorker implements Worker {
+  private messageHandlers: ((event: MessageEvent) => void)[] = []
+  private listenerMap = new Map<EventListenerOrEventListenerObject, (event: MessageEvent) => void>()
+  private messages: { id: string, workerId: string, method: string, args: unknown[] }[] = []
+
   onmessage: ((this: Worker, event: MessageEvent) => any) | null = null
   onmessageerror: ((this: Worker, event: MessageEvent) => any) | null = null
   onerror: ((this: AbstractWorker, event: ErrorEvent) => any) | null = null
   terminate = vi.fn()
   dispatchEvent = vi.fn(() => false)
-
-  private messageHandlers: ((event: MessageEvent) => void)[] = []
-  private listenerMap = new Map<EventListenerOrEventListenerObject, (event: MessageEvent) => void>()
-  private messages: { id: string, workerId: string, method: string, args: unknown[] }[] = []
 
   // Lifecycle calls are answered for us, the way a healthy host answers them right away. Tests
   // about a host that cannot answer turn this off.
@@ -64,7 +64,7 @@ class MockWorker implements Worker {
 
   emit(data: Record<string, unknown>) {
     const event = new MessageEvent('message', { data })
-    this.messageHandlers.forEach(handler => handler(event))
+    for (const handler of this.messageHandlers) handler(event)
   }
 
   emitReady(workerId: string) {
@@ -84,7 +84,7 @@ class MockWorker implements Worker {
   }
 
   respondTo(method: string, data: unknown, error: unknown = null) {
-    const message = this.messages.toReversed().find(m => m.method === method)
+    const message = this.messages.findLast(m => m.method === method)
     if (!message) throw new Error(`No postMessage recorded for method ${method}`)
     this.emit({
       type: 'response',
@@ -186,13 +186,16 @@ describe('WorkerDataAdapter', () => {
       const originalExec = (testAdapter as any).exec
       const execSpy = vi.spyOn(testAdapter as any, 'exec').mockImplementation((...args: any[]) => {
         const promise = originalExec.apply(testAdapter, args)
+        // eslint-disable-next-line unicorn/prefer-await -- marks the rejection handled, returns the promise
         promise.catch(() => {})
         return promise
       })
       const testCollection = { name: 'test-collection' } as unknown as Collection<TestItem>
       const backend = testAdapter.createCollectionBackend(testCollection, [])
 
-      const promise = backend.isReady().catch(error => error)
+      const promise = backend.isReady()
+        // eslint-disable-next-line unicorn/prefer-await -- must settle while the fake timers advance
+        .catch(error => error)
       vi.advanceTimersByTime(5000)
 
       const result = await promise
@@ -208,6 +211,7 @@ describe('WorkerDataAdapter', () => {
       const originalExec = (testAdapter as any).exec
       const execSpy = vi.spyOn(testAdapter as any, 'exec').mockImplementation((...args: any[]) => {
         const promise = originalExec.apply(testAdapter, args)
+        // eslint-disable-next-line unicorn/prefer-await -- marks the rejection handled, returns the promise
         promise.catch(() => {})
         return promise
       })
@@ -216,7 +220,9 @@ describe('WorkerDataAdapter', () => {
 
       const testCollection = { name: 'test-collection' } as unknown as Collection<TestItem>
       const backend = testAdapter.createCollectionBackend(testCollection, [])
-      const promise = backend.isReady().catch(error => error)
+      const promise = backend.isReady()
+        // eslint-disable-next-line unicorn/prefer-await -- must settle while the fake timers advance
+        .catch(error => error)
 
       vi.advanceTimersByTime(5000)
       const result = await promise
@@ -353,7 +359,7 @@ describe('WorkerDataAdapter', () => {
       const addEventListener = mockWorker.addEventListener as unknown as ReturnType<typeof vi.fn>
       const listenersBefore = addEventListener.mock.calls.length
       for (let index = 0; index < 20; index += 1) {
-        const selector: Selector<TestItem> = { id: `${index}` }
+        const selector: Selector<TestItem> = { id: String(index) }
         backend.registerQuery(selector, {})
         backend.unregisterQuery(selector, {})
       }
@@ -1000,7 +1006,7 @@ describe('WorkerDataAdapter', () => {
   })
   describe('When the worker cannot answer a lifecycle call', () => {
     const failNext = (method: string, error: Error) => {
-      const message = mockWorker.sentMessages.toReversed().find(entry => entry.method === method)
+      const message = mockWorker.sentMessages.findLast(entry => entry.method === method)
       if (!message) throw new Error(`no ${method} recorded`)
       mockWorker.emit({
         type: 'response', workerId: message.workerId, id: message.id, data: null, error,
@@ -1296,7 +1302,7 @@ describe('WorkerDataAdapter', () => {
       const addEventListener = mockWorker.addEventListener as unknown as ReturnType<typeof vi.fn>
       const listenersBefore = addEventListener.mock.calls.length
       const selectors = Array.from({ length: 25 }, (_, index) => ({ name: `user-${index}` }))
-      selectors.forEach(selector => backend.registerQuery(selector, {}))
+      for (const selector of selectors) backend.registerQuery(selector, {})
       const listenersAfter = addEventListener.mock.calls.length
 
       expect(listenersAfter - listenersBefore).toBeLessThan(selectors.length)
@@ -1308,10 +1314,10 @@ describe('WorkerDataAdapter', () => {
 
       const selectors = Array.from({ length: 10 }, (_, index) => ({ name: `user-${index}` }))
       const listeners = selectors.map(() => vi.fn())
-      selectors.forEach((selector, index) => {
+      for (const [index, selector] of selectors.entries()) {
         backend.registerQuery(selector, {})
         backend.onQueryStateChange(selector, {}, listeners[index])
-      })
+      }
 
       mockWorker.emit({
         type: 'queryUpdate',
@@ -1326,10 +1332,10 @@ describe('WorkerDataAdapter', () => {
       })
 
       expect(listeners[4]).toHaveBeenCalledWith('complete')
-      listeners.forEach((listener, index) => {
-        if (index === 4) return
+      for (const [index, listener] of listeners.entries()) {
+        if (index === 4) continue
         expect(listener).not.toHaveBeenCalled()
-      })
+      }
       expect(backend.getQueryResult(selectors[4], {})).toEqual([{ id: '4', name: 'user-4' }])
       expect(backend.getQueryResult(selectors[3], {})).toEqual([])
     })
@@ -1447,15 +1453,15 @@ describe('WorkerDataAdapter readiness', () => {
     worker.emitReady('pending-adapter')
     const backend = pendingAdapter.createCollectionBackend(collection, [])
 
-    let ready = false
+    let isReady = false
     void backend.isReady().then(() => {
-      ready = true
+      isReady = true
     })
     await waitForBatchedMessage()
-    expect(ready).toBe(false)
+    expect(isReady).toBe(false)
 
     worker.respondTo('isReady', undefined)
     await waitForBatchedMessage()
-    expect(ready).toBe(true)
+    expect(isReady).toBe(true)
   })
 })

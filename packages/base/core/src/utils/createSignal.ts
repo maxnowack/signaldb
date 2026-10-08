@@ -20,8 +20,7 @@ export default function createSignal<T>(
   let value = initialValue
   const dependency = reactivityAdapter?.create()
   const isInReactiveScope = () => {
-    if (!reactivityAdapter?.isInScope) return true
-    return reactivityAdapter.isInScope()
+    return !reactivityAdapter?.isInScope || reactivityAdapter.isInScope()
   }
   const signal: Signal<T> = {
     get() {

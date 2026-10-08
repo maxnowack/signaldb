@@ -15,7 +15,7 @@ const primitiveReactivity = (() => {
     }
 
     invalidate() {
-      this.onInvalidateCallbacks.forEach(callback => callback())
+      for (const callback of this.onInvalidateCallbacks) callback()
     }
   }
 
@@ -30,14 +30,14 @@ const primitiveReactivity = (() => {
    */
   function signal<T>(initialValue: T) {
     let value = initialValue
-    const computationDeps = new Set<Computation>()
+    const computationDependencies = new Set<Computation>()
     const signalValue = () => {
-      if (currentComputation) computationDeps.add(currentComputation)
+      if (currentComputation) computationDependencies.add(currentComputation)
       return value
     }
     signalValue.set = (newValue: T) => {
       value = newValue
-      computationDeps.forEach(computation => computation.effectCallback())
+      computationDependencies.forEach(computation => computation.effectCallback())
     }
     return signalValue
   }
@@ -72,13 +72,13 @@ const primitiveReactivity = (() => {
 })()
 const primitiveReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = primitiveReactivity.signal(0)
+    const dependency = primitiveReactivity.signal(0)
     return {
       depend: () => {
-        dep()
+        dependency()
       },
       notify: () => {
-        dep.set(primitiveReactivity.peek(() => dep() + 1))
+        dependency.set(primitiveReactivity.peek(() => dependency() + 1))
       },
     }
   },
@@ -256,9 +256,9 @@ describe('reactivity primitives', () => {
         if (fields?.parent) {
           const foreignKeys = [...new Set(items.map(item => item.parent))]
           const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
-          items.forEach((item) => {
+          for (const item of items) {
             item.parent = relatedItems.find(related => related.id === item.parent)
-          })
+          }
         }
         return items
       },

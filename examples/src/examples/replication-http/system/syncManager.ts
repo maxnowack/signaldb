@@ -35,6 +35,7 @@ const syncManager = new SyncManager<
     console.error(options, error)
   },
   pull: async ({ name }) => {
+    const fetchResult = await authenticatedFetch(`/collections/${name}/documents`)
     const result: {
       total: number,
       documents: {
@@ -42,8 +43,7 @@ const syncManager = new SyncManager<
         text: string,
         completed: boolean,
       }[],
-    } = await authenticatedFetch(`/collections/${name}/documents`)
-      .then(fetchResult => fetchResult.json())
+    } = await fetchResult.json()
     return {
       items: result.documents.map(item => ({
         id: item.$id,

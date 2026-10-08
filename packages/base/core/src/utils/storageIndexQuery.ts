@@ -36,8 +36,8 @@ export default function storageIndexQuery<T extends BaseItem<I>, I = any>(
     // A query for null, or for the field being absent, is the one case the index
     // cannot answer by naming keys — it is answered by naming every key it is
     // *not*, and the selector has to stay for the matcher to confirm it.
-    const filtersForNull = fieldSelector == null || fieldSelector.$exists === false
-    const keys = filtersForNull
+    const isFiltersForNull = fieldSelector == null || fieldSelector.$exists === false
+    const keys = isFiltersForNull
       ? { include: null, exclude: [...index.keys()].filter(key => key != null) }
       : getMatchingKeys<T, I>(field, flatSelector)
     if (keys.include == null && keys.exclude == null) return { matched: false }
@@ -71,7 +71,7 @@ export default function storageIndexQuery<T extends BaseItem<I>, I = any>(
       matched: true,
       ids: includedIds,
       fields: [field],
-      keepSelector: filtersForNull,
+      keepSelector: isFiltersForNull,
     }
   }
 }

@@ -29,11 +29,17 @@ async function withAdapter(
   const adapter = createFilesystemAdapter<any, string>(folderName)
 
   // Enqueue index mutations BEFORE setup (keeps parity with IndexedDB tests)
-  for (const f of options?.preIndex ?? []) {
+  const preIndex = options?.preIndex ?? []
+  for (const f of preIndex) {
     await adapter.createIndex(f)
   }
-  for (const f of options?.preDrop ?? []) {
-    await adapter.dropIndex(f).catch(() => {}) // ignore if it doesn't exist yet
+  const preDrop = options?.preDrop ?? []
+  for (const f of preDrop) {
+    try {
+      await adapter.dropIndex(f)
+    } catch {
+      // ignore if it doesn't exist yet
+    }
   }
 
   await adapter.setup()

@@ -12,6 +12,29 @@ export default class PromiseQueue {
   private pendingPromise: boolean = false
 
   /**
+   * Method to process the queue
+   */
+  private dequeue() {
+    if (this.pendingPromise || this.queue.length === 0) {
+      return
+    }
+    const task = this.queue.shift()
+    if (!task) return
+    this.pendingPromise = true
+    /* eslint-disable unicorn/prefer-await -- dequeue is synchronous and must not wait for the task */
+    task()
+      .then(() => {
+        this.pendingPromise = false
+        this.dequeue()
+      })
+      .catch(() => {
+        this.pendingPromise = false
+        this.dequeue()
+      })
+    /* eslint-enable unicorn/prefer-await */
+  }
+
+  /**
    * Method to add a new promise to the queue and returns a promise that resolves when this task is done
    * @param task Function that returns a promise that will be added to the queue
    * @returns Promise that resolves when the task is done
@@ -19,12 +42,15 @@ export default class PromiseQueue {
   add(task: () => Promise<any>): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       // Wrap the task with the resolve and reject to control its completion from the outside
+      /* eslint-disable unicorn/prefer-await -- an async wrapper would change the microtask
+         timing of the queue and turn a synchronous throw of the task into a rejection */
       this.queue.push(() => task()
         .then(resolve)
         .catch((error: Error) => {
           reject(error)
           throw error
         }))
+      /* eslint-enable unicorn/prefer-await */
       this.dequeue()
     })
   }
@@ -35,26 +61,5 @@ export default class PromiseQueue {
    */
   public hasPendingPromise(): boolean {
     return this.pendingPromise
-  }
-
-  /**
-   * Method to process the queue
-   */
-  private dequeue() {
-    if (this.pendingPromise || this.queue.length === 0) {
-      return
-    }
-    const task = this.queue.shift()
-    if (!task) return
-    this.pendingPromise = true
-    task()
-      .then(() => {
-        this.pendingPromise = false
-        this.dequeue()
-      })
-      .catch(() => {
-        this.pendingPromise = false
-        this.dequeue()
-      })
   }
 }

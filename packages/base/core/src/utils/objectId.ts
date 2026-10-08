@@ -1,5 +1,5 @@
 const objectHashMap = new WeakMap<object, number>()
-let nextId = 1
+const counter = { nextId: 1 }
 
 /**
  * Generates a unique identifier for the given object.
@@ -14,7 +14,7 @@ export default function objectId(object: object): number {
   }
 
   if (!objectHashMap.has(object)) {
-    objectHashMap.set(object, nextId++)
+    objectHashMap.set(object, counter.nextId++)
   }
 
   return objectHashMap.get(object) as number

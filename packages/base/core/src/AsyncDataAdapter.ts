@@ -17,9 +17,13 @@ import { callWithDelta, diffQueryResults, isEmptyQueryDelta } from './utils/quer
 import type { QueryDelta } from './utils/queryDelta'
 
 export interface AsyncDataAdapterOptions {
-  /** Factory to obtain a StorageAdapter per collection name */
+  /**
+  Factory to obtain a StorageAdapter per collection name
+   */
   storage: (name: string) => StorageAdapter<any, any>,
-  /** Optional logical id (handy if you run multiple adapters side-by-side) */
+  /**
+  Optional logical id (handy if you run multiple adapters side-by-side)
+   */
   id?: string,
   /**
    * Called with errors the adapter cannot hand to a caller — a query that failed after all
@@ -34,9 +38,13 @@ export interface AsyncDataAdapterOptions {
    * empty value, which consumers cannot tell apart from "there is no data".
    */
   retry?: {
-    /** Total attempts including the first one. Default 3. */
+    /**
+    Total attempts including the first one. Default 3.
+     */
     attempts?: number,
-    /** Delay in ms before attempt N+1. Default 100 * 4 ** (attempt - 1). */
+    /**
+    Delay in ms before attempt N+1. Default 100 * 4 ** (attempt - 1).
+     */
     delay?: (attempt: number) => number,
   },
 }
@@ -157,153 +165,6 @@ export default class AsyncDataAdapter implements DataAdapter {
     })
     this.retryAttempts = Math.max(1, options.retry?.attempts ?? DEFAULT_RETRY_ATTEMPTS)
     this.retryDelay = options.retry?.delay ?? defaultRetryDelay
-  }
-
-  public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
-    collection: Collection<T, I, E, U>,
-    indices: string[],
-  ): CollectionBackend<T, I> {
-    // init per-collection state
-    this.collectionIndices.set(collection.name, indices)
-    this.queries.set(collection.name, new Map())
-    this.ensureStorageAdapter(collection.name)
-
-    const ready = (async () => {
-      try {
-        await this.setupStorage(collection.name, indices)
-      } catch (error) {
-        // Handle inside the same async task to avoid unhandled rejections
-        this.onError(error as Error)
-        throw error
-      }
-    })()
-    this.storageAdapterReady.set(collection.name, ready)
-    // don't block createCollectionBackend; callers can await isReady()
-
-    const registerQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
-      const qid = queryId(selector, options)
-      const registry = this.queries.get(collection.name)
-      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
-      registry.set(qid, {
-        selector,
-        options,
-        items: [],
-        listeners: new Set(),
-        ...registry.get(qid),
-        state: 'active',
-        error: null,
-      })
-      // kick async execution
-      void this.fulfillQuery(collection.name, selector, options).catch(this.onError)
-    }
-
-    const unregisterQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
-      const qid = queryId(selector, options)
-      this.queries.get(collection.name)?.delete(qid)
-    }
-
-    const getQueryState = (selector: Selector<T>, options?: QueryOptions<T>): QueryState => {
-      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
-      return q?.state ?? 'active'
-    }
-
-    const getQueryError = (selector: Selector<T>, options?: QueryOptions<T>): Error | null => {
-      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
-      return q?.error ?? null
-    }
-
-    const getQueryResult = (selector: Selector<T>, options?: QueryOptions<T>): T[] => {
-      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
-      return (q?.items as T[]) ?? []
-    }
-
-    const retryQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
-      const qid = queryId(selector, options)
-      const rec = this.queries.get(collection.name)?.get(qid)
-      if (!rec) return
-      this.publishState(collection.name, qid, 'active', null)
-      void this.runQuery(collection.name, selector, options)
-    }
-
-    const onQueryStateChange = (
-      selector: Selector<T>,
-      options: QueryOptions<T> | undefined,
-      callback: StateChangeCallback<T>,
-    ) => {
-      const qid = queryId(selector, options)
-      const registry = this.queries.get(collection.name)
-      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
-      // ensure the record exists so we have a listener bucket
-      if (!registry.has(qid)) {
-        registry.set(qid, {
-          selector,
-          options,
-          state: 'active',
-          error: null,
-          items: [],
-          listeners: new Set(),
-        })
-      }
-      registry.get(qid)?.listeners.add(callback)
-      // A query that has already failed would otherwise stay failed forever:
-      // `registerQuery` only runs for the *first* cursor on a selector, so
-      // every later observer inherited the dead state without anything ever
-      // retrying it. A new observer is a natural moment to try again.
-      if (registry.get(qid)?.state === 'error') retryQuery(selector, options)
-      return () => registry.get(qid)?.listeners.delete(callback)
-    }
-
-    return {
-      insert: async (item) => {
-        await ready
-        const inserted = await this.insert(collection.name, item)
-        return inserted
-      },
-      updateOne: async (selector, modifier) => {
-        await ready
-        return this.updateOne(collection.name, selector, modifier)
-      },
-      updateMany: async (selector, modifier) => {
-        await ready
-        return this.updateMany(collection.name, selector, modifier)
-      },
-      replaceOne: async (selector, replacement) => {
-        await ready
-        return this.replaceOne(collection.name, selector, replacement)
-      },
-      removeOne: async (selector) => {
-        await ready
-        return this.removeOne(collection.name, selector)
-      },
-      removeMany: async (selector) => {
-        await ready
-        return this.removeMany(collection.name, selector)
-      },
-
-      registerQuery,
-      unregisterQuery,
-      retryQuery,
-      getQueryState,
-      getQueryError,
-      getQueryResult,
-      onQueryStateChange,
-      executeQuery: async (selector, options) => {
-        await ready
-        return this.executeQuery(collection.name, selector, options)
-      },
-
-      dispose: async () => {
-        // mirror host.unregisterCollection semantics
-        this.storageAdapters.delete(collection.name)
-        this.queries.delete(collection.name)
-        this.collectionIndices.delete(collection.name)
-        this.storageAdapterReady.delete(collection.name)
-      },
-
-      isReady: async () => {
-        await ready
-      },
-    }
   }
 
   private async setupStorage(collectionName: string, indices: string[]) {
@@ -496,8 +357,8 @@ export default class AsyncDataAdapter implements DataAdapter {
     // their own: an item that no longer matches, or that is gone, is invisible to the matcher.
     const affected = [...registry.values()].filter((rec) => {
       const ids = this.queryItemIds(rec)
-      if (changes.deletes.some(id => ids.has(id))) return true
-      return changes.upserts.some(item => ids.has(item.id) || match(item, rec.selector))
+      return changes.deletes.some(id => ids.has(id))
+        || changes.upserts.some(item => ids.has(item.id) || match(item, rec.selector))
     })
     if (affected.length === 0) return
 
@@ -644,5 +505,152 @@ export default class AsyncDataAdapter implements DataAdapter {
       deletes: items.map(item => item.id),
     })
     return items
+  }
+
+  public createCollectionBackend<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
+    indices: string[],
+  ): CollectionBackend<T, I> {
+    // init per-collection state
+    this.collectionIndices.set(collection.name, indices)
+    this.queries.set(collection.name, new Map())
+    this.ensureStorageAdapter(collection.name)
+
+    const ready = (async () => {
+      try {
+        await this.setupStorage(collection.name, indices)
+      } catch (error) {
+        // Handle inside the same async task to avoid unhandled rejections
+        this.onError(error as Error)
+        throw error
+      }
+    })()
+    this.storageAdapterReady.set(collection.name, ready)
+    // don't block createCollectionBackend; callers can await isReady()
+
+    const registerQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
+      const qid = queryId(selector, options)
+      const registry = this.queries.get(collection.name)
+      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
+      registry.set(qid, {
+        selector,
+        options,
+        items: [],
+        listeners: new Set(),
+        ...registry.get(qid),
+        state: 'active',
+        error: null,
+      })
+      // kick async execution
+      void this.fulfillQuery(collection.name, selector, options).catch(this.onError)
+    }
+
+    const unregisterQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
+      const qid = queryId(selector, options)
+      this.queries.get(collection.name)?.delete(qid)
+    }
+
+    const getQueryState = (selector: Selector<T>, options?: QueryOptions<T>): QueryState => {
+      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
+      return q?.state ?? 'active'
+    }
+
+    const getQueryError = (selector: Selector<T>, options?: QueryOptions<T>): Error | null => {
+      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
+      return q?.error ?? null
+    }
+
+    const getQueryResult = (selector: Selector<T>, options?: QueryOptions<T>): T[] => {
+      const q = this.queries.get(collection.name)?.get(queryId(selector, options))
+      return (q?.items as T[]) ?? []
+    }
+
+    const retryQuery = (selector: Selector<T>, options?: QueryOptions<T>) => {
+      const qid = queryId(selector, options)
+      const rec = this.queries.get(collection.name)?.get(qid)
+      if (!rec) return
+      this.publishState(collection.name, qid, 'active', null)
+      void this.runQuery(collection.name, selector, options)
+    }
+
+    const onQueryStateChange = (
+      selector: Selector<T>,
+      options: QueryOptions<T> | undefined,
+      callback: StateChangeCallback<T>,
+    ) => {
+      const qid = queryId(selector, options)
+      const registry = this.queries.get(collection.name)
+      if (!registry) throw new Error(`Collection ${collection.name} not initialized!`)
+      // ensure the record exists so we have a listener bucket
+      if (!registry.has(qid)) {
+        registry.set(qid, {
+          selector,
+          options,
+          state: 'active',
+          error: null,
+          items: [],
+          listeners: new Set(),
+        })
+      }
+      registry.get(qid)?.listeners.add(callback)
+      // A query that has already failed would otherwise stay failed forever:
+      // `registerQuery` only runs for the *first* cursor on a selector, so
+      // every later observer inherited the dead state without anything ever
+      // retrying it. A new observer is a natural moment to try again.
+      if (registry.get(qid)?.state === 'error') retryQuery(selector, options)
+      return () => registry.get(qid)?.listeners.delete(callback)
+    }
+
+    return {
+      insert: async (item) => {
+        await ready
+        const inserted = await this.insert(collection.name, item)
+        return inserted
+      },
+      updateOne: async (selector, modifier) => {
+        await ready
+        return this.updateOne(collection.name, selector, modifier)
+      },
+      updateMany: async (selector, modifier) => {
+        await ready
+        return this.updateMany(collection.name, selector, modifier)
+      },
+      replaceOne: async (selector, replacement) => {
+        await ready
+        return this.replaceOne(collection.name, selector, replacement)
+      },
+      removeOne: async (selector) => {
+        await ready
+        return this.removeOne(collection.name, selector)
+      },
+      removeMany: async (selector) => {
+        await ready
+        return this.removeMany(collection.name, selector)
+      },
+
+      registerQuery,
+      unregisterQuery,
+      retryQuery,
+      getQueryState,
+      getQueryError,
+      getQueryResult,
+      onQueryStateChange,
+      executeQuery: async (selector, options) => {
+        await ready
+        return this.executeQuery(collection.name, selector, options)
+      },
+
+      dispose: async () => {
+        // mirror host.unregisterCollection semantics
+        this.storageAdapters.delete(collection.name)
+        this.queries.delete(collection.name)
+        this.collectionIndices.delete(collection.name)
+        this.storageAdapterReady.delete(collection.name)
+      },
+
+      isReady: async () => {
+        await ready
+      },
+    }
   }
 }

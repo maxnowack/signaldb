@@ -35,7 +35,8 @@ describe('filesystem storage adapter', () => {
     expect(shardEntries.every(entry => !/[<>:"/\\|?*]/.test(entry))).toBe(true)
 
     let items = await adapter.readAll()
-    expect(items.map(item => item.name).toSorted()).toEqual(['alpha', 'beta'])
+    expect(items.map(item => item.name).toSorted((a, b) => a.localeCompare(b)))
+      .toEqual(['alpha', 'beta'])
 
     await adapter.createIndex('name')
     const index = await adapter.readIndex('name')

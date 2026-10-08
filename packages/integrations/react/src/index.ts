@@ -44,12 +44,12 @@ export function createUseReactivityHook(effectFunction: ReactiveEffect) {
   /**
    * Custom hook for managing reactive computations.
    * @param reactiveFunction - A function that returns the reactive data.
-   * @param deps - Dependency list for the effect.
+   * @param dependencies - Dependency list for the effect.
    * @returns The reactive data.
    */
   function useReactivity<T>(
     reactiveFunction: () => T,
-    deps?: DependencyList,
+    dependencies?: DependencyList,
   ): T {
     const forceUpdate = useForceUpdate()
     const refs = useRef<{
@@ -78,7 +78,7 @@ export function createUseReactivityHook(effectFunction: ReactiveEffect) {
     useMemo(() => {
       if (!refs.current.isComponentMounted) return
       ensureComputation()
-    }, deps || [])
+    }, dependencies || [])
 
     useEffect(() => {
       refs.current.isComponentMounted = true

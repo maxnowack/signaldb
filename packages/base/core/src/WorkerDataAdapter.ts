@@ -26,7 +26,9 @@ interface WorkerDataAdapterOptions {
    * (default: `'default-worker-data-adapter'`).
    */
   id?: string,
-  /** Receives a log line for every response, query update and failed request. */
+  /**
+  Receives a log line for every response, query update and failed request.
+   */
   log?: (message: string, ...args: any[]) => void,
 }
 
@@ -35,13 +37,21 @@ interface WorkerDataAdapterOptions {
  * `Worker`, or anything with the same messaging methods.
  */
 export interface WorkerDataAdapterEndpoint {
-  /** Subscribes to messages from the host. */
+  /**
+  Subscribes to messages from the host.
+   */
   addEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
-  /** Unsubscribes from messages from the host. */
+  /**
+  Unsubscribes from messages from the host.
+   */
   removeEventListener: (type: 'message', listener: (event: MessageEvent) => void) => void,
-  /** Sends a message to the host. */
+  /**
+  Sends a message to the host.
+   */
   postMessage: (message: unknown) => void,
-  /** Terminates the worker; called, if present, once the last collection backend is disposed. */
+  /**
+  Terminates the worker; called, if present, once the last collection backend is disposed.
+   */
   terminate?: () => void,
 }
 
@@ -119,6 +129,57 @@ interface PendingWriteState {
  * applied optimistically to those results until the worker confirms or rejects them.
  */
 export default class WorkerDataAdapter implements DataAdapter {
+  // Records one id's contribution from the write being registered. `seq` only ever grows, so the
+  // new entry is by construction the newest one for this id and therefore the one that wins.
+  private static pushPendingEntry(
+    state: PendingWriteState,
+    id: any,
+    item: BaseItem | null,
+    seq: number,
+  ) {
+    const stack = state.byId.get(id)
+    if (stack) stack.push({ seq, item })
+    else state.byId.set(id, [{ seq, item }])
+    this.writeFlatEntry(state, id, item)
+  }
+
+  // Takes one id's contribution back out as its write settles, and restores whatever the write
+  // below it said — or removes the id entirely when that was the only one.
+  private static dropPendingEntry(state: PendingWriteState, id: any, seq: number) {
+    const stack = state.byId.get(id)
+    if (!stack) return
+    const index = stack.findIndex(entry => entry.seq === seq)
+    if (index !== -1) stack.splice(index, 1)
+    const top = stack.at(-1)
+    if (!top) {
+      state.byId.delete(id)
+      state.flat.upserts.delete(id)
+      state.flat.deletes.delete(id)
+      return
+    }
+    this.writeFlatEntry(state, id, top.item)
+  }
+
+  private static writeFlatEntry(state: PendingWriteState, id: any, item: BaseItem | null) {
+    if (item === null) {
+      state.flat.deletes.add(id)
+      state.flat.upserts.delete(id)
+      return
+    }
+    state.flat.upserts.set(id, item)
+    state.flat.deletes.delete(id)
+  }
+
+  // Whether a query's result is the items themselves rather than a projection of them. A write is
+  // resolved locally by applying its modifier to the item this adapter holds, and applying it to an
+  // item that has had fields removed produces something that is not the item — one that a selector
+  // naming a projected-away field no longer matches, so the row would vanish from every other
+  // query until the store answered. An item known only through a projection is therefore treated as
+  // not known at all: the write still happens, it simply is not shown before the store confirms it.
+  private static providesFullItems(query: { options?: QueryOptions<any> }) {
+    return query.options?.fields == null
+  }
+
   private id: string
   private isDisposed = false
   private workerReady: Promise<void>
@@ -159,9 +220,43 @@ export default class WorkerDataAdapter implements DataAdapter {
   // from them is stale from that moment on.
   private pendingWriteVersions: Map<string, number> = new Map()
 
-  private bumpPendingWriteVersion(collectionName: string) {
-    const current = this.pendingWriteVersions.get(collectionName) ?? 0
-    this.pendingWriteVersions.set(collectionName, current + 1)
+  private resolveWorkerReady: () => void = () => {}
+
+  // The one and only message listener this adapter installs. Every response and every query update
+  // is routed from here by a map lookup. Listening per request and per query instead meant each
+  // incoming message was offered to every listener in turn, and each of them re-serialized its own
+  // selector to decide the message was not for it — turning a write that touches N queries into
+  // N² selector serializations before any of the actual work started.
+  private handleWorkerMessage = (event: MessageEvent) => {
+    const message = event.data as {
+      id?: string,
+      workerId?: string,
+      type?: 'ready' | 'response' | 'queryUpdate',
+      data?: any,
+      error?: Error,
+    } | null
+    if ((message == null) || (message.workerId !== this.id)) return
+
+    if (message.type === 'ready') {
+      this.resolveWorkerReady()
+      return
+    }
+
+    if (message.type === 'response') {
+      if (message.id == null) return
+      const pending = this.pendingRequests.get(message.id)
+      if (!pending) return
+      this.pendingRequests.delete(message.id)
+      this.log('response', message.data ?? message.error)
+      if (message.error) {
+        pending.reject(message.error)
+      } else {
+        pending.resolve(message.data)
+      }
+      return
+    }
+
+    if (message.type === 'queryUpdate') this.handleQueryUpdate(message.data, message.error ?? null)
   }
 
   /**
@@ -190,44 +285,9 @@ export default class WorkerDataAdapter implements DataAdapter {
     this.worker.addEventListener('message', this.handleWorkerMessage)
   }
 
-  private resolveWorkerReady: () => void = () => {}
-
-  // The one and only message listener this adapter installs. Every response and every query update
-  // is routed from here by a map lookup. Listening per request and per query instead meant each
-  // incoming message was offered to every listener in turn, and each of them re-serialized its own
-  // selector to decide the message was not for it — turning a write that touches N queries into
-  // N² selector serializations before any of the actual work started.
-  private handleWorkerMessage = (event: MessageEvent) => {
-    const message = event.data as {
-      id?: string,
-      workerId?: string,
-      type?: 'ready' | 'response' | 'queryUpdate',
-      data?: any,
-      error?: Error,
-    } | null
-    if (message == null) return
-    if (message.workerId !== this.id) return
-
-    if (message.type === 'ready') {
-      this.resolveWorkerReady()
-      return
-    }
-
-    if (message.type === 'response') {
-      if (message.id == null) return
-      const pending = this.pendingRequests.get(message.id)
-      if (!pending) return
-      this.pendingRequests.delete(message.id)
-      this.log('response', message.data ?? message.error)
-      if (message.error) {
-        pending.reject(message.error)
-      } else {
-        pending.resolve(message.data)
-      }
-      return
-    }
-
-    if (message.type === 'queryUpdate') this.handleQueryUpdate(message.data, message.error ?? null)
+  private bumpPendingWriteVersion(collectionName: string) {
+    const current = this.pendingWriteVersions.get(collectionName) ?? 0
+    this.pendingWriteVersions.set(collectionName, current + 1)
   }
 
   private handleQueryUpdate(data: any, error: Error | null) {
@@ -290,8 +350,9 @@ export default class WorkerDataAdapter implements DataAdapter {
         // An empty delta is passed on as it came: it settles the query without asking anyone to
         // recompute a result that did not change. One that could not be applied is not, so the
         // consumer re-reads and the disagreement ends there.
-        settled.stateChangeCallbacks
-          .forEach(callback => callWithDelta(callback, state, canApply ? delta : undefined))
+        for (const callback of settled.stateChangeCallbacks) {
+          callWithDelta(callback, state, canApply ? delta : undefined)
+        }
         return
       }
 
@@ -320,8 +381,9 @@ export default class WorkerDataAdapter implements DataAdapter {
           this.servedResult(collectionName, stored),
         )
         if (isEmptyQueryDelta(servedDelta) && state === query.state) return
-        stored.stateChangeCallbacks
-          .forEach(callback => callWithDelta(callback, state, servedDelta))
+        for (const callback of stored.stateChangeCallbacks) {
+          callWithDelta(callback, state, servedDelta)
+        }
         return
       }
     }
@@ -333,7 +395,9 @@ export default class WorkerDataAdapter implements DataAdapter {
 
     const updated = collectionQueries.get(id)
     if (!updated) return
-    updated.stateChangeCallbacks.forEach(callback => callWithDelta(callback, state, deltaToPublish))
+    for (const callback of updated.stateChangeCallbacks) {
+      callWithDelta(callback, state, deltaToPublish)
+    }
   }
 
   private async exec<T>(method: string, collectionName: string, ...args: any[]): Promise<T> {
@@ -373,13 +437,17 @@ export default class WorkerDataAdapter implements DataAdapter {
     args: unknown[],
     onError?: (error: Error) => void,
   ) {
-    this.exec(method, collectionName, ...args).catch((error: Error) => {
-      if (onError) {
-        onError(error)
-        return
+    void (async () => {
+      try {
+        await this.exec(method, collectionName, ...args)
+      } catch (error) {
+        if (onError) {
+          onError(error as Error)
+          return
+        }
+        this.log(method, 'failed', error)
       }
-      this.log(method, 'failed', error)
-    })
+    })()
   }
 
   private queryItemsById(
@@ -400,69 +468,17 @@ export default class WorkerDataAdapter implements DataAdapter {
     collectionName: string,
   ): { upserts: Map<any, BaseItem>, deletes: Set<any> } | null {
     const state = this.pendingWrites.get(collectionName)
-    if (!state || state.writes.size === 0) return null
-    return state.flat
-  }
-
-  // Records one id's contribution from the write being registered. `seq` only ever grows, so the
-  // new entry is by construction the newest one for this id and therefore the one that wins.
-  private static pushPendingEntry(
-    state: PendingWriteState,
-    id: any,
-    item: BaseItem | null,
-    seq: number,
-  ) {
-    const stack = state.byId.get(id)
-    if (stack) stack.push({ seq, item })
-    else state.byId.set(id, [{ seq, item }])
-    WorkerDataAdapter.writeFlatEntry(state, id, item)
-  }
-
-  // Takes one id's contribution back out as its write settles, and restores whatever the write
-  // below it said — or removes the id entirely when that was the only one.
-  private static dropPendingEntry(state: PendingWriteState, id: any, seq: number) {
-    const stack = state.byId.get(id)
-    if (!stack) return
-    const index = stack.findIndex(entry => entry.seq === seq)
-    if (index !== -1) stack.splice(index, 1)
-    const top = stack.at(-1)
-    if (!top) {
-      state.byId.delete(id)
-      state.flat.upserts.delete(id)
-      state.flat.deletes.delete(id)
-      return
-    }
-    WorkerDataAdapter.writeFlatEntry(state, id, top.item)
-  }
-
-  private static writeFlatEntry(state: PendingWriteState, id: any, item: BaseItem | null) {
-    if (item === null) {
-      state.flat.deletes.add(id)
-      state.flat.upserts.delete(id)
-      return
-    }
-    state.flat.upserts.set(id, item)
-    state.flat.deletes.delete(id)
+    return !state || state.writes.size === 0 ? null : state.flat
   }
 
   // The items an active query currently holds, deduplicated by id, plus whatever the pending writes
   // add or remove — the only items this adapter knows about, and the set a selector-based write is
   // resolved against locally. One pass over the queries rather than a merge per query.
-  // Whether a query's result is the items themselves rather than a projection of them. A write is
-  // resolved locally by applying its modifier to the item this adapter holds, and applying it to an
-  // item that has had fields removed produces something that is not the item — one that a selector
-  // naming a projected-away field no longer matches, so the row would vanish from every other
-  // query until the store answered. An item known only through a projection is therefore treated as
-  // not known at all: the write still happens, it simply is not shown before the store confirms it.
-  private static providesFullItems(query: { options?: QueryOptions<any> }) {
-    return query.options?.fields == null
-  }
-
   private observableItems(collectionName: string): BaseItem[] {
     const byId = new Map<any, BaseItem>()
     this.queries[collectionName]?.forEach((query) => {
       if (!WorkerDataAdapter.providesFullItems(query)) return
-      query.items.forEach(item => byId.set(item.id, item))
+      for (const item of query.items) byId.set(item.id, item)
     })
     const pending = this.flattenPendingWrites(collectionName)
     if (pending) {
@@ -479,7 +495,7 @@ export default class WorkerDataAdapter implements DataAdapter {
   private observableItemsByIds(collectionName: string, ids: readonly any[]): BaseItem[] {
     const pending = this.flattenPendingWrites(collectionName)
     const found = new Map<any, BaseItem>()
-    ids.forEach((id) => {
+    const collect = (id: any) => {
       if (pending?.deletes.has(id)) return
       const pendingItem = pending?.upserts.get(id)
       if (pendingItem) {
@@ -496,7 +512,8 @@ export default class WorkerDataAdapter implements DataAdapter {
           return
         }
       }
-    })
+    }
+    for (const id of ids) collect(id)
     return [...found.values()]
   }
 
@@ -539,18 +556,22 @@ export default class WorkerDataAdapter implements DataAdapter {
     pendingVersion: number,
   ): BaseItem[] | null {
     const served = query.served
-    if (!served || served.fromItems !== query.items) return null
-    if (served.pendingVersion !== pendingVersion - 1) return null
-    if (!WorkerDataAdapter.providesFullItems(query) || query.options?.limit != null) return null
+    if (
+      !served
+      || served.fromItems !== query.items
+      || (served.pendingVersion !== pendingVersion - 1)
+      || !WorkerDataAdapter.providesFullItems(query)
+      || query.options?.limit != null
+    ) return null
     const state = this.pendingWrites.get(collectionName)
-    if (state?.lastChange == null || state.lastChange.version !== pendingVersion) return null
-
-    return mergeChangesetIntoResult(
-      served.items,
-      query.selector,
-      query.options,
-      this.changesetForIds(collectionName, query, state.lastChange.ids),
-    )
+    return state?.lastChange == null || state.lastChange.version !== pendingVersion
+      ? null
+      : mergeChangesetIntoResult(
+        served.items,
+        query.selector,
+        query.options,
+        this.changesetForIds(collectionName, query, state.lastChange.ids),
+      )
   }
 
   // What the named ids look like now — the pending value if one is still in flight for them, and
@@ -565,20 +586,20 @@ export default class WorkerDataAdapter implements DataAdapter {
     const stored = this.queryItemsById(query)
     const upserts: BaseItem[] = []
     const deletes: any[] = []
-    ids.forEach((id) => {
+    for (const id of ids) {
       const pendingItem = pending?.upserts.get(id)
       if (pendingItem) {
         upserts.push(pendingItem)
-        return
+        continue
       }
       if (pending?.deletes.has(id)) {
         deletes.push(id)
-        return
+        continue
       }
       const storedItem = stored.get(id)
       if (storedItem) upserts.push(storedItem)
       else deletes.push(id)
-    })
+    }
     return { upserts, deletes }
   }
 
@@ -586,18 +607,19 @@ export default class WorkerDataAdapter implements DataAdapter {
     const pending = this.flattenPendingWrites(collectionName)
     if (!pending) return query.items
     const byId = this.queryItemsById(query)
-    let affected = false
+    let isAffected = false
     pending.deletes.forEach((id) => {
-      if (byId.has(id)) affected = true
+      if (byId.has(id)) isAffected = true
     })
-    if (!affected) {
+    if (!isAffected) {
       pending.upserts.forEach((item, id) => {
-        if (affected) return
-        if (byId.has(id)) affected = true
-        else if (query.selector != null && match(item, query.selector)) affected = true
+        if (isAffected) return
+        if (byId.has(id) || (query.selector != null && match(item, query.selector))) {
+          isAffected = true
+        }
       })
     }
-    if (!affected) return query.items
+    if (!isAffected) return query.items
 
     return mergeChangesetIntoResult(query.items, query.selector, query.options, {
       upserts: [...pending.upserts.values()],
@@ -689,9 +711,9 @@ export default class WorkerDataAdapter implements DataAdapter {
       affectedIds.forEach((id) => {
         if (byId.has(id)) wasHolding = true
       })
-      const nowMatches = upserts.some(item => query.selector != null
+      const isNowMatches = upserts.some(item => query.selector != null
         && match(item, query.selector))
-      if (!wasHolding && !nowMatches) return
+      if (!wasHolding && !isNowMatches) return
       affected.push(query)
     })
     return affected
@@ -709,19 +731,19 @@ export default class WorkerDataAdapter implements DataAdapter {
     queries: QueryRecord[],
     servedBefore: Map<QueryRecord, BaseItem[]>,
   ) {
-    queries.forEach((query) => {
+    for (const query of queries) {
       const before = servedBefore.get(query)
-      if (before == null) return
+      if (before == null) continue
       const delta = diffQueryResults(before, this.servedResult(collectionName, query))
-      if (isEmptyQueryDelta(delta)) return
-      query.stateChangeCallbacks.forEach(callback => callWithDelta(callback, query.state, delta))
-    })
+      if (isEmptyQueryDelta(delta)) continue
+      for (const callback of query.stateChangeCallbacks) callWithDelta(callback, query.state, delta)
+    }
   }
 
   private matchObservableItems(
     collectionName: string,
     selector: Selector<any>,
-    onlyFirst: boolean,
+    isFirstOnly: boolean,
   ): BaseItem[] {
     if (selector == null) return []
     // `updateOne({ id })` and `removeOne({ id })` are what an application writes most of the time,
@@ -731,32 +753,32 @@ export default class WorkerDataAdapter implements DataAdapter {
     const matches = ids == null
       ? this.observableItems(collectionName).filter(item => match(item, selector))
       : this.observableItemsByIds(collectionName, ids)
-    return onlyFirst ? matches.slice(0, 1) : matches
+    return isFirstOnly ? matches.slice(0, 1) : matches
   }
 
   private resolveUpdate(
     collectionName: string,
     selector: Selector<any>,
     modifier: Modifier<any>,
-    onlyFirst: boolean,
+    isFirstOnly: boolean,
   ): { upserts: BaseItem[], deletes: any[] } {
     const { $setOnInsert, ...restModifier } = modifier
     const upserts: BaseItem[] = []
     const deletes: any[] = []
-    this.matchObservableItems(collectionName, selector, onlyFirst).forEach((item) => {
+    for (const item of this.matchObservableItems(collectionName, selector, isFirstOnly)) {
       const modifiedItem = modify(deepClone(item), restModifier)
       upserts.push(modifiedItem)
       if (modifiedItem.id !== item.id) deletes.push(item.id)
-    })
+    }
     return { upserts, deletes }
   }
 
   private resolveRemoval(
     collectionName: string,
     selector: Selector<any>,
-    onlyFirst: boolean,
+    isFirstOnly: boolean,
   ): any[] {
-    return this.matchObservableItems(collectionName, selector, onlyFirst).map(item => item.id)
+    return this.matchObservableItems(collectionName, selector, isFirstOnly).map(item => item.id)
   }
 
   private resolveReplacement(
@@ -904,7 +926,7 @@ export default class WorkerDataAdapter implements DataAdapter {
             const query = this.queries[collection.name]?.get(queryId(selector, options))
             if (!query) return
             this.updateQuery(collection.name, { selector, options }, { state: 'error', error })
-            query.stateChangeCallbacks.forEach(callback => callback('error'))
+            for (const callback of query.stateChangeCallbacks) callback('error')
           },
         )
       },
@@ -925,8 +947,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       },
       getQueryResult: (selector, options) => {
         const query = this.queries[collection.name]?.get(queryId(selector, options))
-        if (!query) return []
-        return this.servedResult(collection.name, query) as T[]
+        return query ? (this.servedResult(collection.name, query) as T[]) : []
       },
       onQueryStateChange: (selector, options, callback) => {
         this.updateQuery(collection.name, { selector, options }, {

@@ -28,13 +28,13 @@ import { createReactivityAdapter } from '@signaldb/core'
 export default function createMeteorReactivityAdapter(tracker: typeof Tracker) {
   return createReactivityAdapter({
     create: () => {
-      const dep = new tracker.Dependency()
+      const dependency = new tracker.Dependency()
       return {
         depend: () => {
           if (!tracker.active) return
-          dep.depend()
+          dependency.depend()
         },
-        notify: () => dep.changed(),
+        notify: () => dependency.changed(),
       }
     },
     isInScope: () => tracker.active,

@@ -5,6 +5,12 @@ import executeStorageQuery from '../src/utils/executeStorageQuery'
 
 interface Item { id: string, name?: string, rank?: number, secret?: string }
 
+const items: Item[] = [
+  { id: '1', name: 'a', rank: 3, secret: 'x' },
+  { id: '2', name: 'b', rank: 1, secret: 'y' },
+  { id: '3', name: 'a', rank: 2, secret: 'z' },
+]
+
 /**
  * The read path every data adapter shares. It used to be three private copies
  * of the same eight lines in `AsyncDataAdapter`, `AutoFetchDataAdapter` and
@@ -13,16 +19,15 @@ interface Item { id: string, name?: string, rank?: number, secret?: string }
  *
  * `getIndexInfo`'s own selector handling ($in, $nin, $exists, non-optimizable
  * operators) is covered by `getIndexInfo.spec.ts` and deliberately not
- * @param items - The items the fake store holds.
  * @param overrides - Adapter methods to replace, above all `query`.
- * @returns A storage adapter over those items.
+ * @returns A storage adapter over `items`.
  */
-function storage(items: Item[], overrides: Partial<StorageAdapter<Item, string>> = {}) {
+function storage(overrides: Partial<StorageAdapter<Item, string>> = {}) {
   const byId = new Map(items.map(item => [item.id, item]))
   const adapter: StorageAdapter<Item, string> = {
     setup: async () => {},
     teardown: async () => {},
-    readAll: vi.fn(async () => [...byId.values()]),
+    readAll: vi.fn(async () => byId.values().toArray()),
     readIds: vi.fn(async (ids: string[]) => ids.map(id => byId.get(id)).filter(Boolean) as Item[]),
     createIndex: async () => {},
     dropIndex: async () => {},
@@ -45,17 +50,11 @@ function storage(items: Item[], overrides: Partial<StorageAdapter<Item, string>>
   return adapter
 }
 
-const items: Item[] = [
-  { id: '1', name: 'a', rank: 3, secret: 'x' },
-  { id: '2', name: 'b', rank: 1, secret: 'y' },
-  { id: '3', name: 'a', rank: 2, secret: 'z' },
-]
-
 describe('executeStorageQuery — without a `query` capability', () => {
   it('answers a primary-key selector through readIds, never a full read', async () => {
     // `id` is never a declared index — `readIds` is that lookup — so without
     // this path every point read becomes a full scan.
-    const adapter = storage(items)
+    const adapter = storage()
     const result = await executeStorageQuery<Item>(adapter, ['name'], { id: '2' })
 
     expect(result.map(item => item.id)).toEqual(['2'])
@@ -64,7 +63,7 @@ describe('executeStorageQuery — without a `query` capability', () => {
   })
 
   it('narrows through a declared index and filters what the index could not answer', async () => {
-    const adapter = storage(items)
+    const adapter = storage()
     const result = await executeStorageQuery<Item>(adapter, ['name'], { name: 'a', rank: 2 })
 
     expect(result.map(item => item.id)).toEqual(['3'])
@@ -72,7 +71,7 @@ describe('executeStorageQuery — without a `query` capability', () => {
   })
 
   it('falls back to the whole store when no index matches', async () => {
-    const adapter = storage(items)
+    const adapter = storage()
     const result = await executeStorageQuery<Item>(adapter, ['name'], { rank: 1 })
 
     expect(result.map(item => item.id)).toEqual(['2'])
@@ -80,14 +79,14 @@ describe('executeStorageQuery — without a `query` capability', () => {
   })
 
   it('returns everything for an empty selector, and nothing for a null one', async () => {
-    const adapter = storage(items)
+    const adapter = storage()
 
     expect(await executeStorageQuery<Item>(adapter, [], {})).toHaveLength(3)
     expect(await executeStorageQuery<Item>(adapter, [], null)).toEqual([])
   })
 
   it('sorts, windows and projects in that order', async () => {
-    const adapter = storage(items)
+    const adapter = storage()
     const result = await executeStorageQuery<Item>(adapter, [], {}, {
       sort: { rank: 1 },
       skip: 1,
@@ -102,7 +101,7 @@ describe('executeStorageQuery — without a `query` capability', () => {
 describe('executeStorageQuery — with a `query` capability', () => {
   const answering = (
     answer: (query: StorageQuery<Item>) => StorageQueryAnswer<Item>,
-  ) => storage(items, {
+  ) => storage({
     query: vi.fn(async (query: StorageQuery<Item>) => answer(query)),
   })
 

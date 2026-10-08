@@ -3,14 +3,14 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const usignalReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = signal(0)
+    const dependency = signal(0)
     return {
       depend: () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        dep.value
+        dependency.value
       },
       notify: () => {
-        dep.value = dep.peek() + 1
+        dependency.value = dependency.peek() + 1
       },
     }
   },

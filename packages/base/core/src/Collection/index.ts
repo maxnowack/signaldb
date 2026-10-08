@@ -66,9 +66,13 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
    */
   primaryKeyGenerator?: (item: Omit<T, 'id'>) => I,
 
-  /** The reactivity adapter that makes cursors and the collection's state methods reactive. */
+  /**
+  The reactivity adapter that makes cursors and the collection's state methods reactive.
+   */
   reactivity?: ReactivityAdapter,
-  /** Applied to every item a cursor returns, after `transformAll`. */
+  /**
+  Applied to every item a cursor returns, after `transformAll`.
+   */
   transform?: Transform<E, U>,
   /**
    * Applied to the whole result of a query, together with its `fields` option, before
@@ -81,9 +85,13 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
    * is read: reactively inside a reactive scope, awaited with `{ async: true }` everywhere else.
    */
   transformAll?: TransformAll<T, E>,
-  /** Field names the data adapter builds indices for. */
+  /**
+  Field names the data adapter builds indices for.
+   */
   indices?: string[],
-  /** Enables debug mode for this collection (default: the global `Collection.enableDebugMode`). */
+  /**
+  Enables debug mode for this collection (default: the global `Collection.enableDebugMode`).
+   */
   enableDebugMode?: boolean,
   /**
    * Enables field-level reactivity for this collection's cursors (default: the global
@@ -100,8 +108,7 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
  * argument.
  */
 function splitWriteResult<T extends BaseItem>(result: WriteResult<T>) {
-  if (Array.isArray(result)) return { items: result, previousItems: [] as T[] }
-  return result
+  return Array.isArray(result) ? { items: result, previousItems: [] as T[] } : result
 }
 
 interface CollectionEvents<T extends BaseItem, E extends BaseItem = T, U = E> {
@@ -184,11 +191,41 @@ export default class Collection<
   private static reportedLargeQueries = new Set<string>()
 
   /**
+   * Enables debug mode for all collections.
+   */
+  static enableDebugMode = () => {
+    Collection.debugMode = true
+    // A query large enough to matter is exactly the kind of thing debug mode
+    // exists to surface, and it is invisible otherwise. Call
+    // `reportLargeQueries()` afterwards to pick a different threshold or turn
+    // it off again.
+    if (Collection.largeQueryWarningThreshold == null) Collection.reportLargeQueries(500)
+    for (const collection of Collection.collections) {
+      collection.setDebugMode(true)
+    }
+  }
+
+  /**
+   * Enables field tracking for all collections.
+   * @param enable - A boolean indicating whether to enable field tracking.
+   */
+  static setFieldTracking = (
+    // eslint-disable-next-line unicorn/consistent-boolean-name -- documented public parameter name
+    enable: boolean,
+  ) => {
+    Collection.fieldTracking = enable
+    for (const collection of Collection.collections) {
+      collection.setFieldTracking(enable)
+    }
+  }
+
+  /**
    * Returns every collection that has been created and not yet disposed. Treat the array as
    * read-only.
    * @returns The collections.
    */
   static getCollections() {
+    // eslint-disable-next-line unicorn/class-reference-in-static-methods -- state lives on Collection, also for detached calls and subclasses
     return Collection.collections
   }
 
@@ -206,6 +243,7 @@ export default class Collection<
    */
   static reportLargeQueries(rows: number | null) {
     Collection.largeQueryWarningThreshold = rows
+    // eslint-disable-next-line unicorn/class-reference-in-static-methods -- state lives on Collection, also for detached calls and subclasses
     if (rows == null) Collection.reportedLargeQueries.clear()
   }
 
@@ -215,6 +253,7 @@ export default class Collection<
    * @param callback - Called with the new collection.
    */
   static onCreation(callback: (collection: Collection<any>) => void) {
+    // eslint-disable-next-line unicorn/class-reference-in-static-methods -- state lives on Collection, also for detached calls and subclasses
     Collection.onCreationCallbacks.push(callback)
   }
 
@@ -224,33 +263,8 @@ export default class Collection<
    * @param callback - Called with the disposed collection.
    */
   static onDispose(callback: (collection: Collection<any>) => void) {
+    // eslint-disable-next-line unicorn/class-reference-in-static-methods -- state lives on Collection, also for detached calls and subclasses
     Collection.onDisposeCallbacks.push(callback)
-  }
-
-  /**
-   * Enables debug mode for all collections.
-   */
-  static enableDebugMode = () => {
-    Collection.debugMode = true
-    // A query large enough to matter is exactly the kind of thing debug mode
-    // exists to surface, and it is invisible otherwise. Call
-    // `reportLargeQueries()` afterwards to pick a different threshold or turn
-    // it off again.
-    if (Collection.largeQueryWarningThreshold == null) Collection.reportLargeQueries(500)
-    Collection.collections.forEach((collection) => {
-      collection.setDebugMode(true)
-    })
-  }
-
-  /**
-   * Enables field tracking for all collections.
-   * @param enable - A boolean indicating whether to enable field tracking.
-   */
-  static setFieldTracking = (enable: boolean) => {
-    Collection.fieldTracking = enable
-    Collection.collections.forEach((collection) => {
-      collection.setFieldTracking(enable)
-    })
   }
 
   /**
@@ -301,16 +315,17 @@ export default class Collection<
       | (() => ReturnType | Promise<ReturnType>),
     maybeCallback?: () => ReturnType | Promise<ReturnType>,
   ): void | Promise<void> {
-    const scoped = Array.isArray(collectionsOrCallback)
-    const callback = (scoped ? maybeCallback : collectionsOrCallback) as
+    const isScoped = Array.isArray(collectionsOrCallback)
+    const callback = (isScoped ? maybeCallback : collectionsOrCallback) as
       () => ReturnType | Promise<ReturnType>
     if (typeof callback !== 'function') throw new TypeError('Collection.batch requires a callback')
-    const collections = scoped ? collectionsOrCallback : Collection.collections
+    // eslint-disable-next-line unicorn/class-reference-in-static-methods -- state lives on Collection, also for detached calls and subclasses
+    const collections = isScoped ? collectionsOrCallback : Collection.collections
 
     // Only a batch that really covers every collection may claim the global
     // flag; a scoped one must not make unrelated collections report themselves
     // as batching through `isBatchOperationInProgress()`.
-    if (!scoped) Collection.batchOperationInProgress = true
+    if (!isScoped) Collection.batchOperationInProgress = true
 
     const execute = () => collections.reduce<
       () => ReturnType | Promise<ReturnType>
@@ -322,7 +337,7 @@ export default class Collection<
     )()
 
     const afterBatch = () => {
-      if (!scoped) Collection.batchOperationInProgress = false
+      if (!isScoped) Collection.batchOperationInProgress = false
     }
 
     let maybePromise: ReturnType | Promise<ReturnType>
@@ -338,6 +353,7 @@ export default class Collection<
 
     if (maybePromise && typeof (maybePromise as any).then === 'function') {
       return (maybePromise as Promise<ReturnType>)
+        // eslint-disable-next-line unicorn/prefer-await, unicorn/prefer-then-catch -- a sync callback stays sync; `.catch()` would rerun afterBatch()
         .then(
           () => afterBatch(),
           (error) => {
@@ -348,12 +364,10 @@ export default class Collection<
             throw error
           },
         )
-    } else {
-      afterBatch()
     }
+    afterBatch()
   }
 
-  public readonly name: string
   private backend: CollectionBackend<T, I>
   private options: CollectionOptions<T, I, E, U>
   private isPullingSignal: Signal<boolean>
@@ -377,6 +391,7 @@ export default class Collection<
   // The same for the queries a synchronous transformAll read: whether they had all settled once
   // the query itself had. Kept per query, not per cursor, for the same reason.
   private settledRelatedQueriesSet: Set<string> = new Set()
+  public readonly name: string
 
   /**
    * Creates a collection and its backend from the data adapter, registers it in
@@ -423,7 +438,7 @@ export default class Collection<
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     const persistence = options.persistence
     const dataAdapter = maybeDataAdapter || new DefaultDataAdapter({
-      ...persistence ? { storage: () => persistence } : {},
+      ...persistence && { storage: () => persistence },
     })
 
     Collection.collections.push(this)
@@ -446,7 +461,7 @@ export default class Collection<
       })
       .catch(() => { /* initialization failed; keep not-ready state */ })
 
-    Collection.onCreationCallbacks.forEach(callback => callback(this))
+    for (const callback of Collection.onCreationCallbacks) callback(this)
   }
 
   /**
@@ -460,7 +475,7 @@ export default class Collection<
   private reportIfLargeQuery(
     selector: Selector<T>,
     options: QueryOptions<T> | undefined,
-    registrationStack: string | undefined,
+    registrationStack = '',
   ) {
     const threshold = Collection.largeQueryWarningThreshold
     if (threshold == null) return
@@ -479,8 +494,122 @@ export default class Collection<
     console.warn(
       `[SignalDB] Live query on "${this.name}" holds ${rows} rows `
       + `with selector {${keys.join(', ')}}. It is re-evaluated on every write to this `
-      + `collection, for as long as it stays registered. ${registrationStack ?? ''}`,
+      + `collection, for as long as it stays registered. ${registrationStack}`,
     )
+  }
+
+  private profile<ReturnValue>(
+    fn: () => ReturnValue,
+    measureFunction: (measuredTime: number) => void,
+  ) {
+    if (!this.debugMode) return fn()
+    const startTime = performance.now()
+    const handleProfileEnd = (result: ReturnValue) => {
+      const endTime = performance.now()
+      measureFunction(endTime - startTime)
+      return result
+    }
+    const maybePromise = fn()
+    return maybePromise instanceof Promise
+      // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the call is async
+      ? maybePromise.then(handleProfileEnd)
+      : handleProfileEnd(maybePromise)
+  }
+
+  private executeInDebugMode(fn: (callstack: string) => void) {
+    if (!this.debugMode) return
+    // eslint-disable-next-line unicorn/error-message
+    const callstack = new Error().stack || ''
+    fn(callstack)
+  }
+
+  private transform(item: E): U {
+    return this.options.transform ? this.options.transform(item) : (item as unknown as U)
+  }
+
+  private transformAll(
+    items: T[],
+    fields: FieldSpecifier<T> | undefined,
+    isAsync: boolean,
+    reads?: Cursor<any, any, boolean>[],
+  ): E[] | Promise<E[]> {
+    if (!this.options.transformAll) return items as unknown as E[]
+    const transformAll = this.options.transformAll
+    // One built with reactiveOrAsync answers `{ async: true }` with a promise, which the declared
+    // return type leaves out so that existing callers of a TransformAll keep their array.
+    return withinTransform(() => (isAsync
+      ? transformAll(deepClone(items), fields, { async: true }) as E[] | Promise<E[]>
+      : transformAll(deepClone(items), fields)), reads)
+  }
+
+  private getItem<
+    Async extends boolean,
+    O extends Omit<FindOptions<T, Async>, 'limit'> = Omit<FindOptions<T, Async>, 'limit'>,
+  >(
+    selector: Selector<T>,
+    options: O,
+  ): Async extends true ? Promise<T | undefined> : T | undefined {
+    const itemsOrPromise = this.getItems(selector, { ...options, limit: 1 })
+    if (itemsOrPromise instanceof Promise) {
+      // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the call is async
+      return itemsOrPromise.then((items) => {
+        return items[0] || undefined
+      }) as Async extends true ? Promise<T | undefined> : T | undefined
+    }
+    return itemsOrPromise[0] as Async extends true ? Promise<T | undefined> : T | undefined
+  }
+
+  private getItems<
+    Async extends boolean,
+    O extends FindOptions<T, Async> = FindOptions<T, Async>,
+  >(
+    selector: Selector<T>,
+    options: O,
+  ): Async extends true ? Promise<T[]> : T[] {
+    this.emit('getItems', selector)
+    return this.profile(
+      () => {
+        if (!options?.async) return this.backend.getQueryResult(selector, options)
+
+        this.isPullingSignal.set(true)
+        return this.backend.executeQuery(selector, options)
+          // eslint-disable-next-line unicorn/prefer-await -- keeps when isPulling() flips back
+          .finally(() => {
+            this.isPullingSignal.set(false)
+          })
+      },
+      measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
+    ) as Async extends true ? Promise<T[]> : T[]
+  }
+
+  private async withPushState<ReturnType>(
+    asyncFunction: () => Promise<ReturnType>,
+  ): Promise<ReturnType> {
+    this.isPushingSignal.set(true)
+    try {
+      return await asyncFunction()
+    } finally {
+      this.isPushingSignal.set(false)
+    }
+  }
+
+  private queryListeners(
+    query: { selector: Selector<T>, options?: QueryOptions<T> },
+  ): number
+
+  private queryListeners(
+    query: { selector: Selector<T>, options?: QueryOptions<T> },
+    listeners: number,
+  ): void
+
+  private queryListeners(
+    query: { selector: Selector<T>, options?: QueryOptions<T> },
+    listeners?: number,
+  ) {
+    const id = queryId(query.selector, query.options)
+    return listeners == null
+      ? this.queryListenersMap.get(id) ?? 0
+      : this.queryListenersMap.set(id, listeners)
   }
 
   /**
@@ -537,7 +666,10 @@ export default class Collection<
    * When debug mode is enabled, additional debugging information and events are emitted.
    * @param enable - A boolean indicating whether to enable (`true`) or disable (`false`) debug mode.
    */
-  public setDebugMode(enable: boolean) {
+  public setDebugMode(
+    // eslint-disable-next-line unicorn/consistent-boolean-name -- documented public parameter name
+    enable: boolean,
+  ) {
     this.debugMode = enable
   }
 
@@ -545,7 +677,10 @@ export default class Collection<
    * Enables or disables field tracking for the collection.
    * @param enable - A boolean indicating whether to enable (`true`) or disable (`false`) field tracking.
    */
-  public setFieldTracking(enable: boolean) {
+  public setFieldTracking(
+    // eslint-disable-next-line unicorn/consistent-boolean-name -- documented public parameter name
+    enable: boolean,
+  ) {
     this.fieldTracking = enable
   }
 
@@ -574,119 +709,6 @@ export default class Collection<
     return this.readySignal.get() ?? false
   }
 
-  private profile<ReturnValue>(
-    fn: () => ReturnValue,
-    measureFunction: (measuredTime: number) => void,
-  ) {
-    if (!this.debugMode) return fn()
-    const startTime = performance.now()
-    const handleProfileEnd = (result: ReturnValue) => {
-      const endTime = performance.now()
-      measureFunction(endTime - startTime)
-      return result
-    }
-    const maybePromise = fn()
-    return maybePromise instanceof Promise
-      ? maybePromise.then(handleProfileEnd)
-      : handleProfileEnd(maybePromise)
-  }
-
-  private executeInDebugMode(fn: (callstack: string) => void) {
-    if (!this.debugMode) return
-    // eslint-disable-next-line unicorn/error-message
-    const callstack = new Error().stack || ''
-    fn(callstack)
-  }
-
-  private transform(item: E): U {
-    if (!this.options.transform) return item as unknown as U
-    return this.options.transform(item)
-  }
-
-  private transformAll(
-    items: T[],
-    fields: FieldSpecifier<T> | undefined,
-    async: boolean,
-    reads?: Cursor<any, any, boolean>[],
-  ): E[] | Promise<E[]> {
-    if (!this.options.transformAll) return items as unknown as E[]
-    const transformAll = this.options.transformAll
-    // One built with reactiveOrAsync answers `{ async: true }` with a promise, which the declared
-    // return type leaves out so that existing callers of a TransformAll keep their array.
-    return withinTransform(() => (async
-      ? transformAll(deepClone(items), fields, { async: true }) as E[] | Promise<E[]>
-      : transformAll(deepClone(items), fields)), reads)
-  }
-
-  private getItem<
-    Async extends boolean,
-    O extends Omit<FindOptions<T, Async>, 'limit'> = Omit<FindOptions<T, Async>, 'limit'>,
-  >(
-    selector: Selector<T>,
-    options: O,
-  ): Async extends true ? Promise<T | undefined> : T | undefined {
-    const itemsOrPromise = this.getItems(selector, { ...options, limit: 1 })
-    if (itemsOrPromise instanceof Promise) {
-      return itemsOrPromise.then((items) => {
-        return items[0] || undefined
-      }) as Async extends true ? Promise<T | undefined> : T | undefined
-    }
-    return itemsOrPromise[0] as Async extends true ? Promise<T | undefined> : T | undefined
-  }
-
-  private getItems<
-    Async extends boolean,
-    O extends FindOptions<T, Async> = FindOptions<T, Async>,
-  >(
-    selector: Selector<T>,
-    options: O,
-  ): Async extends true ? Promise<T[]> : T[] {
-    this.emit('getItems', selector)
-    return this.profile(
-      () => {
-        if (!options?.async) return this.backend.getQueryResult(selector, options)
-
-        this.isPullingSignal.set(true)
-        return this.backend.executeQuery(selector, options)
-          .finally(() => {
-            this.isPullingSignal.set(false)
-          })
-      },
-      measuredTime => this.executeInDebugMode(callstack => this.emit('_debug.getItems', callstack, selector, measuredTime)),
-    ) as Async extends true ? Promise<T[]> : T[]
-  }
-
-  private async withPushState<ReturnType>(
-    asyncFunction: () => Promise<ReturnType>,
-  ): Promise<ReturnType> {
-    this.isPushingSignal.set(true)
-    try {
-      return await asyncFunction()
-    } finally {
-      this.isPushingSignal.set(false)
-    }
-  }
-
-  private queryListeners(
-    query: { selector: Selector<T>, options?: QueryOptions<T> },
-  ): number
-
-  private queryListeners(
-    query: { selector: Selector<T>, options?: QueryOptions<T> },
-    listeners: number,
-  ): void
-
-  private queryListeners(
-    query: { selector: Selector<T>, options?: QueryOptions<T> },
-    listeners?: number,
-  ) {
-    const id = queryId(query.selector, query.options)
-    if (listeners != null) {
-      return this.queryListenersMap.set(id, listeners)
-    }
-    return this.queryListenersMap.get(id) ?? 0
-  }
-
   /**
    * Disposes the collection, unregisters storage adapters, clears memory, and
    * cleans up all resources used by the collection.
@@ -697,7 +719,7 @@ export default class Collection<
     this.isDisposed = true
     this.removeAllListeners()
     Collection.collections = Collection.collections.filter(collection => collection !== this)
-    Collection.onDisposeCallbacks.forEach(callback => callback(this))
+    for (const callback of Collection.onDisposeCallbacks) callback(this)
   }
 
   /**
@@ -733,6 +755,7 @@ export default class Collection<
     const getTransformedItems = () => {
       const itemsOrPromise = this.getItems(selector, options || {})
       if (itemsOrPromise instanceof Promise) {
+        // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the call is async
         return itemsOrPromise.then((items) => {
           return this.transformAll(items, options?.fields, true)
         })
@@ -924,6 +947,7 @@ export default class Collection<
 
     const maybePromise = cursor.fetch()
     return (maybePromise instanceof Promise
+      // eslint-disable-next-line unicorn/prefer-await -- answers synchronously unless the call is async
       ? maybePromise.then(handleItems)
       : handleItems(maybePromise))
   }
@@ -962,6 +986,7 @@ export default class Collection<
     }
 
     if (maybePromise && typeof (maybePromise as any).then === 'function') {
+      // eslint-disable-next-line unicorn/prefer-await, unicorn/prefer-then-catch -- a sync callback stays sync; `.catch()` would rerun afterBatch()
       return (maybePromise as Promise<any>).then(
         () => afterBatch(),
         (error) => {
@@ -973,9 +998,8 @@ export default class Collection<
           throw error
         },
       )
-    } else {
-      afterBatch()
     }
+    afterBatch()
   }
 
   /**
@@ -1083,7 +1107,7 @@ export default class Collection<
       return 1
     }
 
-    changes.forEach((item, index) => this.emit('changed', item, restModifier, previousItems[index]))
+    for (const [index, item] of changes.entries()) this.emit('changed', item, restModifier, previousItems[index])
     this.emit('updateOne', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateOne', callstack, selector, modifier))
     return changes.length
@@ -1112,9 +1136,9 @@ export default class Collection<
     // See `updateOne`: the items are only fetched up front for the sake of a validator.
     if (this.listenerCount('validate') > 0) {
       const items = await this.getItems<true>(selector, { async: true })
-      items.forEach((item) => {
+      for (const item of items) {
         this.emit('validate', modify(deepClone(item), restModifier))
-      })
+      }
     }
 
     const { items: changes, previousItems } = splitWriteResult(
@@ -1133,9 +1157,9 @@ export default class Collection<
       return 1
     }
 
-    changes.forEach((item, index) => {
+    for (const [index, item] of changes.entries()) {
       this.emit('changed', item, restModifier, previousItems[index])
-    })
+    }
     this.emit('updateMany', selector, modifier)
     this.executeInDebugMode(callstack => this.emit('_debug.updateMany', callstack, selector, modifier))
     return changes.length
@@ -1174,7 +1198,7 @@ export default class Collection<
       return 1
     }
 
-    changes.forEach((item, index) => this.emit('changed', item, replacement as Modifier<T>, previousItems[index]))
+    for (const [index, item] of changes.entries()) this.emit('changed', item, replacement as Modifier<T>, previousItems[index])
     this.emit('replaceOne', selector, replacement)
     this.executeInDebugMode(callstack => this.emit('_debug.replaceOne', callstack, selector, replacement))
     return changes.length
@@ -1210,9 +1234,9 @@ export default class Collection<
 
     const removedItems = await this.withPushState(() => this.backend.removeMany(selector))
 
-    removedItems.forEach((item) => {
+    for (const item of removedItems) {
       this.emit('removed', item)
-    })
+    }
 
     this.emit('removeMany', selector)
     this.executeInDebugMode(callstack => this.emit('_debug.removeMany', callstack, selector))

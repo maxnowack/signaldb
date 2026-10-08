@@ -4,6 +4,7 @@ import type { WorkerDataAdapterEndpoint } from '../src/WorkerDataAdapter'
 import type Collection from '../src/Collection'
 import type { CollectionBackend } from '../src/DataAdapter'
 import type Selector from '../src/types/Selector'
+import compareCodeUnits from './helpers/compareCodeUnits'
 
 interface TestItem {
   id: string,
@@ -40,7 +41,7 @@ class MockWorker implements WorkerDataAdapterEndpoint {
 
   emit(data: Record<string, unknown>) {
     const event = new MessageEvent('message', { data })
-    this.handlers.forEach(handler => handler(event))
+    for (const handler of this.handlers) handler(event)
   }
 
   // Answers one specific recorded message rather than the most recent one of its kind, which is
@@ -138,8 +139,9 @@ describe('a burst of writes that have not settled yet', () => {
 
     const served = backend.getQueryResult(selector, {})
     expect(served).toHaveLength(size)
-    expect(served.map(item => item.id).toSorted())
-      .toEqual(Array.from({ length: size }, (_unused, index) => `item-${index}`).toSorted())
+    expect(served.map(item => item.id).toSorted(compareCodeUnits))
+      .toEqual(Array.from({ length: size }, (_unused, index) => `item-${index}`)
+        .toSorted(compareCodeUnits))
 
     // One batched message carries the whole burst, so its response carries one result per write.
     await flush()

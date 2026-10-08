@@ -6,16 +6,15 @@ import { StrictMode } from 'react'
 import { createUseReactivityHook } from '../src'
 
 /**
- * Helper function to create a reactive signal.
- * @param initialValue - The initial value of the signal.
+ * Helper function to create a reactive signal with the initial value `1`.
  * @returns An object with get and set methods to interact with the signal.
  */
-function reactiveHelper<T>(initialValue: T) {
-  const dep = signal(initialValue)
+function reactiveHelper() {
+  const dependency = signal(1)
   return {
-    get: () => dep(),
-    set: (value: T) => {
-      dep.set(value)
+    get: () => dependency(),
+    set: (value: number) => {
+      dependency.set(value)
     },
   }
 }
@@ -30,7 +29,7 @@ it('should run once without reactive data', async () => {
 })
 
 it('should rerun with reactive data', async () => {
-  const reactive = reactiveHelper(1)
+  const reactive = reactiveHelper()
   const dispose = vi.fn()
   const fn = vi.fn().mockImplementation(() => {
     onDispose(dispose)
@@ -49,7 +48,7 @@ it('should rerun with reactive data', async () => {
 })
 
 it('should rerun in strict mode', async () => {
-  const reactive = reactiveHelper(1)
+  const reactive = reactiveHelper()
   const dispose = vi.fn()
   const fn = vi.fn().mockImplementation(() => {
     onDispose(dispose)
@@ -70,7 +69,7 @@ it('should rerun in strict mode', async () => {
 })
 
 it('should rerun with reactive data and dependencies', async () => {
-  const reactive = reactiveHelper(1)
+  const reactive = reactiveHelper()
   const dispose = vi.fn()
   const fn = vi.fn().mockImplementation(() => {
     onDispose(dispose)
@@ -89,14 +88,14 @@ it('should rerun with reactive data and dependencies', async () => {
 })
 
 it('should rerun if dependencies change', async () => {
-  const reactive = reactiveHelper(1)
+  const reactive = reactiveHelper()
   const dispose = vi.fn()
   const fn = vi.fn().mockImplementation(() => {
     onDispose(dispose)
     return reactive.get()
   })
-  const { result, rerender, unmount } = renderHook(dep =>
-    useReactivity(fn, [dep]), { initialProps: 1 })
+  const { result, rerender, unmount } = renderHook(dependency =>
+    useReactivity(fn, [dependency]), { initialProps: 1 })
   await waitFor(async () => expect(await result.current).toBe(1))
   expect(fn).toHaveBeenCalledTimes(1)
 
@@ -109,14 +108,14 @@ it('should rerun if dependencies change', async () => {
 })
 
 it('should not rerun if dependencies do not change', async () => {
-  const reactive = reactiveHelper(1)
+  const reactive = reactiveHelper()
   const dispose = vi.fn()
   const fn = vi.fn().mockImplementation(() => {
     onDispose(dispose)
     return reactive.get()
   })
-  const { result, rerender, unmount } = renderHook(dep =>
-    useReactivity(fn, [dep]), { initialProps: 1 })
+  const { result, rerender, unmount } = renderHook(dependency =>
+    useReactivity(fn, [dependency]), { initialProps: 1 })
   await waitFor(async () => expect(await result.current).toBe(1))
   expect(fn).toHaveBeenCalledTimes(1)
 

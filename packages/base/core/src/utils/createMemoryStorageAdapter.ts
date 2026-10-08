@@ -17,14 +17,13 @@ export default function createMemoryStorageAdapter<
   const indexedFields = new Set<string>()
 
   const write = (newItems: T[]) => {
-    newItems.forEach(item => items.set(item.id, item))
+    for (const item of newItems) items.set(item.id, item)
     return Promise.resolve()
   }
 
   return {
     setup: () => Promise.resolve(),
     teardown: () => Promise.resolve(),
-
     readAll: () => Promise.resolve([...items.values()]),
     readIds: ids => Promise.resolve(ids.flatMap((id) => {
       const item = items.get(id)
@@ -55,7 +54,7 @@ export default function createMemoryStorageAdapter<
     insert: write,
     replace: write,
     remove: (oldItems) => {
-      oldItems.forEach(item => items.delete(item.id))
+      for (const item of oldItems) items.delete(item.id)
       return Promise.resolve()
     },
     removeAll: () => {

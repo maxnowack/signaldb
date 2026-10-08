@@ -28,7 +28,7 @@ export default function idIndexQuery<T extends BaseItem<I> = BaseItem, I = any>(
 
   if (isFieldExpression(fieldSelector)) {
     const values = fieldSelector.$in
-    if (!Array.isArray(values) || values.length <= 0) return { matched: false }
+    if (!Array.isArray(values) || values.length === 0) return { matched: false }
     return {
       matched: true,
       ids: values as I[],

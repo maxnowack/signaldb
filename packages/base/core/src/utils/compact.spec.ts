@@ -9,7 +9,7 @@ describe('compact', () => {
   })
 
   it('should return an empty array if all values are falsy', () => {
-    const array = [false, null, undefined, 0, Number.NaN, '']
+    const array = [false, null, undefined, 0, NaN, '']
     const result = compact(array)
     expect(result).toEqual([])
   })

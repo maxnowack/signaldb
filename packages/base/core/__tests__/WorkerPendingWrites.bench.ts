@@ -33,7 +33,7 @@ class SilentWorker implements WorkerDataAdapterEndpoint {
 
   emit(data: Record<string, unknown>) {
     const event = new MessageEvent('message', { data })
-    this.handlers.forEach(handler => handler(event))
+    for (const handler of this.handlers) handler(event)
   }
 }
 

@@ -16,7 +16,7 @@ export const primitiveReactivity = (() => {
     }
 
     invalidate() {
-      this.onInvalidateCallbacks.forEach(callback => callback())
+      for (const callback of this.onInvalidateCallbacks) callback()
     }
   }
 
@@ -31,14 +31,14 @@ export const primitiveReactivity = (() => {
    */
   function signal<T>(initialValue: T) {
     let value = initialValue
-    const computationDeps = new Set<Computation>()
+    const computationDependencies = new Set<Computation>()
     const signalValue = () => {
-      if (currentComputation) computationDeps.add(currentComputation)
+      if (currentComputation) computationDependencies.add(currentComputation)
       return value
     }
     signalValue.set = (newValue: T) => {
       value = newValue
-      computationDeps.forEach(computation => computation.effectCallback())
+      computationDependencies.forEach(computation => computation.effectCallback())
     }
     return signalValue
   }
@@ -73,13 +73,13 @@ export const primitiveReactivity = (() => {
 })()
 export const primitiveReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = primitiveReactivity.signal(0)
+    const dependency = primitiveReactivity.signal(0)
     return {
       depend: () => {
-        dep()
+        dependency()
       },
       notify: () => {
-        dep.set(primitiveReactivity.peek(() => dep() + 1))
+        dependency.set(primitiveReactivity.peek(() => dependency() + 1))
       },
     }
   },

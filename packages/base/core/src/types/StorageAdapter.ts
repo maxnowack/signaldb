@@ -6,11 +6,17 @@ import type Selector from './Selector'
  * @template T - The type of the items.
  */
 export interface Changeset<T> {
-  /** Items that were inserted. */
+  /**
+  Items that were inserted.
+   */
   added: T[],
-  /** Items that were changed, in their new state. */
+  /**
+  Items that were changed, in their new state.
+   */
   modified: T[],
-  /** Items that were removed. */
+  /**
+  Items that were removed.
+   */
   removed: T[],
 }
 
@@ -61,11 +67,17 @@ export interface StorageQueryAnswer<T extends BaseItem> {
    * narrows as far as it can and hands back what is left.
    */
   residualSelector?: Selector<T>,
-  /** The items are in the requested order. */
+  /**
+  The items are in the requested order.
+   */
   sorted?: boolean,
-  /** `skip` and `limit` have already been applied. */
+  /**
+  `skip` and `limit` have already been applied.
+   */
   windowed?: boolean,
-  /** The items already carry only the requested fields. */
+  /**
+  The items already carry only the requested fields.
+   */
   projected?: boolean,
 }
 
@@ -83,13 +95,19 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
    * adapter sets up the collection, before it reads from the storage.
    */
   setup(): Promise<void>,
-  /** Releases the storage's resources; called when the collection is disposed. */
+  /**
+  Releases the storage's resources; called when the collection is disposed.
+   */
   teardown(): Promise<void>,
 
   // data retrieval methods
-  /** Reads every item of the collection. */
+  /**
+  Reads every item of the collection.
+   */
   readAll(): Promise<T[]>,
-  /** Reads the items with the given ids; ids that do not exist are left out of the result. */
+  /**
+  Reads the items with the given ids; ids that do not exist are left out of the result.
+   */
   readIds(positions: I[]): Promise<T[]>,
   /**
    * Answers a whole query — predicate, order, window and projection — as far as
@@ -119,9 +137,13 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
   query?(query: StorageQuery<T>): Promise<StorageQueryAnswer<T>>,
 
   // index methods
-  /** Creates an index on a field, so that `readIndex` can answer for it. */
+  /**
+  Creates an index on a field, so that `readIndex` can answer for it.
+   */
   createIndex(field: string): Promise<void>,
-  /** Drops the index on a field. */
+  /**
+  Drops the index on a field.
+   */
   dropIndex(field: string): Promise<void>,
   /**
    * The index, keyed by `serializeValue(value)` — not by the raw field value.
@@ -137,12 +159,20 @@ export default interface StorageAdapter<T extends { id: I } & Record<string, any
   readIndex(field: string): Promise<Map<string | null, Set<I>>>,
 
   // data manipulation methods
-  /** Stores new items. */
+  /**
+  Stores new items.
+   */
   insert(items: T[]): Promise<void>,
-  /** Overwrites the stored items that have the same ids as the given ones. */
+  /**
+  Overwrites the stored items that have the same ids as the given ones.
+   */
   replace(items: T[]): Promise<void>,
-  /** Removes the stored items that have the same ids as the given ones. */
+  /**
+  Removes the stored items that have the same ids as the given ones.
+   */
   remove(items: T[]): Promise<void>,
-  /** Removes every stored item of the collection. */
+  /**
+  Removes every stored item of the collection.
+   */
   removeAll(): Promise<void>,
 }

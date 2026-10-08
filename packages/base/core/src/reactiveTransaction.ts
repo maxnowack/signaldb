@@ -26,15 +26,17 @@
 
 type Notification = () => void
 
-let depth = 0
-let held = new Set<Notification>()
+const state = {
+  depth: 0,
+  held: new Set<Notification>(),
+}
 
 /**
  * Whether a reactive transaction is currently open.
  * @returns `true` while notifications are being held.
  */
 export function isInReactiveTransaction(): boolean {
-  return depth > 0
+  return state.depth > 0
 }
 
 /**
@@ -43,7 +45,7 @@ export function isInReactiveTransaction(): boolean {
  * @param notification - The notifier to hold.
  */
 export function holdNotification(notification: Notification): void {
-  held.add(notification)
+  state.held.add(notification)
 }
 
 /**
@@ -52,13 +54,15 @@ export function holdNotification(notification: Notification): void {
  * @param notification - The notifier to drop.
  */
 export function releaseNotification(notification: Notification): void {
-  held.delete(notification)
+  state.held.delete(notification)
 }
 
-/** Wakes everything held by the transaction that just ended, each exactly once. */
+/**
+Wakes everything held by the transaction that just ended, each exactly once.
+ */
 function flush() {
-  const pending = held
-  held = new Set()
+  const pending = state.held
+  state.held = new Set()
   pending.forEach((notification) => {
     notification()
   })
@@ -102,11 +106,11 @@ export default function reactiveTransaction<ReturnType>(
   callback: () => ReturnType | Promise<ReturnType>,
 ): ReturnType | Promise<ReturnType> {
   if (typeof callback !== 'function') throw new TypeError('reactiveTransaction requires a callback')
-  depth += 1
+  state.depth += 1
 
   const end = () => {
-    depth -= 1
-    if (depth === 0) flush()
+    state.depth -= 1
+    if (state.depth === 0) flush()
   }
 
   let result: ReturnType | Promise<ReturnType>
@@ -120,6 +124,8 @@ export default function reactiveTransaction<ReturnType>(
   }
 
   if (result && typeof (result as Promise<ReturnType>).then === 'function') {
+    // Not async: a sync callback must stay sync. Not `.catch()`: a throwing `end()` would rerun it.
+    // eslint-disable-next-line unicorn/prefer-await, unicorn/prefer-then-catch -- see above
     return (result as Promise<ReturnType>).then(
       (value) => {
         end()
@@ -135,8 +141,10 @@ export default function reactiveTransaction<ReturnType>(
   return result
 }
 
-/** Tests only — module state outlives a single test otherwise. */
+/**
+Tests only — module state outlives a single test otherwise.
+ */
 export function resetReactiveTransactions(): void {
-  depth = 0
-  held = new Set()
+  state.depth = 0
+  state.held = new Set()
 }

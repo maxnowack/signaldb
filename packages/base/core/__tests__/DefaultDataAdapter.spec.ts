@@ -252,35 +252,38 @@ describe('DefaultDataAdapter', () => {
     })
     const c = new Collection<Item, string, Item>('on-error', adapter, { persistence })
     const backend = adapter.createCollectionBackend<Item, string, Item>(c, [])
-    await backend.isReady().catch(() => {})
+    try {
+      await backend.isReady()
+    } catch {
+      // the failure is reported through onError
+    }
     expect(onError).toHaveBeenCalledWith('on-error', expect.any(Error))
   })
 
-  it('covers getIndexInfo(null) path and queryItems matchItems branches', () => {
+  it('covers getIndexInfo(null) path and queryItems matchItems branches', async () => {
     const adapter = new DefaultDataAdapter()
     const col = new Collection<Item, string, Item>('qi', adapter)
     const backend = adapter.createCollectionBackend<Item, string, Item>(col, [])
     // Insert one item without persistence to have data to filter
-    return backend.insert({ id: 'a1', x: 1 }).then(async () => {
-      // @ts-expect-error - call private method to cover selector == null branch
-      const info = adapter.getIndexInfo(col, undefined)
-      expect(info.matched).toBe(false)
+    await backend.insert({ id: 'a1', x: 1 })
+    // @ts-expect-error - call private method to cover selector == null branch
+    const info = adapter.getIndexInfo(col, undefined)
+    expect(info.matched).toBe(false)
 
-      // Monkey-patch getIndexInfo to force optimizedSelector == null
-      // @ts-expect-error - access private method for targeted coverage
-      const originalGetIndexInfo = adapter.getIndexInfo
-      // @ts-expect-error - override private method for targeted coverage
-      adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: null })
-      const result = backend.getQueryResult({ any: 1 } as unknown as Selector<Item>, {})
-      expect(result.length).toBe(1)
-      // Now force optimizedSelector to be empty object to hit second early-return
-      // @ts-expect-error - override private method for targeted coverage
-      adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: {} })
-      const result2 = backend.getQueryResult({ other: 1 } as unknown as Selector<Item>, {})
-      expect(result2.length).toBe(1)
-      // @ts-expect-error - restore private method
-      adapter.getIndexInfo = originalGetIndexInfo
-    })
+    // Monkey-patch getIndexInfo to force optimizedSelector == null
+    // @ts-expect-error - access private method for targeted coverage
+    const originalGetIndexInfo = adapter.getIndexInfo
+    // @ts-expect-error - override private method for targeted coverage
+    adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: null })
+    const result = backend.getQueryResult({ any: 1 } as unknown as Selector<Item>, {})
+    expect(result.length).toBe(1)
+    // Now force optimizedSelector to be empty object to hit second early-return
+    // @ts-expect-error - override private method for targeted coverage
+    adapter.getIndexInfo = () => ({ matched: false, ids: [], optimizedSelector: {} })
+    const result2 = backend.getQueryResult({ other: 1 } as unknown as Selector<Item>, {})
+    expect(result2.length).toBe(1)
+    // @ts-expect-error - restore private method
+    adapter.getIndexInfo = originalGetIndexInfo
   })
 
   it('flushQueuedQueryUpdates: early return and missing emitter branch', async () => {

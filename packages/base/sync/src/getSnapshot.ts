@@ -15,25 +15,25 @@ export default function getSnapshot<ItemType extends BaseItem<IdType>, IdType>(
 
   // copy the array to not mutate the last snapshot
   const items = [...lastSnapshot || []]
-  data.changes.added.forEach((item) => {
+  for (const item of data.changes.added) {
     const index = items.findIndex(i => i.id === item.id)
     if (index === -1) {
       items.push(item)
     } else {
       items[index] = item
     }
-  })
-  data.changes.modified.forEach((item) => {
+  }
+  for (const item of data.changes.modified) {
     const index = items.findIndex(i => i.id === item.id)
     if (index === -1) {
       items.push(item)
     } else {
       items[index] = item
     }
-  })
-  data.changes.removed.forEach((item) => {
+  }
+  for (const item of data.changes.removed) {
     const index = items.findIndex(i => i.id === item.id)
     if (index !== -1) items.splice(index, 1)
-  })
+  }
   return items
 }

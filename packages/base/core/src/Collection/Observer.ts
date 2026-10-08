@@ -56,6 +56,7 @@ export default class Observer<T extends { id: any }> {
   }
 
   private unbindEvents: () => void
+  private stopped = false
 
   /**
    * Creates a new instance of the `Observer` class.
@@ -82,16 +83,105 @@ export default class Observer<T extends { id: any }> {
     event: K,
     ...args: Parameters<NonNullable<ObserveCallbacks<T>[K]>>
   ) {
-    this.callbacks[event].forEach(({ callback, options }) => {
+    const callbacks = this.callbacks[event]
+    for (const { callback, options } of callbacks) {
       // execute only if it's not initial call or if initial call should not be skipped
       if (!options.skipInitial || !options.isInitial) {
         callback(...args as [T, T & keyof T, T[keyof T], T[keyof T]])
       }
-    })
+    }
   }
 
   private hasCallbacks(events: (keyof ObserveCallbacks<T>)[]) {
     return events.some(event => this.callbacks[event].length > 0)
+  }
+
+  /**
+   * Reports a delta and adopts the result it produces.
+   *
+   * The single place the callbacks are fired from, whether the change arrived as a delta or was
+   * found by comparing two results — so the two can never disagree about what a consumer is told.
+   * @param delta - The change to report.
+   * @param nextItems - The result the delta produces.
+   */
+  private emitDelta(delta: QueryDelta<T>, nextItems: T[]) {
+    if (this.isEmpty()) {
+      this.finishCheck(nextItems)
+      return
+    }
+
+    const beforeOf = (index: number) => nextItems[index + 1] || null
+    // Indexing the previous result costs its whole length, and most deltas do not need it: only a
+    // listener that is told what an item looked like before — 'changed', 'changedField' or
+    // 'removed' — needs the previous result at all.
+    const isNeedsPreviousItems = (delta.removed.length > 0 && this.hasCallbacks(['removed']))
+      || (delta.changed.length > 0 && this.hasCallbacks(['changed', 'changedField']))
+    const previousById = isNeedsPreviousItems
+      ? new Map(this.previousItems.map(item => [item.id, item]))
+      : null
+
+    if (this.hasCallbacks(['changed', 'changedField'])) {
+      for (const item of delta.changed) {
+        const oldItem = previousById?.get(item.id)
+        if (!oldItem) continue
+        this.call('changed', item, oldItem)
+        if (!this.hasCallbacks(['changedField'])) continue
+        const keys = uniqueBy([
+          ...Object.keys(item) as (keyof T)[],
+          ...Object.keys(oldItem) as (keyof T)[],
+        ], value => value)
+        for (const key of keys) {
+          if (isEqual(item[key], oldItem[key])) continue
+          this.call('changedField', item, key, oldItem[key], item[key])
+        }
+      }
+    }
+
+    if (this.hasCallbacks(['removed'])) {
+      for (const id of delta.removed) {
+        const oldItem = previousById?.get(id)
+        if (oldItem) this.call('removed', oldItem)
+      }
+    }
+
+    if (this.hasCallbacks(['added', 'addedBefore'])) {
+      for (const { index, item } of delta.added) {
+        this.call('added', item)
+        this.call('addedBefore', item, beforeOf(index))
+      }
+    }
+
+    if (this.hasCallbacks(['movedBefore'])) {
+      for (const { index } of delta.moved) {
+        this.call('movedBefore', nextItems[index], beforeOf(index))
+      }
+    }
+
+    this.finishCheck(nextItems)
+  }
+
+  private finishCheck(newItems: T[]) {
+    // Store new items as previous items for next check
+    this.previousItems = newItems
+    this.hasCheckedResult = true
+    for (const key of Object.keys(this.callbacks)) {
+      const event = key as keyof ObserveCallbacks<T>
+      const callbacks = this.callbacks[event]
+      this.callbacks[event] = callbacks.map(callback => ({
+        ...callback,
+        options: {
+          ...callback.options,
+          isInitial: false,
+        },
+      })) as any
+    }
+  }
+
+  private checkItems(newItems: T[]) {
+    // Derives the change and reports it through the same path a change that arrived ready-made
+    // takes. Comparing and then reporting item by item, as this used to, meant the two paths could
+    // describe the same change differently — most visibly in how many moves they reported.
+    this.emitDelta(diffQueryResults(this.previousItems, newItems), newItems)
   }
 
   /**
@@ -135,7 +225,9 @@ export default class Observer<T extends { id: any }> {
     const result = getItems()
     if (result instanceof Promise) {
       result
+        // eslint-disable-next-line unicorn/prefer-await -- keeps the microtask the check emits in
         .then(newItems => this.checkItems(newItems))
+        // eslint-disable-next-line unicorn/prefer-await -- keeps the microtask the check emits in
         .catch((error) => {
           // eslint-disable-next-line no-console
           console.error('Error while asynchronously querying items', error)
@@ -176,96 +268,6 @@ export default class Observer<T extends { id: any }> {
   }
 
   /**
-   * Reports a delta and adopts the result it produces.
-   *
-   * The single place the callbacks are fired from, whether the change arrived as a delta or was
-   * found by comparing two results — so the two can never disagree about what a consumer is told.
-   * @param delta - The change to report.
-   * @param nextItems - The result the delta produces.
-   */
-  private emitDelta(delta: QueryDelta<T>, nextItems: T[]) {
-    if (this.isEmpty()) {
-      this.finishCheck(nextItems)
-      return
-    }
-
-    const beforeOf = (index: number) => nextItems[index + 1] || null
-    // Indexing the previous result costs its whole length, and most deltas do not need it: only a
-    // listener that is told what an item looked like before — 'changed', 'changedField' or
-    // 'removed' — needs the previous result at all.
-    const needsPreviousItems = (delta.removed.length > 0 && this.hasCallbacks(['removed']))
-      || (delta.changed.length > 0 && this.hasCallbacks(['changed', 'changedField']))
-    const previousById = needsPreviousItems
-      ? new Map(this.previousItems.map(item => [item.id, item]))
-      : null
-
-    if (this.hasCallbacks(['changed', 'changedField'])) {
-      delta.changed.forEach((item) => {
-        const oldItem = previousById?.get(item.id)
-        if (!oldItem) return
-        this.call('changed', item, oldItem)
-        if (!this.hasCallbacks(['changedField'])) return
-        const keys = uniqueBy([
-          ...Object.keys(item) as (keyof T)[],
-          ...Object.keys(oldItem) as (keyof T)[],
-        ], value => value)
-        keys.forEach((key) => {
-          if (isEqual(item[key], oldItem[key])) return
-          this.call('changedField', item, key, oldItem[key], item[key])
-        })
-      })
-    }
-
-    if (this.hasCallbacks(['removed'])) {
-      delta.removed.forEach((id) => {
-        const oldItem = previousById?.get(id)
-        if (oldItem) this.call('removed', oldItem)
-      })
-    }
-
-    if (this.hasCallbacks(['added', 'addedBefore'])) {
-      delta.added.forEach(({ index, item }) => {
-        this.call('added', item)
-        this.call('addedBefore', item, beforeOf(index))
-      })
-    }
-
-    if (this.hasCallbacks(['movedBefore'])) {
-      delta.moved.forEach(({ index }) => {
-        this.call('movedBefore', nextItems[index], beforeOf(index))
-      })
-    }
-
-    this.finishCheck(nextItems)
-  }
-
-  private finishCheck(newItems: T[]) {
-    // Store new items as previous items for next check
-    this.previousItems = newItems
-    this.hasCheckedResult = true
-    Object.keys(this.callbacks).forEach((key) => {
-      const event = key as keyof ObserveCallbacks<T>
-      const callbacks = this.callbacks[event]
-      this.callbacks[event] = callbacks.map(callback => ({
-        ...callback,
-        options: {
-          ...callback.options,
-          isInitial: false,
-        },
-      })) as any
-    })
-  }
-
-  private checkItems(newItems: T[]) {
-    // Derives the change and reports it through the same path a change that arrived ready-made
-    // takes. Comparing and then reporting item by item, as this used to, meant the two paths could
-    // describe the same change differently — most visibly in how many moves they reported.
-    this.emitDelta(diffQueryResults(this.previousItems, newItems), newItems)
-  }
-
-  private stopped = false
-
-  /**
    * Stops the observer by unbinding all events and cleaning up resources.
    * Safe to call multiple times - will only unbind once.
    */
@@ -278,17 +280,17 @@ export default class Observer<T extends { id: any }> {
   /**
    * Registers callbacks for specific events to observe changes in the collection.
    * @param callbacks - An object containing the callbacks for various events (e.g., 'added', 'removed').
-   * @param skipInitial - A boolean indicating whether to skip invoking the callbacks for the initial state of the collection.
+   * @param shouldSkipInitial - A boolean indicating whether to skip invoking the callbacks for the initial state of the collection.
    */
-  public addCallbacks(callbacks: ObserveCallbacks<T>, skipInitial = false) {
+  public addCallbacks(callbacks: ObserveCallbacks<T>, shouldSkipInitial = false) {
     this.observationCount += 1
-    Object.keys(callbacks).forEach((key) => {
+    for (const key of Object.keys(callbacks)) {
       const typedKey = key as keyof ObserveCallbacks<T>
       this.callbacks[typedKey].push({
         callback: callbacks[typedKey] as any,
-        options: { skipInitial, isInitial: !this.hasCheckedResult },
+        options: { skipInitial: shouldSkipInitial, isInitial: !this.hasCheckedResult },
       })
-    })
+    }
   }
 
   /**
@@ -297,11 +299,11 @@ export default class Observer<T extends { id: any }> {
    */
   public removeCallbacks(callbacks: ObserveCallbacks<T>) {
     this.observationCount = Math.max(0, this.observationCount - 1)
-    Object.keys(callbacks).forEach((key) => {
+    for (const key of Object.keys(callbacks)) {
       const typedKey = key as keyof ObserveCallbacks<T>
       const index = this.callbacks[typedKey]
         .findIndex(({ callback }) => callback === callbacks[typedKey])
       this.callbacks[typedKey].splice(index, 1)
-    })
+    }
   }
 }

@@ -13,8 +13,8 @@ interface TestItem {
  * `Infinity` makes it fail permanently.
  */
 class FlakyStorageAdapter implements StorageAdapter<TestItem, string> {
-  public readAllCalls = 0
   private items = new Map<string, TestItem>()
+  public readAllCalls = 0
 
   constructor(private failures: number) {}
 
@@ -39,7 +39,7 @@ class FlakyStorageAdapter implements StorageAdapter<TestItem, string> {
   async readAll(): Promise<TestItem[]> {
     this.readAllCalls += 1
     if (this.readAllCalls <= this.failures) throw new Error('storage exploded')
-    return [...this.items.values()]
+    return this.items.values().toArray()
   }
 
   async readIds(ids: string[]): Promise<TestItem[]> {
@@ -96,7 +96,7 @@ describe('AsyncDataAdapter query failures', () => {
   })
 
   it('reports a permanent failure once, with collection and selector attached', async () => {
-    const storage = new FlakyStorageAdapter(Number.POSITIVE_INFINITY)
+    const storage = new FlakyStorageAdapter(Infinity)
     const onError = vi.fn()
     const collection = createCollection(storage, onError)
     await collection.ready()

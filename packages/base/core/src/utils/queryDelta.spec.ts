@@ -104,10 +104,10 @@ describe('queryDelta', () => {
         ],
       ]
 
-      cases.forEach(([previous, next]) => {
+      for (const [previous, next] of cases) {
         const delta = diffQueryResults(previous, next)
         expect(applyQueryDelta(previous, delta)).toEqual(next)
-      })
+      }
     })
 
     it('should rebuild randomly generated results', () => {
@@ -183,9 +183,9 @@ describe('queryDelta', () => {
         items('a', 'b', 'c', 'd'),
         [],
       ]
-      cases.forEach((next) => {
+      for (const next of cases) {
         expect(canApplyQueryDelta(previous, diffQueryResults(previous, next))).toBe(true)
-      })
+      }
     })
 
     it('should reject a removal of an item that is not there', () => {

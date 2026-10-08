@@ -5,9 +5,18 @@ it('should process tasks in order', async () => {
   const queue = new PromiseQueue()
   const results: number[] = []
 
-  await queue.add(() => Promise.resolve(results.push(1)))
-  await queue.add(() => Promise.resolve(results.push(2)))
-  await queue.add(() => Promise.resolve(results.push(3)))
+  await queue.add(() => {
+    results.push(1)
+    return Promise.resolve()
+  })
+  await queue.add(() => {
+    results.push(2)
+    return Promise.resolve()
+  })
+  await queue.add(() => {
+    results.push(3)
+    return Promise.resolve()
+  })
 
   expect(results).toEqual([1, 2, 3])
 })
@@ -20,7 +29,10 @@ it('should handle rejected promises', async () => {
     queue.add(() => Promise.reject(new Error('Task failed'))),
   ).rejects.toThrow('Task failed')
 
-  await queue.add(() => Promise.resolve(results.push('success')))
+  await queue.add(() => {
+    results.push('success')
+    return Promise.resolve()
+  })
 
   expect(results).toEqual(['success'])
 })
@@ -33,11 +45,17 @@ it('should maintain the order even with mixed resolve and reject', async () => {
     queue.add(() => Promise.reject(new Error('Task 1 failed'))),
   ).rejects.toThrow('Task 1 failed')
 
-  await queue.add(() => Promise.resolve(results.push('Task 2 succeeded')))
+  await queue.add(() => {
+    results.push('Task 2 succeeded')
+    return Promise.resolve()
+  })
   await expect(
     queue.add(() => Promise.reject(new Error('Task 3 failed'))),
   ).rejects.toThrow('Task 3 failed')
-  await queue.add(() => Promise.resolve(results.push('Task 4 succeeded')))
+  await queue.add(() => {
+    results.push('Task 4 succeeded')
+    return Promise.resolve()
+  })
 
   expect(results).toEqual(['Task 2 succeeded', 'Task 4 succeeded'])
 })
@@ -65,8 +83,10 @@ it('should correctly process an empty queue', () => {
 it('should handle a long queue of tasks', async () => {
   const queue = new PromiseQueue()
   const results: number[] = []
-  const tasks = Array.from({ length: 100 }, (_, i) => () =>
-    Promise.resolve(results.push(i)))
+  const tasks = Array.from({ length: 100 }, (_, i) => () => {
+    results.push(i)
+    return Promise.resolve()
+  })
 
   await Promise.all(tasks.map(task => queue.add(task)))
 
@@ -77,13 +97,19 @@ it('should handle tasks added after some delay', async () => {
   const queue = new PromiseQueue()
   const results: string[] = []
 
-  await queue.add(() => new Promise((resolve) => {
-    setTimeout(() => resolve(results.push('Task 1')), 5)
+  await queue.add(() => new Promise<void>((resolve) => {
+    setTimeout(() => {
+      results.push('Task 1')
+      resolve()
+    }, 5)
   }))
   await new Promise((resolve) => {
     setTimeout(resolve, 10)
   }) // Wait before adding the next task
-  await queue.add(() => Promise.resolve(results.push('Task 2')))
+  await queue.add(() => {
+    results.push('Task 2')
+    return Promise.resolve()
+  })
 
   expect(results).toEqual(['Task 1', 'Task 2'])
 })
@@ -122,11 +148,17 @@ it('should handle multiple rejections correctly', async () => {
     queue.add(() => Promise.reject(new Error('Task 1 failed'))),
   ).rejects.toThrow('Task 1 failed')
 
-  await queue.add(() => Promise.resolve(results.push('Task 2 succeeded')))
+  await queue.add(() => {
+    results.push('Task 2 succeeded')
+    return Promise.resolve()
+  })
   await expect(
     queue.add(() => Promise.reject(new Error('Task 3 failed'))),
   ).rejects.toThrow('Task 3 failed')
-  await queue.add(() => Promise.resolve(results.push('Task 4 succeeded')))
+  await queue.add(() => {
+    results.push('Task 4 succeeded')
+    return Promise.resolve()
+  })
 
   expect(results).toEqual(['Task 2 succeeded', 'Task 4 succeeded'])
 })
@@ -165,13 +197,13 @@ it('should handle queue edge case with concurrent access', async () => {
   // Override Array.shift to return undefined once to test line 48
   const originalShift = internalQueue.shift
   let shiftCallCount = 0
-  internalQueue.shift = function () {
+  internalQueue.shift = () => {
     shiftCallCount++
     if (shiftCallCount === 1) {
       // First call returns undefined to simulate empty queue despite length check
       return
     }
-    return originalShift.call(this)
+    return originalShift.call(internalQueue)
   }
 
   // Set up a state where dequeue will be called

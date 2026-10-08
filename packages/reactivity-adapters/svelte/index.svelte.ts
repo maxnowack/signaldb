@@ -30,7 +30,7 @@ export class SvelteDependency {
   }
 
   dispose() {
-    this.#onDisposeCallbacks.forEach(callback => callback())
+    for (const callback of this.#onDisposeCallbacks) callback()
   }
 }
 

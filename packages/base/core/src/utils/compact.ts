@@ -6,7 +6,7 @@ type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T // from
  * @param value - The value to check.
  * @returns A boolean indicating if the value is truthy.
  */
-function truthy<T>(value: T): value is Truthy<T> {
+function isTruthy<T>(value: T): value is Truthy<T> {
   return !!value
 }
 
@@ -17,5 +17,5 @@ function truthy<T>(value: T): value is Truthy<T> {
  * @returns A new array containing only the truthy values from the input array.
  */
 export default function compact<T>(array: T[]) {
-  return array.filter(truthy)
+  return array.filter(isTruthy)
 }

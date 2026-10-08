@@ -191,7 +191,7 @@ describe('IndexedDB storage adapter', () => {
     ])
 
     const rank = await adapter.readIndex('rank')
-    expect([...rank.keys()]).toEqual(['3', '7'])
+    expect(rank.keys().toArray()).toEqual(['3', '7'])
     expect(rank.get('3')?.has(1)).toBe(true)
 
     const stamps = await adapter.readIndex('stamp')

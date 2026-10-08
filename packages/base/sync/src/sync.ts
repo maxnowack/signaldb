@@ -94,9 +94,7 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   }
 
   // apply the new changes on the collection
-  const newChanges = newData.changes == null
-    ? computeChanges(previousSnapshot, newData.items)
-    : newData.changes
+  const newChanges = newData.changes ?? computeChanges(previousSnapshot, newData.items)
   await batch(async () => {
     await Promise.all(newChanges.added.map(item => insert(item)))
     await Promise.all(newChanges.modified.map(item => update(item.id, { $set: item })))

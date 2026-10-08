@@ -30,9 +30,9 @@ function createPosts(
 ) {
   return new Collection<Post>({
     reactivity,
-    transformAll: reactiveOrAsync(function* (async: boolean, items: Post[]) {
+    transformAll: reactiveOrAsync(function* (isAsync: boolean, items: Post[]) {
       const ids = [...new Set(items.map(item => item.authorId))]
-      const authors = yield* unwrap(users.find({ id: { $in: ids } }, { async }).fetch())
+      const authors = yield* unwrap(users.find({ id: { $in: ids } }, { async: isAsync }).fetch())
       return items.map(item => ({
         ...item,
         author: authors.find(author => author.id === item.authorId),

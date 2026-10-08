@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 
 export type StoreItem<T extends Record<string, any>> = T & {
   id: string,
-  patch: (patch: Partial<Omit<StoreItem<T>, 'id'>>, emitChange?: boolean) => void,
+  patch: (patch: Partial<Omit<StoreItem<T>, 'id'>>, shouldEmitChange?: boolean) => void,
 }
 
 export default class ItemStore<T extends Record<string, any>> {
@@ -15,12 +15,12 @@ export default class ItemStore<T extends Record<string, any>> {
     const item: StoreItem<T> = {
       ...data,
       id,
-      patch: (patch, emitChange = true) => {
+      patch: (patch, shouldEmitChange = true) => {
         const newItems = this.items.map(t =>
           t.id === id ? { ...t, ...patch } : t,
         )
         this.items = newItems
-        if (emitChange) this.emitChanges(id)
+        if (shouldEmitChange) this.emitChanges(id)
       },
     }
     this.items.push(item)
@@ -43,7 +43,7 @@ export default class ItemStore<T extends Record<string, any>> {
   unregisterAll() {
     const ids = this.items.map(t => t.id)
     this.items = []
-    ids.forEach(id => this.emitChanges(id))
+    for (const id of ids) this.emitChanges(id)
   }
 
   subscribe(onChange: (id: string) => void) {
@@ -70,7 +70,7 @@ export default class ItemStore<T extends Record<string, any>> {
   clear() {
     const ids = this.items.map(t => t.id)
     this.items = []
-    ids.forEach(id => this.emitChange(id))
+    for (const id of ids) this.emitChange(id)
   }
 
   emitChange(id?: string) {

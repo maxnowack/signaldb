@@ -65,7 +65,7 @@ const Table = <T extends Record<string, any>>({
   const hasActions = Boolean(onAdd || onEdit || onRemove)
   return (
     <Wrapper className={className}>
-      {items.length === 0 && placeholder
+      {placeholder && items.length === 0
         ? <Placeholder>{placeholder}</Placeholder>
         : (
           <table>

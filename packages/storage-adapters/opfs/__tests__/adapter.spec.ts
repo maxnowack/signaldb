@@ -65,12 +65,12 @@ function makeDirectory(basePath: string) {
         },
         async createWritable() {
           let buffer = ''
-          let closed = false
-          let aborted = false
+          let isClosed = false
+          let isAborted = false
 
           return {
             async write(data: any) {
-              if (closed || aborted) throw new Error('Stream is closed or aborted')
+              if (isClosed || isAborted) throw new Error('Stream is closed or aborted')
               if (failWritePaths.has(full)) {
                 failWritePaths.delete(full)
                 throw new Error(`write failure for ${full}`)
@@ -85,16 +85,16 @@ function makeDirectory(basePath: string) {
               }
             },
             async truncate(size: number) {
-              if (closed || aborted) throw new Error('Stream is closed or aborted')
+              if (isClosed || isAborted) throw new Error('Stream is closed or aborted')
               buffer = buffer.slice(0, size)
             },
             async close() {
-              if (closed) return
-              closed = true
+              if (isClosed) return
+              isClosed = true
               fileContents[full] = buffer
             },
             async abort() {
-              aborted = true
+              isAborted = true
               abortedPaths.push(full)
             },
           }
@@ -110,12 +110,12 @@ function makeDirectory(basePath: string) {
         const keysToDelete = Object.keys(fileContents).filter(k =>
           k === full || k.startsWith(`${full}/`),
         )
-        keysToDelete.forEach(k => delete fileContents[k])
+        for (const k of keysToDelete) delete fileContents[k]
 
         const directoriessToDelete = [...directories].filter(d =>
           d === full || d.startsWith(`${full}/`),
         )
-        directoriessToDelete.forEach(d => directories.delete(d))
+        for (const d of directoriessToDelete) directories.delete(d)
       } else {
         // Check if it's a directory with contents
         if (hasAnyFileWithPrefix(full)) {
@@ -132,23 +132,27 @@ function makeDirectory(basePath: string) {
 
       // Get immediate children files
       for (const path of Object.keys(fileContents)) {
-        if (path.startsWith(prefix)) {
-          const relative = path.slice(prefix.length)
-          const parts = relative.split('/').filter(Boolean)
-          if (parts.length > 0) {
-            entries.add(parts[0])
-          }
+        if (!path.startsWith(prefix)) {
+          continue
+        }
+
+        const relative = path.slice(prefix.length)
+        const parts = relative.split('/').filter(Boolean)
+        if (parts.length > 0) {
+          entries.add(parts[0])
         }
       }
 
       // Get immediate children directories
       for (const directory of directories) {
-        if (directory.startsWith(prefix) && directory !== basePath) {
-          const relative = directory.slice(prefix.length)
-          const parts = relative.split('/').filter(Boolean)
-          if (parts.length > 0) {
-            entries.add(parts[0])
-          }
+        if (directory === basePath || !directory.startsWith(prefix)) {
+          continue
+        }
+
+        const relative = directory.slice(prefix.length)
+        const parts = relative.split('/').filter(Boolean)
+        if (parts.length > 0) {
+          entries.add(parts[0])
         }
       }
 
@@ -196,11 +200,11 @@ function generateFolderName() {
 }
 
 /**
- * Creates and sets up an adapter scoped to a folder.
- * @param folderName Optional folder override.
+ * Creates and sets up an adapter scoped to a fresh folder.
  * @returns Adapter with associated folder name.
  */
-async function withAdapter(folderName = generateFolderName()) {
+async function withAdapter() {
+  const folderName = generateFolderName()
   const adapter = createOPFSAdapter<any, string>(folderName)
   await adapter.setup()
   return { adapter, folderName }
@@ -300,7 +304,7 @@ describe('OPFS storage adapter', () => {
   describe('additional', () => {
     beforeEach(() => {
       // Clear state
-      Object.keys(fileContents).forEach(k => delete fileContents[k])
+      for (const k of Object.keys(fileContents)) delete fileContents[k]
       directories.clear()
       directories.add('')
       locks.clear()
@@ -320,14 +324,21 @@ describe('OPFS storage adapter', () => {
             const lockKey = `opfs:${name}`
             const currentLock = locks.get(lockKey) ?? Promise.resolve()
 
-            const newLock: Promise<void> = currentLock.then(() => callback())
+            const newLock: Promise<void> = (async () => {
+              await currentLock
+              return callback()
+            })()
             locks.set(lockKey, newLock)
 
-            return newLock.finally(() => {
-              if (locks.get(lockKey) === newLock) {
-                locks.delete(lockKey)
+            return (async () => {
+              try {
+                return await newLock
+              } finally {
+                if (locks.get(lockKey) === newLock) {
+                  locks.delete(lockKey)
+                }
               }
-            })
+            })()
           },
         },
       })
@@ -375,7 +386,7 @@ describe('OPFS storage adapter', () => {
 
       const items = await adapter.readAll()
       expect(items.length).toBe(2)
-      expect(items.map(i => i.id).toSorted()).toEqual(['1', '2'])
+      expect(items.map(i => i.id).toSorted((a, b) => a.localeCompare(b))).toEqual(['1', '2'])
     })
 
     it('handles readIds and retrieves specific items', async () => {
@@ -566,10 +577,7 @@ describe('OPFS storage adapter', () => {
     it('throws when serialize returns non-string during index writes', async () => {
       const adapter = createOPFSAdapter<Item, string>('items', {
         serialize: (value: any) => {
-          if (Array.isArray(value) && value.every(entry => entry && 'id' in entry)) {
-            return JSON.stringify(value)
-          }
-          return value
+          return Array.isArray(value) && value.every(entry => entry && 'id' in entry) ? JSON.stringify(value) : value
         },
         deserialize: JSON.parse,
       })
@@ -610,7 +618,7 @@ describe('OPFS storage adapter', () => {
       const promises = []
       for (let i = 0; i < 10; i++) {
         promises.push(
-          adapter.insert([{ id: `${i}`, name: `Item${i}` }]),
+          adapter.insert([{ id: String(i), name: `Item${i}` }]),
         )
       }
 

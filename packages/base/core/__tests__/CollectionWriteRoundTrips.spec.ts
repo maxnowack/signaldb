@@ -48,7 +48,9 @@ describe('what a write asks the data layer for', () => {
   describe('with something validating items', () => {
     it('looks the item up so a validator sees it before the write', async () => {
       const seen: TestItem[] = []
-      collection.on('validate', item => seen.push(item))
+      collection.on('validate', (item) => {
+        seen.push(item)
+      })
 
       await collection.updateOne({ id: 'a' }, { $set: { name: 'Annabel' } })
 
@@ -69,7 +71,9 @@ describe('what a write asks the data layer for', () => {
 
     it('validates every item a batch update touches', async () => {
       const seen: TestItem[] = []
-      collection.on('validate', item => seen.push(item))
+      collection.on('validate', (item) => {
+        seen.push(item)
+      })
 
       await collection.updateMany({ status: 'open' }, { $set: { name: 'renamed' } })
 
@@ -79,7 +83,9 @@ describe('what a write asks the data layer for', () => {
 
     it('validates the replacement before replacing', async () => {
       const seen: TestItem[] = []
-      collection.on('validate', item => seen.push(item))
+      collection.on('validate', (item) => {
+        seen.push(item)
+      })
 
       await collection.replaceOne({ id: 'a' }, { status: 'done', rank: 9, name: 'Ann' })
 

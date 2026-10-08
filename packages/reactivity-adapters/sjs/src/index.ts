@@ -3,13 +3,13 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const sReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = S.data(true)
+    const dependency = S.data(true)
     return {
       depend: () => {
-        dep()
+        dependency()
       },
       notify: () => {
-        dep(true)
+        dependency(true)
       },
     }
   },

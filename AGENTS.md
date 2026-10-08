@@ -120,7 +120,7 @@ behind what `eslint.config.mjs` enforces.
 - **(MUST)** Use PascalCase for classes and types, camelCase for variables,
   functions and instances; file names are camelCase or PascalCase and match
   their default export (`src/utils/deepClone.ts` default exports `deepClone`).
-- **(MUST)** Spell names out — `unicorn/prevent-abbreviations` is on, and the
+- **(MUST)** Spell names out — `unicorn/name-replacements` is on, and the
   allow-list is deliberately short.
 - **(MUST)** No non-null assertions, no import cycles, no use of deprecated
   API. `@typescript-eslint/no-deprecated` is an error, so deprecating something

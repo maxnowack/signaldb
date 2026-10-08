@@ -100,16 +100,16 @@ function assertAnswerIsCoherent<T extends BaseItem>(
   sort: QueryShape<T>['sort'],
   fields: QueryShape<T>['fields'],
 ): void {
-  if (answer.windowed && hasResidual) {
+  if (hasResidual && answer.windowed) {
     throw new Error('StorageAdapter#query claimed `windowed` while leaving part of the '
       + 'selector unapplied; the window is over the wrong set')
   }
-  if (answer.windowed && sort != null && !answer.sorted) {
+  if (sort != null && answer.windowed && !answer.sorted) {
     throw new Error('StorageAdapter#query claimed `windowed` without `sorted` for a sorted '
       + 'query; the window is an arbitrary subset')
   }
-  const sortIsStillOwed = sort != null && !answer.sorted
-  if (answer.projected && sortIsStillOwed && !sortKeysSurviveProjection(sort, fields)) {
+  const isSortIsStillOwed = sort != null && !answer.sorted
+  if (isSortIsStillOwed && answer.projected && !canSortAfterProjection(sort, fields)) {
     throw new Error('StorageAdapter#query claimed `projected` without `sorted`, and the '
       + 'projection drops a key the sort needs')
   }
@@ -135,16 +135,16 @@ function applyWindow<T extends BaseItem>(items: T[], skip?: number, limit?: numb
  * @param fields - The query's projection, if any.
  * @returns `true` when the sort can still be applied to the projected items.
  */
-function sortKeysSurviveProjection<T extends BaseItem>(
+function canSortAfterProjection<T extends BaseItem>(
   sort: NonNullable<QueryShape<T>['sort']>,
   fields: QueryShape<T>['fields'],
 ): boolean {
   if (fields == null) return true
   const specKeys = Object.keys(fields)
-  const spec = fields as Record<string, unknown>
-  const excluding = specKeys.length > 0 && specKeys.every(key => !spec[key])
-  const covers = (key: string) => specKeys.some(entry => entry === key || key.startsWith(`${entry}.`))
-  return Object.keys(sort).every(key => (excluding ? !covers(key) : covers(key)))
+  const isExcluding = specKeys.length > 0 && Object.values(fields).every(value => !value)
+  const isCovered = (key: string) =>
+    specKeys.some(entry => entry === key || key.startsWith(`${entry}.`))
+  return Object.keys(sort).every(key => (isExcluding ? !isCovered(key) : isCovered(key)))
 }
 
 /**
@@ -179,17 +179,15 @@ async function readMatching<T extends BaseItem<I>, I = any>(
     indices.map(field => storageIndexQuery<T, I>(storageAdapter, field)),
     selector,
   )
-  const matchItems = (item: T) => {
-    if (indexInfo.optimizedSelector == null) return true
-    if (Object.keys(indexInfo.optimizedSelector).length <= 0) return true
-    return match(item, indexInfo.optimizedSelector)
+  const isMatchingItem = (item: T) => {
+    return indexInfo.optimizedSelector == null
+      || Object.keys(indexInfo.optimizedSelector).length === 0
+      || match(item, indexInfo.optimizedSelector)
   }
   if (indexInfo.matched) {
     const items = await storageAdapter.readIds(indexInfo.ids) as T[]
-    if (isEqual(indexInfo.optimizedSelector, {})) return items
-    return items.filter(matchItems)
+    return isEqual(indexInfo.optimizedSelector, {}) ? items : items.filter(isMatchingItem)
   }
   const allItems = await storageAdapter.readAll() as T[]
-  if (isEqual(selector, {})) return allItems
-  return allItems.filter(matchItems)
+  return isEqual(selector, {}) ? allItems : allItems.filter(isMatchingItem)
 }

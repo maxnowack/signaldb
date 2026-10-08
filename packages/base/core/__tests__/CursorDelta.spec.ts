@@ -33,10 +33,10 @@ const seed = (count: number): TestItem[] => Array.from({ length: count }, (_, in
 function createMessagePair() {
   const hostListeners: ((event: MessageEvent) => void)[] = []
   const clientListeners: ((event: MessageEvent) => void)[] = []
-  const deliver = (listeners: ((event: MessageEvent) => void)[], data: unknown) => {
-    const payload = structuredClone(data ?? null)
+  const deliver = (listeners: ((event: MessageEvent) => void)[], data: unknown = null) => {
+    const payload = structuredClone(data)
     queueMicrotask(() => {
-      [...listeners].forEach(listener => listener({ data: payload } as MessageEvent))
+      for (const listener of listeners) listener({ data: payload } as MessageEvent)
     })
   }
   const hostEndpoint: WorkerDataAdapterHostEndpoint = {
@@ -120,7 +120,11 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
   afterEach(async () => {
     runChecks.mockRestore()
     applyDelta.mockRestore()
-    await collection.dispose().catch(() => {})
+    try {
+      await collection.dispose()
+    } catch {
+      // the collection may already be gone
+    }
   })
 
   const observed = (selector: Record<string, any>, options?: Record<string, any>) => {
@@ -129,11 +133,11 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
     return {
       cursor,
       stop,
-      until: async (predicate: (items: TestItem[]) => boolean) => {
+      until: async (isExpected: (items: TestItem[]) => boolean) => {
         let current: TestItem[] = []
         await vi.waitFor(() => {
           current = scope.read(() => cursor.fetch())
-          expect(predicate(current)).toBe(true)
+          expect(isExpected(current)).toBe(true)
         }, { timeout: 2000, interval: 5 })
         return current
       },
@@ -163,7 +167,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
     const removed = vi.fn()
     const stop = cursor.observeChanges({ changed, added, removed }, true)
     await vi.waitFor(() => expect(scope.read(() => cursor.fetch())).toHaveLength(20))
-    ;[changed, added, removed].forEach(callback => callback.mockClear())
+    for (const callback of [changed, added, removed]) callback.mockClear()
 
     await collection.updateOne({ id: 'item-5' }, { $set: { name: 'renamed' } })
     await vi.waitFor(() => expect(changed).toHaveBeenCalled())
@@ -183,7 +187,7 @@ describe.each(Object.keys(adapters) as (keyof typeof adapters)[])('cursor update
     const addedBefore = vi.fn()
     const stop = cursor.observeChanges({ added, addedBefore }, true)
     await vi.waitFor(() => expect(scope.read(() => cursor.fetch())).toHaveLength(20))
-    ;[added, addedBefore].forEach(callback => callback.mockClear())
+    for (const callback of [added, addedBefore]) callback.mockClear()
 
     const item = { id: 'new', status: 'open', rank: -1, name: 'first' }
     await collection.insert(item)
@@ -258,7 +262,11 @@ describe('cursor updates for a collection with transformAll', () => {
   })
 
   afterEach(async () => {
-    await collection.dispose().catch(() => {})
+    try {
+      await collection.dispose()
+    } catch {
+      // the collection may already be gone
+    }
   })
 
   it('still reflects writes, by comparing rather than by applying a change', async () => {

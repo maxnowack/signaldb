@@ -29,8 +29,8 @@ export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(f
       }
 
       const fieldSelector = (selector as Record<string, any>)[field]
-      const filteresForNull = fieldSelector == null || fieldSelector.$exists === false
-      const keys = filteresForNull
+      const isFilteresForNull = fieldSelector == null || fieldSelector.$exists === false
+      const keys = isFilteresForNull
         ? { include: null, exclude: [...index.keys()].filter(key => key != null) }
         : getMatchingKeys<T, I>(field, selector)
       if (keys.include == null && keys.exclude == null) return { matched: false }
@@ -73,15 +73,15 @@ export default function createIndex<T extends BaseItem<I> = BaseItem, I = any>(f
         matched: true,
         ids: includedIds,
         fields: [field],
-        keepSelector: filteresForNull,
+        keepSelector: isFilteresForNull,
       }
     },
     rebuild(items) {
       index.clear()
-      items.forEach((item) => {
+      for (const item of items) {
         const value = serializeValue(get(item, field))
         ensureSet(value).add(item.id)
-      })
+      }
     },
 
     // NEW: delta methods

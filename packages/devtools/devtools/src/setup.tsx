@@ -2,13 +2,13 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import Root from './containers/Root'
 
-const clientside = typeof document !== 'undefined'
+const isClientside = typeof document !== 'undefined'
 
 /**
  * Sets up the development tools if running on the client side.
  */
 function setupDevtools() {
-  if (!clientside) return
+  if (!isClientside) return
 
   // return if devtools root already exists
   if (document.querySelector('#signaldb-devtools-root')) return

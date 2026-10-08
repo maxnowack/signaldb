@@ -1,11 +1,30 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import prepareIndexedDB from '../src'
 
 type Item = { id: number, name?: string, value?: string, tag?: string }
 
 class FakeStore {
-  data = new Map<number, Item>()
   private indexNamesSet = new Set<string>()
+  data = new Map<number, Item>()
+
+  private makeRequest(init: () => void, resultGetter?: () => any, shouldError?: boolean) {
+    const listeners: Record<string, ((event: any) => void)[]> = {}
+    const request: any = {
+      addEventListener(type: string, callback: (event: any) => void) {
+        (listeners[type] ||= []).push(callback)
+      },
+      error: shouldError ? { message: 'Test error' } : null,
+    }
+    if (resultGetter) {
+      Object.defineProperty(request, 'result', { get: resultGetter })
+    }
+    queueMicrotask(() => {
+      init()
+      const callbacks = (shouldError ? listeners.error : listeners.success) || []
+      for (const callback of callbacks) callback({})
+    })
+    return request
+  }
 
   get indexNames() {
     const names = [...this.indexNamesSet]
@@ -24,30 +43,8 @@ class FakeStore {
     this.indexNamesSet.delete(name)
   }
 
-  private makeRequest(init: () => void, resultGetter?: () => any, shouldError?: boolean) {
-    const listeners: Record<string, ((event: any) => void)[]> = {}
-    const request: any = {
-      addEventListener(type: string, callback: (event: any) => void) {
-        (listeners[type] ||= []).push(callback)
-      },
-      error: shouldError ? { message: 'Test error' } : null,
-    }
-    if (resultGetter) {
-      Object.defineProperty(request, 'result', { get: resultGetter })
-    }
-    queueMicrotask(() => {
-      init()
-      if (shouldError) {
-        for (const callback of listeners.error || []) callback({})
-      } else {
-        for (const callback of listeners.success || []) callback({})
-      }
-    })
-    return request
-  }
-
   getAll() {
-    return this.makeRequest(() => {}, () => [...this.data.values()])
+    return this.makeRequest(() => {}, () => this.data.values().toArray())
   }
 
   get(id: number) {
@@ -82,7 +79,7 @@ class FakeStore {
   }
 
   index(field: string) {
-    const entries = [...this.data.values()].map(v => ({ key: (v as any)[field], value: v }))
+    const entries = this.data.values().map(v => ({ key: (v as any)[field], value: v })).toArray()
     return {
       openCursor: () => {
         const listeners: Record<string, ((event: any) => void)[]> = {}
@@ -105,7 +102,8 @@ class FakeStore {
           } else {
             current = null
           }
-          for (const callback of listeners.success || []) callback({})
+          const callbacks = listeners.success || []
+          for (const callback of callbacks) callback({})
         }
         queueMicrotask(emitSuccess)
         return request
@@ -158,38 +156,40 @@ class FakeDB {
 }
 
 class FakeOpenRequest {
+  private listeners: Record<string, ((event: any) => void)[]> = {}
   result!: FakeDB
   transaction!: { objectStore: (name: string) => FakeStore }
   error: Error | null = null
-  private listeners: Record<string, ((event: any) => void)[]> = {}
 
   addEventListener(type: string, callback: (event: any) => void) {
     (this.listeners[type] ||= []).push(callback)
   }
 
   dispatch(type: string, event: any) {
-    (this.listeners[type] || []).forEach(fn => fn(event))
+    const callbacks = this.listeners[type] || []
+    for (const fn of callbacks) fn(event)
   }
 }
 
 let database: FakeDB
 
 beforeEach(() => {
+  // eslint-disable-next-line unicorn/no-top-level-assignment-in-function -- fresh fake per test
   database = new FakeDB()
-  const openFunction = (_name: string, version?: number) => {
+  const openFunction = (_name: string, version = 1) => {
     const request = new FakeOpenRequest()
-    database.version = version || 1
+    database.version = version
     queueMicrotask(() => {
       request.result = database
       request.transaction = {
         objectStore: (name: string) => database.getStore(name),
       }
-      request.dispatch('upgradeneeded', { oldVersion: 0, newVersion: version || 1 })
+      request.dispatch('upgradeneeded', { oldVersion: 0, newVersion: version })
       request.dispatch('success', {})
     })
     return request as any
   }
-  ;(globalThis as any).indexedDB = { open: openFunction }
+  vi.stubGlobal('indexedDB', { open: openFunction })
 })
 
 describe('indexeddb adapter comprehensive coverage', () => {
@@ -215,7 +215,7 @@ describe('indexeddb adapter comprehensive coverage', () => {
   })
 
   it('should call onUpgrade callback during database upgrade', async () => {
-    let upgradeCalled = false
+    let isUpgradeCalled = false
     // Ensure the store gets created during upgrade
     database.createObjectStore('items')
 
@@ -223,14 +223,14 @@ describe('indexeddb adapter comprehensive coverage', () => {
       version: 1,
       schema: { items: ['name'] },
       onUpgrade: async (_database, _tx, oldVersion, newVersion) => {
-        upgradeCalled = true
+        isUpgradeCalled = true
         expect(oldVersion).toBe(0)
         expect(newVersion).toBe(1)
       },
     })
     const adapter = prepare<Item, number>('items')
     await adapter.setup()
-    expect(upgradeCalled).toBe(true)
+    expect(isUpgradeCalled).toBe(true)
   })
 
   it('should delete stores not in schema during upgrade', async () => {
@@ -349,7 +349,7 @@ describe('indexeddb adapter comprehensive coverage', () => {
 
     const all = await adapter.readAll()
     expect(all.length).toBe(2)
-    expect(all.map(i => i.id).toSorted()).toEqual([1, 2])
+    expect(all.map(i => i.id).toSorted((a, b) => a - b)).toEqual([1, 2])
   })
 
   it('should perform readIds operation', async () => {
@@ -368,7 +368,7 @@ describe('indexeddb adapter comprehensive coverage', () => {
 
     const items = await adapter.readIds([1, 3])
     expect(items.length).toBe(2)
-    expect(items.map(i => i.id).toSorted()).toEqual([1, 3])
+    expect(items.map(i => i.id).toSorted((a, b) => a - b)).toEqual([1, 3])
   })
 
   it('should filter out null results when reading ids', async () => {
@@ -524,7 +524,7 @@ describe('indexeddb adapter comprehensive coverage', () => {
       })
       return request as any
     }
-    ;(globalThis as any).indexedDB = { open: brokenOpenFunction }
+    vi.stubGlobal('indexedDB', { open: brokenOpenFunction })
 
     const prepare = prepareIndexedDB({
       version: 1,
@@ -545,7 +545,7 @@ describe('indexeddb adapter comprehensive coverage', () => {
       })
       return request as any
     }
-    ;(globalThis as any).indexedDB = { open: errorOpenFunction }
+    vi.stubGlobal('indexedDB', { open: errorOpenFunction })
 
     const prepare = prepareIndexedDB({
       version: 1,
@@ -557,21 +557,21 @@ describe('indexeddb adapter comprehensive coverage', () => {
   })
 
   it('should handle onUpgrade error', async () => {
-    const errorOpenFunction = (_name: string, _version?: number) => {
+    const errorOpenFunction = (_name: string, version = 1) => {
       const request = new FakeOpenRequest()
       queueMicrotask(() => {
         request.result = database
         request.transaction = {
           objectStore: (name: string) => database.getStore(name),
         }
-        request.dispatch('upgradeneeded', { oldVersion: 0, newVersion: _version || 1 })
+        request.dispatch('upgradeneeded', { oldVersion: 0, newVersion: version })
         // Trigger error after upgradeneeded
         request.error = new Error('Upgrade failed')
         request.dispatch('error', {})
       })
       return request as any
     }
-    ;(globalThis as any).indexedDB = { open: errorOpenFunction }
+    vi.stubGlobal('indexedDB', { open: errorOpenFunction })
 
     const prepare = prepareIndexedDB({
       version: 1,

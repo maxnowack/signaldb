@@ -4,6 +4,7 @@ import WorkerDataAdapterHost from '../src/WorkerDataAdapterHost'
 import type { WorkerDataAdapterHostEndpoint } from '../src/WorkerDataAdapterHost'
 import type Selector from '../src/types/Selector'
 import memoryStorageAdapter from './helpers/memoryStorageAdapter'
+import compareCodeUnits from './helpers/compareCodeUnits'
 
 // The host answers a query through its own index providers, built on
 // `readIndex` and `getMatchingKeys`. An unindexed `Collection` answers the same
@@ -58,13 +59,12 @@ const selectors: Record<string, Selector<Document_>> = {
 
 describe('WorkerDataAdapterHost selector parity', () => {
   beforeAll(() => {
-    globalThis.addEventListener = () => {}
-    globalThis.postMessage = () => {}
+    vi.stubGlobal('addEventListener', () => {})
+    vi.stubGlobal('postMessage', () => {})
   })
 
   afterAll(() => {
-    globalThis.addEventListener = undefined as unknown as typeof globalThis.addEventListener
-    globalThis.postMessage = undefined as unknown as typeof globalThis.postMessage
+    vi.unstubAllGlobals()
   })
 
   it.each(Object.entries(selectors))('answers %s like an unindexed collection', async (_name, selector) => {
@@ -91,9 +91,13 @@ describe('WorkerDataAdapterHost selector parity', () => {
     for (const item of seed) await reference.insert({ ...item })
 
     const response = await send('executeQuery', ['items', selector, undefined])
-    const fromHost = ((response?.data as Document_[]) ?? []).map(item => item.id).toSorted()
+    const fromHost = ((response?.data as Document_[]) ?? [])
+      .map(item => item.id)
+      .toSorted(compareCodeUnits)
     const referenceItems = await reference.find(selector, { async: true }).fetch()
-    const fromReference = referenceItems.map(item => item.id).toSorted()
+    const fromReference = referenceItems
+      .map(item => item.id)
+      .toSorted(compareCodeUnits)
 
     expect(fromHost).toEqual(fromReference)
   })

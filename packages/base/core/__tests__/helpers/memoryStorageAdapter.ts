@@ -36,7 +36,7 @@ export default function memoryStorageAdapter<
 ) {
   // not really a "storage adapter", but it works for testing
   let items = new Map<I, T>()
-  initialData.forEach(item => items.set(item.id, item))
+  for (const item of initialData) items.set(item.id, item)
   // Keyed by `serializeValue`, which is what `StorageAdapter.readIndex`
   // promises — storing the raw values here made every query on a non-string
   // indexed field silently wrong, and hid that from every test using this
@@ -64,14 +64,14 @@ export default function memoryStorageAdapter<
       if (delay != null) await new Promise((resolve) => {
         setTimeout(resolve, delay)
       })
-      return [...items.values()]
+      return items.values().toArray()
     },
     readIds: (ids) => {
       const result: T[] = []
-      ids.forEach((id) => {
+      for (const id of ids) {
         const item = items.get(id)
         if (item) result.push(item)
-      })
+      }
       return Promise.resolve(result)
     },
 
@@ -106,23 +106,23 @@ export default function memoryStorageAdapter<
     },
 
     insert: (newItems) => {
-      newItems.forEach((item) => {
+      for (const item of newItems) {
         items.set(item.id, item)
-      })
+      }
       rebuildIndexes()
       return Promise.resolve()
     },
     replace: (newItems) => {
-      newItems.forEach((item) => {
+      for (const item of newItems) {
         items.set(item.id, item)
-      })
+      }
       rebuildIndexes()
       return Promise.resolve()
     },
     remove: (itemsToRemove) => {
-      itemsToRemove.forEach((item) => {
+      for (const item of itemsToRemove) {
         items.delete(item.id)
-      })
+      }
       rebuildIndexes()
       return Promise.resolve()
     },

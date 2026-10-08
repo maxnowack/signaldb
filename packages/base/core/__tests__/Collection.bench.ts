@@ -94,9 +94,9 @@ describe('Collection benchmarks', () => {
       if (fields?.parent) {
         const foreignKeys = [...new Set(items.map(item => item.parent))]
         const relatedItems = col1.find({ id: { $in: foreignKeys } }).fetch()
-        items.forEach((item) => {
+        for (const item of items) {
           item.parent = relatedItems.find(related => related.id === item.parent)
-        })
+        }
       }
       return items
     }
@@ -111,9 +111,8 @@ describe('Collection benchmarks', () => {
     })
 
     await bench.compare(
-      bench('default', () => {
-        col2.find().map(value => value.parent = col1.findOne({ id: value.parent }))
-      }),
+      bench('default', () =>
+        col2.find().map(value => value.parent = col1.findOne({ id: value.parent }))),
       bench('transformAll', () => {
         col2.find({}, { fields: { parent: 1 } }).fetch()
       }),

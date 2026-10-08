@@ -7,40 +7,40 @@ const { spawn } = require('child_process')
 const os = require('os')
 
 // --- Helpers ---------------------------------------------------------------
-function runNpmBuild(cwd, options = {}) {
-  const { verbose = process.env.BUILD_VERBOSE === '1' || process.env.BUILD_VERBOSE === 'true' } = options
+function runNpmBuild(cwd) {
+  const isVerbose = process.env.BUILD_VERBOSE === '1' || process.env.BUILD_VERBOSE === 'true'
   return new Promise((resolve, reject) => {
-    const cmd = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+    const command = process.platform === 'win32' ? 'npm.cmd' : 'npm'
     const args = ['run', '-s', 'build'] // -s/--silent to quiet npm itself
 
-    const child = spawn(cmd, args, {
+    const child = spawn(command, args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
-    let stdoutBuf = ''
-    let stderrBuf = ''
+    let stdoutBuffer = ''
+    let stderrBuffer = ''
 
     child.stdout.on('data', (chunk) => {
-      if (verbose) {
+      if (isVerbose) {
         process.stdout.write(chunk)
       } else {
-        stdoutBuf += chunk.toString()
+        stdoutBuffer += chunk.toString()
       }
     })
 
     child.stderr.on('data', (chunk) => {
-      if (verbose) {
+      if (isVerbose) {
         process.stderr.write(chunk)
       } else {
-        stderrBuf += chunk.toString()
+        stderrBuffer += chunk.toString()
       }
     })
 
     child.on('error', reject)
     child.on('close', (code) => {
       if (code === 0) return resolve()
-      const tail = (stdoutBuf + '\n' + stderrBuf)
+      const tail = (stdoutBuffer + '\n' + stderrBuffer)
         .split(/\r?\n/)
         .slice(-40)
         .join('\n')
@@ -96,37 +96,39 @@ async function hasBuildScript(directory) {
 }
 
 // --- Main -----------------------------------------------------------------
-(async function main() {
-  const repoRoot = path.resolve(__dirname, '..')
+async function main() {
+  const repositoryRoot = path.resolve(__dirname, '..')
 
   // 1) Build base/core first
-  const coreDirectory = path.join(repoRoot, 'packages', 'base', 'core')
+  const coreDirectory = path.join(repositoryRoot, 'packages', 'base', 'core')
   await runNpmBuild(coreDirectory)
-  console.log(`Built ${path.relative(repoRoot, coreDirectory)}`)
+  console.log(`Built ${path.relative(repositoryRoot, coreDirectory)}`)
 
   // 2) Build storage-adapters/generic-fs second
   const genericFsDirectory = path.join(
-    repoRoot,
+    repositoryRoot,
     'packages',
     'storage-adapters',
     'generic-fs',
   )
   await runNpmBuild(genericFsDirectory)
-  console.log(`Built ${path.relative(repoRoot, genericFsDirectory)}`)
+  console.log(`Built ${path.relative(repositoryRoot, genericFsDirectory)}`)
 
   // 3) Build everything else in parallel
   const groups = [
-    { dir: path.join(repoRoot, 'packages', 'base'), exclude: new Set(['core']) },
-    { dir: path.join(repoRoot, 'packages', 'devtools'), exclude: new Set() },
-    { dir: path.join(repoRoot, 'packages', 'integrations'), exclude: new Set() },
+    { dir: path.join(repositoryRoot, 'packages', 'base'), exclude: new Set(['core']) },
+    { dir: path.join(repositoryRoot, 'packages', 'devtools'), exclude: new Set() },
+    { dir: path.join(repositoryRoot, 'packages', 'integrations'), exclude: new Set() },
     {
-      dir: path.join(repoRoot, 'packages', 'storage-adapters'),
+      dir: path.join(repositoryRoot, 'packages', 'storage-adapters'),
       exclude: new Set(['generic-fs']),
     },
-    { dir: path.join(repoRoot, 'packages', 'reactivity-adapters'), exclude: new Set() },
+    { dir: path.join(repositoryRoot, 'packages', 'reactivity-adapters'), exclude: new Set() },
   ]
 
-  /** Collect package directories that actually have a build script */
+  /**
+  Collect package directories that actually have a build script
+   */
   const directoriesToBuild = []
   for (const g of groups) {
     const subdirs = await listSubdirs(g.dir)
@@ -136,7 +138,7 @@ async function hasBuildScript(directory) {
       if (await hasBuildScript(d)) {
         directoriesToBuild.push(d)
       } else {
-        console.log(`[skip] ${path.relative(repoRoot, d)} (no npm run build)`)
+        console.log(`[skip] ${path.relative(repositoryRoot, d)} (no npm run build)`)
       }
     }
   }
@@ -147,20 +149,26 @@ async function hasBuildScript(directory) {
   }
 
   const cpuCount = os.cpus ? os.cpus().length : 1
-  const maxConcurrency = Math.max(1, Number.parseInt(process.env.BUILD_CONCURRENCY || '', 10) || cpuCount)
+  const maxConcurrency = Math.max(1, Math.trunc(Number(process.env.BUILD_CONCURRENCY || '')) || cpuCount)
 
   console.log(`Building ${directoriesToBuild.length} packages in parallel (up to ${maxConcurrency} workers)`)
   await runInPool(
     directoriesToBuild,
     async (directory) => {
       await runNpmBuild(directory)
-      console.log(`Built ${path.relative(repoRoot, directory)}`)
+      console.log(`Built ${path.relative(repositoryRoot, directory)}`)
     },
     maxConcurrency,
   )
 
   console.log('✅ All builds completed successfully.')
-})().catch((error) => {
-  console.error('❌ build-all failed:\n', error && error.stack ? error.stack : error)
-  process.exit(1)
-})
+}
+
+void (async () => {
+  try {
+    await main()
+  } catch (error) {
+    console.error('❌ build-all failed:\n', error && error.stack ? error.stack : error)
+    process.exit(1)
+  }
+})()

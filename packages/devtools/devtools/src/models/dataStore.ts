@@ -39,16 +39,16 @@ const handlers = {
   ) => {
     let newQueries = [...dataStore.getItem('queries')?.items || []]
     // increase the count of the query with same selector and options if it exists
-    let exists = false
+    let isExists = false
     newQueries = newQueries.map((query) => {
       if (collection.name === query.collectionName && callstack === query.callstack) {
-        exists = true
+        isExists = true
         return { ...query, count: query.count + 1, lastTime: Date.now() }
       }
       return query
     })
     // add the query if it does not exist
-    if (!exists) {
+    if (!isExists) {
       newQueries.push({
         id: randomId(),
         collectionName: collection.name,
@@ -214,19 +214,20 @@ function isCategoryActive(category: string) {
  * @param currentCollections - The collections to register handlers for.
  */
 function registerHandlers(currentCollections: Collection<any>[]) {
-  currentCollections.forEach((collection) => {
-    Object.entries(handlers).forEach(([key, handler]) => {
-      const activated = handlerCategories[key].some(category => isCategoryActive(category))
+  for (const collection of currentCollections) {
+    for (const [key, handler] of Object.entries(handlers)) {
+      const isActivated = handlerCategories[key].some(category => isCategoryActive(category))
 
       const wrappedHandler = wrapHandler(handler, collection)
       collection.off(key as any, wrappedHandler) // Ensure previous handler is removed
 
-      if (!activated) return
+      if (!isActivated) continue
       collection.on(key as any, wrappedHandler) // Register the wrapped handler
-    })
-  })
+    }
+  }
 }
 
+/* eslint-disable unicorn/no-top-level-side-effects -- devtools register on import */
 settingsStore.subscribe(() => {
   registerHandlers((dataStore.getItem('collections')?.items || []) as Collection<any>[])
 })
@@ -245,5 +246,6 @@ Collection.onDispose(() => {
 })
 
 dataStore.register('queries', { items: [] })
+/* eslint-enable unicorn/no-top-level-side-effects */
 
 export default dataStore

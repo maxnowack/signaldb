@@ -44,7 +44,7 @@ describe('getIndexInfo', () => {
       if (!Object.hasOwn(selector, 'a')) return noMatch
       return {
         matched: true,
-        ids: selector.a === 1 ? ['1'] : ['2'],
+        ids: [selector.a === 1 ? '1' : '2'],
         fields: ['a'],
         keepSelector: false,
       }
@@ -61,7 +61,7 @@ describe('getIndexInfo', () => {
       if (!Object.hasOwn(selector, 'a')) return noMatch
       return {
         matched: true,
-        ids: selector.a === 1 ? ['1'] : ['2'],
+        ids: [selector.a === 1 ? '1' : '2'],
         fields: ['a'],
         keepSelector: false,
       }

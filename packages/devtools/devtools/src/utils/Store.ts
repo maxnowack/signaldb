@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react'
  * @param currentState - The current state.
  * @returns Returns true if the states are different, otherwise false.
  */
-function defaultDidChange<T extends Record<string, any>>(
+function didStateChange<T extends Record<string, any>>(
   previousState: T,
   currentState: T,
 ) {
@@ -50,7 +50,7 @@ export default class Store<T extends Record<string, any>> {
   use(): T
   use<U>(
     selector?: (state: T) => U,
-    didChange: (previousState: T, currentState: T) => boolean = defaultDidChange<T>,
+    didChange: (previousState: T, currentState: T) => boolean = didStateChange<T>,
   ) {
     return useSyncExternalStore(
       (onChange) => {

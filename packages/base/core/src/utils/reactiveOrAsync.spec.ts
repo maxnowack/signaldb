@@ -19,9 +19,9 @@ describe('reactiveOrAsync / unwrap', () => {
     const context = { base: 10 }
 
     const fn = reactiveOrAsync<typeof context, [number], number, number>(
-      function* (this: typeof context, a: boolean, x: number) {
-        // `a` indicates async-mode; should be false here
-        if (a) throw new Error('expected sync mode')
+      function* (this: typeof context, isAsync: boolean, x: number) {
+        // `isAsync` indicates async-mode; should be false here
+        if (isAsync) throw new Error('expected sync mode')
 
         const v1 = yield x
         const v2 = yield* unwrap(v1 + this.base)
@@ -45,13 +45,15 @@ describe('reactiveOrAsync / unwrap', () => {
   })
 
   it('sync mode: throws a helpful error if a thenable/Promise is yielded', () => {
-    const fn = reactiveOrAsync<unknown, [], number, number>(function* (this: unknown, a: boolean) {
-      void this
-      void a
-      // In sync mode, yielding a Promise (or thenable) is a programming error.
-      const v = yield* unwrap(Promise.resolve(1))
-      return v
-    })
+    const fn = reactiveOrAsync<unknown, [], number, number>(
+      function* (this: unknown, isAsync: boolean) {
+        void this
+        void isAsync
+        // In sync mode, yielding a Promise (or thenable) is a programming error.
+        const v = yield* unwrap(Promise.resolve(1))
+        return v
+      },
+    )
 
     expect(() => fn()).toThrow(new Error('Promise yielded in sync flow'))
   })
@@ -60,8 +62,8 @@ describe('reactiveOrAsync / unwrap', () => {
     const context = { base: 3 }
 
     const fn = reactiveOrAsync<typeof context, [number], number, number>(
-      function* (this: typeof context, a: boolean, x: number) {
-        if (!a) throw new Error('expected async mode')
+      function* (this: typeof context, isAsync: boolean, x: number) {
+        if (!isAsync) throw new Error('expected async mode')
 
         // thenable -> awaited by the runner
         const p = yield* unwrap(Promise.resolve(x + 1)) // -> 5 when x=4
@@ -79,9 +81,9 @@ describe('reactiveOrAsync / unwrap', () => {
 
   it('mode detection: a last-arg object without "async" is treated as a normal parameter (including null)', () => {
     const fn = reactiveOrAsync<unknown, [any], any, any>(
-      function* (this: unknown, a: boolean, object: any) {
+      function* (this: unknown, isAsync: boolean, object: any) {
         void this
-        void a
+        void isAsync
         const got = yield object
         return got
       },

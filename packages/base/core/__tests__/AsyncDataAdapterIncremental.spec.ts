@@ -47,12 +47,12 @@ describe('AsyncDataAdapter incremental query updates', () => {
   const settledResult = async (
     querySelector: Record<string, any>,
     queryOptions: QueryOptions<TestItem>,
-    predicate: (items: TestItem[]) => boolean,
+    isExpected: (items: TestItem[]) => boolean,
   ) => {
     let current: TestItem[] = []
     await vi.waitFor(() => {
       current = backend.getQueryResult(querySelector, queryOptions)
-      expect(predicate(current)).toBe(true)
+      expect(isExpected(current)).toBe(true)
     })
     return current
   }
@@ -190,7 +190,9 @@ describe('AsyncDataAdapter incremental query updates', () => {
       await registerAndSettle(selector, options)
 
       const states: string[] = []
-      backend.onQueryStateChange(selector, options, state => states.push(state))
+      backend.onQueryStateChange(selector, options, (state) => {
+        states.push(state)
+      })
       await backend.updateOne({ id: 'a' }, { $set: { name: 'Annabel' } })
       await settledResult(selector, options, items => items.some(item => item.name === 'Annabel'))
 

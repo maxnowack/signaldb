@@ -46,7 +46,7 @@ export default function memoryStorageAdapter<
 ) {
   // not really a "persistence adapter", but it works for testing
   let items = new Map<I, T>()
-  initialData.forEach(item => items.set(item.id, item))
+  for (const item of initialData) items.set(item.id, item)
   const indexes = new Map<keyof T & string, Map<T[keyof T & string], Set<I>>>()
 
   const rebuildIndexes = () => {
@@ -70,14 +70,14 @@ export default function memoryStorageAdapter<
       if (delay != null) await new Promise((resolve) => {
         setTimeout(resolve, delay)
       })
-      return [...items.values()]
+      return items.values().toArray()
     },
     readIds: (ids) => {
       const result: T[] = []
-      ids.forEach((id) => {
+      for (const id of ids) {
         const item = items.get(id)
         if (item) result.push(item)
-      })
+      }
       return Promise.resolve(result)
     },
 
@@ -102,22 +102,22 @@ export default function memoryStorageAdapter<
     },
 
     insert: (newItems) => {
-      newItems.forEach((item) => {
+      for (const item of newItems) {
         items.set(item.id, item)
-      })
+      }
       rebuildIndexes()
       return Promise.resolve()
     },
     replace: (newItems) => {
-      newItems.forEach((item) => {
+      for (const item of newItems) {
         items.set(item.id, item)
-      })
+      }
       return Promise.resolve()
     },
     remove: (itemsToRemove) => {
-      itemsToRemove.forEach((item) => {
+      for (const item of itemsToRemove) {
         items.delete(item.id)
-      })
+      }
       return Promise.resolve()
     },
     removeAll: () => {
@@ -472,8 +472,8 @@ it('should handle sync errors and update sync operation status', async () => {
   await expect(syncManager.sync('test')).rejects.toThrow()
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Sync failed'))
-  const syncOperation = await syncManager.isSyncing('test', true)
-  expect(syncOperation).toBe(false)
+  const isSyncOperation = await syncManager.isSyncing('test', true)
+  expect(isSyncOperation).toBe(false)
 })
 
 it('should merge field-level changes when one client is offline', async () => {
@@ -502,12 +502,12 @@ it('should merge field-level changes when one client is offline', async () => {
   }
   serverDocuments.set(seed.id, seed)
 
-  const snapshot = () => [...serverDocuments.values()].map(document => ({
+  const snapshot = () => serverDocuments.values().map(document => ({
     id: document.id,
     title: document.title,
     completed: document.completed,
     order: document.order,
-  }))
+  })).toArray()
 
   const notifyAll = () => {
     const data = { items: snapshot() } satisfies LoadResponse<TodoItem>
@@ -518,25 +518,25 @@ it('should merge field-level changes when one client is offline', async () => {
 
   const extractFieldTimes = (rawChanges: RawChange[]) => {
     const times = new Map<string, Map<Field, number>>()
-    rawChanges.forEach((change) => {
-      if (change.type === 'remove') return
+    for (const change of rawChanges) {
+      if (change.type === 'remove') continue
       const id = change.data.id
       const fields: Field[] = []
       if (change.type === 'insert') {
         fields.push('title', 'completed', 'order')
       } else if (change.type === 'update') {
         const keys = Object.keys(change.data.modifier?.$set || {})
-        keys.forEach((key) => {
-          if (key === 'title' || key === 'completed' || key === 'order') fields.push(key)
-        })
+        for (const key of keys) {
+          if (['title', 'completed', 'order'].includes(key)) fields.push(key as Field)
+        }
       }
       if (!times.has(id)) times.set(id, new Map())
       const entry = times.get(id) as Map<Field, number>
-      fields.forEach((field) => {
+      for (const field of fields) {
         const current = entry.get(field)
         if (current == null || change.time > current) entry.set(field, change.time)
-      })
-    })
+      }
+    }
     return times
   }
 
@@ -575,32 +575,44 @@ it('should merge field-level changes when one client is offline', async () => {
       const current = document.meta[field]
       const isNewer = incomingTime > current.time
         || (incomingTime === current.time && clientId > current.clientId)
-      if (isNewer) {
-        if (field === 'title') document.title = value as string
-        if (field === 'completed') document.completed = value as boolean
-        if (field === 'order') document.order = value as number
-        document.meta[field] = { time: incomingTime, clientId }
+      if (!isNewer) {
+        return
       }
+
+      switch (field) {
+        case 'title': {
+          document.title = value as string
+          break
+        }
+        case 'completed': {
+          document.completed = value as boolean
+          break
+        }
+        case 'order': {
+          document.order = value as number
+          break
+        }
+      }
+      document.meta[field] = { time: incomingTime, clientId }
     }
 
-    changes.added.forEach((item) => {
+    for (const item of changes.added) {
       const document = ensureDocument(item.id)
       applyField(document, 'title', item.title)
       applyField(document, 'completed', item.completed)
       applyField(document, 'order', item.order)
-    })
+    }
 
-    changes.modified.forEach((item) => {
+    for (const item of changes.modified) {
       const document = ensureDocument(item.id)
       const fields = changes.modifiedFields.get(item.id) || []
-      fields.forEach((field) => {
-        if (field === 'title') applyField(document, field, item.title)
-        if (field === 'completed') applyField(document, field, item.completed)
-        if (field === 'order') applyField(document, field, item.order)
-      })
-    })
+      for (const field of fields) {
+        if (!['title', 'completed', 'order'].includes(field)) continue
+        applyField(document, field as Field, item[field as Field])
+      }
+    }
 
-    changes.removed.forEach(item => serverDocuments.delete(item.id))
+    for (const item of changes.removed) serverDocuments.delete(item.id)
   }
 
   const createClient = (clientId: 'A' | 'B') => {
@@ -699,10 +711,10 @@ it('should handle pull errors and update sync operation status', async () => {
 
   await expect(syncManager.sync('test')).rejects.toThrow('Pull failed')
 
-  const syncOperation = await syncManager.isSyncing('test', true)
+  const isSyncOperation = await syncManager.isSyncing('test', true)
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
-  expect(syncOperation).toBe(false)
+  expect(isSyncOperation).toBe(false)
 })
 
 it('should handle pull errors and update sync operation status after first sync', async () => {
@@ -731,10 +743,10 @@ it('should handle pull errors and update sync operation status after first sync'
 
   await expect(syncManager.sync('test')).rejects.toThrow('Pull failed')
 
-  const syncOperation = await syncManager.isSyncing('test', true)
+  const isSyncOperation = await syncManager.isSyncing('test', true)
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Pull failed'))
-  expect(syncOperation).toBe(false)
+  expect(isSyncOperation).toBe(false)
 })
 
 it('should handle push errors and update sync operation status', async () => {
@@ -762,8 +774,8 @@ it('should handle push errors and update sync operation status', async () => {
 
   expect(onError).toHaveBeenCalledTimes(1)
   expect(onError).toHaveBeenCalledWith({ name: 'test' }, new Error('Push failed'))
-  const syncOperation = await syncManager.isSyncing('test', true)
-  expect(syncOperation).toBe(false)
+  const isSyncOperation = await syncManager.isSyncing('test', true)
+  expect(isSyncOperation).toBe(false)
 })
 
 it('should register and apply remote changes with items', async () => {
@@ -806,10 +818,7 @@ it('should register and apply remote changes with changes', async () => {
   let callCount = 0
   const mockPull = vi.fn<() => Promise<LoadResponse<TestItem>>>().mockImplementation(() => {
     callCount += 1
-    if (callCount <= 1) {
-      return Promise.resolve({ items: [{ id: '1', name: 'Test Item' }] })
-    }
-    return Promise.resolve({ changes: { added: [], modified: [], removed: [] } })
+    return callCount <= 1 ? Promise.resolve({ items: [{ id: '1', name: 'Test Item' }] }) : Promise.resolve({ changes: { added: [], modified: [], removed: [] } })
   })
 
   const mockPush = vi.fn<(options: any, pushParameters: any) => Promise<void>>()
@@ -1343,7 +1352,7 @@ it('should start sync after internal collections are ready', async () => {
     push: mockPush,
   })
 
-  let persistenceInitialized = false
+  let isPersistenceInitialized = false
   const readiness: Promise<unknown>[] = [
     // @ts-expect-error - private property
     Promise.resolve(syncManager.syncOperations.isReady()),
@@ -1353,7 +1362,7 @@ it('should start sync after internal collections are ready', async () => {
     Promise.resolve(syncManager.snapshots.isReady()),
   ]
   void Promise.all(readiness).then(() => {
-    persistenceInitialized = true
+    isPersistenceInitialized = true
   })
 
   const collection = withAsyncQueries(new Collection<TestItem, string, any>())
@@ -1361,12 +1370,12 @@ it('should start sync after internal collections are ready', async () => {
 
   expect(mockStorageAdapter.readAll).not.toHaveBeenCalled()
   expect(mockPull).not.toHaveBeenCalled()
-  expect(persistenceInitialized).toBeFalsy()
+  expect(isPersistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
   expect(mockPull).toHaveBeenCalled()
   expect(mockStorageAdapter.readAll).toHaveBeenCalledBefore(mockPull)
-  expect(persistenceInitialized).toBeTruthy()
+  expect(isPersistenceInitialized).toBeTruthy()
 })
 
 it('should start sync after collection is ready', async () => {
@@ -1399,21 +1408,21 @@ it('should start sync after collection is ready', async () => {
   const collection = withAsyncQueries(new Collection<TestItem, string, any>({
     persistence: mockStorageAdapter,
   }))
-  let persistenceInitialized = false
+  let isPersistenceInitialized = false
   void collection.ready().then(() => {
-    persistenceInitialized = true
+    isPersistenceInitialized = true
   })
 
   syncManager.addCollection(collection, { name: 'test' })
 
   expect(mockPull).not.toHaveBeenCalled()
   expect(mockStorageAdapter.readAll).not.toHaveBeenCalled()
-  expect(persistenceInitialized).toBeFalsy()
+  expect(isPersistenceInitialized).toBeFalsy()
   await syncManager.sync('test')
 
   expect(mockPull).toHaveBeenCalled()
   expect(mockStorageAdapter.readAll).toHaveBeenCalledBefore(mockPull)
-  expect(persistenceInitialized).toBeTruthy()
+  expect(isPersistenceInitialized).toBeTruthy()
 })
 
 // (removed) forward storage error handler test — not needed for coverage
@@ -1446,25 +1455,25 @@ it('should fail if there was a persistence error during initialization', async (
     push: mockPush,
   })
 
-  let persistenceError = false
+  let isPersistenceError = false
   const dataAdapter = new DefaultDataAdapter({
     storage: () => mockStorageAdapter,
     onError: (name, error) => {
-      persistenceError = true
+      isPersistenceError = true
       errorHandler(name, error)
     },
   })
   const collection = withAsyncQueries(new Collection<TestItem, string, any>('test', dataAdapter))
-  let persistenceInitialized = false
+  let isPersistenceInitialized = false
   void collection.ready().then(() => {
-    persistenceInitialized = true
-  }, () => { /* asserted through sync() below */ })
+    isPersistenceInitialized = true
+  }).catch(() => { /* asserted through sync() below */ })
 
   syncManager.addCollection(collection, { name: 'test' })
 
   expect(mockPull).not.toHaveBeenCalled()
-  expect(persistenceInitialized).toBeFalsy()
-  expect(persistenceError).toBeFalsy()
+  expect(isPersistenceInitialized).toBeFalsy()
+  expect(isPersistenceError).toBeFalsy()
 
   await expect(syncManager.sync('test')).rejects.toThrow('Persistence error')
 
@@ -1472,8 +1481,8 @@ it('should fail if there was a persistence error during initialization', async (
 
   // a collection whose stored data could not be loaded is not synced into
   expect(mockPull).not.toHaveBeenCalled()
-  expect(persistenceInitialized).toBeFalsy()
-  expect(persistenceError).toBeTruthy()
+  expect(isPersistenceInitialized).toBeFalsy()
+  expect(isPersistenceError).toBeTruthy()
 })
 
 it('should start sync if autostart is enabled', async () => {
@@ -1701,9 +1710,9 @@ it('should trigger sync when using $set on an array to modify an object/item inl
   }))
   const push = vi.fn<(options: any, pushParameters: any) => Promise<void>>().mockImplementation(
     async (_, { changes }) => {
-      changes.added.forEach((item: ItemType) => {
+      for (const item of changes.added as ItemType[]) {
         fakeDatabasePosts.push(item)
-      })
+      }
     },
   )
 
@@ -1931,16 +1940,16 @@ it('isSyncing async path resolves a promise', async () => {
   })
   const collection = withAsyncQueries(new Collection<TestItem, string, any>())
   syncManager.addCollection(collection, { name: 'test' })
-  const asyncResult = await syncManager.isSyncing('test', true)
-  expect(asyncResult).toBe(false)
+  const isAsyncResult = await syncManager.isSyncing('test', true)
+  expect(isAsyncResult).toBe(false)
 })
 
 it('isSyncing answers synchronously inside a reactive scope', () => {
-  let inScope = false
+  let isInScope = false
   const disposers: (() => void)[] = []
   const reactivity = createReactivityAdapter({
     create: () => ({ depend: () => {}, notify: () => {} }),
-    isInScope: () => inScope,
+    isInScope: () => isInScope,
     onDispose: (dispose) => {
       disposers.push(dispose)
     },
@@ -1953,10 +1962,10 @@ it('isSyncing answers synchronously inside a reactive scope', () => {
   const collection = withAsyncQueries(new Collection<TestItem, string, any>())
   syncManager.addCollection(collection, { name: 'test' })
 
-  inScope = true
+  isInScope = true
   const isSyncing = syncManager.isSyncing('test')
-  inScope = false
-  disposers.forEach(dispose => dispose())
+  isInScope = false
+  for (const dispose of disposers) dispose()
 
   expect(isSyncing).toBe(false)
 })
@@ -1976,11 +1985,11 @@ it('schedules a follow-up sync when changes remain after applying snapshot', asy
 
   const changes = (syncManager as any).changes as Collection<any, any, any>
   const originalRemoveMany = changes.removeMany.bind(changes)
-  let insertedExtraChange = false
+  let isInsertedExtraChange = false
   const removeSpy = vi.spyOn(changes, 'removeMany').mockImplementation(async (selector: Parameters<typeof originalRemoveMany>[0]) => {
     const result = await originalRemoveMany(selector)
-    if (!insertedExtraChange) {
-      insertedExtraChange = true
+    if (!isInsertedExtraChange) {
+      isInsertedExtraChange = true
       await changes.insert({
         collectionName: 'test',
         time: Date.now(),
@@ -2175,14 +2184,17 @@ it('should tolerate collection entries without tracked listeners', async () => {
 })
 
 it('should resolve isReady only once its internal collections are ready', async () => {
-  let finishSetup: () => void = () => { /* replaced below */ }
-  const setupDone = new Promise<void>((resolve) => {
-    finishSetup = resolve
-  })
+  const { promise: setupDone, resolve: finishSetup } = Promise.withResolvers<void>()
   const dataAdapter = new DefaultDataAdapter({
     storage: () => {
       const storage = memoryStorageAdapter([])
-      return { ...storage, setup: () => setupDone.then(() => storage.setup()) }
+      return {
+        ...storage,
+        setup: async () => {
+          await setupDone
+          return storage.setup()
+        },
+      }
     },
   })
   const syncManager = new SyncManager<any, any>({

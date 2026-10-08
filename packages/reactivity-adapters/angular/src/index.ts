@@ -3,13 +3,13 @@ import { createReactivityAdapter } from '@signaldb/core'
 
 const angularReactivityAdapter = createReactivityAdapter({
   create: () => {
-    const dep = signal(0)
+    const dependency = signal(0)
     return {
       depend: () => {
-        dep()
+        dependency()
       },
       notify: () => {
-        dep.set(untracked(() => dep() + 1))
+        dependency.set(untracked(() => dependency() + 1))
       },
     }
   },

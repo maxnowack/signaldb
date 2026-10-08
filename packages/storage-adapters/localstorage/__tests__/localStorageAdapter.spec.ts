@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import './setup'
 import createLocalStorageAdapter from '../src/index'
 
@@ -31,23 +31,21 @@ class FakeLocalStorage {
   }
 
   key(index: number) {
-    return [...this.store.keys()][index] ?? null
+    return this.store.keys().toArray()[index] ?? null
   }
 }
 
 describe('localStorage adapter', () => {
-  const originalStorage = globalThis.localStorage
-
   beforeEach(() => {
-    globalThis.localStorage = new FakeLocalStorage()
+    vi.stubGlobal('localStorage', new FakeLocalStorage())
   })
 
   afterEach(() => {
-    globalThis.localStorage = originalStorage
+    vi.unstubAllGlobals()
   })
 
   it('throws when localStorage is unavailable', () => {
-    globalThis.localStorage = undefined as unknown as Storage
+    vi.stubGlobal('localStorage', undefined)
     expect(() => createLocalStorageAdapter<Item, string>('missing')).toThrow('localStorage is not available in this environment')
   })
 

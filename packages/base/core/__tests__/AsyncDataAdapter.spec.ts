@@ -26,7 +26,7 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
     }
 
     // Build index for existing items
-    for (const [id, item] of this.items.entries()) {
+    for (const [id, item] of this.items) {
       const value = (item as any)[field]
       const index = this.indices.get(field)
       if (index && !index.has(value)) {
@@ -41,7 +41,7 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
       this.items.set(item.id, item)
 
       // Update indices
-      for (const [field, index] of this.indices.entries()) {
+      for (const [field, index] of this.indices) {
         const value = (item as any)[field]
         if (!index.has(value)) {
           index.set(value, new Set())
@@ -57,7 +57,7 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
       // Remove old from indices
       const oldItem = this.items.get(item.id)
       if (oldItem) {
-        for (const [field, index] of this.indices.entries()) {
+        for (const [field, index] of this.indices) {
           const oldValue = (oldItem as any)[field]
           index.get(oldValue)?.delete(item.id)
         }
@@ -66,7 +66,7 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
       this.items.set(item.id, item)
 
       // Update indices with new values
-      for (const [field, index] of this.indices.entries()) {
+      for (const [field, index] of this.indices) {
         const value = (item as any)[field]
         if (!index.has(value)) {
           index.set(value, new Set())
@@ -82,7 +82,7 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
       this.items.delete(item.id)
 
       // Remove from indices
-      for (const [field, index] of this.indices.entries()) {
+      for (const [field, index] of this.indices) {
         const value = (item as any)[field]
         index.get(value)?.delete(item.id)
       }
@@ -90,7 +90,7 @@ class MockStorageAdapter implements StorageAdapter<TestItem, string> {
   }
 
   async readAll(): Promise<TestItem[]> {
-    return [...this.items.values()]
+    return this.items.values().toArray()
   }
 
   async readIds(ids: string[]): Promise<TestItem[]> {

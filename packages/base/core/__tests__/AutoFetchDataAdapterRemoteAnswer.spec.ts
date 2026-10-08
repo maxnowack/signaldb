@@ -11,10 +11,7 @@ type Post = { id: string, title?: string }
  * @returns The promise and its resolve function.
  */
 function deferred<T>() {
-  let resolve: (value: T) => void = () => { /* replaced below */ }
-  const promise = new Promise<T>((resolve_) => {
-    resolve = resolve_
-  })
+  const { promise, resolve } = Promise.withResolvers<T>()
   return { promise, resolve }
 }
 
@@ -140,7 +137,11 @@ describe('AutoFetchDataAdapter answers a query from the remote source', () => {
     const posts = new Collection<Post>('posts', adapter)
     await posts.ready()
 
-    await posts.find({}, { async: true }).fetch().catch(() => { /* reported through onError */ })
+    try {
+      await posts.find({}, { async: true }).fetch()
+    } catch {
+      // reported through onError
+    }
     await vi.waitFor(() => expect(onError).toHaveBeenCalled())
     expect(onError.mock.calls[0][0].message)
       .toBe('AutoFetchDataAdapter: fetchQueryItems must resolve to an array of items')
