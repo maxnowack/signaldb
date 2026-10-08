@@ -232,8 +232,12 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
 
   private observeRawChanges(callbacks: ObserveCallbacks<T>, skipInitial = false) {
     const observer = this.ensureObserver()
+    // A listener that skips the initial result has nothing to learn from a comparison against a
+    // result the observer already holds and keeps current. Every reactive read registers one, so
+    // comparing here would cost a whole result on every read of a query that is already observed.
+    const needsCheck = !skipInitial || !observer.hasResult()
     observer.addCallbacks(callbacks, skipInitial)
-    observer.runChecks(this.getItems)
+    if (needsCheck) observer.runChecks(this.getItems)
     return () => {
       observer.removeCallbacks(callbacks)
       if (!observer.isEmpty()) return

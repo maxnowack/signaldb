@@ -1,5 +1,7 @@
 import { bench, describe } from 'vitest'
 import Collection from '../src/Collection'
+import type { CollectionOptions } from '../src/Collection'
+import createReactivityAdapter from '../src/createReactivityAdapter'
 import Observer from '../src/Collection/Observer'
 import AsyncDataAdapter from '../src/AsyncDataAdapter'
 import DefaultDataAdapter from '../src/DefaultDataAdapter'
@@ -219,6 +221,44 @@ describe('a write with one live query holding all 5000 items', () => {
       await collection.updateOne({ id: 'item-2500' }, { $set: { name: `renamed-${counter}` } })
       await settle()
     })
+  })
+})
+
+describe('a reactive read of a live query holding all 5000 items', async () => {
+  // What every render of a screen showing the list pays. The query is already observed, so a read
+  // only has to hand over the result and register a dependency.
+  const disposers: (() => void)[] = []
+  const reactivity = createReactivityAdapter({
+    create: () => ({ depend: () => {}, notify: () => {} }),
+    isInScope: () => true,
+    onDispose: (dispose) => {
+      disposers.push(dispose)
+    },
+  })
+  const observedCursor = async (options: CollectionOptions<BenchItem, string, BenchItem>) => {
+    const collection = new Collection<BenchItem>('bench-read', new DefaultDataAdapter(), {
+      ...options,
+      reactivity,
+    })
+    await Promise.all(buildItems(ITEM_COUNT).map(async item => collection.insert(item)))
+    const cursor = collection.find({}, { sort: { rank: 1 } })
+    cursor.observeChanges({ added: () => {} })
+    return cursor
+  }
+  const cursor = await observedCursor({})
+  // A transformAll hands out fresh objects on every read, so nothing is recognized by identity.
+  const transformedCursor = await observedCursor({
+    transformAll: items => items.map(item => ({ ...item })),
+  })
+
+  bench('fetch', () => {
+    cursor.fetch()
+    disposers.splice(0).forEach(dispose => dispose())
+  })
+
+  bench('fetch with transformAll', () => {
+    transformedCursor.fetch()
+    disposers.splice(0).forEach(dispose => dispose())
   })
 })
 

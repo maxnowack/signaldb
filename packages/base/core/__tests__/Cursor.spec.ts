@@ -3,6 +3,7 @@ import type { ObserveCallbacks, Transform } from '../src'
 import { Collection, Cursor, createReactivityAdapter } from '../src'
 import Observer from '../src/Collection/Observer'
 import { diffQueryResults } from '../src/utils/queryDelta'
+import { primitiveReactivity, primitiveReactivityAdapter } from './helpers/primitiveReactivity'
 
 // Helper function to wait for async operations
 const wait = () => new Promise((resolve) => {
@@ -600,6 +601,46 @@ describe('Cursor', async () => {
       await wait()
       expect(notify).toHaveBeenCalled()
       stopObserving()
+    })
+
+    it('reads an observed query reactively without comparing its whole result again', async () => {
+      const reactiveCollection = new Collection<TestItem>({
+        reactivity: primitiveReactivityAdapter,
+      })
+      await reactiveCollection.insert({ id: 1, name: 'Item 1' })
+      const cursor = reactiveCollection.find({})
+      const stopObserving = cursor.observeChanges({ added: () => {} })
+      const runChecks = vi.spyOn(Observer.prototype, 'runChecks')
+
+      let names: string[] = []
+      primitiveReactivity.effect(() => {
+        names = cursor.fetch().map(item => item.name)
+      })
+
+      expect(names).toEqual(['Item 1'])
+      expect(runChecks).not.toHaveBeenCalled()
+      runChecks.mockRestore()
+      stopObserving()
+      cursor.cleanup()
+    })
+
+    it('wakes a reactive read of an observed query on the next write', async () => {
+      const reactiveCollection = new Collection<TestItem>({
+        reactivity: primitiveReactivityAdapter,
+      })
+      await reactiveCollection.insert({ id: 1, name: 'Item 1' })
+      const cursor = reactiveCollection.find({})
+      const stopObserving = cursor.observeChanges({ added: () => {} })
+
+      const runs: string[][] = []
+      primitiveReactivity.effect(() => {
+        runs.push(cursor.fetch().map(item => item.name))
+      })
+      await reactiveCollection.updateOne({ id: 1 }, { $set: { name: 'Item 2' } })
+
+      await vi.waitFor(() => expect(runs).toEqual([['Item 1'], ['Item 2']]))
+      stopObserving()
+      cursor.cleanup()
     })
   })
 

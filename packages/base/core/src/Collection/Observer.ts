@@ -44,6 +44,7 @@ interface CallbackWithOptions<T> {
  */
 export default class Observer<T extends { id: any }> {
   private previousItems: T[] = []
+  private hasCheckedResult = false
   private callbacks: {
     added: CallbackWithOptions<AddedCallback<T>>[],
     addedBefore: CallbackWithOptions<AddedBeforeCallback<T>>[],
@@ -105,6 +106,14 @@ export default class Observer<T extends { id: any }> {
       'movedBefore',
       'removed',
     ])
+  }
+
+  /**
+   * Whether the observer has completed a check and so holds a result to compare against.
+   * @returns `true` once the first check has finished.
+   */
+  public hasResult() {
+    return this.hasCheckedResult
   }
 
   /**
@@ -223,6 +232,7 @@ export default class Observer<T extends { id: any }> {
   private finishCheck(newItems: T[]) {
     // Store new items as previous items for next check
     this.previousItems = newItems
+    this.hasCheckedResult = true
     Object.keys(this.callbacks).forEach((key) => {
       const event = key as keyof ObserveCallbacks<T>
       const callbacks = this.callbacks[event]
@@ -265,7 +275,7 @@ export default class Observer<T extends { id: any }> {
       const typedKey = key as keyof ObserveCallbacks<T>
       this.callbacks[typedKey].push({
         callback: callbacks[typedKey] as any,
-        options: { skipInitial, isInitial: true },
+        options: { skipInitial, isInitial: !this.hasCheckedResult },
       })
     })
   }
