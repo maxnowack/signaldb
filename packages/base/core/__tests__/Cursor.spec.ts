@@ -606,6 +606,21 @@ describe('Cursor', async () => {
       stopObserving()
     })
 
+    it('warns about a synchronous read outside of a reactive scope', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const scopedCollection = new Collection<TestItem>({ reactivity: scope.reactivity })
+      await scopedCollection.insert({ id: 1, name: 'Item 1' })
+
+      scope.read(() => scopedCollection.find({}).fetch())
+      expect(warn).not.toHaveBeenCalled()
+
+      scopedCollection.find({}).fetch()
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('Cursor.depend() called outside of a reactive scope'),
+      )
+      warn.mockRestore()
+    })
+
     it('reads an observed query reactively without comparing its whole result again', async () => {
       const reactiveCollection = new Collection<TestItem>({
         reactivity: primitiveReactivityAdapter,
