@@ -1369,6 +1369,42 @@ describe('Collection', () => {
       await col1.updateOne({ id: '1' }, { $set: { name: 'John Doe' } })
       expect(scope.read(() => col2.find({ id: '1' }, { fields: { id: 1, name: 1, parent: 1 } }).fetch())).toEqual([{ id: '1', name: 'John', parent: { id: '1', name: 'John Doe' } }])
     })
+
+    it('reads related data outside a reactive scope without leaving a dependency behind', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const users = new Collection<{ id: string, name: string }>({ reactivity: scope.reactivity })
+      await users.insert({ id: 'u1', name: 'Ada' })
+      let openObservers = 0
+      users.on('observer.created', () => {
+        openObservers += 1
+      })
+      users.on('observer.disposed', () => {
+        openObservers -= 1
+      })
+
+      const posts = new Collection<{ id: string, authorId: string, author?: unknown }>({
+        reactivity: scope.reactivity,
+        transformAll: (items) => {
+          const authors = users.find({}).fetch()
+          return items.map(item => ({
+            ...item,
+            author: authors.find(author => author.id === item.authorId),
+          }))
+        },
+      })
+      // Observed outside of any scope, so every write re-runs transformAll outside of one too.
+      const cursor = posts.find({})
+      const stop = cursor.observeChanges({ added: () => {} })
+      await posts.insert({ id: 'p1', authorId: 'u1' })
+      await posts.insert({ id: 'p2', authorId: 'u1' })
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(openObservers).toBe(0)
+      expect(warn).not.toHaveBeenCalled()
+      stop()
+      cursor.cleanup()
+      warn.mockRestore()
+    })
   })
 
   describe('Custom Primary Key Generator', () => {

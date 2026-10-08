@@ -16,6 +16,24 @@ export function isInReactiveScope(reactivity: ReactivityAdapter | undefined | fa
   return reactivity.isInScope() // if reactivity is enabled and isInScope method is provided we check if it is in scope
 }
 
+let transformDepth = 0
+
+/**
+ * Runs a `transformAll` of a collection. The reads it makes inside a reactive scope stay reactive;
+ * outside of one — a live query brought up to date after a write — they register nothing and do
+ * not warn, because the collection asked for them, not the consumer.
+ * @param callback - The call to `transformAll`.
+ * @returns What the callback returned.
+ */
+export function withinTransform<R>(callback: () => R): R {
+  transformDepth += 1
+  try {
+    return callback()
+  } finally {
+    transformDepth -= 1
+  }
+}
+
 /**
  * Reports whether the query a cursor stands for has produced an outcome yet.
  * Supplied by the collection, which owns the query registration; a cursor
@@ -137,6 +155,7 @@ export default class Cursor<T extends BaseItem, U = T, Async extends boolean = f
   ) {
     if (this.options?.async) return
     if (!isInReactiveScope(this.options.reactive)) {
+      if (transformDepth > 0) return
       // eslint-disable-next-line no-console
       console.warn('Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope')
     }

@@ -13,7 +13,7 @@ import modify from '../utils/modify'
 import deepClone from '../utils/deepClone'
 import queryId from '../utils/queryId'
 import type { QueryDelta } from '../utils/queryDelta'
-import Cursor from './Cursor'
+import Cursor, { withinTransform } from './Cursor'
 import type {
   AsyncFindOptions,
   BaseItem,
@@ -598,7 +598,8 @@ export default class Collection<
 
   private transformAll(items: T[], fields?: FieldSpecifier<T>): E[] {
     if (!this.options.transformAll) return items as unknown as E[]
-    return this.options.transformAll(deepClone(items), fields)
+    const transformAll = this.options.transformAll
+    return withinTransform(() => transformAll(deepClone(items), fields))
   }
 
   private getItem<
