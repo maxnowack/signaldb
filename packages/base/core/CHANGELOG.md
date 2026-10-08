@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `QueryStateAccessor` is exported, for supplying a `Cursor` with the query state it reports through `isLoading()`.
 * `Collection.batch` accepts the collections to batch: `Collection.batch([a, b], () => …)`. Without them it still batches every collection in the process, which defers every live query everywhere until the batch ends — fine for a few writes belonging to one event, and harmful around a loop whose length is data-dependent.
 * Added `Collection.reportLargeQueries(rows)`, which reports each live query holding more than `rows` rows once, together with the stack that registered it. `enableDebugMode()` switches it on at 500 rows. A reactive query registered from a long-lived place keeps its cost for the lifetime of the application, and there is otherwise nothing to see: the query works, and its price only shows up as an application that has grown slow.
+* A `transformAll` can now read related data the same way its query is read. An asynchronous read (`{ async: true }`) calls it with `{ async: true }` as a third argument and awaits a promise returned for it, so a `transformAll` built with `reactiveOrAsync` reads related collections reactively inside a reactive scope and with `{ async: true }` — not reactively, but waiting for the real data — everywhere else. A plain `transformAll` that returns the items keeps working unchanged; one that returns a promise for a synchronous read now throws instead of handing the promise to the cursor.
 
 ### Changed
 

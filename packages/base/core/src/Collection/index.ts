@@ -596,10 +596,18 @@ export default class Collection<
     return this.options.transform(item)
   }
 
-  private transformAll(items: T[], fields?: FieldSpecifier<T>): E[] {
+  private transformAll(
+    items: T[],
+    fields: FieldSpecifier<T> | undefined,
+    async: boolean,
+  ): E[] | Promise<E[]> {
     if (!this.options.transformAll) return items as unknown as E[]
     const transformAll = this.options.transformAll
-    return withinTransform(() => transformAll(deepClone(items), fields))
+    // One built with reactiveOrAsync answers `{ async: true }` with a promise, which the declared
+    // return type leaves out so that existing callers of a TransformAll keep their array.
+    return withinTransform(() => (async
+      ? transformAll(deepClone(items), fields, { async: true }) as E[] | Promise<E[]>
+      : transformAll(deepClone(items), fields)))
   }
 
   private getItem<
@@ -716,11 +724,14 @@ export default class Collection<
       const itemsOrPromise = this.getItems(selector, options || {})
       if (itemsOrPromise instanceof Promise) {
         return itemsOrPromise.then((items) => {
-          return this.transformAll(items, options?.fields)
+          return this.transformAll(items, options?.fields, true)
         })
       }
-      const items = itemsOrPromise
-      return this.transformAll(items, options?.fields)
+      const transformed = this.transformAll(itemsOrPromise, options?.fields, false)
+      if (transformed instanceof Promise) {
+        throw new TypeError('transformAll returned a promise for a synchronous read. Read the query with { async: true }, or build transformAll with reactiveOrAsync so it answers a synchronous read synchronously.')
+      }
+      return transformed
     }
     const cursor = new Cursor<E, U, Async>(
       getTransformedItems as Async extends true

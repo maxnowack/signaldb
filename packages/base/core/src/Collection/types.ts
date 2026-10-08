@@ -1,5 +1,6 @@
 import type { QueryOptions } from '../DataAdapter'
 import type ReactivityAdapter from '../types/ReactivityAdapter'
+import type { ModeOptions } from '../utils/reactiveOrAsync'
 
 /**
  * The minimal shape of an item stored in a collection: an object with an `id`.
@@ -17,11 +18,15 @@ export type Transform<T, U = T> = ((document: T) => U) | null | undefined
 /**
  * A function applied to a query's whole result, together with the query's `fields` option, or
  * `null`/`undefined` for none.
+ *
+ * An asynchronous read (`{ async: true }`) passes `{ async: true }` as a third argument and awaits
+ * a promise returned for it; a synchronous read requires the items themselves. Build the function
+ * with `reactiveOrAsync` to read related data the same way the query itself is read.
  * @template T - The type of the items before the transform.
  * @template O - The type of the items after the transform.
  */
 export type TransformAll<T extends BaseItem, O extends BaseItem = T> = (
-    (items: T[], fields: FieldSpecifier<O> | undefined) => O[]
+    (items: T[], fields: FieldSpecifier<O> | undefined, mode?: ModeOptions) => O[]
 ) | null | undefined
 
 /**
