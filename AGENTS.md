@@ -296,6 +296,11 @@ operation is part of its behavior, not an implementation detail.
 - **(SHOULD)** Write the test that fails for the reason you think it should
   fail. Confirm it fails before the fix and passes after it — a test that was
   green all along has verified nothing.
+- **(MUST)** Read a query the way a consumer has to: synchronously only inside
+  a reactive scope (`packages/base/core/__tests__/helpers/createReactiveScope.ts`),
+  with `{ async: true }` everywhere else. A spec that prints the
+  `Cursor.depend()` warning reads the way the documentation tells consumers
+  not to.
 - **(SHOULD)** Test through the public API. A spec that reaches into internals
   passes through a refactor that broke the consumer, and fails on a refactor
   that changed nothing for them.

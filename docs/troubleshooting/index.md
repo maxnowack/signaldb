@@ -89,6 +89,17 @@ Posts.on('query.error', (error, selector, options) => {
 
 The `AsyncDataAdapter` and the `AutoFetchDataAdapter` usually also pass the error to their `onError` option, which logs it to the console by default, but the event is the one place every failed query reaches. See [Collection events](/queries/#collection-events).
 
+## Console: "Cursor.depend() called outside of a reactive scope without async option"
+**Problem:** The console shows `Cursor.depend() called outside of a reactive scope without async option; consider using { async: true } or wrapping in a reactive scope`.
+
+**Solution:** A query was read synchronously — `fetch()`, `count()`, `findOne()` or another cursor method without `async: true` — outside of a reactive scope. Synchronous reads belong inside an `effect`, an `autorun` or a component's render, where the scope reruns when the result changes. Everywhere else, pass `async: true` and await the result:
+
+```js
+const post = await collection.findOne({ id: 'abc' }, { async: true })
+```
+
+A collection without a reactivity adapter is always read this way. See [Reactive or awaited](/queries/#reactive-or-awaited).
+
 ## Console: "Error during storage operation in collection &lt;name&gt;"
 **Problem:** The console shows `Error during storage operation in collection <name>`, and data saved in an earlier session is missing.
 

@@ -39,6 +39,25 @@ SignalDB brings a MongoDB-like query API to the client. Selectors such as `{ age
 You can query you data by calling the [`.find()`](/reference/core/collection/#find-selector-selector-t-options-options) or [`.findOne()`](/reference/core/collection/#findone-selector-selector-t-options-options) method of your collection.
 `.findOne()` returns the first found document while `.find()` returns a [cursor](/reference/core/cursor/).
 
+### Reactive or awaited
+
+Where you read a query decides how you read it:
+
+* **Inside a reactive scope** — an `effect`, an `autorun`, a component's render — read it synchronously. The scope reruns whenever the result changes, so the cursor hands over what it holds right now.
+* **Everywhere else** — an event handler, a loader, a script, a test — pass `async: true` and await the result.
+
+```js
+// inside a reactive scope
+effect(() => {
+  render(collection.find({ status: 'published' }).fetch())
+})
+
+// everywhere else
+const posts = await collection.find({ status: 'published' }, { async: true }).fetch()
+```
+
+This holds for every data adapter, including the in-memory default one, where a synchronous read happens to return the data anywhere. A synchronous read outside a reactive scope is almost always a mistake: nothing keeps it up to date, and with an adapter that answers asynchronously it returns a [neutral empty result](#queries-that-are-not-answered-immediately) instead of the data. SignalDB warns about it in the console. A collection without a reactivity adapter has no reactive scope at all, so it is always read with `async: true`.
+
 ### Selectors
 
 SignalDB uses the [`mingo`](https://www.npmjs.com/package/mingo) library under the hood. It's very similar to MongoDB selectors. Check out their documentation to learn how a selector should look like: https://github.com/kofrasa/mingo
