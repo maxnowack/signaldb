@@ -188,9 +188,10 @@ To address this, SignalDB offers an `transformAll` option in the `Collection` co
 
 ### How transformAll Works
 
-The `transformAll` function you provide receives two arguments:
+The `transformAll` function you provide receives up to three arguments:
 1.  `items`: An array of items that matched the query's filter, *after* sorting and limiting, but *before* being returned.
 2.  `fields`: The `fields` projection object specified in the query options (e.g., `{ name: 1, author: 1 }`).
+3.  `mode`: `{ async: true }` when the query is read with `async: true`, otherwise nothing.
 
 Inside this function, you can:
 1.  **Check `fields`:** Determine if the related data field (e.g., `author`) was actually requested in the query. This prevents unnecessary fetching.
@@ -200,12 +201,18 @@ Inside this function, you can:
 
 This process happens automatically whenever a query using the relevant `fields` is executed or re-runs due to reactivity.
 
+### Reading related data the way the query is read
+
+A query is read [synchronously inside a reactive scope, and with `async: true` everywhere else](/queries/#reactive-or-awaited). The related data has to be read the same way: synchronously, so that a change to it reruns the scope, or awaited, so that an asynchronous read gets the real data instead of a [neutral empty result](/queries/#queries-that-are-not-answered-immediately).
+
+Build `transformAll` with [`reactiveOrAsync`](/reference/core/utilities/#reactiveorasync-generator-and-unwrap-value) to write that once. It receives `async` as its first argument, and `yield* unwrap(…)` hands back the result of a read whether it was synchronous or awaited. SignalDB calls `transformAll` with `{ async: true }` for an asynchronous read and awaits it; for every other read it calls it synchronously.
+
 ### Example
 
 Let's redefine our `Posts` and `Users` collections to use transformAll for fetching authors:
 
 ```js
-import { Collection, DefaultDataAdapter } from '@signaldb/core'
+import { Collection, DefaultDataAdapter, reactiveOrAsync, unwrap } from '@signaldb/core'
 import maverickjsReactivityAdapter from '@signaldb/maverickjs'
 
 const dataAdapter = new DefaultDataAdapter()
@@ -224,20 +231,20 @@ await Users.insert({ id: 'user2', name: 'Bob' })
 const Posts = new Collection('posts', dataAdapter, {
   reactivity: maverickjsReactivityAdapter,
   // --- transformAll Function ---
-  transformAll: (items, fields) => {
+  transformAll: reactiveOrAsync(function* (async, items, fields) {
     // 1. Check if the 'author' field is requested
     if (!fields?.author) return items
 
     // 2. Collect unique author IDs
     const authorIds = [...new Set(items.map(item => item.authorId))]
-    // 3. Bulk fetch authors
-    const relatedAuthors = Users.find({ id: { $in: authorIds } }).fetch()
+    // 3. Bulk fetch authors, the same way the query itself is read
+    const relatedAuthors = yield* unwrap(Users.find({ id: { $in: authorIds } }, { async }).fetch())
     // 4. Map authors back to posts
     return items.map(item => ({
       ...item,
       author: relatedAuthors.find(author => author.id === item.authorId),
     }))
-  },
+  }),
 })
 
 // Populate Posts
@@ -248,7 +255,7 @@ await Posts.insert({ id: 'post3', title: 'Third Post', authorId: 'user1' })
 // --- Usage ---
 
 // Query requesting the author field - transformAll runs
-const postsWithAuthors = Posts.find({}, { fields: { title: 1, author: 1 } }).fetch()
+const postsWithAuthors = await Posts.find({}, { fields: { title: 1, author: 1 }, async: true }).fetch()
 console.log(postsWithAuthors)
 /* Output:
 [
@@ -259,7 +266,7 @@ console.log(postsWithAuthors)
 */
 
 // Query NOT requesting the author field - transformAll is skipped for 'author'
-const postsWithoutAuthors = Posts.find({}, { fields: { title: 1, authorId: 1 } }).fetch()
+const postsWithoutAuthors = await Posts.find({}, { fields: { title: 1, authorId: 1 }, async: true }).fetch()
 console.log(postsWithoutAuthors)
 /* Output:
 [
@@ -273,6 +280,12 @@ console.log(postsWithoutAuthors)
 `transformAll` **returns** the transformed list rather than modifying `items`
 in place. Returning `items` unchanged, as the early return above does, is how
 you say "nothing to do for this query".
+
+A plain function that returns the list, without `reactiveOrAsync`, works as
+well. It is always called synchronously, so it reads related collections
+synchronously too — reactive inside a scope, but without waiting for an
+asynchronous adapter on an `async: true` read.
+
 ### Reactivity
 
 The transformAll process is fully integrated with SignalDB's reactivity system. If the data in the related collection changes (e.g., a user's name is updated), any reactive query that includes the transformAll field will automatically re-run and reflect the changes.
@@ -294,4 +307,9 @@ await Users.updateOne({ id: 'user1' }, { $set: { name: 'Alice Smith' } })
 // The effect will re-run automatically due to the change in Users
 // Updated output: Post 1 Author: Alice Smith
 ```
+
+An `async: true` read is not reactive, and neither are the reads its `transformAll` makes: it returns the related data as it is at that moment.
+
+If the related collection uses an asynchronous [data adapter](/data-adapters/), [`isLoading()`](/reference/core/cursor/#⚡️-isloading-reactive) of the query stays `true` until the queries `transformAll` made have been answered too, so a list is not shown as loaded while its authors are still missing.
+
 By using the transformAll option, you can efficiently load related data, avoid the N+1 problem, and maintain reactivity, especially when dealing with lists or collections of items. This approach is often more performant than using instance methods for simple relationship loading in bulk scenarios.

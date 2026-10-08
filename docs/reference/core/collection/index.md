@@ -87,7 +87,7 @@ Parameters
 * `options` (Optional): An object specifying various options for the collection. Options include:
   * reactivity: A [ReactivityAdapter](/reactivity/) for enabling reactivity.
   * transform: A transformation function to be applied to items. The document that should be transformed is passed as the only parameter. The function should return the transformed document (e.g. `(doc: T) => U`)
-  * transformAll: A function that receives all items of a query result at once and returns the transformed list. Useful for resolving relations without an N+1 query — see [ORM](/orm/).
+  * transformAll: A function that receives all items of a query result at once and returns the transformed list. Useful for resolving relations without an N+1 query — see [ORM](/orm/). An `async: true` read calls it with `{ async: true }` as a third argument and awaits a promise returned for it; build it with [`reactiveOrAsync`](/reference/core/utilities/#reactiveorasync-generator-and-unwrap-value) to read related collections the same way the query is read.
   * indices: An array of field names to index, e.g. `['authorId', 'status']`.
   * primaryKeyGenerator: A function that generates a unique ID for the item. If not provided, a default generator will be used.
   * fieldTracking: Enables [field-level reactivity](/queries/#field-level-reactivity) for this collection. Defaults to the value set with the static [`setFieldTracking()`](#setfieldtracking-enable-boolean).
