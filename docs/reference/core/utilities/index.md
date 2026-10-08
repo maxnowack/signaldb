@@ -138,3 +138,7 @@ pass it on to the queries it makes. Yielding a promise in synchronous mode is a
 programming error and throws. The returned function exposes its generator as
 `.generator`, so one such workflow can compose another with
 `yield* other.generator.call(this, async, …)`.
+
+A collection's [`transformAll`](/orm/#reading-related-data-the-way-the-query-is-read)
+can be built the same way: SignalDB calls it with `{ async: true }` for an
+asynchronous read and synchronously for every other one.

@@ -75,6 +75,10 @@ export interface CollectionOptions<T extends BaseItem<I>, I, E extends BaseItem 
    * `transform`. Receives a deep clone of the items, so it can enrich many items at once (the
    * n+1 problem). Live queries of a collection with `transformAll` re-run and compare their
    * result on every change instead of applying the adapter's delta.
+   *
+   * An asynchronous read calls it with `{ async: true }` as a third argument and awaits a promise
+   * returned for it. Build it with `reactiveOrAsync` to read related collections the way the query
+   * is read: reactively inside a reactive scope, awaited with `{ async: true }` everywhere else.
    */
   transformAll?: TransformAll<T, E>,
   /** Field names the data adapter builds indices for. */
@@ -391,7 +395,7 @@ export default class Collection<
    * @param options.reactivity - The reactivity adapter that makes queries reactive.
    * @param options.transform - Applied to every item a cursor returns.
    * @param options.transformAll - Applied to a query's whole result before `transform`, e.g. to
-   * solve the n+1 problem.
+   * solve the n+1 problem; awaited on an asynchronous read, see `CollectionOptions.transformAll`.
    * @param options.indices - Field names the data adapter builds indices for.
    * @param options.enableDebugMode - Enables debug mode for this collection.
    * @param options.fieldTracking - Enables field-level reactivity for this collection.
