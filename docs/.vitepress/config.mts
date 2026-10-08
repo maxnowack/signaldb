@@ -342,6 +342,7 @@ export default withMermaid({
       '/upgrade/v1/index.html': '/upgrade/v2/',
       // Removed in v2 — the concepts they documented live on elsewhere.
       '/reference/core/autofetchcollection/index.html': '/reference/core/autofetchdataadapter/',
+      '/reference/core/combinepersistenceadapters/index.html': '/reference/core/createstorageadapter/',
       '/reference/core/createindex/index.html': '/reference/core/collection/',
       '/reference/core/createindexprovider/index.html': '/reference/core/collection/',
       '/reference/core/creatememoryadapter/index.html': '/reference/core/createstorageadapter/',
