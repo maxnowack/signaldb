@@ -36,12 +36,12 @@ jobs:
         with:
           path: |
             **/node_modules
-          key: ${{ runner.OS }}-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-modules-
+          key: ${{ runner.OS }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+      # Installed from scratch, never on top of an older cache (see checks.yaml).
       - name: install modules
+        if: steps.modules-cache.outputs.cache-hit != 'true'
         run: |
-          npm install --no-audit --force --loglevel=error --no-update-notifier
+          npm ci --no-audit --force --loglevel=error --no-update-notifier
       # The v1 documentation is a build of a fixed tag, so this cache is a hit
       # on every run after the first. The key covers the script because that is
       # where the tag lives — changing it is what should invalidate the cache.
