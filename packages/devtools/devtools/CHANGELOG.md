@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Importing this package calls `Collection.enableDebugMode()`, which in `@signaldb/core` v2 also switches on `Collection.reportLargeQueries()` at 500 rows. You will therefore see console output naming each live query that holds more than 500 rows, together with the stack that registered it. That report is the point — such a query keeps its cost for the lifetime of the application and is otherwise invisible — but it is new output where there was none. Call `Collection.reportLargeQueries(null)` after the import to switch it off, or a different number to pick your own threshold.
+* `react` and `react-dom` are now required at `^19.3.0` instead of `^19.2.3`, and `styled-components` at `^6.5.3` instead of `^6.2.0`. An application that pins older versions has to update them, or it ends up with a second copy of each in its bundle.
 
 ### Fixed
 

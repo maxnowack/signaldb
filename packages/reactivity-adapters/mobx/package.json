@@ -56,6 +56,6 @@
     "mobx": "6.x.x || 7.x"
   },
   "devDependencies": {
-    "mobx": "^7.0.0"
+    "mobx": "^7.0.6"
   }
 }

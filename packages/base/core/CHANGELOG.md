@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `changed` is no longer emitted for a write that matched nothing. It previously was, whenever the item had still existed at the moment it was read back.
 * A query with a `limit` is now brought up to date from its own window where the window allows it, instead of always being re-executed against the store. A window losing one of its items still needs the store, because what fills the gap is something the window has never held.
 * Reading a query that is already observed — `fetch()`, `count()`, `isLoading()` and the other reactive cursor methods inside a reactive scope — no longer re-runs the query and compares its whole result with the previous one. Every render of a component showing a live list paid that comparison, although the observer already holds the current result; a read now only hands over the result and registers its dependency. Measured on a live query holding 5000 items, a read on a collection with `transformAll` (which hands out fresh objects every time) drops from about 8 ms to about 3 ms; on a collection without one the comparison was already cheap and the read costs the same as before.
+* `mingo` is now required at `^7.2.4` instead of `^7.1.1`. An application that pins an older `mingo` 7 has to update it, or it ends up with a second copy in its bundle.
 
 ### Fixed
 
