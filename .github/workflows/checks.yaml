@@ -159,6 +159,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # on CI, `docs:build` builds the v1 archive from its tag
       - uses: actions/setup-node@v7
         with:
           node-version: 24.x
@@ -172,6 +174,15 @@ jobs:
           path: |
             **/node_modules
           key: ${{ runner.OS }}-node-modules-24.x-${{ hashFiles('**/package-lock.json') }}
+      # The same cache as in deploy-docs.yaml: with a hit, the v1 archive costs
+      # a copy instead of a checkout, an install and a build.
+      - name: Load v1 documentation cache
+        uses: actions/cache@v6
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: .cache/v1-docs
+          key: ${{ runner.OS }}-v1-docs-${{ hashFiles('.scripts/build-v1-docs.js') }}
       - name: build docs
         run: |
           npm run docs:build

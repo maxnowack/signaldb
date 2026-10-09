@@ -5,9 +5,12 @@
 // serves it at `/v1/`. v1 receives no further changes, so this is a build of a
 // fixed tag rather than of anything in the working tree.
 //
-// Run it before `docs:build` — or once, before `docs:dev`, to get the link
-// working locally. Until it has run there is no archive, and the navigation
-// leaves the entry out rather than pointing at nothing.
+// `docs:build` calls it with `--only-on-ci`. On CI it builds, so every deploy
+// carries the archive and a pull request fails when it no longer builds.
+// Anywhere else it does nothing, because a first run takes minutes and needs the
+// tag — run `npm run docs:build-v1` yourself before `docs:build` or `docs:dev`
+// to get the link locally. Until it has run there is no archive, and the
+// navigation leaves the entry out rather than pointing at nothing.
 //
 // The result is cached under `.cache/v1-docs`, keyed by the tag: the first run
 // pays for a checkout, an install and a build, every run after it copies. CI
@@ -192,6 +195,11 @@ async function buildIntoCache() {
 }
 
 async function main() {
+  if (process.argv.includes('--only-on-ci') && !process.env.CI) {
+    console.log('Skipping the v1 documentation outside CI; run `npm run docs:build-v1` to include it.')
+    return
+  }
+
   if (await isPopulated(cacheDirectory)) {
     console.log(`Reusing the cached ${V1_TAG} documentation.`)
   } else {

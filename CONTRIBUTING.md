@@ -59,16 +59,18 @@ npm run docs:dev
 ```
 
 The documentation for v1 is not in this tree. It is built from the `v1.8.1` tag
-into `docs/public/v1` by `npm run docs:build-v1`, which the deploy workflow runs
-before the main build:
+into `docs/public/v1` by `npm run docs:build-v1`. On CI, `npm run docs:build`
+runs it as part of the build, so the deploy always carries the archive and a pull
+request fails when it no longer builds. Locally it is a separate step, run before
+the main build:
 
 ```sh
 npm run docs:build-v1
 ```
 
-You only need this if you are working on the v1 archive itself — the navigation
-leaves its entry out when the directory is absent, so nothing links into the
-void without it. The first run checks the tag out and builds it, which takes a
+You only need this locally if you want the archive in your build or are working
+on it — the navigation leaves its entry out when the directory is absent, so
+nothing links into the void without it. The first run checks the tag out and builds it, which takes a
 few minutes; every run after that copies from `.cache/v1-docs`. See
 `.scripts/build-v1-docs.js` — the tag is the only thing to change there.
 
