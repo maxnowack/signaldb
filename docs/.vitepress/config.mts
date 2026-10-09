@@ -91,8 +91,11 @@ export default withMermaid({
             text: 'Contributing',
             link: 'https://github.com/maxnowack/signaldb/blob/main/CONTRIBUTING.md',
           },
+          // The archive is a separate site, so the click has to load it rather
+          // than be routed inside this one, where `/v1/` is a 404. A `target`
+          // is what makes the VitePress router leave a link alone.
           ...hasV1Documentation
-            ? [{ text: 'v1 documentation', link: '/v1/' }]
+            ? [{ text: 'v1 documentation', link: '/v1/getting-started/', target: '_self' }]
             : [],
         ],
       },
