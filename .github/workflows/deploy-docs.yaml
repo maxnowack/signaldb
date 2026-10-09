@@ -47,7 +47,7 @@ jobs:
       # first. The key covers the script because that is where the tag lives —
       # changing it is what should invalidate the cache.
       - name: Load v1 documentation cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         timeout-minutes: 5
         continue-on-error: true
         with:
