@@ -59,6 +59,6 @@
     "@signaldb/generic-fs": "^2.0.0-rc.0"
   },
   "devDependencies": {
-    "@types/node": "^22.20.5"
+    "@types/node": "^24.0.0"
   }
 }
