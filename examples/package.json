@@ -20,8 +20,8 @@
     "@supabase/supabase-js": "^2.117.3",
     "appwrite": "^28.1.0",
     "firebase": "^13.0.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@types/react": "19.3.0",
