@@ -29,10 +29,12 @@ export default class ItemStore<T extends Record<string, any>> {
   }
 
   emitChanges(id: string) {
-    setTimeout(() => {
+    // Deferred, because a write can happen while React renders (`_debug.find`), but only to a
+    // microtask: a timer would outlive the code that caused it, and its environment with it.
+    queueMicrotask(() => {
       this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: id }))
       this.eventTarget.dispatchEvent(new CustomEvent(`change-${id}`, { detail: id }))
-    }, 10)
+    })
   }
 
   unregister(id: string) {
@@ -74,13 +76,13 @@ export default class ItemStore<T extends Record<string, any>> {
   }
 
   emitChange(id?: string) {
-    setTimeout(() => {
+    queueMicrotask(() => {
       if (id) {
         this.eventTarget.dispatchEvent(new CustomEvent(`change-${id}`, { detail: id }))
       } else {
         this.eventTarget.dispatchEvent(new Event('change'))
       }
-    }, 10)
+    })
   }
 
   useItems() {

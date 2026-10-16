@@ -33,9 +33,10 @@ export default class Store<T extends Record<string, any>> {
   }
 
   emitChange() {
-    setTimeout(() => {
+    // A microtask rather than a timer, for the reason given in `ItemStore#emitChanges`.
+    queueMicrotask(() => {
       this.eventTarget.dispatchEvent(new Event('change'))
-    }, 10)
+    })
   }
 
   subscribe(onChange: () => void) {
