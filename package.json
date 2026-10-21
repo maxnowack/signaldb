@@ -34,7 +34,7 @@
     "@commitlint/config-conventional": "21.2.4",
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
-    "@rollup/plugin-typescript": "12.3.0",
+    "@rollup/plugin-typescript": "12.3.1",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@typescript-eslint/eslint-plugin": "8.72.0",
     "@typescript-eslint/parser": "8.72.0",
