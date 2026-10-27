@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-27
+
 ### BREAKING CHANGES
 
 * `StorageAdapter.readIndex` now declares `Map<string | null, Set<I>>` instead of `Map<any, Set<I>>`. The keys always had to be `serializeValue(value)` — that is what SignalDB looks an index up with — but the type did not say so, and an adapter keying its index by the raw field value answered nothing for every non-string field and everything for a `$ne` on one. If your adapter stores raw keys, wrap them in `serializeValue` from `@signaldb/core`.

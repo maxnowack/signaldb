@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-27
+
 ### BREAKING CHANGES
 
 * Requires `@signaldb/core` v2 — the peer dependency is now `^2.0.0-0` and no longer accepts 1.x. Upgrade `@signaldb/core` together with this package.

@@ -1,6 +1,6 @@
 {
   "name": "@signaldb/fs",
-  "version": "2.0.0-rc.0",
+  "version": "2.0.0",
   "description": "",
   "scripts": {
     "build": "rimraf dist && vite build",
@@ -56,7 +56,7 @@
     "@signaldb/core": "^2.0.0-0"
   },
   "dependencies": {
-    "@signaldb/generic-fs": "^2.0.0-rc.0"
+    "@signaldb/generic-fs": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0"

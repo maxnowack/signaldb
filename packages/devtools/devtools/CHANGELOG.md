@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-27
+
 ### Changed
 
 * Importing this package calls `Collection.enableDebugMode()`, which in `@signaldb/core` v2 also switches on `Collection.reportLargeQueries()` at 500 rows. You will therefore see console output naming each live query that holds more than 500 rows, together with the stack that registered it. That report is the point — such a query keeps its cost for the lifetime of the application and is otherwise invisible — but it is new output where there was none. Call `Collection.reportLargeQueries(null)` after the import to switch it off, or a different number to pick your own threshold.
