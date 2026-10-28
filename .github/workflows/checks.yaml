@@ -163,7 +163,7 @@ jobs:
           fetch-depth: 0 # on CI, `docs:build` builds the v1 archive from its tag
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.x
+          node-version: 26.x
       - name: Load node modules cache
         id: modules-cache
         uses: actions/cache/restore@v6
