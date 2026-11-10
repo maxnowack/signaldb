@@ -11,7 +11,7 @@ import type Selector from './types/Selector'
 import deepClone from './utils/deepClone'
 import EventEmitter from './utils/EventEmitter'
 import isEqual from './utils/isEqual'
-import match from './utils/match'
+import { createMatcher } from './utils/match'
 import modify from './utils/modify'
 import projectItems from './utils/projectItems'
 import incrementalQueryUpdate from './utils/incrementalQueryUpdate'
@@ -266,7 +266,8 @@ export default class DefaultDataAdapter implements DataAdapter {
     const items = indexInfo.matched
       ? indexInfo.ids.map(id => memory.get(serializeValue(id)) as T).filter(i => i != null)
       : [...memory.values()]
-    const item = items.find(document => match(document, selector)) as T
+    const isMatching = createMatcher(selector)
+    const item = items.find(document => isMatching(document as T)) as T
     return item
   }
 
@@ -275,23 +276,21 @@ export default class DefaultDataAdapter implements DataAdapter {
     selector: Selector<T>,
   ) {
     const indexInfo = this.getIndexInfo(collection, selector)
-    const matchItems = (item: T) => {
-      if (indexInfo.optimizedSelector == null) return true // if no selector is given, return all items
-      if (Object.keys(indexInfo.optimizedSelector).length === 0) return true // if selector is empty, return all items
-      const isMatches = match(item, indexInfo.optimizedSelector)
-      return isMatches
-    }
+    // No selector, or an empty one, matches every item — which is what an empty selector compiles
+    // to.
+    const isMatchingItem = createMatcher<T>(indexInfo.optimizedSelector ?? {})
 
     const items = this.items.get(collection.name) as Map<string | null, T>
 
     // no index available, use complete memory
     if (!indexInfo.matched) {
-      return isEqual(selector, {}) ? [...items.values()] : [...items.values()].filter(matchItems)
+      const all = [...items.values()]
+      return isEqual(selector, {}) ? all : all.filter(isMatchingItem)
     }
 
     const foundItems = indexInfo.ids.map(ids =>
       items.get(serializeValue(ids)) as T).filter(i => i != null)
-    return isEqual(indexInfo.optimizedSelector, {}) ? foundItems : foundItems.filter(matchItems)
+    return isEqual(indexInfo.optimizedSelector, {}) ? foundItems : foundItems.filter(isMatchingItem)
   }
 
   private executeQuery<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -329,7 +328,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         ?.map(i => i.id) ?? []
 
       // update queries that contained changed items previously
-      return idsInQuery.some(id => itemIds.has(id)) || flatItems.some(item => match(item, selector))
+      return idsInQuery.some(id => itemIds.has(id)) || flatItems.some(createMatcher(selector))
     })
 
     for (const { selector, options } of queries) {

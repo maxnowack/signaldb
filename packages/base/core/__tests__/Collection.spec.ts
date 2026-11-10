@@ -576,27 +576,36 @@ describe('Collection', () => {
     it('should be faster with id only queries', async () => {
       const col = new Collection<{ id: string, name: string, num: number }>()
 
+      // The fastest of several warm runs: a single cold call measures the first call's warm-up,
+      // which is the same for both lookups and drowns out the difference between them.
       const measureAsyncTime = async (fn: () => Promise<void>) => {
-        const start = performance.now()
         await fn()
-        return performance.now() - start
+        let fastest = Infinity
+        for (let run = 0; run < 20; run += 1) {
+          const start = performance.now()
+          await fn()
+          fastest = Math.min(fastest, performance.now() - start)
+        }
+        return fastest
       }
 
-      // create items
+      // Enough items that a scan costs more than the fixed cost of asking, and the last one is
+      // looked up, so a scan has to cover all of them: the comparison is between the two lookups,
+      // not between a lookup and the overhead around it.
       await col.batch(async () => {
-        for (let i = 0; i < 1000; i += 1) {
+        for (let i = 0; i < 10_000; i += 1) {
           await col.insert({ id: i.toString(), name: 'John', num: i })
         }
       })
 
       const idQueryTime = await measureAsyncTime(async () => {
-        const item = await col.findOne({ id: '999' }, { async: true })
-        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+        const item = await col.findOne({ id: '9999' }, { async: true })
+        expect(item).toEqual({ id: '9999', name: 'John', num: 9999 })
       })
 
       const nonIdQueryTime = await measureAsyncTime(async () => {
-        const item = await col.findOne({ num: 999 }, { async: true })
-        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+        const item = await col.findOne({ num: 9999 }, { async: true })
+        expect(item).toEqual({ id: '9999', name: 'John', num: 9999 })
       })
 
       const percentage = (100 / nonIdQueryTime) * idQueryTime
@@ -613,14 +622,21 @@ describe('Collection', () => {
       })
       const col2 = new Collection<{ id: string, name: string, num: number }>()
 
+      // The fastest of several warm runs: a single cold call measures the first call's warm-up,
+      // which is the same for both lookups and drowns out the difference between them.
       const measureAsyncTime = async (fn: () => Promise<void>) => {
-        const start = performance.now()
         await fn()
-        return performance.now() - start
+        let fastest = Infinity
+        for (let run = 0; run < 20; run += 1) {
+          const start = performance.now()
+          await fn()
+          fastest = Math.min(fastest, performance.now() - start)
+        }
+        return fastest
       }
 
       await Collection.batch(async () => {
-        // create items
+        // The last item is looked up, so the scan has to cover every one of them.
         for (let i = 0; i < 10_000; i += 1) {
           await col1.insert({ id: i.toString(), name: 'John', num: i })
           await col2.insert({ id: i.toString(), name: 'John', num: i })
@@ -628,13 +644,13 @@ describe('Collection', () => {
       })
 
       const indexQueryTime = await measureAsyncTime(async () => {
-        const item = await col1.findOne({ num: 999 }, { async: true })
-        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+        const item = await col1.findOne({ num: 9999 }, { async: true })
+        expect(item).toEqual({ id: '9999', name: 'John', num: 9999 })
       })
 
       const nonIndexQueryTime = await measureAsyncTime(async () => {
-        const item = await col2.findOne({ num: 999 }, { async: true })
-        expect(item).toEqual({ id: '999', name: 'John', num: 999 })
+        const item = await col2.findOne({ num: 9999 }, { async: true })
+        expect(item).toEqual({ id: '9999', name: 'John', num: 9999 })
       })
 
       const percentage = (100 / nonIndexQueryTime) * indexQueryTime

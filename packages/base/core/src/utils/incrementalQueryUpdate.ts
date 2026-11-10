@@ -1,7 +1,7 @@
 import type { QueryOptions } from '../DataAdapter'
 import type { BaseItem, SortSpecifier } from '../Collection/types'
 import type Selector from '../types/Selector'
-import match from './match'
+import { createMatcher } from './match'
 import projectItems from './projectItems'
 import sortItems from './sortItems'
 
@@ -149,6 +149,7 @@ function willWindowStayClosed<T extends BaseItem>(
 
   const inWindow = new Set(previous.map(item => item.id))
   if (changes.deletes.some(id => inWindow.has(id))) return false
+  const isMatching = createMatcher(selector)
   return changes.upserts.every((item) => {
     if (item === edge) return true
     const isBefore = isSortedBefore(item, edge, sort)
@@ -157,11 +158,11 @@ function willWindowStayClosed<T extends BaseItem>(
       // Coming from outside: it either takes a place inside, displacing the edge, or stays where
       // it was. Sorting *equally* to the edge is the one answer the window cannot give, because
       // the store may just as well have kept the edge and left this one out.
-      return !match(item, selector) || isBefore || isSortedBefore(edge, item, sort)
+      return !isMatching(item) || isBefore || isSortedBefore(edge, item, sort)
     }
 
     // An item that no longer matches leaves a place open, and what fills it is beyond the window.
-    if (!match(item, selector)) return false
+    if (!isMatching(item)) return false
     if (isBefore) return true
     // Not before the edge. The one item that may sit *on* the edge is the edge itself, and only
     // while it has not actually moved — an edge that slides outwards gives up the last place, and
@@ -202,10 +203,11 @@ export function mergeChangesetIntoResult<T extends BaseItem>(
   const byId = new Map<any, T>()
   for (const item of previous) byId.set(item.id, item)
   for (const id of changes.deletes) byId.delete(id)
+  const isMatching = createMatcher(selector)
   for (const item of changes.upserts) {
     // Matched against the unprojected item: the selector is free to name fields the projection
     // drops, and the stored result would have no answer for those.
-    if (match(item, selector)) {
+    if (isMatching(item)) {
       byId.set(item.id, projectItems([item], fields)[0])
     } else {
       byId.delete(item.id)

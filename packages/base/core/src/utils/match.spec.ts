@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import match from './match'
+import match, { createMatcher } from './match'
 
 describe('match', () => {
   it('should match an item that satisfies the selector', () => {
@@ -61,5 +61,10 @@ describe('match', () => {
     expect(match({ name: undefined }, { name: { $ne: undefined } })).toBe(false)
     expect(match({ name: undefined as null | undefined }, { name: { $ne: null } })).toBe(false)
     expect(match({ name: undefined as null | undefined }, { name: null })).toBe(true)
+  })
+
+  it('compiles a selector once into a reusable predicate', () => {
+    const isAdult = createMatcher<{ age: number }>({ age: { $gte: 18 } })
+    expect([{ age: 12 }, { age: 18 }, { age: 40 }].map(isAdult)).toEqual([false, true, true])
   })
 })
