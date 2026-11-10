@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * A write made to a persisted collection while `DefaultDataAdapter` loads it from storage is no longer lost. Before this fix, the load replaced memory with what `readAll` returned. An item inserted during the first load was missing from `find`/`findOne` until the next page reload, even though storage had it, and inserting the same id again succeeded. During a `fetchItemsFromStorage()` reload, an update was reverted and a removed item came back. Now the result of every write made during a load is applied on top of what storage returned. This holds whether or not storage already had the write, and works the same way for the legacy `persistence` option.
+* A query that was registered before the `DefaultDataAdapter` finished loading the persisted items now updates once they are loaded. Until now it kept the result it had before the load — usually empty — until a later write touched a matching item, and a `findOne` or `find(...).fetch()` with the same selector and options returned that stale result even after `ready()`. A reactive query run at startup, for instance in a component that renders before the storage answers, now sees the stored items without waiting for `ready()` first.
 
 ## [2.0.0] - 2026-10-27
 

@@ -126,6 +126,43 @@ describe('DefaultDataAdapter', () => {
     expect(result).toEqual([{ id: 'i1', x: 1 }])
   })
 
+  it('updates queries registered before the persisted items were loaded', async () => {
+    const { promise: read, resolve: finishRead } = Promise.withResolvers<void>()
+    const persistence = createStorageAdapter<Item, string>({
+      setup: async () => {},
+      teardown: async () => {},
+      readAll: async () => {
+        await read
+        return [{ id: 'i1', x: 1 }]
+      },
+      readIds: async () => [],
+      createIndex: async () => {},
+      dropIndex: async () => {},
+      readIndex: async () => new Map(),
+      insert: async () => {},
+      replace: async () => {},
+      remove: async () => {},
+      removeAll: async () => {},
+    })
+    const adapter = new DefaultDataAdapter({ storage: () => persistence })
+    const c = new Collection<Item, string, Item>('early', adapter)
+    const backend = adapter.createCollectionBackend<Item, string, Item>(c, [])
+
+    const states: string[] = []
+    backend.onQueryStateChange({ id: 'i1' }, { limit: 1 }, (state) => {
+      states.push(state)
+    })
+    backend.registerQuery({ id: 'i1' }, { limit: 1 })
+    expect(backend.getQueryResult({ id: 'i1' }, { limit: 1 })).toEqual([])
+    states.length = 0
+
+    finishRead()
+    await backend.isReady()
+
+    expect(backend.getQueryResult({ id: 'i1' }, { limit: 1 })).toEqual([{ id: 'i1', x: 1 }])
+    expect(states).toEqual(['complete'])
+  })
+
   it('fetchItemsFromStorage reloads items for all collections', async () => {
     const readAllA = vi.fn(async () => [{ id: 'a1', x: 1 }])
     const readAllB = vi.fn(async () => [{ id: 'b1', x: 2 }])
