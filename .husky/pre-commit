@@ -1,17 +1,21 @@
 branch="$(git rev-parse --abbrev-ref HEAD)"
+PIDS=""
 if [ "$branch" = "main" ]; then
   npm run lint &
+  PIDS="$PIDS $!"
   npm run type-check &
+  PIDS="$PIDS $!"
   npm run test -- run &
+  PIDS="$PIDS $!"
 fi
 
 FAIL=0
-for job in `jobs -p`
+for pid in $PIDS
 do
-  wait $job || let "FAIL+=1"
+  wait $pid || FAIL=$((FAIL + 1))
 done
 
-if [ "$FAIL" == "0" ];
+if [ "$FAIL" = "0" ];
 then
   exit 0
 else
