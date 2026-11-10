@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* A write made to a persisted collection while `DefaultDataAdapter` loads it from storage is no longer lost. Before this fix, the load replaced memory with what `readAll` returned. An item inserted during the first load was missing from `find`/`findOne` until the next page reload, even though storage had it, and inserting the same id again succeeded. During a `fetchItemsFromStorage()` reload, an update was reverted and a removed item came back. Now the result of every write made during a load is applied on top of what storage returned. This holds whether or not storage already had the write, and works the same way for the legacy `persistence` option.
+
 ## [2.0.0] - 2026-10-27
 
 ### BREAKING CHANGES

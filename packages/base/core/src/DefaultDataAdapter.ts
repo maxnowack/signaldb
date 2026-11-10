@@ -36,6 +36,12 @@ function hasPendingUpdates<T>(pendingUpdates: Changeset<T>) {
     || pendingUpdates.removed.length > 0
 }
 
+/**
+ * The result of each write made while a load from storage is in flight, by serialized id: the
+ * item as written, or `null` for a removed item.
+ */
+type WritesDuringLoad = Map<string | null, BaseItem | null>
+
 interface DefaultDataAdapterOptions {
   /**
    * Returns the storage adapter to persist a collection with, by collection name, or `undefined`
@@ -85,6 +91,7 @@ export default class DefaultDataAdapter implements DataAdapter {
   > = new Map()
 
   private queuedQueryUpdates: Map<string, Changeset<any>> = new Map()
+  private writesDuringLoads: Map<string, Set<WritesDuringLoad>> = new Map()
   private cachedQueryResults: Map<string, Map<string, BaseItem[]>> = new Map()
 
   /**
@@ -107,6 +114,36 @@ export default class DefaultDataAdapter implements DataAdapter {
     this.storageAdapters.set(name, adapter)
   }
 
+  private writeToMemory<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
+    { written = [], removed = [] }: { written?: T[], removed?: T[] },
+  ) {
+    const items = this.items.get(collection.name)
+    const loads = this.writesDuringLoads.get(collection.name) ?? []
+    for (const item of written) {
+      const id = serializeValue(item.id)
+      items?.set(id, item)
+      for (const writes of loads) writes.set(id, item)
+    }
+    for (const item of removed) {
+      const id = serializeValue(item.id)
+      items?.delete(id)
+      for (const writes of loads) writes.set(id, null)
+    }
+  }
+
+  private trackWritesDuringLoad(collectionName: string) {
+    const writes: WritesDuringLoad = new Map()
+    const loads = this.writesDuringLoads.get(collectionName) ?? new Set<WritesDuringLoad>()
+    loads.add(writes)
+    this.writesDuringLoads.set(collectionName, loads)
+    return writes
+  }
+
+  private untrackWritesDuringLoad(collectionName: string, writes: WritesDuringLoad) {
+    this.writesDuringLoads.get(collectionName)?.delete(writes)
+  }
+
   private rebuildIndices<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
     collection: Collection<T, I, E, U>,
   ) {
@@ -124,13 +161,16 @@ export default class DefaultDataAdapter implements DataAdapter {
     const storageAdapter = this.storageAdapters.get(collection.name)
     if (!storageAdapter) return // no storage adapter available
 
+    // Writes made during `setup()` are not necessarily in storage yet when `readAll` reads it.
+    const writes = this.trackWritesDuringLoad(collection.name)
     return storageAdapter.setup()
       // eslint-disable-next-line unicorn/prefer-await -- keeps the settle timing of isReady()
       .then(async () => {
-        await this.fetchItemsFromStorage(collection)
+        await this.loadItemsFromStorage(collection, storageAdapter, writes)
       })
       // eslint-disable-next-line unicorn/prefer-await -- keeps the settle timing of isReady()
       .catch((error: unknown) => {
+        this.untrackWritesDuringLoad(collection.name, writes)
         const storageError = error instanceof Error ? error : new Error(String(error))
         if (this.options.onError) {
           this.options.onError(collection.name, storageError)
@@ -140,6 +180,28 @@ export default class DefaultDataAdapter implements DataAdapter {
         }
         throw storageError
       })
+  }
+
+  private async loadItemsFromStorage<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
+    collection: Collection<T, I, E, U>,
+    storageAdapter: StorageAdapter<any, any>,
+    writes: WritesDuringLoad,
+  ) {
+    try {
+      const storedItems: T[] = await storageAdapter.readAll()
+      const items = new Map<string | null, BaseItem>()
+      for (const item of storedItems) items.set(serializeValue(item.id), item)
+      // `readAll` may or may not include these writes; their results are applied, not the
+      // operations, so applying them again to a result that already has them changes nothing.
+      for (const [id, item] of writes) {
+        if (item) items.set(id, item)
+        else items.delete(id)
+      }
+      this.items.set(collection.name, items)
+      this.rebuildIndices(collection)
+    } finally {
+      this.untrackWritesDuringLoad(collection.name, writes)
+    }
   }
 
   private getIndexInfo<T extends BaseItem<I>, I = any, E extends BaseItem = T, U = E>(
@@ -362,7 +424,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         if (items.has(serializeValue(newItem.id))) {
           throw new Error(`Item with id '${newItem.id as string}' already exists`)
         }
-        this.items.get(collection.name)?.set(serializeValue(newItem.id), newItem)
+        this.writeToMemory(collection, { written: [newItem] })
         await this.storageAdapters.get(collection.name)?.insert([newItem])
         this.applyIndexDeltas(collection, { added: [newItem] })
         this.updateQueries(collection, {
@@ -385,7 +447,7 @@ export default class DefaultDataAdapter implements DataAdapter {
           throw new Error(`Item with id '${modifiedItem.id as string}' already exists`)
         }
 
-        this.items.get(collection.name)?.set(serializeValue(modifiedItem.id), modifiedItem)
+        this.writeToMemory(collection, { written: [modifiedItem] })
         await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
         this.applyIndexDeltas(collection, { modified: [{ oldItem: item, newItem: modifiedItem }] })
 
@@ -410,9 +472,7 @@ export default class DefaultDataAdapter implements DataAdapter {
 
           return modifiedItem
         })
-        for (const item of changedItems) {
-          this.items.get(collection.name)?.set(serializeValue(item.id), item)
-        }
+        this.writeToMemory(collection, { written: changedItems })
         await this.storageAdapters.get(collection.name)?.replace(changedItems)
 
         const pairs = items.map((oldItem, index) => ({ oldItem, newItem: changedItems[index] }))
@@ -436,7 +496,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         }
         const modifiedItem = { id: item.id, ...replacement } as T
 
-        this.items.get(collection.name)?.set(serializeValue(modifiedItem.id), modifiedItem)
+        this.writeToMemory(collection, { written: [modifiedItem] })
         await this.storageAdapters.get(collection.name)?.replace([modifiedItem])
 
         this.applyIndexDeltas(collection, { modified: [{ oldItem: item, newItem: modifiedItem }] })
@@ -451,7 +511,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       removeOne: async (selector) => {
         const item = this.getItem(collection, selector)
         if (item == null) return [] // no item found
-        this.items.get(collection.name)?.delete(serializeValue(item.id))
+        this.writeToMemory(collection, { removed: [item] })
         await this.storageAdapters.get(collection.name)?.remove([item])
 
         this.applyIndexDeltas(collection, { removed: [item] })
@@ -465,9 +525,7 @@ export default class DefaultDataAdapter implements DataAdapter {
       removeMany: async (selector) => {
         const items = backend.getQueryResult(selector, {})
 
-        for (const item of items) {
-          this.items.get(collection.name)?.delete(serializeValue(item.id))
-        }
+        this.writeToMemory(collection, { removed: items })
         await this.storageAdapters.get(collection.name)?.remove(items)
         this.applyIndexDeltas(collection, { removed: items })
 
@@ -544,6 +602,7 @@ export default class DefaultDataAdapter implements DataAdapter {
         this.queryEmitters.delete(collection.name)
         this.queuedQueryUpdates.delete(collection.name)
         this.cachedQueryResults.delete(collection.name)
+        this.writesDuringLoads.delete(collection.name)
       },
       isReady: () => persistenceReadyPromise,
     }
@@ -553,7 +612,8 @@ export default class DefaultDataAdapter implements DataAdapter {
 
   /**
    * Replaces a collection's in-memory items with everything its storage adapter holds, and
-   * rebuilds its indices. Does nothing for a collection without a storage adapter.
+   * rebuilds its indices. Does nothing for a collection without a storage adapter. Writes made
+   * while the items are loading are kept: they are newer than what storage returned.
    * @param collection - The collection to reload; omit to reload every collection of this adapter.
    * @returns A promise that resolves once the items are loaded.
    */
@@ -569,11 +629,10 @@ export default class DefaultDataAdapter implements DataAdapter {
     const storageAdapter = this.storageAdapters.get(collection.name)
     if (!storageAdapter) return // no storage adapter available
 
-    const items: T[] = await storageAdapter.readAll()
-    this.items.set(collection.name, items.reduce((map, item) => {
-      map.set(serializeValue(item.id), item)
-      return map
-    }, new Map<string | null, T>()))
-    this.rebuildIndices(collection)
+    await this.loadItemsFromStorage(
+      collection,
+      storageAdapter,
+      this.trackWritesDuringLoad(collection.name),
+    )
   }
 }
