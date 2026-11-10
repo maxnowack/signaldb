@@ -16,7 +16,7 @@ import {
   isEmptyQueryDelta,
 } from './utils/queryDelta'
 import type { QueryDelta } from './utils/queryDelta'
-import match from './utils/match'
+import { createMatcher } from './utils/match'
 import modify from './utils/modify'
 import deepClone from './utils/deepClone'
 
@@ -55,19 +55,18 @@ export interface WorkerDataAdapterEndpoint {
   terminate?: () => void,
 }
 
-// The ids a selector names outright, or `null` when it asks something the ids alone cannot answer.
-// Deliberately strict: one key, `id`, holding a primitive or a lone `$in`. Anything else — another
-// field alongside it, an operator, a nested condition — falls back to matching, because guessing
-// wrong here would silently drop a row from a write.
+// The ids a selector confines its matches to, or `null` when it does not confine them to known
+// ids. Deliberately strict about the `id` condition: a primitive or a lone `$in`; any other operator
+// on `id` falls back to matching everything, because guessing wrong here would silently drop a row
+// from a write. Other top-level keys beside it are fine — all of them have to hold, so they can only
+// narrow further — and the caller still tests the items against them.
 /**
- * Extracts the ids a selector names outright.
+ * Extracts the ids a selector confines its matches to.
  * @param selector - The selector to inspect.
- * @returns The named ids, or `null` when the selector asks more than ids can answer.
+ * @returns The ids every match is among, or `null` when the selector names none.
  */
 function selectorIds(selector: Selector<any>): any[] | null {
-  if (selector == null || typeof selector !== 'object') return null
-  const keys = Object.keys(selector as Record<string, unknown>)
-  if (keys.length !== 1 || keys[0] !== 'id') return null
+  if (selector == null || typeof selector !== 'object' || !Object.hasOwn(selector, 'id')) return null
   const value = (selector as Record<string, unknown>).id
   if (value == null) return null
   if (typeof value !== 'object') return [value]
@@ -612,9 +611,10 @@ export default class WorkerDataAdapter implements DataAdapter {
       if (byId.has(id)) isAffected = true
     })
     if (!isAffected) {
+      const isMatching = query.selector == null ? () => false : createMatcher(query.selector)
       pending.upserts.forEach((item, id) => {
         if (isAffected) return
-        if (byId.has(id) || (query.selector != null && match(item, query.selector))) {
+        if (byId.has(id) || isMatching(item)) {
           isAffected = true
         }
       })
@@ -711,8 +711,7 @@ export default class WorkerDataAdapter implements DataAdapter {
       affectedIds.forEach((id) => {
         if (byId.has(id)) wasHolding = true
       })
-      const isNowMatches = upserts.some(item => query.selector != null
-        && match(item, query.selector))
+      const isNowMatches = query.selector != null && upserts.some(createMatcher(query.selector))
       if (!wasHolding && !isNowMatches) return
       affected.push(query)
     })
@@ -749,10 +748,16 @@ export default class WorkerDataAdapter implements DataAdapter {
     // `updateOne({ id })` and `removeOne({ id })` are what an application writes most of the time,
     // and they name exactly the rows they touch — no reason to materialise every active query's
     // result and run the matcher over all of it to find them.
+    // A selector naming ids narrows to those, whatever else it says: top-level conditions all have
+    // to hold, so an item outside the ids cannot match. What else it says is then tested on just
+    // those — `{ id, version: { $lt } }` is a primary-key write with a guard, and testing every
+    // observed item against it made each such write cost the size of every active query's result.
     const ids = selectorIds(selector)
-    const matches = ids == null
-      ? this.observableItems(collectionName).filter(item => match(item, selector))
+    const isIdOnly = ids != null && Object.keys(selector as Record<string, unknown>).length === 1
+    const candidates = ids == null
+      ? this.observableItems(collectionName)
       : this.observableItemsByIds(collectionName, ids)
+    const matches = isIdOnly ? candidates : candidates.filter(createMatcher(selector))
     return isFirstOnly ? matches.slice(0, 1) : matches
   }
 

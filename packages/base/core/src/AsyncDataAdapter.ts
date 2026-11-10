@@ -7,7 +7,7 @@ import type Selector from './types/Selector'
 import type Modifier from './types/Modifier'
 
 import deepClone from './utils/deepClone'
-import match from './utils/match'
+import { createMatcher } from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
 import executeStorageQuery from './utils/executeStorageQuery'
@@ -357,8 +357,9 @@ export default class AsyncDataAdapter implements DataAdapter {
     // their own: an item that no longer matches, or that is gone, is invisible to the matcher.
     const affected = [...registry.values()].filter((rec) => {
       const ids = this.queryItemIds(rec)
-      return changes.deletes.some(id => ids.has(id))
-        || changes.upserts.some(item => ids.has(item.id) || match(item, rec.selector))
+      if (changes.deletes.some(id => ids.has(id))) return true
+      const isMatching = createMatcher(rec.selector)
+      return changes.upserts.some(item => ids.has(item.id) || isMatching(item))
     })
     if (affected.length === 0) return
 

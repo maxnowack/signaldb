@@ -4,7 +4,7 @@ import type Modifier from './types/Modifier'
 import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import deepClone from './utils/deepClone'
-import match from './utils/match'
+import { createMatcher } from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
 import executeStorageQuery from './utils/executeStorageQuery'
@@ -597,8 +597,9 @@ export default class WorkerDataAdapterHost<
     // item that no longer matches, or that was removed outright, is invisible to the matcher.
     const affectedQueries = [...queries.values()].filter((query) => {
       const ids = this.queryItemIds(query)
-      return changes.deletes.some(id => ids.has(id))
-        || changes.upserts.some(item => ids.has(item.id) || match(item, query.selector))
+      if (changes.deletes.some(id => ids.has(id))) return true
+      const isMatching = createMatcher(query.selector)
+      return changes.upserts.some(item => ids.has(item.id) || isMatching(item))
     })
     if (affectedQueries.length === 0) return // no active queries affected
 

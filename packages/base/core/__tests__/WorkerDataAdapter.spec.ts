@@ -976,9 +976,9 @@ describe('WorkerDataAdapter', () => {
       await promise
     })
 
-    // A selector that names `id` *and* something else cannot be answered by ids alone: the second
-    // condition may exclude a row the id path would have written.
-    it('falls back to matching when the selector asks for more than ids', async () => {
+    // A selector that names `id` *and* something else is narrowed by its ids, but the ids alone do
+    // not answer it: the second condition may exclude a row the id path would have written.
+    it('still tests the rest of a selector that also names ids', async () => {
       const backend = adapter.createCollectionBackend(collection, [])
       await backend.isReady()
       await registerSeededQuery(backend, [{ id: '1', name: 'Alice' }])
@@ -990,6 +990,30 @@ describe('WorkerDataAdapter', () => {
 
       await waitForBatchedMessage()
       mockWorker.respondTo('updateOne', [[]])
+      await promise
+    })
+
+    // `{ id: { $in }, … }` is a guarded write by primary key: only the named rows can match, and of
+    // those only the ones the rest of the selector admits are written.
+    it('writes only the named rows that the rest of the selector admits', async () => {
+      const backend = adapter.createCollectionBackend(collection, [])
+      await backend.isReady()
+      await registerSeededQuery(backend, [
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob' },
+        { id: '3', name: 'Bob' },
+      ])
+      mockWorker.clearCalls()
+
+      const promise = backend.updateMany({ id: { $in: ['1', '2'] }, name: 'Bob' }, { $set: { value: 'x' } })
+      expect(backend.getQueryResult(selector, {})).toEqual([
+        { id: '1', name: 'Alice' },
+        { id: '2', name: 'Bob', value: 'x' },
+        { id: '3', name: 'Bob' },
+      ])
+
+      await waitForBatchedMessage()
+      mockWorker.respondTo('updateMany', [[{ id: '2', name: 'Bob', value: 'x' }]])
       await promise
     })
 

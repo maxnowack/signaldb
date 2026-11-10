@@ -87,3 +87,53 @@ test('a burst of writes with none of them settled', async ({ bench }) => {
     { iterations: 10, time: 500 },
   )
 })
+
+/**
+ * An adapter whose one registered query already holds a result of the given size — what a
+ * selector-based write is resolved against locally.
+ * @param size - How many items the query holds.
+ * @returns The collection backend to write through.
+ */
+async function withObservedItems(size: number) {
+  const worker = new SilentWorker()
+  const adapter = new WorkerDataAdapter(worker, { id: 'bench' })
+  worker.emit({ type: 'ready', workerId: 'bench' })
+  const backend = adapter.createCollectionBackend(
+    { name: 'bench' } as unknown as Collection<BenchItem>,
+    [],
+  )
+  await backend.isReady()
+  backend.registerQuery(selector, {})
+  const items = Array.from({ length: size }, (_, index) => ({ id: `item-${index}`, status: 'open', rank: index }))
+  worker.emit({
+    type: 'queryUpdate',
+    workerId: 'bench',
+    data: {
+      collectionName: 'bench', selector, options: {}, state: 'complete', items,
+    },
+    error: null,
+  })
+  return backend
+}
+
+// A write by primary key with a guard beside the id — move a pointer forward, only if it is still
+// behind — issued once per touched row. Each one has only one row it could possibly write, and
+// resolving it by testing every observed item against a freshly compiled selector made it cost the
+// size of every active query's result instead.
+test('guarded writes by id against a large observed result', async ({ bench }) => {
+  await bench.compare(
+    bench('100 guarded updateMany against 1000 observed items', async () => {
+      const backend = await withObservedItems(1000)
+      for (let index = 0; index < 100; index += 1) {
+        void backend.updateMany({ id: `item-${index}`, rank: { $lt: 5000 } }, { $set: { rank: 5000 } })
+      }
+    }),
+    bench('100 guarded updateMany against 4000 observed items', async () => {
+      const backend = await withObservedItems(4000)
+      for (let index = 0; index < 100; index += 1) {
+        void backend.updateMany({ id: `item-${index}`, rank: { $lt: 5000 } }, { $set: { rank: 5000 } })
+      }
+    }),
+    { iterations: 10, time: 500 },
+  )
+})

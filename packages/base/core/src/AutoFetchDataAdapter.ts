@@ -6,7 +6,7 @@ import type StorageAdapter from './types/StorageAdapter'
 import type Selector from './types/Selector'
 import type Modifier from './types/Modifier'
 import deepClone from './utils/deepClone'
-import match from './utils/match'
+import { createMatcher } from './utils/match'
 import modify from './utils/modify'
 import queryId from './utils/queryId'
 import isEqual from './utils/isEqual'
@@ -391,7 +391,7 @@ export default class AutoFetchDataAdapter implements DataAdapter {
     const firstFetches = this.firstFetches.get(collectionName)
     const affected = [...registry.values()].filter(({ selector }) =>
       !firstFetches?.has(selectorId(selector))
-      && changedItems.some(item => match(item, selector)),
+      && changedItems.some(createMatcher(selector)),
     )
     if (affected.length === 0) return
 

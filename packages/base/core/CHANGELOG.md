@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Matching a selector against many items is much faster. Before this fix, every item tested against a selector compiled the selector again, and compiling costs far more than testing an item. This applied to scans, to finding the queries a write affects, and to resolving a write locally. Now each selector is compiled once per scan. A `findOne` that has to scan 10,000 items in memory takes about 3 ms instead of 82 ms, and a scan of 1,000 items about 1 ms instead of 14 ms.
+* A write through `WorkerDataAdapter` whose selector names `id` together with another condition, such as `{ id, version: { $lt: 3 } }`, is now resolved from the items with that id instead of from every item an active query holds. A hundred such writes against a query holding 1,000 items take about 26 ms instead of 750 ms. Against 4,000 items they take 80 ms instead of 4.7 s.
+
 ## [2.0.1] - 2026-11-10
 
 ### Fixed

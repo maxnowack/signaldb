@@ -7,7 +7,7 @@ import getIndexInfo from '../getIndexInfo'
 import compact from './compact'
 import idIndexQuery from './idIndexQuery'
 import isEqual from './isEqual'
-import match from './match'
+import { createMatcher } from './match'
 import projectItems from './projectItems'
 import sortItems from './sortItems'
 import storageIndexQuery from './storageIndexQuery'
@@ -76,7 +76,7 @@ function finishAnswer<T extends BaseItem>(
   assertAnswerIsCoherent(answer, hasResidual, sort, fields)
 
   const matched = hasResidual
-    ? answer.items.filter(item => match(item, residual))
+    ? answer.items.filter(createMatcher(residual))
     : answer.items
   const sorted = sort && !answer.sorted ? sortItems(matched, sort) : matched
   const windowed = answer.windowed ? sorted : applyWindow(sorted, skip, limit)
@@ -179,11 +179,8 @@ async function readMatching<T extends BaseItem<I>, I = any>(
     indices.map(field => storageIndexQuery<T, I>(storageAdapter, field)),
     selector,
   )
-  const isMatchingItem = (item: T) => {
-    return indexInfo.optimizedSelector == null
-      || Object.keys(indexInfo.optimizedSelector).length === 0
-      || match(item, indexInfo.optimizedSelector)
-  }
+  // No selector, or an empty one, matches every item — which is what an empty selector compiles to.
+  const isMatchingItem = createMatcher<T>(indexInfo.optimizedSelector ?? {})
   if (indexInfo.matched) {
     const items = await storageAdapter.readIds(indexInfo.ids) as T[]
     return isEqual(indexInfo.optimizedSelector, {}) ? items : items.filter(isMatchingItem)

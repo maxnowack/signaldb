@@ -1,7 +1,7 @@
 import type { QueryOptions } from '../DataAdapter'
 import type Selector from '../types/Selector'
 import type { BaseItem } from '../Collection/types'
-import match from './match'
+import { createMatcher } from './match'
 import sortItems from './sortItems'
 import projectItems from './projectItems'
 
@@ -21,7 +21,7 @@ export default function applyQueryOptions<T extends BaseItem>(
   selector: Selector<T>,
   options?: QueryOptions<T>,
 ): T[] {
-  const matched = selector == null ? [] : items.filter(item => match(item, selector))
+  const matched = selector == null ? [] : items.filter(createMatcher(selector))
   const { sort, skip, limit, fields } = options || {}
   const sorted = sort ? sortItems(matched, sort) : matched
   const skipped = skip ? sorted.slice(skip) : sorted
