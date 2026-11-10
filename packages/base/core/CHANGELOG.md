@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-11-10
+
 ### Fixed
 
 * Matching a selector against many items is much faster. Before this fix, every item tested against a selector compiled the selector again, and compiling costs far more than testing an item. This applied to scans, to finding the queries a write affects, and to resolving a write locally. Now each selector is compiled once per scan. A `findOne` that has to scan 10,000 items in memory takes about 3 ms instead of 82 ms, and a scan of 1,000 items about 1 ms instead of 14 ms.
