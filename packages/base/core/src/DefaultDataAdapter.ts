@@ -199,6 +199,13 @@ export default class DefaultDataAdapter implements DataAdapter {
       }
       this.items.set(collection.name, items)
       this.rebuildIndices(collection)
+
+      // A query cached before the load still holds the items it saw then; the
+      // load replaced them wholesale, so each one is executed again.
+      const activeQueries = [...this.activeQueries.get(collection.name)?.values() ?? []]
+      for (const { selector, options } of activeQueries) {
+        this.executeAndCacheQuery(collection, selector, options)
+      }
     } finally {
       this.untrackWritesDuringLoad(collection.name, writes)
     }
@@ -611,9 +618,11 @@ export default class DefaultDataAdapter implements DataAdapter {
   }
 
   /**
-   * Replaces a collection's in-memory items with everything its storage adapter holds, and
-   * rebuilds its indices. Does nothing for a collection without a storage adapter. Writes made
-   * while the items are loading are kept: they are newer than what storage returned.
+   * Replaces a collection's in-memory items with everything its storage adapter holds,
+   * rebuilds its indices and re-runs its active queries, so a query registered before the
+   * load sees the loaded items. Does nothing for a collection without a storage adapter.
+   * Writes made while the items are loading are kept: they are newer than what storage
+   * returned.
    * @param collection - The collection to reload; omit to reload every collection of this adapter.
    * @returns A promise that resolves once the items are loaded.
    */
