@@ -35,7 +35,7 @@
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-typescript": "12.3.1",
-    "@stylistic/eslint-plugin": "^5.10.0",
+    "@stylistic/eslint-plugin": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "8.72.2",
     "@typescript-eslint/parser": "8.72.2",
     "@vitest/coverage-istanbul": "5.1.0",
