@@ -123,6 +123,7 @@ export default withMermaid({
             { text: 'Developer Tools', link: '/devtools/' },
             { text: 'Schema Validation', link: '/schema-validation/' },
             { text: 'Upgrade to v2', link: '/upgrade/v2/' },
+            { text: 'llms.txt', link: '/llms.txt' },
           ],
         },
         {

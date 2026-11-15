@@ -93,6 +93,16 @@ console.log(cursor.fetch()) // returns an array with all documents in the collec
 
 You've finished the Getting Started Guide! The next steps are getting reactivity to work. Check out the [core concepts about reactivity](/core-concepts/#signals-and-reactivity) to learn how to do this.
 
+## Using SignalDB with AI tools
+
+The documentation is also available in a format made for large language models,
+following the [llms.txt](https://llmstxt.org/) convention:
+
+- [`/llms.txt`](/llms.txt) — an index of all documentation pages with a short description each
+- [`/llms-full.txt`](/llms-full.txt) — the complete documentation in a single file
+
+Hand one of them to your coding assistant to give it up-to-date knowledge of SignalDB's API.
+
 ## Next steps
 
 Now you know the basics about SignalDB. It's time to learn how to integrate it with the framework you're using.
