@@ -54,9 +54,9 @@
   ],
   "peerDependencies": {
     "@signaldb/core": "1.x || ^2.0.0-0",
-    "solid-js": "1.x.x"
+    "solid-js": "1.x.x || 2.x"
   },
   "devDependencies": {
-    "solid-js": "^1.9.17"
+    "solid-js": "^2.0.0"
   }
 }
