@@ -712,6 +712,14 @@ export default class SyncManager<
         changes,
         rawChanges: currentChanges,
       }),
+      pendingChanges: () => this.changes.find({
+        collectionName: name,
+        id: { $nin: currentChanges.map(change => change.id) },
+      }, {
+        sort: { time: 1 },
+        reactive: false,
+        async: true,
+      }).fetch(),
       insert: async (item) => {
         // add multiple remote changes as we don't know if the item will be updated or inserted during replace
         this.remoteChanges.push({

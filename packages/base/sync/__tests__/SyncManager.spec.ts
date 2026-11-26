@@ -2256,3 +2256,61 @@ it('should reject isReady when its internal collections cannot be loaded', async
   await expect(syncManager.isReady()).rejects.toThrow('storage unavailable')
   expect(onError).toHaveBeenCalled()
 })
+
+it('should keep local changes made while the pull after a push is running', async () => {
+  type PositionedItem = TestItem & { position: number }
+  const server = new Map<string, PositionedItem>([
+    ['1', { id: '1', name: 'one', position: 0 }],
+    ['2', { id: '2', name: 'two', position: 1 }],
+  ])
+  let pulls = 0
+  const pullStarted = Promise.withResolvers<void>()
+  const releasePull = Promise.withResolvers<void>()
+  let holdPullNumber = 0
+  const mockPull = vi.fn<() => Promise<LoadResponse<PositionedItem>>>()
+  mockPull.mockImplementation(async () => {
+    pulls += 1
+    // the server orders its items anew on every pull
+    const items = server.values()
+      .map(item => ({ ...item, position: item.position + pulls }))
+      .toArray()
+    if (pulls === holdPullNumber) {
+      pullStarted.resolve()
+      await releasePull.promise
+    }
+    return { items }
+  })
+  const mockPush = vi.fn<(
+    options: unknown,
+    pushParameters: { changes: { modified: PositionedItem[] } },
+  ) => Promise<void>>()
+    .mockImplementation((_options, { changes }) => {
+      for (const item of changes.modified) {
+        server.set(item.id, { ...item, position: server.get(item.id)?.position ?? 0 })
+      }
+      return Promise.resolve()
+    })
+
+  const syncManager = new SyncManager({ pull: mockPull, push: mockPush })
+  const mockCollection = withAsyncQueries(new Collection<PositionedItem, string, any>())
+  syncManager.addCollection(mockCollection, { name: 'test' })
+  await syncManager.sync('test')
+
+  const names: string[] = []
+  mockCollection.on('changed', (item) => {
+    if (item.id === '2') names.push(item.name)
+  })
+
+  await mockCollection.updateOne({ id: '1' }, { $set: { name: 'one changed' } })
+  // the pull after the push is held until the second local change was made
+  holdPullNumber = pulls + 2
+  const sync = syncManager.sync('test')
+  await pullStarted.promise
+  await mockCollection.updateOne({ id: '2' }, { $set: { name: 'two changed' } })
+  releasePull.resolve()
+  await sync
+  await vi.waitFor(() => expect(server.get('2')?.name).toBe('two changed'))
+
+  expect(names).not.toContain('two')
+  await expect(mockCollection.findOne({ id: '2' }, { async: true })).resolves.toMatchObject({ name: 'two changed' })
+})
