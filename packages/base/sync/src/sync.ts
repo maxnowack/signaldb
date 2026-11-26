@@ -41,6 +41,7 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
   update: (id: IdType, modifier: Modifier<ItemType>) => Promise<void>,
   remove: (id: IdType) => Promise<void>,
   batch: (fn: () => Promise<void>) => Promise<void>,
+  pendingChanges?: () => Promise<Change<ItemType, IdType>[]>,
 }
 
 /**
@@ -56,6 +57,8 @@ interface Options<ItemType extends BaseItem<IdType>, IdType> {
  * @param options.update Method to update an item
  * @param options.remove Method to remove an item
  * @param options.batch Method to batch multiple operations
+ * @param [options.pendingChanges] Method to get the local changes made after the given ones, which
+ * stay applied on top of the new data
  * @returns The new snapshot
  */
 export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
@@ -68,6 +71,7 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
   update,
   remove,
   batch,
+  pendingChanges,
 }: Options<ItemType, IdType>): Promise<ItemType[]> {
   let newData = data
   let previousSnapshot = lastSnapshot || []
@@ -93,8 +97,13 @@ export default async function sync<ItemType extends BaseItem<IdType>, IdType>({
     }
   }
 
+  // local changes made while this sync was running are not pushed yet and must not be overwritten
+  const pending = pendingChanges ? await pendingChanges() : []
+
   // apply the new changes on the collection
-  const newChanges = newData.changes ?? computeChanges(previousSnapshot, newData.items)
+  const newChanges = pending.length > 0
+    ? computeChanges(previousSnapshot, applyChanges(newSnapshot, pending, previousSnapshot))
+    : newData.changes ?? computeChanges(previousSnapshot, newData.items)
   await batch(async () => {
     await Promise.all(newChanges.added.map(item => insert(item)))
     await Promise.all(newChanges.modified.map(item => update(item.id, { $set: item })))

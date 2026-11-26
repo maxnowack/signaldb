@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* A local change made while a sync was running is no longer overwritten by that sync's pulled data. When the server returned an item with any other field changed, the item briefly showed its old values until the next sync pushed the change; the change now stays applied on top of the pulled data.
+
 ## [2.0.0] - 2026-10-27
 
 ### BREAKING CHANGES
